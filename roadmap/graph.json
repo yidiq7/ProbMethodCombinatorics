@@ -434,6 +434,264 @@
         "prob_zero_bound",
         "variance_indicator_bound"
       ]
+    },
+    "chernoff": {
+      "kind": "group",
+      "doc": "chernoff.md"
+    },
+    "local_lemma": {
+      "kind": "group",
+      "doc": "local-lemma.md"
+    },
+    "to_sign": {
+      "kind": "definition",
+      "parent": "chernoff",
+      "file": "ProbMethodCombinatorics/Chernoff.lean",
+      "decl": "ProbMethodCombinatorics.toSign",
+      "doc": "chernoff.md#to_sign--tosign",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "chernoff_bound": {
+      "kind": "theorem",
+      "parent": "chernoff",
+      "file": "ProbMethodCombinatorics/Chernoff.lean",
+      "decl": "ProbMethodCombinatorics.card_filter_le_exp_mul",
+      "doc": "chernoff.md#chernoff--card_filter_le_exp_mul",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "to_sign"
+      ],
+      "proof_uses": []
+    },
+    "chernoff_abs": {
+      "kind": "theorem",
+      "parent": "chernoff",
+      "file": "ProbMethodCombinatorics/Chernoff.lean",
+      "decl": "ProbMethodCombinatorics.card_filter_abs_le_exp_mul",
+      "doc": "chernoff.md#chernoff_abs--card_filter_abs_le_exp_mul",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "to_sign"
+      ],
+      "proof_uses": [
+        "chernoff_bound"
+      ]
+    },
+    "discrepancy": {
+      "kind": "theorem",
+      "parent": "chernoff",
+      "file": "ProbMethodCombinatorics/Chernoff.lean",
+      "decl": "ProbMethodCombinatorics.exists_toSign_abs_sum_le",
+      "doc": "chernoff.md#discrepancy--exists_tosign_abs_sum_le",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "to_sign"
+      ],
+      "proof_uses": [
+        "chernoff_abs"
+      ]
+    },
+    "nearly_equiangular": {
+      "kind": "theorem",
+      "parent": "chernoff",
+      "file": "ProbMethodCombinatorics/Chernoff.lean",
+      "decl": "ProbMethodCombinatorics.exists_nearly_equiangular",
+      "doc": "chernoff.md#nearly_equiangular--exists_nearly_equiangular",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": [
+        "chernoff_abs"
+      ]
+    },
+    "hajos": {
+      "kind": "theorem",
+      "parent": "chernoff",
+      "doc": "chernoff.md#not-stated",
+      "statement": "planned",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": [
+        "chernoff_bound"
+      ]
+    },
+    "pattern": {
+      "kind": "definition",
+      "parent": "local_lemma",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.pattern",
+      "doc": "local-lemma.md#pattern-indep_from-is_dependency_graph",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "indep_from": {
+      "kind": "definition",
+      "parent": "local_lemma",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.IndepFrom",
+      "doc": "local-lemma.md#pattern-indep_from-is_dependency_graph",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "pattern"
+      ],
+      "proof_uses": []
+    },
+    "is_dependency_graph": {
+      "kind": "definition",
+      "parent": "local_lemma",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.IsDependencyGraph",
+      "doc": "local-lemma.md#pattern-indep_from-is_dependency_graph",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "indep_from"
+      ],
+      "proof_uses": []
+    },
+    "lll_general": {
+      "kind": "theorem",
+      "parent": "local_lemma",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.lovasz_local_lemma",
+      "doc": "local-lemma.md#lovasz_local_lemma--general-form",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "is_dependency_graph"
+      ],
+      "proof_uses": []
+    },
+    "lll_symmetric": {
+      "kind": "theorem",
+      "parent": "local_lemma",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.lovasz_local_lemma_symmetric",
+      "doc": "local-lemma.md#lovasz_local_lemma_symmetric",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "is_dependency_graph"
+      ],
+      "proof_uses": [
+        "lll_general"
+      ]
+    },
+    "lll_sum": {
+      "kind": "theorem",
+      "parent": "local_lemma",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.lovasz_local_lemma_of_sum_le",
+      "doc": "local-lemma.md#lovasz_local_lemma_of_sum_le",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "is_dependency_graph"
+      ],
+      "proof_uses": [
+        "lll_general"
+      ]
+    },
+    "two_colorable_local": {
+      "kind": "theorem",
+      "parent": "local_lemma",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.twoColorable_of_inter_card_le",
+      "doc": "local-lemma.md#two_colorable_local--twocolorable_of_inter_card_le",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "two_colorable"
+      ],
+      "proof_uses": [
+        "lll_symmetric"
+      ]
+    },
+    "two_colorable_regular": {
+      "kind": "theorem",
+      "parent": "local_lemma",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.twoColorable_of_regular",
+      "doc": "local-lemma.md#two_colorable_regular--twocolorable_of_regular",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "two_colorable"
+      ],
+      "proof_uses": [
+        "two_colorable_local"
+      ]
+    },
+    "ramsey_spencer": {
+      "kind": "theorem",
+      "parent": "local_lemma",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.lt_ramseyNumber_of_local_lemma",
+      "doc": "local-lemma.md#ramsey_spencer--lt_ramseynumber_of_local_lemma",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "ramsey_number",
+        "ramsey_property"
+      ],
+      "proof_uses": [
+        "lll_symmetric",
+        "ramsey_property_mono",
+        "ramsey_finite"
+      ]
+    },
+    "independent_transversal": {
+      "kind": "theorem",
+      "parent": "local_lemma",
+      "doc": "local-lemma.md#not-stated",
+      "statement": "planned",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": [
+        "lll_general"
+      ]
+    },
+    "directed_cycles": {
+      "kind": "theorem",
+      "parent": "local_lemma",
+      "doc": "local-lemma.md#not-stated",
+      "statement": "planned",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": [
+        "lll_general"
+      ]
+    },
+    "lopsided_lll": {
+      "kind": "theorem",
+      "parent": "local_lemma",
+      "doc": "local-lemma.md#not-stated",
+      "statement": "planned",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": [
+        "lll_general"
+      ]
+    },
+    "algorithmic_lll": {
+      "kind": "theorem",
+      "parent": "local_lemma",
+      "doc": "local-lemma.md#not-stated",
+      "statement": "planned",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": [
+        "lll_general"
+      ]
     }
   }
 }

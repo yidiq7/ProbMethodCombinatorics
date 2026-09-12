@@ -5,3 +5,5 @@ import ProbMethodCombinatorics.PropertyB
 import ProbMethodCombinatorics.Expectation
 import ProbMethodCombinatorics.Alterations
 import ProbMethodCombinatorics.SecondMoment
+import ProbMethodCombinatorics.Chernoff
+import ProbMethodCombinatorics.LocalLemma
