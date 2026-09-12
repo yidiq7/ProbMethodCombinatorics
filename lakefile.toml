@@ -1,0 +1,6 @@
+name = "ProbMethodCombinatorics"
+version = "0.1.0"
+defaultTargets = ["ProbMethodCombinatorics"]
+
+[[lean_lib]]
+name = "ProbMethodCombinatorics"
