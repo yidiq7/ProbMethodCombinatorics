@@ -77,14 +77,17 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   earlier batch closed unclaimed and republished so the whole frontier shares one base
   commit.  Chapters 3–11 remain unstated by design: the plan stays shallow and deepens as
   reductions come back.
-- **2026-09-12 — Chapters 5 and 6 stated and published** as issues #21–#30, pinned to the
-  commit that states them.  The convention question recurred and was settled per chapter, not
+- **2026-09-12 — Chapters 5 and 6 stated and published** as issues #21–#30, pinned to `c943f93`.  The convention question recurred and was settled per chapter, not
   per node: **Chapter 5 is counting**, because both its applications end in existence claims
   about finite objects and its proofs are "Chernoff, then union bound", which is a count;
   **Chapter 6 is measure-theoretic**, because Definition 6.1.1's independence-from-a-family is
   strictly stronger than pairwise independence and has no counting surrogate.  Spencer's
   Ramsey bound (Theorem 1.1.9) is filed under `local-lemma` rather than `introduction`,
   because the local lemma is what proves it.
+  Two published issues (#25, #26) carried cross-references to issue numbers predicted before
+  publication and off by one; corrected in place.  **Write task prose with placeholder
+  references and fill in the numbers after `create-task` returns them**, or publish
+  dependency-ordered and reference only already-issued numbers.
 - **2026-09-12 — Chapters 3 and 4 stated and published** as issues #14–#20, pinned to
   `22ba93e`.  Issues #4–#13 stay pinned to `dcaf5da`: the new files are additive and rewrite
   no existing declaration, so an older pin costs a worker nothing.  Seven more declarations (five in
