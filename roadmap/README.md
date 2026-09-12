@@ -75,7 +75,9 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   earlier batch closed unclaimed and republished so the whole frontier shares one base
   commit.  Chapters 3–11 remain unstated by design: the plan stays shallow and deepens as
   reductions come back.
-- **2026-09-12 — Chapters 3 and 4 stated.** Seven more declarations (five in
+- **2026-09-12 — Chapters 3 and 4 stated and published** as issues #14–#20, pinned to
+  `22ba93e`.  Issues #4–#13 stay pinned to `dcaf5da`: the new files are additive and rewrite
+  no existing declaration, so an older pin costs a worker nothing.  Seven more declarations (five in
   `Alterations.lean`, two in `SecondMoment.lean`). Chapter 4 deliberately stops at the
   engine; see the decision above. Markov (§3.3), Chebyshev (§4.1), Weierstrass (§4.7) and
   `G(V,p)` itself are upstream nodes. `card_filter_le_sum_div` is *not* a restatement of
