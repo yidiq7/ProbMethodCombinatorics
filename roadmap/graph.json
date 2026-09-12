@@ -231,6 +231,209 @@
       "proof_uses": [
         "caro_wei"
       ]
+    },
+    "alterations": {
+      "kind": "group",
+      "doc": "alterations.md"
+    },
+    "second_moment": {
+      "kind": "group",
+      "doc": "second-moment.md"
+    },
+    "markov_upstream": {
+      "kind": "theorem",
+      "parent": "alterations",
+      "decl": "MeasureTheory.mul_meas_ge_le_lintegral\u2080",
+      "upstream": true
+    },
+    "markov_counting": {
+      "kind": "theorem",
+      "parent": "alterations",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.card_filter_le_sum_div",
+      "doc": "alterations.md#markov_counting--card_filter_le_sum_div",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
+    },
+    "is_dominating": {
+      "kind": "definition",
+      "parent": "alterations",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.IsDominating",
+      "doc": "alterations.md#is_dominating-dominating_set_bound--isdominating-exists_isdominating_card_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "dominating_set_bound": {
+      "kind": "theorem",
+      "parent": "alterations",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.exists_isDominating_card_le",
+      "doc": "alterations.md#is_dominating-dominating_set_bound--isdominating-exists_isdominating_card_le",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "is_dominating"
+      ],
+      "proof_uses": []
+    },
+    "twice_area": {
+      "kind": "definition",
+      "parent": "alterations",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.twiceArea",
+      "doc": "alterations.md#twice_area-heilbronn--twicearea-exists_heilbronn_configuration",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "heilbronn": {
+      "kind": "theorem",
+      "parent": "alterations",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.exists_heilbronn_configuration",
+      "doc": "alterations.md#twice_area-heilbronn--twicearea-exists_heilbronn_configuration",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "twice_area"
+      ],
+      "proof_uses": [
+        "markov_counting"
+      ]
+    },
+    "girth_chromatic": {
+      "kind": "theorem",
+      "parent": "alterations",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.exists_girth_gt_and_chromaticNumber_gt",
+      "doc": "alterations.md#girth_chromatic--exists_girth_gt_and_chromaticnumber_gt",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": [
+        "markov_counting"
+      ]
+    },
+    "property_b_sharp": {
+      "kind": "theorem",
+      "parent": "alterations",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.exists_twoColorable_of_card_le",
+      "doc": "alterations.md#property_b_sharp--exists_twocolorable_of_card_le",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "two_colorable"
+      ],
+      "proof_uses": []
+    },
+    "chebyshev": {
+      "kind": "theorem",
+      "parent": "second_moment",
+      "decl": "ProbabilityTheory.meas_ge_le_variance_div_sq",
+      "upstream": true
+    },
+    "weierstrass": {
+      "kind": "theorem",
+      "parent": "second_moment",
+      "decl": "polynomialFunctions_closure_eq_top",
+      "upstream": true
+    },
+    "binomial_random_graph": {
+      "kind": "definition",
+      "parent": "second_moment",
+      "decl": "SimpleGraph.binomialRandom",
+      "upstream": true
+    },
+    "prob_zero_bound": {
+      "kind": "theorem",
+      "parent": "second_moment",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.prob_eq_zero_le_variance_div_sq",
+      "doc": "second-moment.md#prob_zero_bound--prob_eq_zero_le_variance_div_sq",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": [
+        "chebyshev"
+      ]
+    },
+    "variance_indicator_bound": {
+      "kind": "theorem",
+      "parent": "second_moment",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.variance_sum_indicator_le",
+      "doc": "second-moment.md#variance_indicator_bound--variance_sum_indicator_le",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
+    },
+    "triangle_threshold": {
+      "kind": "theorem",
+      "parent": "second_moment",
+      "doc": "second-moment.md#planned-not-stated",
+      "statement": "planned",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": [
+        "prob_zero_bound",
+        "variance_indicator_bound"
+      ]
+    },
+    "subgraph_threshold": {
+      "kind": "theorem",
+      "parent": "second_moment",
+      "doc": "second-moment.md#planned-not-stated",
+      "statement": "planned",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": [
+        "prob_zero_bound",
+        "variance_indicator_bound"
+      ]
+    },
+    "clique_number": {
+      "kind": "theorem",
+      "parent": "second_moment",
+      "doc": "second-moment.md#planned-not-stated",
+      "statement": "planned",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": [
+        "prob_zero_bound",
+        "variance_indicator_bound"
+      ]
+    },
+    "hardy_ramanujan": {
+      "kind": "theorem",
+      "parent": "second_moment",
+      "doc": "second-moment.md#planned-not-stated",
+      "statement": "planned",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": [
+        "prob_zero_bound",
+        "variance_indicator_bound"
+      ]
+    },
+    "distinct_sums": {
+      "kind": "theorem",
+      "parent": "second_moment",
+      "doc": "second-moment.md#planned-not-stated",
+      "statement": "planned",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": [
+        "prob_zero_bound",
+        "variance_indicator_bound"
+      ]
     }
   }
 }

@@ -21,7 +21,9 @@ Groups, in order:
 |---|---|---|
 | [`introduction`](introduction.md) | 1 | stated, in progress |
 | [`expectation`](expectation.md) | 2 | partly stated, in progress |
-| [`later-chapters`](later-chapters.md) | 3–11 | planned, not yet stated |
+| [`alterations`](alterations.md) | 3 | stated, in progress |
+| [`second-moment`](second-moment.md) | 4 | engine stated; asymptotics planned |
+| [`later-chapters`](later-chapters.md) | 5–11 | planned, not yet stated |
 
 **Everything in Chapter 1 §1.2 except Bollobás' two families theorem is already in
 Mathlib** — Sperner (`IsAntichain.sperner`), LYM
@@ -32,11 +34,18 @@ edge-count bound the book proves, so the edge-count bound stays a task.
 
 ### Decisions that still bind
 
-- **No measure theory.** Every argument in Chapters 1–3 is finite averaging, and the
+- **No measure theory in Chapters 1–3.** Every argument there is finite averaging, and the
   statements are phrased as pure existence/counting claims over `Finset` and `Fintype`
   so that proofs are counting arguments rather than `MeasureTheory` developments.
-  Revisit only when a chapter genuinely needs a continuous probability space
-  (Chapter 9 onward).
+  **Chapter 4 is where that stops**: the second moment method is about a measure, Mathlib
+  supplies `variance`, Chebyshev and `SimpleGraph.binomialRandom`, and a project-local
+  re-implementation would be strictly worse. So `second-moment` is stated over
+  `MeasureTheory.Measure` — and the line between the two conventions is the chapter
+  boundary, not a matter of taste per node.
+- **Chapter 4 is stated engine-first.** Its headline results are asymptotic (`whp`, `o(1)`,
+  thresholds), which need both a worked `G(n,p)` API and a settled "whp" convention. The
+  two finite inequalities everything runs on are stated now; the asymptotic nodes stay
+  `planned` so the frontier stays provable. Revisit once both engine nodes have merged.
 - **Colourings are `Bool`-valued.** `c : Fin n → Fin n → Bool` with an explicit symmetry
   hypothesis, rather than `Sym2`-indexed functions: it keeps decidability automatic and
   counting arguments direct.
@@ -66,6 +75,12 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   earlier batch closed unclaimed and republished so the whole frontier shares one base
   commit.  Chapters 3–11 remain unstated by design: the plan stays shallow and deepens as
   reductions come back.
+- **2026-09-12 — Chapters 3 and 4 stated.** Seven more declarations (five in
+  `Alterations.lean`, two in `SecondMoment.lean`). Chapter 4 deliberately stops at the
+  engine; see the decision above. Markov (§3.3), Chebyshev (§4.1), Weierstrass (§4.7) and
+  `G(V,p)` itself are upstream nodes. `card_filter_le_sum_div` is *not* a restatement of
+  upstream Markov — it is the counting form this project's Chapter 1–3 proofs need, which
+  Mathlib does not have.
 - **2026-09-12 — `choir/type:prove` needed manual repair on nine issues.**  `set-priority`
   and `set-difficulty` immediately after `create-task` dropped the type label on every
   issue but one, presumably a read-modify-write race against label state GitHub had not
