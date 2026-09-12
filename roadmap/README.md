@@ -61,5 +61,15 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   now states it, and `lt_ramsey_number` depends on it.  Only existence is stated; the
   quantitative Erdős–Szekeres bound is a later refinement.
 - **2026-09-12 — first frontier stated and published.** Ten declarations committed with
-  `sorry` bodies across five files, and a task published for each.  Chapters 3–11 remain
-  unstated by design: the plan stays shallow and deepens as reductions come back.
+  `sorry` bodies across five files, and a task published for each (issues #4–#13, all
+  pinned to `dcaf5da`; each carries its node id as `blueprint_ref`).  Issues #1–#3 were an
+  earlier batch closed unclaimed and republished so the whole frontier shares one base
+  commit.  Chapters 3–11 remain unstated by design: the plan stays shallow and deepens as
+  reductions come back.
+- **2026-09-12 — `choir/type:prove` needed manual repair on nine issues.**  `set-priority`
+  and `set-difficulty` immediately after `create-task` dropped the type label on every
+  issue but one, presumably a read-modify-write race against label state GitHub had not
+  yet settled.  If a future batch shows the same gap, add the label with `gh issue edit`
+  rather than re-running `create-task`.  The `issue-intake` workflow reports `skipped` on
+  orchestrator-created issues, which is expected — `create-task` round-trips through the
+  same parser locally.
