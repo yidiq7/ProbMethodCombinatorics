@@ -1,147 +1,236 @@
 {
   "target": "Yufei Zhao, Probabilistic Methods in Combinatorics (MIT 18.226, Fall 2022)",
   "nodes": {
-    "introduction": { "kind": "group", "doc": "introduction.md" },
-    "expectation": { "kind": "group", "doc": "expectation.md" },
-    "later_chapters": { "kind": "group", "doc": "later-chapters.md" },
-
+    "introduction": {
+      "kind": "group",
+      "doc": "introduction.md"
+    },
+    "expectation": {
+      "kind": "group",
+      "doc": "expectation.md"
+    },
+    "later_chapters": {
+      "kind": "group",
+      "doc": "later-chapters.md"
+    },
     "sperner": {
-      "kind": "theorem", "parent": "introduction",
-      "decl": "IsAntichain.sperner", "upstream": true
+      "kind": "theorem",
+      "parent": "introduction",
+      "decl": "IsAntichain.sperner",
+      "upstream": true
     },
     "lym": {
-      "kind": "theorem", "parent": "introduction",
-      "decl": "Finset.lubell_yamamoto_meshalkin_inequality_sum_inv_choose", "upstream": true
+      "kind": "theorem",
+      "parent": "introduction",
+      "decl": "Finset.lubell_yamamoto_meshalkin_inequality_sum_inv_choose",
+      "upstream": true
     },
     "erdos_ko_rado": {
-      "kind": "theorem", "parent": "introduction",
-      "decl": "Finset.erdos_ko_rado", "upstream": true
+      "kind": "theorem",
+      "parent": "introduction",
+      "decl": "Finset.erdos_ko_rado",
+      "upstream": true
     },
-
     "cut_edges": {
-      "kind": "definition", "parent": "introduction",
+      "kind": "definition",
+      "parent": "introduction",
       "file": "ProbMethodCombinatorics/Intro.lean",
       "decl": "ProbMethodCombinatorics.cutEdges",
       "doc": "introduction.md#cut_edges--probmethodcombinatoricscutedges",
-      "statement": "formalized", "proof": "formalized",
-      "uses": [], "proof_uses": []
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
     },
     "large_bipartite_subgraph": {
-      "kind": "theorem", "parent": "introduction",
+      "kind": "theorem",
+      "parent": "introduction",
       "file": "ProbMethodCombinatorics/Intro.lean",
       "decl": "ProbMethodCombinatorics.exists_cutEdges_two_mul_card_le",
       "doc": "introduction.md#large_bipartite_subgraph--exists_cutedges_two_mul_card_le",
-      "statement": "formalized", "proof": "planned",
-      "uses": ["cut_edges"], "proof_uses": []
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "cut_edges"
+      ],
+      "proof_uses": []
     },
-
     "is_monochromatic": {
-      "kind": "definition", "parent": "introduction",
+      "kind": "definition",
+      "parent": "introduction",
       "file": "ProbMethodCombinatorics/Ramsey.lean",
       "decl": "ProbMethodCombinatorics.IsMonochromatic",
       "doc": "introduction.md#is_monochromatic-ramsey_property-ramsey_number",
-      "statement": "formalized", "proof": "formalized",
-      "uses": [], "proof_uses": []
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
     },
     "ramsey_property": {
-      "kind": "definition", "parent": "introduction",
+      "kind": "definition",
+      "parent": "introduction",
       "file": "ProbMethodCombinatorics/Ramsey.lean",
       "decl": "ProbMethodCombinatorics.RamseyProperty",
       "doc": "introduction.md#is_monochromatic-ramsey_property-ramsey_number",
-      "statement": "formalized", "proof": "formalized",
-      "uses": ["is_monochromatic"], "proof_uses": []
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "is_monochromatic"
+      ],
+      "proof_uses": []
     },
     "ramsey_number": {
-      "kind": "definition", "parent": "introduction",
+      "kind": "definition",
+      "parent": "introduction",
       "file": "ProbMethodCombinatorics/Ramsey.lean",
       "decl": "ProbMethodCombinatorics.ramseyNumber",
       "doc": "introduction.md#is_monochromatic-ramsey_property-ramsey_number",
-      "statement": "formalized", "proof": "formalized",
-      "uses": ["ramsey_property"], "proof_uses": []
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "ramsey_property"
+      ],
+      "proof_uses": []
     },
     "ramsey_property_mono": {
-      "kind": "theorem", "parent": "introduction",
+      "kind": "theorem",
+      "parent": "introduction",
       "file": "ProbMethodCombinatorics/Ramsey.lean",
       "decl": "ProbMethodCombinatorics.RamseyProperty.mono",
       "doc": "introduction.md#ramsey_property_mono--ramseypropertymono",
-      "statement": "formalized", "proof": "planned",
-      "uses": ["ramsey_property"], "proof_uses": []
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "ramsey_property"
+      ],
+      "proof_uses": []
     },
     "ramsey_lower_erdos": {
-      "kind": "theorem", "parent": "introduction",
+      "kind": "theorem",
+      "parent": "introduction",
       "file": "ProbMethodCombinatorics/Ramsey.lean",
       "decl": "ProbMethodCombinatorics.exists_coloring_no_isMonochromatic",
       "doc": "introduction.md#ramsey_lower_erdos--exists_coloring_no_ismonochromatic",
-      "statement": "formalized", "proof": "planned",
-      "uses": ["is_monochromatic"], "proof_uses": []
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "is_monochromatic"
+      ],
+      "proof_uses": []
+    },
+    "ramsey_finite": {
+      "kind": "theorem",
+      "parent": "introduction",
+      "file": "ProbMethodCombinatorics/Ramsey.lean",
+      "decl": "ProbMethodCombinatorics.exists_ramseyProperty",
+      "doc": "introduction.md#ramsey_finite--exists_ramseyproperty",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "ramsey_property"
+      ],
+      "proof_uses": []
     },
     "lt_ramsey_number": {
-      "kind": "theorem", "parent": "introduction",
+      "kind": "theorem",
+      "parent": "introduction",
       "file": "ProbMethodCombinatorics/Ramsey.lean",
       "decl": "ProbMethodCombinatorics.lt_ramseyNumber",
       "doc": "introduction.md#lt_ramsey_number--lt_ramseynumber",
-      "statement": "formalized", "proof": "planned",
-      "uses": ["ramsey_number", "ramsey_property"],
-      "proof_uses": ["ramsey_lower_erdos", "ramsey_property_mono"]
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "ramsey_number",
+        "ramsey_property"
+      ],
+      "proof_uses": [
+        "ramsey_lower_erdos",
+        "ramsey_property_mono",
+        "ramsey_finite"
+      ]
     },
-
     "bollobas_two_families": {
-      "kind": "theorem", "parent": "introduction",
+      "kind": "theorem",
+      "parent": "introduction",
       "file": "ProbMethodCombinatorics/SetSystems.lean",
       "decl": "ProbMethodCombinatorics.bollobas_two_families",
       "doc": "introduction.md#bollobas_two_families--bollobas_two_families",
-      "statement": "formalized", "proof": "planned",
-      "uses": [], "proof_uses": []
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
     },
-
     "two_colorable": {
-      "kind": "definition", "parent": "introduction",
+      "kind": "definition",
+      "parent": "introduction",
       "file": "ProbMethodCombinatorics/PropertyB.lean",
       "decl": "ProbMethodCombinatorics.TwoColorable",
       "doc": "introduction.md#two_colorable-two_colorable_of_card_lt",
-      "statement": "formalized", "proof": "formalized",
-      "uses": [], "proof_uses": []
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
     },
     "two_colorable_of_card_lt": {
-      "kind": "theorem", "parent": "introduction",
+      "kind": "theorem",
+      "parent": "introduction",
       "file": "ProbMethodCombinatorics/PropertyB.lean",
       "decl": "ProbMethodCombinatorics.twoColorable_of_card_lt",
       "doc": "introduction.md#two_colorable-two_colorable_of_card_lt",
-      "statement": "formalized", "proof": "planned",
-      "uses": ["two_colorable"], "proof_uses": []
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "two_colorable"
+      ],
+      "proof_uses": []
     },
-
     "hamilton_paths": {
-      "kind": "definition", "parent": "expectation",
+      "kind": "definition",
+      "parent": "expectation",
       "file": "ProbMethodCombinatorics/Expectation.lean",
       "decl": "ProbMethodCombinatorics.hamiltonPaths",
       "doc": "expectation.md#hamilton_paths--probmethodcombinatoricshamiltonpaths",
-      "statement": "formalized", "proof": "formalized",
-      "uses": [], "proof_uses": []
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
     },
     "szele": {
-      "kind": "theorem", "parent": "expectation",
+      "kind": "theorem",
+      "parent": "expectation",
       "file": "ProbMethodCombinatorics/Expectation.lean",
       "decl": "ProbMethodCombinatorics.exists_tournament_card_hamiltonPaths",
       "doc": "expectation.md#szele--exists_tournament_card_hamiltonpaths",
-      "statement": "formalized", "proof": "planned",
-      "uses": ["hamilton_paths"], "proof_uses": []
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "hamilton_paths"
+      ],
+      "proof_uses": []
     },
     "caro_wei": {
-      "kind": "theorem", "parent": "expectation",
+      "kind": "theorem",
+      "parent": "expectation",
       "file": "ProbMethodCombinatorics/Expectation.lean",
       "decl": "ProbMethodCombinatorics.exists_isIndepSet_caro_wei",
       "doc": "expectation.md#caro_wei--exists_isindepset_caro_wei",
-      "statement": "formalized", "proof": "planned",
-      "uses": [], "proof_uses": []
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
     },
     "turan_edge_bound": {
-      "kind": "theorem", "parent": "expectation",
+      "kind": "theorem",
+      "parent": "expectation",
       "file": "ProbMethodCombinatorics/Expectation.lean",
       "decl": "ProbMethodCombinatorics.card_edgeFinset_le_of_cliqueFree",
       "doc": "expectation.md#turan_edge_bound--card_edgefinset_le_of_cliquefree",
-      "statement": "formalized", "proof": "planned",
-      "uses": [], "proof_uses": ["caro_wei"]
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": [
+        "caro_wei"
+      ]
     }
   }
 }

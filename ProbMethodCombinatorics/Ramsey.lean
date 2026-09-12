@@ -43,6 +43,12 @@ theorem exists_coloring_no_isMonochromatic (n k : ℕ) (hk : 2 ≤ k)
       ∀ S : Finset (Fin n), S.card = k → ¬ IsMonochromatic c S := by
   sorry
 
+/-- **Ramsey's theorem** (Ramsey 1929; Zhao, Section 1.1): `R(k, k)` is finite, i.e. some
+complete graph is large enough that every red/blue edge colouring of it has a monochromatic
+`k`-clique.  Without this the infimum defining `ramseyNumber` could be taken over the empty set. -/
+theorem exists_ramseyProperty (k : ℕ) : ∃ n, RamseyProperty n k := by
+  sorry
+
 /-- **Erdős 1947** (Zhao, Theorem 1.1.2), stated for the Ramsey number: if
 `2 * (n.choose k) < 2 ^ (k.choose 2)` then `R(k, k) > n`. -/
 theorem lt_ramseyNumber (n k : ℕ) (hk : 2 ≤ k)

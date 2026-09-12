@@ -54,6 +54,12 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   gate runs on every PR.  Lean's own newest is `v4.33.1`, which the comparator does not
   tag; the overseer chose `v4.33.0` knowing the pin cannot change later.
   Policy: automation `auto`, axioms `net_zero`, sorries `block`.
-- **2026-09-12 — first frontier stated and published.** Nine declarations committed with
+- **2026-09-12 — Ramsey finiteness added to the plan.**  `lt_ramseyNumber` as first stated
+  had a hidden dependency: `ramseyNumber k = sInf {n | RamseyProperty n k}` and
+  `Nat.sInf ∅ = 0`, so *every* lower bound on `R(k, k)` is false unless the set is known
+  non-empty — and Mathlib has no Ramsey theorem to supply that.  `exists_ramseyProperty`
+  now states it, and `lt_ramsey_number` depends on it.  Only existence is stated; the
+  quantitative Erdős–Szekeres bound is a later refinement.
+- **2026-09-12 — first frontier stated and published.** Ten declarations committed with
   `sorry` bodies across five files, and a task published for each.  Chapters 3–11 remain
   unstated by design: the plan stays shallow and deepens as reductions come back.

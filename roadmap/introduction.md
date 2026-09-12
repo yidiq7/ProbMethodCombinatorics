@@ -46,10 +46,21 @@ The union bound becomes a counting argument: over all `2 ^ (n.choose 2)` symmetr
 colourings, each `k`-set is monochromatic in `2 ^ (1 + (n.choose 2) - (k.choose 2))` of
 them, so fewer than all of them are spoiled by some `k`-set.
 
+## `ramsey_finite` — `exists_ramseyProperty`
+
+Ramsey's theorem (Ramsey 1929), in the weakest form this project needs: `∃ n,
+RamseyProperty n k`.
+
+`ramseyNumber k` is `sInf {n | RamseyProperty n k}`, and `Nat.sInf ∅ = 0`, so without
+finiteness the infimum is `0` and every lower bound on `R(k, k)` is false.  Mathlib has no
+Ramsey theorem, so the obligation is ours.  Only existence is stated; the quantitative
+Erdős–Szekeres bound `R(k+1, ℓ+1) ≤ (k+ℓ).choose k` (Remark 1.1.5) is a later refinement,
+not a prerequisite.
+
 ## `lt_ramsey_number` — `lt_ramseyNumber`
 
 Theorem 1.1.2 restated: the same hypothesis gives `n < ramseyNumber k`.  Immediate from
-the previous two nodes — the colouring shows `¬ RamseyProperty n k`, monotonicity extends
+the previous three nodes — the colouring shows `¬ RamseyProperty n k`, monotonicity extends
 that to every `m ≤ n`, and so the infimum exceeds `n`.
 
 ## `bollobas_two_families` — `bollobas_two_families`
