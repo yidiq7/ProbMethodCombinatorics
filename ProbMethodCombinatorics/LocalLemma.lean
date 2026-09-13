@@ -243,6 +243,25 @@ theorem lovasz_local_lemma_symmetric [IsProbabilityMeasure μ]
     0 < (μ (⋂ i, (A i)ᶜ)).toReal := by
   sorry
 
+/-- **Weierstrass's product inequality**: for weights `y j` lying in `[0, 1]`, the product of the
+`1 - y j` over a finite set is at least `1 - ∑ y j`. -/
+theorem one_sub_sum_le_prod_one_sub {κ : Type*} (y : κ → ℝ) (s : Finset κ)
+    (hy₀ : ∀ j ∈ s, 0 ≤ y j) (hy₁ : ∀ j ∈ s, y j ≤ 1) :
+    1 - ∑ j ∈ s, y j ≤ ∏ j ∈ s, (1 - y j) := by
+  induction s using Finset.cons_induction with
+  | empty => simp
+  | cons a s ha ih =>
+    have hmem : ∀ j ∈ s, j ∈ Finset.cons a s ha := fun j hj => Finset.mem_cons.2 (Or.inr hj)
+    have hamem : a ∈ Finset.cons a s ha := Finset.mem_cons.2 (Or.inl rfl)
+    have hind := ih (fun j hj => hy₀ j (hmem j hj)) (fun j hj => hy₁ j (hmem j hj))
+    have hS : (0 : ℝ) ≤ ∑ j ∈ s, y j := Finset.sum_nonneg fun j hj => hy₀ j (hmem j hj)
+    have ha0 : (0 : ℝ) ≤ y a := hy₀ a hamem
+    have ha1 : (0 : ℝ) ≤ 1 - y a := by linarith [hy₁ a hamem]
+    have hmul : (1 - y a) * (1 - ∑ j ∈ s, y j) ≤ (1 - y a) * ∏ j ∈ s, (1 - y j) :=
+      mul_le_mul_of_nonneg_left hind ha1
+    rw [Finset.sum_cons, Finset.prod_cons]
+    nlinarith [hmul, hS, ha0]
+
 /-- **Lovász local lemma, small-neighbourhood form** (Zhao, Corollary 6.1.10): if every `A i` has
 probability less than `1 / 2` and the probabilities in each neighbourhood sum to at most `1 / 4`,
 then with positive probability none of the `A i` occur. -/
@@ -252,7 +271,23 @@ theorem lovasz_local_lemma_of_sum_le [IsProbabilityMeasure μ]
     (hhalf : ∀ i, (μ (A i)).toReal < 1 / 2)
     (hsum : ∀ i, ∑ j ∈ N i, (μ (A j)).toReal ≤ 1 / 4) :
     0 < (μ (⋂ i, (A i)ᶜ)).toReal := by
-  sorry
+  obtain ⟨x, hxdef⟩ : ∃ x : ι → ℝ, ∀ i, x i = 2 * (μ (A i)).toReal := ⟨_, fun _ => rfl⟩
+  have hx₀ : ∀ i, 0 ≤ x i := fun i => by rw [hxdef]; positivity
+  have hx₁ : ∀ i, x i < 1 := fun i => by rw [hxdef]; linarith [hhalf i]
+  have hbound : ∀ i, (μ (A i)).toReal ≤ x i * ∏ j ∈ N i, (1 - x j) := by
+    intro i
+    have hW : 1 - ∑ j ∈ N i, x j ≤ ∏ j ∈ N i, (1 - x j) :=
+      one_sub_sum_le_prod_one_sub x (N i) (fun j _ => hx₀ j) (fun j _ => (hx₁ j).le)
+    have hsx : ∑ j ∈ N i, x j = 2 * ∑ j ∈ N i, (μ (A j)).toReal := by
+      rw [Finset.mul_sum]
+      exact Finset.sum_congr rfl fun j _ => hxdef j
+    rw [hsx] at hW
+    have hprod : (1 : ℝ) / 2 ≤ ∏ j ∈ N i, (1 - x j) := by linarith [hsum i]
+    calc (μ (A i)).toReal = x i * (1 / 2) := by rw [hxdef i]; ring
+      _ ≤ x i * ∏ j ∈ N i, (1 - x j) := mul_le_mul_of_nonneg_left hprod (hx₀ i)
+  have hmain := lovasz_local_lemma A hA N hN x hx₀ hx₁ hbound
+  have hpos : 0 < ∏ i, (1 - x i) := Finset.prod_pos fun i _ => by linarith [hx₁ i]
+  linarith
 
 section Applications
 
