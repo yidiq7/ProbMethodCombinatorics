@@ -684,12 +684,12 @@
       "decl": "ProbMethodCombinatorics.twoColorable_of_regular",
       "doc": "local-lemma.md#two_colorable_regular--twocolorable_of_regular",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "two_colorable"
       ],
       "proof_uses": [
-        "two_colorable_local"
+        "lll_symmetric"
       ]
     },
     "ramsey_spencer": {
