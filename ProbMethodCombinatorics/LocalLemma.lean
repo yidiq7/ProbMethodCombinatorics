@@ -839,7 +839,215 @@ theorem lt_ramseyNumber_of_local_lemma (n k : ℕ) (hk : 2 ≤ k)
     (h : Real.exp 1 * (2 * ((k.choose 2 * n.choose (k - 2) : ℕ) : ℝ) + 2)
       ≤ 2 ^ (k.choose 2)) :
     n < ramseyNumber k := by
-  sorry
+  -- Colour the edges of `K n` independently and uniformly at random.  An edge is a two-element
+  -- subset of `Fin n`, so a colouring is a function on `Finset (Fin n)`; restricting it to
+  -- two-element sets gives an automatically symmetric edge colouring.
+  set ν : Measure Bool := (2 : ENNReal)⁻¹ • (Measure.dirac true + Measure.dirac false) with hν
+  have hνuniv : ν Set.univ = 1 := by
+    rw [hν]
+    simp only [Measure.smul_apply, Measure.add_apply, measure_univ, smul_eq_mul]
+    rw [show (1 : ENNReal) + 1 = 2 from by norm_num]
+    exact ENNReal.inv_mul_cancel (by norm_num) (by norm_num)
+  have : IsProbabilityMeasure ν := ⟨hνuniv⟩
+  have hνsingle : ∀ b : Bool, ν {b} = (2 : ENNReal)⁻¹ := by
+    intro b
+    rw [hν]
+    cases b <;> simp [Measure.smul_apply, Measure.add_apply]
+  set μ : Measure (Finset (Fin n) → Bool) := Measure.pi (fun _ : Finset (Fin n) => ν) with hμ
+  have : IsProbabilityMeasure μ := by rw [hμ]; infer_instance
+  -- The probability that a colouring is constant on a given set of edges.
+  have hcyl : ∀ (T : Finset (Finset (Fin n))) (b : Bool),
+      μ {x : Finset (Fin n) → Bool | ∀ u ∈ T, x u = b} = (2 : ENNReal)⁻¹ ^ T.card := by
+    intro T b
+    have hset : {x : Finset (Fin n) → Bool | ∀ u ∈ T, x u = b}
+        = Set.univ.pi (fun a => if a ∈ T then ({b} : Set Bool) else Set.univ) := by
+      ext x
+      constructor
+      · intro h a _
+        show x a ∈ (if a ∈ T then ({b} : Set Bool) else Set.univ)
+        by_cases ha : a ∈ T
+        · rw [if_pos ha]; exact h a ha
+        · rw [if_neg ha]; exact Set.mem_univ _
+      · intro h u hu
+        have hxu : x u ∈ (if u ∈ T then ({b} : Set Bool) else Set.univ) := h u (Set.mem_univ u)
+        rw [if_pos hu] at hxu
+        exact hxu
+    rw [hset, hμ, Measure.pi_pi]
+    have hrew : ∀ a : Finset (Fin n), ν (if a ∈ T then ({b} : Set Bool) else Set.univ)
+        = if a ∈ T then (2 : ENNReal)⁻¹ else 1 := by
+      intro a
+      by_cases ha : a ∈ T
+      · rw [if_pos ha, if_pos ha]; exact hνsingle b
+      · rw [if_neg ha, if_neg ha]; exact hνuniv
+    rw [Finset.prod_congr rfl (fun a _ => hrew a), Finset.prod_ite_mem, Finset.univ_inter,
+      Finset.prod_const]
+  -- Events depending on disjoint sets of edges are independent.
+  have key : ∀ (T : Finset (Finset (Fin n))) (S₁ S₂ : Set (Finset (Fin n) → Bool)),
+      (∀ x y : Finset (Fin n) → Bool, (∀ a ∈ T, x a = y a) → (x ∈ S₁ ↔ y ∈ S₁)) →
+      (∀ x y : Finset (Fin n) → Bool, (∀ a ∉ T, x a = y a) → (x ∈ S₂ ↔ y ∈ S₂)) →
+      μ (S₁ ∩ S₂) = μ S₁ * μ S₂ := by
+    intro T S₁ S₂ h₁ h₂
+    have hindep : iIndepFun (fun (a : Finset (Fin n)) (x : Finset (Fin n) → Bool) => x a) μ := by
+      rw [hμ]
+      exact ProbabilityTheory.iIndepFun_pi (μ := fun _ : Finset (Fin n) => ν)
+        (X := fun _ : Finset (Fin n) => (id : Bool → Bool)) (fun _ => aemeasurable_id)
+    have hind := hindep.indepFun_finset T Tᶜ disjoint_compl_right
+      (fun a => measurable_pi_apply a)
+    have e₁ : (fun (x : Finset (Fin n) → Bool) (u : { a // a ∈ T }) => x (u : Finset (Fin n))) ⁻¹'
+        ((fun (x : Finset (Fin n) → Bool) (u : { a // a ∈ T }) => x (u : Finset (Fin n))) ''
+          S₁) = S₁ := by
+      refine Set.Subset.antisymm ?_ (Set.subset_preimage_image _ _)
+      rintro x ⟨y, hy, hxy⟩
+      exact (h₁ y x (fun a ha => congrFun hxy ⟨a, ha⟩)).1 hy
+    have e₂ : (fun (x : Finset (Fin n) → Bool) (u : { a // a ∈ Tᶜ }) => x (u : Finset (Fin n))) ⁻¹'
+        ((fun (x : Finset (Fin n) → Bool) (u : { a // a ∈ Tᶜ }) => x (u : Finset (Fin n))) ''
+          S₂) = S₂ := by
+      refine Set.Subset.antisymm ?_ (Set.subset_preimage_image _ _)
+      rintro x ⟨y, hy, hxy⟩
+      exact (h₂ y x (fun a ha => congrFun hxy ⟨a, Finset.mem_compl.2 ha⟩)).1 hy
+    have hmul := hind.measure_inter_preimage_eq_mul
+      ((fun (x : Finset (Fin n) → Bool) (u : { a // a ∈ T }) => x (u : Finset (Fin n))) '' S₁)
+      ((fun (x : Finset (Fin n) → Bool) (u : { a // a ∈ Tᶜ }) => x (u : Finset (Fin n))) '' S₂)
+      (Set.toFinite _).measurableSet (Set.toFinite _).measurableSet
+    rw [e₁, e₂] at hmul
+    exact hmul
+  -- The bad events: `A S` says the `k`-set `S` spans a monochromatic clique.
+  obtain ⟨A, hAdef⟩ : ∃ A : {S : Finset (Fin n) // S.card = k} → Set (Finset (Fin n) → Bool),
+      ∀ S x, (x ∈ A S ↔ ∀ e ∈ (S : Finset (Fin n)).powersetCard 2,
+        ∀ f ∈ (S : Finset (Fin n)).powersetCard 2, x e = x f) := ⟨_, fun _ _ => Iff.rfl⟩
+  -- Two `k`-sets are dependent only when they share at least two vertices, hence an edge.
+  obtain ⟨N, hNdef⟩ : ∃ N : {S : Finset (Fin n) // S.card = k} →
+      Finset {S : Finset (Fin n) // S.card = k}, ∀ S T,
+      (T ∈ N S ↔ T ≠ S ∧ 2 ≤ ((S : Finset (Fin n)) ∩ (T : Finset (Fin n))).card) :=
+    ⟨fun S => Finset.univ.filter fun T =>
+      T ≠ S ∧ 2 ≤ ((S : Finset (Fin n)) ∩ (T : Finset (Fin n))).card, by simp⟩
+  have hAmeas : ∀ i, MeasurableSet (A i) := fun _ => (Set.toFinite _).measurableSet
+  have hAinv : ∀ (j : {S : Finset (Fin n) // S.card = k}) (x y : Finset (Fin n) → Bool),
+      (∀ a ∈ (j : Finset (Fin n)).powersetCard 2, x a = y a) → (x ∈ A j ↔ y ∈ A j) := by
+    intro j x y hxy
+    rw [hAdef, hAdef]
+    constructor
+    · intro hx e he f hf; rw [← hxy e he, ← hxy f hf]; exact hx e he f hf
+    · intro hy e he f hf; rw [hxy e he, hxy f hf]; exact hy e he f hf
+  have hNdep : IsDependencyGraph μ A N := by
+    intro i s hs g
+    refine key ((i : Finset (Fin n)).powersetCard 2) (A i) (pattern A s g) (hAinv i) ?_
+    intro x y hxy
+    have hj : ∀ j ∈ s,
+        (x ∈ (if g j then A j else (A j)ᶜ) ↔ y ∈ (if g j then A j else (A j)ᶜ)) := by
+      intro j hjs
+      obtain ⟨hjne, hjN⟩ := hs j hjs
+      have hdisj : ∀ e ∈ (j : Finset (Fin n)).powersetCard 2,
+          e ∉ (i : Finset (Fin n)).powersetCard 2 := by
+        intro e hej hei
+        refine hjN ((hNdef i j).2 ⟨hjne, ?_⟩)
+        rw [Finset.mem_powersetCard] at hei hej
+        calc 2 = e.card := hei.2.symm
+          _ ≤ ((i : Finset (Fin n)) ∩ (j : Finset (Fin n))).card :=
+              Finset.card_le_card (Finset.subset_inter hei.1 hej.1)
+      have hiff := hAinv j x y fun a ha => hxy a (hdisj a ha)
+      by_cases hg : g j
+      · rw [if_pos hg]; exact hiff
+      · rw [if_neg hg]; exact not_congr hiff
+    simp only [pattern, Set.mem_iInter]
+    exact ⟨fun hh j hjs => (hj j hjs).1 (hh j hjs), fun hh j hjs => (hj j hjs).2 (hh j hjs)⟩
+  -- Each bad event has probability at most `2 ^ (1 - (k choose 2))`.
+  have hKpos : 0 < k.choose 2 := Nat.choose_pos hk
+  have hp : ∀ i, (μ (A i)).toReal ≤ 2 * ((2 : ℝ)⁻¹) ^ (k.choose 2) := by
+    intro i
+    have hcardT : ((i : Finset (Fin n)).powersetCard 2).card = k.choose 2 := by
+      rw [Finset.card_powersetCard, i.2]
+    have hne : ((i : Finset (Fin n)).powersetCard 2).Nonempty := by
+      rw [← Finset.card_pos, hcardT]; exact hKpos
+    obtain ⟨e₀, he₀⟩ := hne
+    have hsub : A i ⊆ {x : Finset (Fin n) → Bool |
+          ∀ u ∈ (i : Finset (Fin n)).powersetCard 2, x u = true}
+        ∪ {x : Finset (Fin n) → Bool |
+          ∀ u ∈ (i : Finset (Fin n)).powersetCard 2, x u = false} := by
+      intro x hx
+      rw [hAdef] at hx
+      cases hb : x e₀
+      · right; intro u hu; rw [hx u hu e₀ he₀, hb]
+      · left; intro u hu; rw [hx u hu e₀ he₀, hb]
+    have hle : μ (A i) ≤ 2 * (2 : ENNReal)⁻¹ ^ (k.choose 2) := by
+      calc μ (A i) ≤ μ ({x : Finset (Fin n) → Bool |
+                ∀ u ∈ (i : Finset (Fin n)).powersetCard 2, x u = true}
+              ∪ {x : Finset (Fin n) → Bool |
+                ∀ u ∈ (i : Finset (Fin n)).powersetCard 2, x u = false}) := measure_mono hsub
+        _ ≤ μ {x : Finset (Fin n) → Bool |
+                ∀ u ∈ (i : Finset (Fin n)).powersetCard 2, x u = true}
+              + μ {x : Finset (Fin n) → Bool |
+                ∀ u ∈ (i : Finset (Fin n)).powersetCard 2, x u = false} := measure_union_le _ _
+        _ = 2 * (2 : ENNReal)⁻¹ ^ (k.choose 2) := by
+            rw [hcyl _ true, hcyl _ false, hcardT]; ring
+    have htop : (2 : ENNReal) * (2 : ENNReal)⁻¹ ^ (k.choose 2) ≠ ⊤ :=
+      ENNReal.mul_ne_top (by norm_num) (ENNReal.pow_ne_top (by norm_num))
+    have := ENNReal.toReal_mono htop hle
+    simpa using this
+  -- The dependency degree: a `k`-set meeting `S` in at least two vertices is determined by an
+  -- edge inside `S` together with its remaining `k - 2` vertices.
+  have hdcard : ∀ S : {S : Finset (Fin n) // S.card = k},
+      (N S).card ≤ k.choose 2 * n.choose (k - 2) := by
+    intro S
+    have himg : ((N S).image (fun T : {S : Finset (Fin n) // S.card = k} => (T : Finset (Fin n)))).card = (N S).card :=
+      Finset.card_image_of_injective _ Subtype.val_injective
+    have hsub : (N S).image (fun T : {S : Finset (Fin n) // S.card = k} => (T : Finset (Fin n))) ⊆
+        ((S : Finset (Fin n)).powersetCard 2).biUnion fun P =>
+          ((univ : Finset (Fin n)).powersetCard (k - 2)).image fun R => P ∪ R := by
+      intro U hU
+      obtain ⟨T, hT, rfl⟩ := Finset.mem_image.1 hU
+      obtain ⟨hne, hcard⟩ := (hNdef S T).1 hT
+      obtain ⟨P, hPsub, hPcard⟩ :=
+        Finset.exists_subset_card_eq hcard
+      have hPT : P ⊆ (T : Finset (Fin n)) := hPsub.trans Finset.inter_subset_right
+      refine Finset.mem_biUnion.2 ⟨P, Finset.mem_powersetCard.2
+        ⟨hPsub.trans Finset.inter_subset_left, hPcard⟩, Finset.mem_image.2
+        ⟨(T : Finset (Fin n)) \ P, Finset.mem_powersetCard.2 ⟨Finset.subset_univ _, ?_⟩, ?_⟩⟩
+      · rw [Finset.card_sdiff_of_subset hPT, hPcard, T.2]
+      · exact Finset.union_sdiff_of_subset hPT
+    calc (N S).card = ((N S).image (fun T : {S : Finset (Fin n) // S.card = k} => (T : Finset (Fin n)))).card := himg.symm
+      _ ≤ (((S : Finset (Fin n)).powersetCard 2).biUnion fun P =>
+            ((univ : Finset (Fin n)).powersetCard (k - 2)).image fun R => P ∪ R).card :=
+          Finset.card_le_card hsub
+      _ ≤ ∑ _P ∈ (S : Finset (Fin n)).powersetCard 2, n.choose (k - 2) := by
+          refine le_trans Finset.card_biUnion_le (Finset.sum_le_sum fun P _ => ?_)
+          refine le_trans Finset.card_image_le (le_of_eq ?_)
+          rw [Finset.card_powersetCard, Finset.card_univ, Fintype.card_fin]
+      _ = k.choose 2 * n.choose (k - 2) := by
+          rw [Finset.sum_const, Finset.card_powersetCard, S.2, smul_eq_mul]
+  -- `e · 2 ^ (1 - (k choose 2)) · (d + 1) ≤ 1` is exactly the hypothesis `h`.
+  have h2K : (0 : ℝ) < 2 ^ (k.choose 2) := by positivity
+  have h2K' : (2 : ℝ) ^ (k.choose 2) ≠ 0 := ne_of_gt h2K
+  have hcond : Real.exp 1 * (2 * ((2 : ℝ)⁻¹) ^ (k.choose 2))
+      * (((k.choose 2 * n.choose (k - 2) : ℕ) : ℝ) + 1) ≤ 1 := by
+    rw [inv_pow, show Real.exp 1 * (2 * ((2 : ℝ) ^ (k.choose 2))⁻¹)
+        * (((k.choose 2 * n.choose (k - 2) : ℕ) : ℝ) + 1)
+        = (Real.exp 1 * (2 * ((k.choose 2 * n.choose (k - 2) : ℕ) : ℝ) + 2))
+          / 2 ^ (k.choose 2) from by field_simp, div_le_one h2K]
+    exact h
+  have hpos := lovasz_local_lemma_symmetric A hAmeas N hNdep hp hdcard hcond
+  -- A colouring avoiding every bad event exists; reading it off the two-element sets gives a
+  -- symmetric edge colouring of `K n` with no monochromatic `k`-clique.
+  rcases Set.eq_empty_or_nonempty (⋂ i, (A i)ᶜ) with hempty | ⟨x, hx⟩
+  · rw [hempty] at hpos; simp at hpos
+  · simp only [Set.mem_iInter, Set.mem_compl_iff] at hx
+    have hsymm : ∀ i j : Fin n, x {i, j} = x {j, i} := fun i j => by rw [Finset.pair_comm]
+    have hno : ∀ S : Finset (Fin n), S.card = k →
+        ¬ IsMonochromatic (fun i j => x {i, j}) S := by
+      intro S hS hmono
+      obtain ⟨b, hb⟩ := hmono
+      have hval : ∀ e ∈ S.powersetCard 2, x e = b := by
+        intro e he
+        rw [Finset.mem_powersetCard] at he
+        obtain ⟨i, j, hij, rfl⟩ := Finset.card_eq_two.1 he.2
+        exact hb i (he.1 (by simp)) j (he.1 (by simp)) hij
+      exact hx ⟨S, hS⟩ ((hAdef ⟨S, hS⟩ x).2 fun e he f hf => by rw [hval e he, hval f hf])
+    have hnonempty : {m | RamseyProperty m k}.Nonempty := exists_ramseyProperty k
+    have hmem : RamseyProperty (ramseyNumber k) k := Nat.sInf_mem hnonempty
+    by_contra hlt
+    obtain ⟨S, hcard, hmono⟩ :=
+      hmem.mono (Nat.not_lt.1 hlt) (fun i j => x {i, j}) hsymm
+    exact hno S hcard hmono
 
 end Applications
 
