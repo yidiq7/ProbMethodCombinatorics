@@ -351,6 +351,32 @@
       "uses": [],
       "proof_uses": []
     },
+    "short_cycle_support": {
+      "kind": "definition",
+      "parent": "alterations",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.shortCycleSupport",
+      "doc": "alterations.md#the-erdos-1959-random-graph-step",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "girth_expectation": {
+      "kind": "theorem",
+      "parent": "alterations",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.exists_sum_shortCycleSupport_card_lt",
+      "doc": "alterations.md#the-erdos-1959-random-graph-step",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "short_cycle_support",
+        "graph_family",
+        "girth_edge_count"
+      ],
+      "proof_uses": []
+    },
     "girth_few_short_cycles": {
       "kind": "theorem",
       "parent": "alterations",
@@ -358,12 +384,15 @@
       "decl": "ProbMethodCombinatorics.exists_bad_card_lt_and_shortCycleCover",
       "doc": "alterations.md#the-erdos-1959-random-graph-step",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "graph_family",
         "girth_edge_count"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "markov_counting",
+        "girth_expectation"
+      ]
     },
     "girth_small_indep": {
       "kind": "theorem",
