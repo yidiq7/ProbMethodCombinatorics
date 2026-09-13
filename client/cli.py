@@ -343,18 +343,33 @@ def cmd_update(args: Namespace) -> int:
     return 0
 
 
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="choir worker",
-                                     description="Choir worker commands")
+def _add_format_flags(
+    parser: argparse.ArgumentParser, *, after_subcommand: bool = False
+) -> None:
+    """Register `--json` / `--text` on `parser`.
+
+    Registered on the top-level parser and on every subcommand, so the flag
+    means the same wherever it is written — appending it is what both people
+    and agents reach for first. The subcommand copies suppress their default:
+    argparse applies defaults after parsing, so a `False` default here would
+    overwrite a `--json` given before the subcommand.
+    """
+    default = {"default": argparse.SUPPRESS} if after_subcommand else {}
     fmt = parser.add_mutually_exclusive_group()
     fmt.add_argument(
         "--json", dest="force_json", action="store_true",
-        help="force JSON (the default when stdout is not a terminal)",
+        help="force JSON (the default when stdout is not a terminal)", **default,
     )
     fmt.add_argument(
         "--text", dest="force_text", action="store_true",
-        help="force the human-readable output",
+        help="force the human-readable output", **default,
     )
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="choir worker",
+                                     description="Choir worker commands")
+    _add_format_flags(parser)
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     list_p = sub.add_parser("list", help="List claimable tasks in a repo")
@@ -422,6 +437,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     update_p.set_defaults(func=cmd_update)
 
+
+    for subparser in sub.choices.values():
+        _add_format_flags(subparser, after_subcommand=True)
 
     args = parser.parse_args(argv)
     # JSON unless a person is watching. An agent captures stdout, so it gets
