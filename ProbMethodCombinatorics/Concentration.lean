@@ -92,6 +92,38 @@ theorem integral_exp_mul_sub_integral_le_of_abs_sub_le {α : Type*} [MeasurableS
   rw [Real.exp_eq_exp, hcoe]
   ring
 
+theorem abs_sub_le_sum_of_bddDiff {ι : Type*} [Fintype ι] [DecidableEq ι] {Ω : ι → Type*}
+    (f : (∀ i, Ω i) → ℝ) (c : ι → ℝ)
+    (hc : ∀ i (x y : ∀ i, Ω i), (∀ j, j ≠ i → x j = y j) → |f x - f y| ≤ c i)
+    (x y : ∀ i, Ω i) : |f x - f y| ≤ ∑ i, c i := by
+  have key : ∀ s : Finset ι, ∀ x y : ∀ i, Ω i, (∀ j, j ∉ s → x j = y j) →
+      |f x - f y| ≤ ∑ i ∈ s, c i := by
+    intro s
+    induction s using Finset.induction_on with
+    | empty =>
+      intro x y h
+      have : x = y := funext fun j ↦ h j (by simp)
+      simp [this]
+    | insert i s hi ih =>
+      intro x y h
+      have h1 : |f x - f (Function.update x i (y i))| ≤ c i := by
+        refine hc i x _ fun j hj ↦ ?_
+        rw [Function.update_of_ne hj]
+      have h2 : |f (Function.update x i (y i)) - f y| ≤ ∑ j ∈ s, c j := by
+        refine ih _ y fun j hj ↦ ?_
+        rcases eq_or_ne j i with rfl | hji
+        · rw [Function.update_self]
+        · rw [Function.update_of_ne hji]
+          exact h j fun hmem ↦ by
+            rcases Finset.mem_insert.mp hmem with h' | h'
+            · exact hji h'
+            · exact hj h'
+      rw [Finset.sum_insert hi]
+      calc |f x - f y| ≤ |f x - f (Function.update x i (y i))|
+            + |f (Function.update x i (y i)) - f y| := abs_sub_le _ _ _
+        _ ≤ c i + ∑ j ∈ s, c j := add_le_add h1 h2
+  exact key Finset.univ x y fun j hj ↦ absurd (Finset.mem_univ j) hj
+
 /-- **Azuma–Hoeffding for the Doob martingale of a bounded-differences function**: under the
 hypotheses of the bounded differences inequality, the centred function `f - 𝔼 f` has a
 sub-Gaussian moment-generating function with parameter `(∑ i, c i ^ 2) / 4`.
