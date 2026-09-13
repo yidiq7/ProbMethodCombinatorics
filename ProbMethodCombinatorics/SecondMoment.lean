@@ -43,6 +43,56 @@ theorem variance_sum_indicator_le [IsProbabilityMeasure μ] {ι : Type*} [Fintyp
     (hD : ∀ i j, i ≠ j → (i, j) ∉ D → IndepSet (A i) (A j) μ) :
     Var[fun ω => ∑ i, (A i).indicator (fun _ => (1 : ℝ)) ω; μ]
       ≤ (∑ i, (μ (A i)).toReal) + ∑ q ∈ D, (μ (A q.1 ∩ A q.2)).toReal := by
-  sorry
+  have hmem : ∀ i, MemLp ((A i).indicator (fun _ => (1 : ℝ))) 2 μ := fun i =>
+    memLp_indicator_const 2 (hA i) 1 (Or.inr (measure_ne_top μ _))
+  have hint : ∀ i, μ[(A i).indicator (fun _ => (1 : ℝ))] = (μ (A i)).toReal := fun i => by
+    rw [integral_indicator_const _ (hA i), smul_eq_mul, mul_one, measureReal_def]
+  have hcov : ∀ i j, cov[(A i).indicator (fun _ => (1 : ℝ)),
+      (A j).indicator (fun _ => (1 : ℝ)); μ]
+      = (μ (A i ∩ A j)).toReal - (μ (A i)).toReal * (μ (A j)).toReal := by
+    intro i j
+    have hmul : (A i).indicator (fun _ => (1 : ℝ)) * (A j).indicator (fun _ => (1 : ℝ))
+        = (A i ∩ A j).indicator (fun _ => (1 : ℝ)) := by
+      funext ω
+      simpa using (Set.inter_indicator_mul (fun _ => (1 : ℝ)) (fun _ => (1 : ℝ)) ω).symm
+    rw [covariance_eq_sub (hmem i) (hmem j), hint i, hint j, hmul,
+      integral_indicator_const _ ((hA i).inter (hA j)), smul_eq_mul, mul_one,
+      measureReal_def]
+  set g : ι × ι → ℝ := fun q => (μ (A q.1 ∩ A q.2)).toReal with hg
+  have hg0 : ∀ q : ι × ι, 0 ≤ g q := fun _ => ENNReal.toReal_nonneg
+  set Δ : Finset (ι × ι) :=
+    Finset.univ.map ⟨fun i => (i, i), fun _ _ h => congrArg Prod.fst h⟩ with hΔ
+  have hmemΔ : ∀ q : ι × ι, q.1 = q.2 → q ∈ Δ := by
+    rintro ⟨a, b⟩ (h : a = b)
+    subst h
+    rw [hΔ]
+    exact Finset.mem_map.2 ⟨a, Finset.mem_univ _, rfl⟩
+  have hdiag : ∑ i, (μ (A i)).toReal = ∑ q ∈ Δ, g q := by
+    rw [hΔ, Finset.sum_map]
+    refine Finset.sum_congr rfl fun i _ => ?_
+    show (μ (A i)).toReal = (μ (A i ∩ A i)).toReal
+    rw [Set.inter_self]
+  have hle : ∀ i j, cov[(A i).indicator (fun _ => (1 : ℝ)),
+      (A j).indicator (fun _ => (1 : ℝ)); μ] ≤ g (i, j) := by
+    intro i j
+    rw [hcov i j, hg]
+    exact sub_le_self _ (mul_nonneg ENNReal.toReal_nonneg ENNReal.toReal_nonneg)
+  rw [variance_fun_sum hmem, hdiag,
+    ← Finset.sum_indicator_subset g Δ.subset_univ,
+    ← Finset.sum_indicator_subset g D.subset_univ,
+    Fintype.sum_prod_type, Fintype.sum_prod_type, ← Finset.sum_add_distrib]
+  refine Finset.sum_le_sum fun i _ => ?_
+  rw [← Finset.sum_add_distrib]
+  refine Finset.sum_le_sum fun j _ => ?_
+  by_cases hqΔ : (i, j) ∈ (↑Δ : Set (ι × ι))
+  · rw [Set.indicator_of_mem hqΔ]
+    exact le_add_of_le_of_nonneg (hle i j) (Set.indicator_nonneg (fun a _ => hg0 a) _)
+  by_cases hqD : (i, j) ∈ (↑D : Set (ι × ι))
+  · rw [Set.indicator_of_mem hqD]
+    exact le_add_of_nonneg_of_le (Set.indicator_nonneg (fun a _ => hg0 a) _) (hle i j)
+  have hne : i ≠ j := fun h => hqΔ (Finset.mem_coe.2 (hmemΔ (i, j) h))
+  have hnotD : (i, j) ∉ D := fun h => hqD (Finset.mem_coe.2 h)
+  rw [Set.indicator_of_notMem hqΔ, Set.indicator_of_notMem hqD, add_zero, hcov i j,
+    (hD i j hne hnotD).measure_inter_eq_mul, ENNReal.toReal_mul, sub_self]
 
 end ProbMethodCombinatorics
