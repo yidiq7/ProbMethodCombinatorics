@@ -167,7 +167,7 @@
       "decl": "ProbMethodCombinatorics.bollobas_two_families",
       "doc": "introduction.md#bollobas_two_families--bollobas_two_families",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": []
     },
