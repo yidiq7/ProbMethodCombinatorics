@@ -32,7 +32,14 @@ noncomputable def ramseyNumber (k : ℕ) : ℕ := sInf {n | RamseyProperty n k}
 /-- The Ramsey property is monotone in the number of vertices. -/
 theorem RamseyProperty.mono {m n k : ℕ} (hmn : m ≤ n) (h : RamseyProperty m k) :
     RamseyProperty n k := by
-  sorry
+  intro c hc
+  obtain ⟨S, hcard, b, hb⟩ :=
+    h (fun i j => c (Fin.castLE hmn i) (Fin.castLE hmn j)) fun i j => hc _ _
+  refine ⟨S.map (Fin.castLEEmb hmn), by rw [card_map]; exact hcard, b, ?_⟩
+  intro i hi j hj hij
+  obtain ⟨i, hiS, rfl⟩ := mem_map.1 hi
+  obtain ⟨j, hjS, rfl⟩ := mem_map.1 hj
+  exact hb i hiS j hjS fun hij' => hij (congrArg _ hij')
 
 /-- **Erdős 1947** (Zhao, Theorem 1.1.2): if `2 * (n.choose k) < 2 ^ (k.choose 2)` then some red/blue
 edge colouring of `K n` has no monochromatic `K k`.  The hypothesis is the book's
