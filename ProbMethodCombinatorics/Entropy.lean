@@ -181,7 +181,58 @@ by iterating `entropy_pair_le_add`. -/
 theorem entropy_pi_le_sum (p : Ω → ℝ) (hp : ∀ ω, 0 ≤ p ω) (hp1 : ∑ ω, p ω = 1)
     (X : ∀ i, Ω → α i) :
     entropy p (fun ω i => X i ω) ≤ ∑ i, entropy p fun ω => X i ω := by
-  sorry
+  obtain ⟨Y, hY⟩ : ∃ Y : Finset ι → Ω → ∀ i, Option (α i),
+      ∀ (s : Finset ι) (ω : Ω) (i : ι), Y s ω i = if i ∈ s then some (X i ω) else none :=
+    ⟨_, fun _ _ _ => rfl⟩
+  have key : ∀ s : Finset ι, entropy p (Y s) ≤ ∑ i ∈ s, entropy p fun ω => X i ω := by
+    intro s
+    induction s using Finset.induction_on with
+    | empty =>
+        have h : Y ∅ = fun (_ : Ω) (_ : ι) => none := by
+          funext ω i; rw [hY]; simp
+        rw [h, entropy_const hp1]
+        simp
+    | @insert a s ha ih =>
+        have hinj : Function.Injective
+            (fun g : ∀ i, Option (α i) => (g a, Function.update g a (none : Option (α a)))) := by
+          intro g h hgh
+          funext i
+          by_cases hi : i = a
+          · subst hi; exact congrArg Prod.fst hgh
+          · have h2 : Function.update g a (none : Option (α a)) i
+                = Function.update h a (none : Option (α a)) i :=
+              congrFun (congrArg Prod.snd hgh) i
+            rwa [Function.update_of_ne hi, Function.update_of_ne hi] at h2
+        have h1 : entropy p (fun ω => (some (X a ω), Y s ω)) = entropy p (Y (insert a s)) := by
+          refine entropy_eq_of_comp p hinj (Y (insert a s)) _ fun ω => ?_
+          refine Prod.ext ?_ ?_
+          · simpa using (hY (insert a s) ω a).symm
+          · funext i
+            by_cases hi : i = a
+            · subst hi
+              simp only [Function.update_self]
+              rw [hY]
+              simp [ha]
+            · simp only [Function.update_of_ne hi]
+              rw [hY, hY]
+              simp [hi]
+        have h2 := entropy_pair_le_add hp hp1 (fun ω => some (X a ω)) (Y s)
+        have h3 : entropy p (fun ω => some (X a ω)) = entropy p fun ω => X a ω :=
+          entropy_eq_of_comp p (Option.some_injective (α a)) _ _ fun _ => rfl
+        rw [Finset.sum_insert ha, ← h1]
+        calc entropy p (fun ω => (some (X a ω), Y s ω))
+            ≤ entropy p (fun ω => some (X a ω)) + entropy p (Y s) := h2
+          _ ≤ (entropy p fun ω => X a ω) + ∑ i ∈ s, entropy p fun ω => X i ω := by
+              rw [h3]; linarith [ih]
+  have hsome : Function.Injective
+      (fun (g : ∀ i, α i) (i : ι) => (some (g i) : Option (α i))) := by
+    intro g h hgh
+    funext i
+    exact Option.some_injective _ (congrFun hgh i)
+  have hfin : entropy p (Y univ) = entropy p (fun ω i => X i ω) :=
+    entropy_eq_of_comp p hsome _ _ fun ω => by funext i; rw [hY]; simp
+  rw [← hfin]
+  exact key univ
 
 /-- **Shearer's lemma** (Theorem 10.4.5).  If every index `i` lies in at least `k` of the sets
 `A j`, then `k · H(X₁, …, Xₙ) ≤ ∑ⱼ H(X_{A j})`.  Use the chain rule together with
