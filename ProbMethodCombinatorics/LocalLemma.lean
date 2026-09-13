@@ -471,7 +471,163 @@ theorem twoColorable_of_inter_card_le {k : ℕ} (hk : 2 ≤ k) {H : Finset (Fins
     (hd : ∀ e ∈ H, ((H.erase e).filter fun f => (e ∩ f).Nonempty).card ≤ d)
     (h : Real.exp 1 * (d + 1) ≤ 2 ^ (k - 1)) :
     TwoColorable H := by
-  sorry
+  -- The uniform random two-colouring of `α`.
+  set ν : Measure Bool := (2 : ENNReal)⁻¹ • (Measure.dirac true + Measure.dirac false) with hν
+  have hνuniv : ν Set.univ = 1 := by
+    rw [hν]
+    simp only [Measure.smul_apply, Measure.add_apply, measure_univ, smul_eq_mul]
+    rw [show (1 : ENNReal) + 1 = 2 from by norm_num]
+    exact ENNReal.inv_mul_cancel (by norm_num) (by norm_num)
+  have : IsProbabilityMeasure ν := ⟨hνuniv⟩
+  have hνsingle : ∀ b : Bool, ν {b} = (2 : ENNReal)⁻¹ := by
+    intro b
+    rw [hν]
+    cases b <;> simp [Measure.smul_apply, Measure.add_apply]
+  set μ : Measure (α → Bool) := Measure.pi (fun _ : α => ν) with hμ
+  have : IsProbabilityMeasure μ := by rw [hμ]; infer_instance
+  -- The probability that a colouring is constant on a given set of vertices.
+  have hcyl : ∀ (T : Finset α) (b : Bool),
+      μ {x : α → Bool | ∀ u ∈ T, x u = b} = (2 : ENNReal)⁻¹ ^ T.card := by
+    intro T b
+    have hset : {x : α → Bool | ∀ u ∈ T, x u = b}
+        = Set.univ.pi (fun a => if a ∈ T then ({b} : Set Bool) else Set.univ) := by
+      ext x
+      constructor
+      · intro h a _
+        show x a ∈ (if a ∈ T then ({b} : Set Bool) else Set.univ)
+        by_cases ha : a ∈ T
+        · rw [if_pos ha]; exact h a ha
+        · rw [if_neg ha]; exact Set.mem_univ _
+      · intro h u hu
+        have hxu : x u ∈ (if u ∈ T then ({b} : Set Bool) else Set.univ) := h u (Set.mem_univ u)
+        rw [if_pos hu] at hxu
+        exact hxu
+    rw [hset, hμ, Measure.pi_pi]
+    have hrew : ∀ a : α, ν (if a ∈ T then ({b} : Set Bool) else Set.univ)
+        = if a ∈ T then (2 : ENNReal)⁻¹ else 1 := by
+      intro a
+      by_cases ha : a ∈ T
+      · rw [if_pos ha, if_pos ha]; exact hνsingle b
+      · rw [if_neg ha, if_neg ha]; exact hνuniv
+    rw [Finset.prod_congr rfl (fun a _ => hrew a), Finset.prod_ite_mem, Finset.univ_inter,
+      Finset.prod_const]
+  -- Events depending on disjoint sets of coordinates are independent.
+  have key : ∀ (T : Finset α) (S₁ S₂ : Set (α → Bool)),
+      (∀ x y : α → Bool, (∀ a ∈ T, x a = y a) → (x ∈ S₁ ↔ y ∈ S₁)) →
+      (∀ x y : α → Bool, (∀ a ∉ T, x a = y a) → (x ∈ S₂ ↔ y ∈ S₂)) →
+      μ (S₁ ∩ S₂) = μ S₁ * μ S₂ := by
+    intro T S₁ S₂ h₁ h₂
+    have hindep : iIndepFun (fun (a : α) (x : α → Bool) => x a) μ := by
+      rw [hμ]
+      exact ProbabilityTheory.iIndepFun_pi (μ := fun _ : α => ν)
+        (X := fun _ : α => (id : Bool → Bool)) (fun _ => aemeasurable_id)
+    have hind := hindep.indepFun_finset T Tᶜ disjoint_compl_right
+      (fun a => measurable_pi_apply a)
+    have e₁ : (fun (x : α → Bool) (u : { a // a ∈ T }) => x (u : α)) ⁻¹'
+        ((fun (x : α → Bool) (u : { a // a ∈ T }) => x (u : α)) '' S₁) = S₁ := by
+      refine Set.Subset.antisymm ?_ (Set.subset_preimage_image _ _)
+      rintro x ⟨y, hy, hxy⟩
+      exact (h₁ y x (fun a ha => congrFun hxy ⟨a, ha⟩)).1 hy
+    have e₂ : (fun (x : α → Bool) (u : { a // a ∈ Tᶜ }) => x (u : α)) ⁻¹'
+        ((fun (x : α → Bool) (u : { a // a ∈ Tᶜ }) => x (u : α)) '' S₂) = S₂ := by
+      refine Set.Subset.antisymm ?_ (Set.subset_preimage_image _ _)
+      rintro x ⟨y, hy, hxy⟩
+      exact (h₂ y x (fun a ha => congrFun hxy ⟨a, Finset.mem_compl.2 ha⟩)).1 hy
+    have hmul := hind.measure_inter_preimage_eq_mul
+      ((fun (x : α → Bool) (u : { a // a ∈ T }) => x (u : α)) '' S₁)
+      ((fun (x : α → Bool) (u : { a // a ∈ Tᶜ }) => x (u : α)) '' S₂)
+      (Set.toFinite _).measurableSet (Set.toFinite _).measurableSet
+    rw [e₁, e₂] at hmul
+    exact hmul
+  -- The bad events and their dependency graph.
+  obtain ⟨A, hAdef⟩ : ∃ A : { e // e ∈ H } → Set (α → Bool), ∀ e x,
+      (x ∈ A e ↔ ∀ u ∈ (e : Finset α), ∀ v ∈ (e : Finset α), x u = x v) :=
+    ⟨_, fun _ _ => Iff.rfl⟩
+  obtain ⟨N, hNdef⟩ : ∃ N : { e // e ∈ H } → Finset { e // e ∈ H }, ∀ e f,
+      (f ∈ N e ↔ f ≠ e ∧ ((e : Finset α) ∩ (f : Finset α)).Nonempty) :=
+    ⟨fun e => Finset.univ.filter fun f => f ≠ e ∧ ((e : Finset α) ∩ (f : Finset α)).Nonempty,
+      by simp⟩
+  have hAmeas : ∀ i, MeasurableSet (A i) := fun _ => (Set.toFinite _).measurableSet
+  -- Two colourings agreeing on an edge agree on whether that edge is monochromatic.
+  have hAinv : ∀ (j : { e // e ∈ H }) (x y : α → Bool),
+      (∀ a ∈ (j : Finset α), x a = y a) → (x ∈ A j ↔ y ∈ A j) := by
+    intro j x y hxy
+    rw [hAdef, hAdef]
+    constructor
+    · intro hx u hu v hv; rw [← hxy u hu, ← hxy v hv]; exact hx u hu v hv
+    · intro hy u hu v hv; rw [hxy u hu, hxy v hv]; exact hy u hu v hv
+  have hNdep : IsDependencyGraph μ A N := by
+    intro i s hs g
+    refine key (i : Finset α) (A i) (pattern A s g) (hAinv i) ?_
+    intro x y hxy
+    have hj : ∀ j ∈ s, (x ∈ (if g j then A j else (A j)ᶜ) ↔ y ∈ (if g j then A j else (A j)ᶜ)) := by
+      intro j hjs
+      obtain ⟨hjne, hjN⟩ := hs j hjs
+      have hdisj : Disjoint (i : Finset α) (j : Finset α) := by
+        by_contra hcon
+        exact hjN ((hNdef i j).2 ⟨hjne, Finset.not_disjoint_iff_nonempty_inter.1 hcon⟩)
+      have hiff := hAinv j x y fun a ha =>
+        hxy a fun hai => (Finset.disjoint_left.1 hdisj hai) ha
+      by_cases hg : g j
+      · rw [if_pos hg]; exact hiff
+      · rw [if_neg hg]; exact not_congr hiff
+    simp only [pattern, Set.mem_iInter]
+    exact ⟨fun h j hjs => (hj j hjs).1 (h j hjs), fun h j hjs => (hj j hjs).2 (h j hjs)⟩
+  -- Each bad event has probability at most `2 ^ (1 - k)`.
+  have hp : ∀ i, (μ (A i)).toReal ≤ 2 * ((2 : ℝ)⁻¹) ^ k := by
+    intro i
+    have hne : (i : Finset α).Nonempty := by
+      rw [← Finset.card_pos, huniform _ i.2]; omega
+    obtain ⟨u₀, hu₀⟩ := hne
+    have hsub : A i ⊆ {x : α → Bool | ∀ u ∈ (i : Finset α), x u = true}
+        ∪ {x : α → Bool | ∀ u ∈ (i : Finset α), x u = false} := by
+      intro x hx
+      rw [hAdef] at hx
+      cases hb : x u₀
+      · right; intro u hu; rw [hx u hu u₀ hu₀, hb]
+      · left; intro u hu; rw [hx u hu u₀ hu₀, hb]
+    have hle : μ (A i) ≤ 2 * (2 : ENNReal)⁻¹ ^ k := by
+      calc μ (A i) ≤ μ ({x : α → Bool | ∀ u ∈ (i : Finset α), x u = true}
+              ∪ {x : α → Bool | ∀ u ∈ (i : Finset α), x u = false}) := measure_mono hsub
+        _ ≤ μ {x : α → Bool | ∀ u ∈ (i : Finset α), x u = true}
+              + μ {x : α → Bool | ∀ u ∈ (i : Finset α), x u = false} := measure_union_le _ _
+        _ = 2 * (2 : ENNReal)⁻¹ ^ k := by
+            rw [hcyl _ true, hcyl _ false, huniform _ i.2]; ring
+    have htop : (2 : ENNReal) * (2 : ENNReal)⁻¹ ^ k ≠ ⊤ :=
+      ENNReal.mul_ne_top (by norm_num) (ENNReal.pow_ne_top (by norm_num))
+    have := ENNReal.toReal_mono htop hle
+    simpa using this
+  have hdcard : ∀ i, (N i).card ≤ d := by
+    intro i
+    refine le_trans (Finset.card_le_card_of_injOn (fun f => (f : Finset α)) ?_ ?_) (hd i i.2)
+    · intro f hf
+      rw [Finset.mem_coe, hNdef] at hf
+      exact Finset.mem_coe.2 (Finset.mem_filter.2
+        ⟨Finset.mem_erase.2 ⟨fun h => hf.1 (Subtype.ext h), f.2⟩, hf.2⟩)
+    · intro f _ g _ h
+      exact Subtype.ext h
+  -- `e · 2 ^ (1 - k) · (d + 1) ≤ 1` is exactly the hypothesis `h`.
+  have hcond : Real.exp 1 * (2 * ((2 : ℝ)⁻¹) ^ k) * ((d : ℝ) + 1) ≤ 1 := by
+    obtain ⟨m, hm⟩ : ∃ m, k = m + 1 := ⟨k - 1, by omega⟩
+    rw [hm] at h ⊢
+    rw [show m + 1 - 1 = m from rfl] at h
+    have h2m : (0 : ℝ) < 2 ^ m := by positivity
+    have hrw : (2 : ℝ) * ((2 : ℝ)⁻¹) ^ (m + 1) = ((2 : ℝ) ^ m)⁻¹ := by
+      rw [inv_pow, pow_succ, mul_inv]
+      field_simp
+    rw [hrw, show Real.exp 1 * ((2 : ℝ) ^ m)⁻¹ * ((d : ℝ) + 1)
+      = (Real.exp 1 * ((d : ℝ) + 1)) / 2 ^ m from by ring, div_le_one h2m]
+    exact h
+  have hpos := lovasz_local_lemma_symmetric A hAmeas N hNdep hp hdcard hcond
+  -- A colouring avoiding every bad event exists.
+  rcases Set.eq_empty_or_nonempty (⋂ i, (A i)ᶜ) with hempty | ⟨x, hx⟩
+  · rw [hempty] at hpos; simp at hpos
+  · refine ⟨x, fun e he => ?_⟩
+    simp only [Set.mem_iInter, Set.mem_compl_iff] at hx
+    by_contra hcon
+    refine hx ⟨e, he⟩ ((hAdef ⟨e, he⟩ x).2 fun u hu v hv => ?_)
+    by_contra hne
+    exact hcon ⟨u, hu, v, hv, hne⟩
 
 /-- **Zhao, Corollary 6.2.2**: for `k ≥ 9` every `k`-uniform `k`-regular hypergraph is
 2-colourable, where `k`-regular means every vertex lies in exactly `k` edges.  (The statement
