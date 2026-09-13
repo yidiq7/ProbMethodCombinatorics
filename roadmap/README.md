@@ -305,3 +305,9 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   halfway in.  `IsTriangleFreeEdgeSet` is an `abbrev` rather than a `def` so that `Decidable`
   resolution sees through it; that keeps the no-`Decidable`-instances rule intact without
   making the statements uglier.
+- **2026-09-13 — re-pinning a *claimed* issue re-adds `choir/available`.** Editing an issue
+  body re-triggers the `issue-intake` workflow, which labels the task available; on a task
+  someone is actively holding, the result is both labels at once and a task two workers can
+  claim. Seen on #86 immediately after the batch re-pin to `a8b6e79`. **After re-pinning, list
+  the issues carrying both labels and strip `choir/available` from them** — `sync-leases` does
+  not fix this, because the lease comment is still valid and it sees nothing wrong.
