@@ -294,14 +294,95 @@ In the Brégman–Minc proof `D` is the set of `j` with `A i (π j) = 1`, which 
 contains `i`, and the rank is `availCount A π τ i`; the conclusion is that `Nᵢ` is uniform on
 `[dᵢ]` for a fixed matching `π`.
 
-This is stated multiplicatively to stay in `ℕ`.  The intended proof is that the `|D|` cyclic
-rotations of the values `τ` takes on `D` partition the permutations into classes of size `|D|`
-meeting each rank exactly once. -/
+This is stated multiplicatively to stay in `ℕ`.  The proof is a double count: for a fixed `τ`
+the rank is injective on `D`, so exactly one `j ∈ D` has rank `m`; and composing `τ` with the
+transposition of `i` and `j` exchanges the rank of `i` with the rank of `j`, so all `j ∈ D` give
+the same fibre size. -/
 theorem card_filter_rank_mul_card_eq_factorial {n : ℕ} (D : Finset (Fin n)) (i : Fin n)
     (hi : i ∈ D) {m : ℕ} (hm : m ∈ Finset.Icc 1 D.card) :
     (univ.filter fun τ : Equiv.Perm (Fin n) =>
         (D.filter fun j => τ i ≤ τ j).card = m).card * D.card = Nat.factorial n := by
-  sorry
+  obtain ⟨rank, hrank⟩ : ∃ r : Equiv.Perm (Fin n) → Fin n → ℕ,
+      ∀ τ j, r τ j = (D.filter fun l => τ j ≤ τ l).card := ⟨_, fun _ _ => rfl⟩
+  have hmono : ∀ (τ : Equiv.Perm (Fin n)) (j j' : Fin n), j ∈ D → τ j < τ j' →
+      rank τ j' < rank τ j := by
+    intro τ j j' hjD hlt
+    rw [hrank, hrank]
+    refine Finset.card_lt_card ⟨fun l hl => ?_, fun hsub => ?_⟩
+    · rw [Finset.mem_filter] at hl ⊢
+      exact ⟨hl.1, le_trans hlt.le hl.2⟩
+    · have hj : j ∈ D.filter fun l => τ j ≤ τ l := Finset.mem_filter.mpr ⟨hjD, le_rfl⟩
+      have h2 := hsub hj
+      rw [Finset.mem_filter] at h2
+      exact absurd h2.2 (not_le.mpr hlt)
+  have hinj : ∀ (τ : Equiv.Perm (Fin n)), ∀ j ∈ D, ∀ j' ∈ D, rank τ j = rank τ j' → j = j' := by
+    intro τ j hjD j' hj'D heq
+    rcases lt_trichotomy (τ j) (τ j') with h | h | h
+    · have := hmono τ j j' hjD h
+      omega
+    · exact τ.injective h
+    · have := hmono τ j' j hj'D h
+      omega
+  have hmemIcc : ∀ (τ : Equiv.Perm (Fin n)), ∀ j ∈ D, rank τ j ∈ Finset.Icc 1 D.card := by
+    intro τ j hjD
+    rw [Finset.mem_Icc, hrank]
+    exact ⟨Finset.card_pos.mpr ⟨j, Finset.mem_filter.mpr ⟨hjD, le_rfl⟩⟩,
+      Finset.card_le_card (Finset.filter_subset _ _)⟩
+  have himg : ∀ τ : Equiv.Perm (Fin n), D.image (rank τ) = Finset.Icc 1 D.card := by
+    intro τ
+    refine Finset.eq_of_subset_of_card_le (fun x hx => ?_) ?_
+    · obtain ⟨j, hjD, rfl⟩ := Finset.mem_image.mp hx
+      exact hmemIcc τ j hjD
+    · rw [Finset.card_image_of_injOn (fun j hj j' hj' h => hinj τ j hj j' hj' h), Nat.card_Icc]
+      omega
+  have hone : ∀ τ : Equiv.Perm (Fin n), (D.filter fun j => rank τ j = m).card = 1 := by
+    intro τ
+    have hmimg : m ∈ D.image (rank τ) := by rw [himg τ]; exact hm
+    obtain ⟨j, hjD, hj⟩ := Finset.mem_image.mp hmimg
+    rw [Finset.card_eq_one]
+    refine ⟨j, Finset.eq_singleton_iff_unique_mem.mpr ⟨Finset.mem_filter.mpr ⟨hjD, hj⟩, ?_⟩⟩
+    intro x hx
+    rw [Finset.mem_filter] at hx
+    exact hinj τ x hx.1 j hjD (by rw [hx.2, hj])
+  have hswap : ∀ j ∈ D, (univ.filter fun τ : Equiv.Perm (Fin n) => rank τ j = m).card
+      = (univ.filter fun τ : Equiv.Perm (Fin n) => rank τ i = m).card := by
+    intro j hjD
+    have hcD : ∀ l, l ∈ D ↔ (Equiv.swap i j) l ∈ D := by
+      intro l
+      rcases eq_or_ne l i with rfl | hli
+      · simp [Equiv.swap_apply_left, hi, hjD]
+      · rcases eq_or_ne l j with rfl | hlj
+        · simp [Equiv.swap_apply_right, hi, hjD]
+        · rw [Equiv.swap_apply_of_ne_of_ne hli hlj]
+    have hkey : ∀ τ : Equiv.Perm (Fin n), rank (τ * Equiv.swap i j) i = rank τ j := by
+      intro τ
+      rw [hrank, hrank]
+      refine Finset.card_equiv (Equiv.swap i j) fun l => ?_
+      rw [Finset.mem_filter, Finset.mem_filter, Equiv.Perm.mul_apply, Equiv.Perm.mul_apply,
+        Equiv.swap_apply_left]
+      exact and_congr (hcD l) Iff.rfl
+    refine Finset.card_equiv (Equiv.mulRight (Equiv.swap i j)) fun τ => ?_
+    rw [Finset.mem_filter, Finset.mem_filter]
+    simp only [Finset.mem_univ, true_and, Equiv.coe_mulRight, hkey τ]
+  have hcount : ∑ τ : Equiv.Perm (Fin n), (D.filter fun j => rank τ j = m).card
+      = Nat.factorial n := by
+    rw [Finset.sum_congr rfl (fun τ _ => hone τ)]
+    simp [Fintype.card_perm]
+  have hswapsum : ∑ τ : Equiv.Perm (Fin n), (D.filter fun j => rank τ j = m).card
+      = D.card * (univ.filter fun τ : Equiv.Perm (Fin n) => rank τ i = m).card := by
+    calc ∑ τ : Equiv.Perm (Fin n), (D.filter fun j => rank τ j = m).card
+        = ∑ τ : Equiv.Perm (Fin n), ∑ j ∈ D, (if rank τ j = m then 1 else 0) := by
+          simp only [Finset.card_filter]
+      _ = ∑ j ∈ D, ∑ τ : Equiv.Perm (Fin n), (if rank τ j = m then 1 else 0) := Finset.sum_comm
+      _ = ∑ j ∈ D, (univ.filter fun τ : Equiv.Perm (Fin n) => rank τ j = m).card := by
+          simp only [Finset.card_filter]
+      _ = ∑ j ∈ D, (univ.filter fun τ : Equiv.Perm (Fin n) => rank τ i = m).card :=
+          Finset.sum_congr rfl hswap
+      _ = D.card * (univ.filter fun τ : Equiv.Perm (Fin n) => rank τ i = m).card := by
+          rw [Finset.sum_const, smul_eq_mul]
+  simp only [← hrank]
+  rw [mul_comm, ← hswapsum]
+  exact hcount
 
 /-- Averaging `log₂ Nᵢ` over the reveal order: for a fixed matching `π` in the support,
 `∑_τ log₂ (availCount A π τ i) = (n! / dᵢ) · log₂ (dᵢ!)`, i.e. `𝔼_τ log₂ Nᵢ = log₂(dᵢ!)/dᵢ`.
