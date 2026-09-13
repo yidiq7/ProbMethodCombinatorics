@@ -22,6 +22,41 @@ namespace ProbMethodCombinatorics
 open MeasureTheory ProbabilityTheory
 open scoped ENNReal
 
+theorem measurePreserving_update_pi {ι : Type*} [Fintype ι] [DecidableEq ι] {Ω : ι → Type*}
+    [∀ i, MeasurableSpace (Ω i)] (μ : ∀ i, Measure (Ω i)) [∀ i, IsProbabilityMeasure (μ i)]
+    (i : ι) :
+    MeasurePreserving (fun p : (∀ j, Ω j) × Ω i ↦ Function.update p.1 i p.2)
+      ((Measure.pi μ).prod (μ i)) (Measure.pi μ) := by
+  refine ⟨measurable_update', (Measure.pi_eq fun s hs ↦ ?_).symm⟩
+  rw [Measure.map_apply measurable_update' (MeasurableSet.univ_pi hs)]
+  have hpre : (fun p : (∀ j, Ω j) × Ω i ↦ Function.update p.1 i p.2) ⁻¹' (Set.univ.pi s)
+      = (Set.univ.pi (Function.update s i Set.univ)) ×ˢ s i := by
+    ext p
+    simp only [Set.mem_preimage, Set.mem_univ_pi, Set.mem_prod]
+    constructor
+    · intro hp
+      refine ⟨fun j ↦ ?_, ?_⟩
+      · rcases eq_or_ne j i with rfl | hj
+        · simp
+        · have hj2 := hp j
+          rw [Function.update_of_ne hj] at hj2 ⊢
+          exact hj2
+      · have := hp i
+        rwa [Function.update_self] at this
+    · rintro ⟨h1, h2⟩ j
+      rcases eq_or_ne j i with rfl | hj
+      · rwa [Function.update_self]
+      · rw [Function.update_of_ne hj]
+        have := h1 j
+        rwa [Function.update_of_ne hj] at this
+  rw [hpre, Measure.prod_prod, Measure.pi_pi,
+    ← Finset.mul_prod_erase Finset.univ (fun j ↦ μ j (Function.update s i Set.univ j))
+      (Finset.mem_univ i),
+    ← Finset.mul_prod_erase Finset.univ (fun j ↦ μ j (s j)) (Finset.mem_univ i)]
+  have h1 : ∀ j ∈ Finset.univ.erase i, μ j (Function.update s i Set.univ j) = μ j (s j) :=
+    fun j hj ↦ by rw [Function.update_of_ne (Finset.ne_of_mem_erase hj)]
+  rw [Finset.prod_congr rfl h1, Function.update_self, measure_univ, one_mul, mul_comm]
+
 /-- **Azuma–Hoeffding for the Doob martingale of a bounded-differences function**: under the
 hypotheses of the bounded differences inequality, the centred function `f - 𝔼 f` has a
 sub-Gaussian moment-generating function with parameter `(∑ i, c i ^ 2) / 4`.
