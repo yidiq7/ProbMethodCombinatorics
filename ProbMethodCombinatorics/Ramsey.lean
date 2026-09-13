@@ -130,11 +130,91 @@ theorem exists_coloring_no_isMonochromatic (n k : ℕ) (hk : 2 ≤ k)
     have hle : S.card ≤ n := by simpa using card_le_univ S
     omega
 
+/-- **Erdős–Szekeres** (Zhao, Remark 1.1.5), in the off-diagonal form the induction needs:
+any vertex set with at least `(k + l).choose k` elements carries, under every symmetric
+red/blue edge colouring, either a `true`-coloured clique on `k` vertices or a
+`false`-coloured clique on `l` vertices.
+
+The vertex set is an arbitrary `Finset`, not an initial segment, so that the inductive step
+— fix a vertex and recurse on the two colour classes of its neighbourhood — stays inside the
+statement. -/
+theorem exists_monochromatic_of_choose_le {α : Type*} [DecidableEq α] (k : ℕ) :
+    ∀ (l : ℕ) (V : Finset α) (c : α → α → Bool), (∀ i j, c i j = c j i) →
+      (k + l).choose k ≤ V.card →
+      (∃ S ⊆ V, S.card = k ∧ ∀ i ∈ S, ∀ j ∈ S, i ≠ j → c i j = true) ∨
+        (∃ S ⊆ V, S.card = l ∧ ∀ i ∈ S, ∀ j ∈ S, i ≠ j → c i j = false) := by
+  induction k with
+  | zero => exact fun l V c _ _ => Or.inl ⟨∅, empty_subset _, card_empty, by simp⟩
+  | succ k ih =>
+    intro l
+    induction l with
+    | zero => exact fun V c _ _ => Or.inr ⟨∅, empty_subset _, card_empty, by simp⟩
+    | succ l ihl =>
+      intro V c hc hcard
+      -- Pascal's rule splits the hypothesis into the two inductive budgets.
+      have hcard' : (k + (l + 1)).choose k + (k + 1 + l).choose (k + 1) ≤ V.card := by
+        have h1 : k + 1 + (l + 1) = k + l + 1 + 1 := by omega
+        have h2 : k + (l + 1) = k + l + 1 := by omega
+        have h3 : k + 1 + l = k + l + 1 := by omega
+        rw [h2, h3]
+        rwa [h1, Nat.choose_succ_succ] at hcard
+      have hpos : 0 < (k + (l + 1)).choose k := Nat.choose_pos (Nat.le_add_right k (l + 1))
+      obtain ⟨v, hv⟩ : V.Nonempty := card_pos.mp (by omega)
+      set W : Finset α := V.erase v with hW
+      set A : Finset α := W.filter (fun w => c v w = true) with hA
+      set B : Finset α := W.filter (fun w => ¬ c v w = true) with hB
+      have hAB : A.card + B.card = W.card := card_filter_add_card_filter_not _
+      have hWcard : W.card = V.card - 1 := by rw [hW, card_erase_of_mem hv]
+      have hAV : ∀ w ∈ A, w ∈ V := fun w hw => mem_of_mem_erase (mem_filter.mp hw).1
+      have hBV : ∀ w ∈ B, w ∈ V := fun w hw => mem_of_mem_erase (mem_filter.mp hw).1
+      have hvA : v ∉ A := fun hvA => notMem_erase v V (mem_filter.mp hvA).1
+      have hvB : v ∉ B := fun hvB => notMem_erase v V (mem_filter.mp hvB).1
+      have hsplit : (k + (l + 1)).choose k ≤ A.card ∨
+          (k + 1 + l).choose (k + 1) ≤ B.card := by
+        by_contra hcon
+        simp only [not_or, not_le] at hcon
+        omega
+      rcases hsplit with hle | hle
+      · -- Enough `true`-neighbours: recurse there and prepend `v` to a `true`-clique.
+        rcases ih (l + 1) A c hc hle with ⟨S, hSA, hScard, hS⟩ | ⟨S, hSA, hScard, hS⟩
+        · refine Or.inl ⟨insert v S, ?_, ?_, ?_⟩
+          · exact insert_subset hv fun w hw => hAV w (hSA hw)
+          · rw [card_insert_of_notMem fun hvS => hvA (hSA hvS), hScard]
+          · intro i hi j hj hij
+            rcases mem_insert.mp hi with rfl | hiS
+            · rcases mem_insert.mp hj with rfl | hjS
+              · exact absurd rfl hij
+              · exact (mem_filter.mp (hSA hjS)).2
+            · rcases mem_insert.mp hj with rfl | hjS
+              · rw [hc]; exact (mem_filter.mp (hSA hiS)).2
+              · exact hS i hiS j hjS hij
+        · exact Or.inr ⟨S, fun w hw => hAV w (hSA hw), hScard, hS⟩
+      · -- Enough `false`-neighbours: recurse there and prepend `v` to a `false`-clique.
+        rcases ihl B c hc hle with ⟨S, hSB, hScard, hS⟩ | ⟨S, hSB, hScard, hS⟩
+        · exact Or.inl ⟨S, fun w hw => hBV w (hSB hw), hScard, hS⟩
+        · refine Or.inr ⟨insert v S, ?_, ?_, ?_⟩
+          · exact insert_subset hv fun w hw => hBV w (hSB hw)
+          · rw [card_insert_of_notMem fun hvS => hvB (hSB hvS), hScard]
+          · intro i hi j hj hij
+            rcases mem_insert.mp hi with rfl | hiS
+            · rcases mem_insert.mp hj with rfl | hjS
+              · exact absurd rfl hij
+              · exact Bool.eq_false_iff.mpr (mem_filter.mp (hSB hjS)).2
+            · rcases mem_insert.mp hj with rfl | hjS
+              · rw [hc]; exact Bool.eq_false_iff.mpr (mem_filter.mp (hSB hiS)).2
+              · exact hS i hiS j hjS hij
+
 /-- **Ramsey's theorem** (Ramsey 1929; Zhao, Section 1.1): `R(k, k)` is finite, i.e. some
 complete graph is large enough that every red/blue edge colouring of it has a monochromatic
 `k`-clique.  Without this the infimum defining `ramseyNumber` could be taken over the empty set. -/
 theorem exists_ramseyProperty (k : ℕ) : ∃ n, RamseyProperty n k := by
-  sorry
+  refine ⟨(k + k).choose k, fun c hc => ?_⟩
+  have hcard : (k + k).choose k ≤ (univ : Finset (Fin ((k + k).choose k))).card := by
+    rw [card_univ, Fintype.card_fin]
+  rcases exists_monochromatic_of_choose_le k k univ c hc hcard with
+    ⟨S, -, hScard, hS⟩ | ⟨S, -, hScard, hS⟩
+  · exact ⟨S, hScard, true, hS⟩
+  · exact ⟨S, hScard, false, hS⟩
 
 /-- **Erdős 1947** (Zhao, Theorem 1.1.2), stated for the Ramsey number: if
 `2 * (n.choose k) < 2 ^ (k.choose 2)` then `R(k, k) > n`. -/
