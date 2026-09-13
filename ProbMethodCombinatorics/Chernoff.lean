@@ -149,12 +149,199 @@ theorem card_filter_abs_le_exp_mul (n : ℕ) (hn : 0 < n) {lam : ℝ} (hlam : 0 
   rw [h3]
   linarith
 
+/-- The two-sided Chernoff bound `card_filter_abs_le_exp_mul` transported from `Fin S.card` to a
+subset `S` of `Fin n`: the sign sequences are indexed by all of `Fin n`, but only the `S.card`
+coordinates in `S` enter the sum, and the remaining coordinates contribute the same factor to
+both sides.
+
+`0 < S.card` is inherited from the hypothesis `0 < n` of the Chernoff bound. -/
+theorem card_filter_abs_sum_subset_le {n : ℕ} (S : Finset (Fin n)) (hS : 0 < S.card)
+    {lam : ℝ} (hlam : 0 < lam) :
+    (((univ : Finset (Fin n → Bool)).filter
+        fun x => lam * Real.sqrt S.card ≤ |∑ i ∈ S, toSign (x i)|).card : ℝ)
+      ≤ 2 * Real.exp (-lam ^ 2 / 2) * 2 ^ n := by
+  let E : (Fin n → Bool) ≃ (Fin S.card → Bool) × ({i : Fin n // i ∉ S} → Bool) :=
+    (Equiv.piEquivPiSubtypeProd (fun i => i ∈ S) (fun _ => Bool)).trans
+      (Equiv.prodCongr (Equiv.arrowCongr S.equivFin (Equiv.refl Bool)) (Equiv.refl _))
+  have hEfst : ∀ (x : Fin n → Bool) (j : Fin S.card),
+      (E x).1 j = x (S.equivFin.symm j) := fun _ _ => rfl
+  have hsum : ∀ x : Fin n → Bool, ∑ j, toSign ((E x).1 j) = ∑ i ∈ S, toSign (x i) := by
+    intro x
+    simp only [hEfst]
+    rw [Equiv.sum_comp S.equivFin.symm fun i : {i : Fin n // i ∈ S} => toSign (x i)]
+    exact Finset.sum_coe_sort S fun i => toSign (x i)
+  have hcard : ((univ : Finset (Fin n → Bool)).filter
+        fun x => lam * Real.sqrt S.card ≤ |∑ i ∈ S, toSign (x i)|).card
+      = ((univ : Finset (Fin S.card → Bool)).filter
+          fun y => lam * Real.sqrt S.card ≤ |∑ j, toSign (y j)|).card
+        * Fintype.card ({i : Fin n // i ∉ S} → Bool) := by
+    rw [← Finset.card_univ (α := ({i : Fin n // i ∉ S} → Bool)), ← Finset.card_product]
+    refine Finset.card_equiv E ?_
+    intro x
+    simp only [mem_filter, mem_univ, true_and, Finset.mem_product, and_true, hsum]
+  have hprod : Fintype.card (Fin S.card → Bool) * Fintype.card ({i : Fin n // i ∉ S} → Bool)
+      = 2 ^ n := by
+    rw [← Fintype.card_prod, Fintype.card_congr E.symm]
+    simp
+  have hpow : (2 : ℝ) ^ S.card * (Fintype.card ({i : Fin n // i ∉ S} → Bool) : ℝ) = 2 ^ n := by
+    have h := congrArg (fun k : ℕ => (k : ℝ)) hprod
+    simpa using h
+  have hnn : (0 : ℝ) ≤ (Fintype.card ({i : Fin n // i ∉ S} → Bool) : ℝ) := Nat.cast_nonneg _
+  calc (((univ : Finset (Fin n → Bool)).filter
+          fun x => lam * Real.sqrt S.card ≤ |∑ i ∈ S, toSign (x i)|).card : ℝ)
+      = (((univ : Finset (Fin S.card → Bool)).filter
+            fun y => lam * Real.sqrt S.card ≤ |∑ j, toSign (y j)|).card : ℝ)
+          * (Fintype.card ({i : Fin n // i ∉ S} → Bool) : ℝ) := by
+        rw [hcard]; push_cast; ring
+    _ ≤ (2 * Real.exp (-lam ^ 2 / 2) * 2 ^ S.card)
+          * (Fintype.card ({i : Fin n // i ∉ S} → Bool) : ℝ) := by
+        exact mul_le_mul_of_nonneg_right (card_filter_abs_le_exp_mul S.card hS hlam) hnn
+    _ = 2 * Real.exp (-lam ^ 2 / 2)
+          * ((2 : ℝ) ^ S.card * (Fintype.card ({i : Fin n // i ∉ S} → Bool) : ℝ)) := by ring
+    _ = 2 * Real.exp (-lam ^ 2 / 2) * 2 ^ n := by rw [hpow]
+
 /-- **Discrepancy of a set system** (Zhao, Theorem 5.1.1): any `m` subsets of `[n]` admit a
 `±1` assignment whose sum on every set is `O(√(n log m))` — here, at most `2 √(n log m)`. -/
 theorem exists_toSign_abs_sum_le {n : ℕ} (F : Finset (Finset (Fin n))) (hF : 2 ≤ F.card) :
     ∃ x : Fin n → Bool, ∀ S ∈ F,
       |∑ i ∈ S, toSign (x i)| ≤ 2 * Real.sqrt (n * Real.log F.card) := by
-  sorry
+  have hm2 : (2 : ℝ) ≤ (F.card : ℝ) := by exact_mod_cast hF
+  have hmpos : (0 : ℝ) < (F.card : ℝ) := by linarith
+  have hn : 0 < n := by
+    rcases Nat.eq_zero_or_pos n with h | h
+    · subst h
+      exfalso
+      have hsub : F ⊆ {(∅ : Finset (Fin 0))} := by
+        intro S _
+        simp [Finset.eq_empty_of_isEmpty S]
+      have h1 := Finset.card_le_card hsub
+      simp only [Finset.card_singleton] at h1
+      omega
+    · exact h
+  have hnR : (0 : ℝ) < n := by exact_mod_cast hn
+  set L : ℝ := Real.log F.card with hLdef
+  have hLpos : 0 < L := Real.log_pos (by linarith)
+  set T : ℝ := 2 * Real.sqrt ((n : ℝ) * L) with hTdef
+  have hTpos : 0 < T := by
+    have h := Real.sqrt_pos.mpr (mul_pos hnR hLpos)
+    rw [hTdef]; linarith
+  obtain ⟨bad, hbad⟩ : ∃ bad : Finset (Fin n) → Finset (Fin n → Bool),
+      ∀ S, bad S = (univ : Finset (Fin n → Bool)).filter
+        fun x => T < |∑ i ∈ S, toSign (x i)| := ⟨_, fun _ => rfl⟩
+  have key : ∀ (S : Finset (Fin n)) (u : ℝ), 0 < u → (S.card : ℝ) * u ≤ (n : ℝ) * L →
+      ((bad S).card : ℝ) ≤ 2 * Real.exp (-(2 * u)) * 2 ^ n := by
+    intro S u hu hku
+    rcases Nat.eq_zero_or_pos S.card with hk | hk
+    · have hbe : bad S = ∅ := by
+        rw [hbad S, Finset.card_eq_zero.mp hk]
+        ext x
+        simp only [mem_filter, mem_univ, true_and, Finset.sum_empty, abs_zero,
+          Finset.notMem_empty, iff_false, not_lt]
+        exact hTpos.le
+      rw [hbe, Finset.card_empty, Nat.cast_zero]
+      positivity
+    · have hkR : (0 : ℝ) < (S.card : ℝ) := by exact_mod_cast hk
+      have hsq : 0 < Real.sqrt (S.card : ℝ) := Real.sqrt_pos.mpr hkR
+      set lam : ℝ := T / Real.sqrt (S.card : ℝ) with hlamdef
+      have hlampos : 0 < lam := div_pos hTpos hsq
+      have hthr : lam * Real.sqrt (S.card : ℝ) = T := by
+        rw [hlamdef]; field_simp
+      have hsub : bad S ⊆ (univ : Finset (Fin n → Bool)).filter
+          fun x => lam * Real.sqrt (S.card : ℝ) ≤ |∑ i ∈ S, toSign (x i)| := by
+        intro x hx
+        rw [hbad S] at hx
+        simp only [mem_filter, mem_univ, true_and] at hx ⊢
+        rw [hthr]
+        exact hx.le
+      have h1 : ((bad S).card : ℝ) ≤ 2 * Real.exp (-lam ^ 2 / 2) * 2 ^ n :=
+        le_trans ((Nat.cast_le (α := ℝ)).mpr (Finset.card_le_card hsub))
+          (card_filter_abs_sum_subset_le S hk hlampos)
+      have hlamsq : lam ^ 2 = 4 * ((n : ℝ) * L / (S.card : ℝ)) := by
+        rw [hlamdef, div_pow, Real.sq_sqrt hkR.le, hTdef, mul_pow,
+          Real.sq_sqrt (by positivity : (0 : ℝ) ≤ (n : ℝ) * L)]
+        ring
+      have hu' : u ≤ (n : ℝ) * L / (S.card : ℝ) := by
+        rw [le_div_iff₀ hkR]; linarith
+      have hexp : -lam ^ 2 / 2 ≤ -(2 * u) := by rw [hlamsq]; linarith
+      refine le_trans h1 ?_
+      have he := Real.exp_le_exp.mpr hexp
+      have hp : (0 : ℝ) < 2 ^ n := by positivity
+      nlinarith [he, hp]
+  have hcard_le : ∀ S : Finset (Fin n), (S.card : ℝ) ≤ (n : ℝ) := by
+    intro S
+    have h : S.card ≤ n := by simpa using Finset.card_le_univ S
+    exact_mod_cast h
+  have hc1 : ∀ S ∈ F, ((bad S).card : ℝ) ≤ 2 * Real.exp (-(2 * L)) * 2 ^ n := fun S _ =>
+    key S L hLpos (mul_le_mul_of_nonneg_right (hcard_le S) hLpos.le)
+  have hc2 : ∃ S ∈ F, ((bad S).card : ℝ) < 2 * Real.exp (-(2 * L)) * 2 ^ n := by
+    obtain ⟨A, hA, B, hB, hAB⟩ := Finset.one_lt_card.mp (by omega : 1 < F.card)
+    obtain ⟨S, hSF, hSne⟩ : ∃ S ∈ F, S ≠ (univ : Finset (Fin n)) := by
+      by_cases h : A = univ
+      · exact ⟨B, hB, fun hBu => hAB (h.trans hBu.symm)⟩
+      · exact ⟨A, hA, h⟩
+    have hSlt : S.card < n := by
+      have hss : S ⊂ univ := lt_of_le_of_ne (Finset.subset_univ S) hSne
+      simpa using Finset.card_lt_card hss
+    refine ⟨S, hSF, ?_⟩
+    have hp : (0 : ℝ) < 2 ^ n := by positivity
+    rcases Nat.eq_zero_or_pos S.card with hk | hk
+    · have h1 := key S (2 * L) (by linarith) (by
+        rw [hk]; push_cast; nlinarith [mul_pos hnR hLpos])
+      have he : Real.exp (-(2 * (2 * L))) < Real.exp (-(2 * L)) :=
+        Real.exp_lt_exp.mpr (by linarith)
+      nlinarith [h1, he, hp]
+    · have hkR : (0 : ℝ) < (S.card : ℝ) := by exact_mod_cast hk
+      have hSltR : (S.card : ℝ) < (n : ℝ) := by exact_mod_cast hSlt
+      have hu : 0 < (n : ℝ) * L / (S.card : ℝ) := by positivity
+      have hku : (S.card : ℝ) * ((n : ℝ) * L / (S.card : ℝ)) ≤ (n : ℝ) * L :=
+        le_of_eq (by field_simp)
+      have h1 := key S ((n : ℝ) * L / (S.card : ℝ)) hu hku
+      have hLu : L < (n : ℝ) * L / (S.card : ℝ) := by
+        rw [lt_div_iff₀ hkR]; nlinarith [mul_pos hLpos (sub_pos.mpr hSltR)]
+      have he : Real.exp (-(2 * ((n : ℝ) * L / (S.card : ℝ)))) < Real.exp (-(2 * L)) :=
+        Real.exp_lt_exp.mpr (by linarith)
+      nlinarith [h1, he, hp]
+  by_contra hcon
+  have hall : ∀ x : Fin n → Bool, ∃ S ∈ F, T < |∑ i ∈ S, toSign (x i)| := by
+    intro x
+    by_contra h
+    exact hcon ⟨x, fun S hS => not_lt.mp fun hlt => h ⟨S, hS, hlt⟩⟩
+  have hsubU : (univ : Finset (Fin n → Bool)) ⊆ F.biUnion bad := by
+    intro x _
+    obtain ⟨S, hSF, hlt⟩ := hall x
+    refine Finset.mem_biUnion.mpr ⟨S, hSF, ?_⟩
+    rw [hbad S]
+    simp only [mem_filter, mem_univ, true_and]
+    exact hlt
+  have hbig : ((2 : ℝ) ^ n) ≤ ((F.biUnion bad).card : ℝ) := by
+    have h := Finset.card_le_card hsubU
+    have h2 : (univ : Finset (Fin n → Bool)).card = 2 ^ n := by simp
+    rw [h2] at h
+    exact_mod_cast h
+  have hunion : ((F.biUnion bad).card : ℝ) ≤ ∑ S ∈ F, ((bad S).card : ℝ) := by
+    have h := Finset.card_biUnion_le (s := F) (t := bad)
+    calc ((F.biUnion bad).card : ℝ) ≤ ((∑ S ∈ F, (bad S).card : ℕ) : ℝ) := by exact_mod_cast h
+      _ = ∑ S ∈ F, ((bad S).card : ℝ) := by push_cast; ring
+  have hsum : ∑ S ∈ F, ((bad S).card : ℝ)
+      < (F.card : ℝ) * (2 * Real.exp (-(2 * L)) * 2 ^ n) := by
+    have h := Finset.sum_lt_sum (s := F) (f := fun S => ((bad S).card : ℝ))
+      (g := fun _ => 2 * Real.exp (-(2 * L)) * 2 ^ n) hc1 hc2
+    simpa [Finset.sum_const, nsmul_eq_mul] using h
+  have hfin : (F.card : ℝ) * (2 * Real.exp (-(2 * L)) * 2 ^ n) ≤ 2 ^ n := by
+    have hv : Real.exp (-L) * (F.card : ℝ) = 1 := by
+      rw [Real.exp_neg, hLdef, Real.exp_log hmpos]
+      field_simp
+    have hepos : (0 : ℝ) < Real.exp (-L) := Real.exp_pos _
+    have h2 : Real.exp (-(2 * L)) = Real.exp (-L) * Real.exp (-L) := by
+      rw [← Real.exp_add]; ring_nf
+    have h2e : 2 * Real.exp (-L) ≤ 1 := by
+      nlinarith [hv, mul_nonneg hepos.le (sub_nonneg.mpr hm2)]
+    have hp : (0 : ℝ) < 2 ^ n := by positivity
+    have hcalc : (F.card : ℝ) * (2 * (Real.exp (-L) * Real.exp (-L)) * 2 ^ n)
+        = 2 * Real.exp (-L) * 2 ^ n * (Real.exp (-L) * (F.card : ℝ)) := by ring
+    rw [h2, hcalc, hv, mul_one]
+    nlinarith [h2e, hp]
+  linarith
 
 section SignFamily
 
