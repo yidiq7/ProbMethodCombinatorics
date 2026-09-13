@@ -9,10 +9,6 @@
       "kind": "group",
       "doc": "expectation.md"
     },
-    "later_chapters": {
-      "kind": "group",
-      "doc": "later-chapters.md"
-    },
     "sperner": {
       "kind": "theorem",
       "parent": "introduction",
@@ -1083,7 +1079,7 @@
       "decl": "ProbMethodCombinatorics.prod_le_binomialRandom_iInter",
       "doc": "correlation.md#harris_lower_family--prod_le_binomialrandom_iinter",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": [
         "harris_binomial"
@@ -1565,6 +1561,129 @@
       "parent": "entropy",
       "decl": "Real.binEntropy",
       "upstream": true
+    },
+    "containers": {
+      "kind": "group",
+      "doc": "containers.md"
+    },
+    "containers_triangleFreeEdgeSet": {
+      "kind": "definition",
+      "parent": "containers",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.IsTriangleFreeEdgeSet",
+      "doc": "containers.md#two-decisions-about-how-the-statements-are-written",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_triangleEdges"
+      ],
+      "proof_uses": []
+    },
+    "containers_maxCodegree": {
+      "kind": "definition",
+      "parent": "containers",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.maxCodegree",
+      "doc": "containers.md#113-the-hypergraph-container-theorem",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "containers_triangleFreeGraphs": {
+      "kind": "definition",
+      "parent": "containers",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.triangleFreeGraphs",
+      "doc": "containers.md#two-decisions-about-how-the-statements-are-written",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "containers_triangleFreeEdgeSet"
+      ],
+      "proof_uses": []
+    },
+    "graph_container": {
+      "kind": "theorem",
+      "parent": "containers",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.exists_containers",
+      "doc": "containers.md#112-graph-containers",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
+    },
+    "graph_container_fingerprint": {
+      "kind": "theorem",
+      "parent": "containers",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.exists_containers_fingerprint",
+      "doc": "containers.md#112-graph-containers",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": [
+        "graph_container"
+      ]
+    },
+    "hypergraph_container": {
+      "kind": "theorem",
+      "parent": "containers",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.exists_containers_three_uniform",
+      "doc": "containers.md#113-the-hypergraph-container-theorem",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "containers_maxCodegree"
+      ],
+      "proof_uses": [
+        "graph_container"
+      ]
+    },
+    "container_triangle_free": {
+      "kind": "theorem",
+      "parent": "containers",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.exists_containers_triangleFree",
+      "doc": "containers.md#111-containers-for-triangle-free-graphs",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "containers_triangleFreeGraphs"
+      ],
+      "proof_uses": [
+        "hypergraph_container"
+      ]
+    },
+    "ekr_upper": {
+      "kind": "theorem",
+      "parent": "containers",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.card_triangleFreeGraphs_le",
+      "doc": "containers.md#111-containers-for-triangle-free-graphs",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "containers_triangleFreeGraphs"
+      ],
+      "proof_uses": [
+        "container_triangle_free"
+      ]
+    },
+    "ekr_lower": {
+      "kind": "theorem",
+      "parent": "containers",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.le_card_triangleFreeGraphs",
+      "doc": "containers.md#111-containers-for-triangle-free-graphs",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "containers_triangleFreeGraphs"
+      ],
+      "proof_uses": []
     }
   }
 }

@@ -34,10 +34,17 @@ or not it is a sum.
 
 The source proves it from Azuma's inequality applied to the Doob martingale of `f`
 (Theorems 9.2.8 and 9.2.9), whose engine is Hoeffding's lemma — already in Mathlib as
-`hasSubgaussianMGF_of_mem_Icc_of_integral_eq_zero`. -/
+`hasSubgaussianMGF_of_mem_Icc_of_integral_eq_zero`.
+
+`f` is assumed measurable, and the assumption is not cosmetic: the bounded differences
+condition alone does not give it, a Mathlib measure of a non-measurable set is its *outer*
+measure, and `∫` of a non-integrable function is junk `0`.  Without `hf` a non-measurable `f`
+with range of diameter `c₀` makes the left-hand side `1` and the statement false.  Measurable
+and bounded-differences together do give integrability, so no separate hypothesis is needed for
+the `∫`. -/
 theorem measure_sub_integral_ge_le {ι : Type*} [Fintype ι] {Ω : ι → Type*}
     [∀ i, MeasurableSpace (Ω i)] (μ : ∀ i, Measure (Ω i)) [∀ i, IsProbabilityMeasure (μ i)]
-    (f : (∀ i, Ω i) → ℝ) (c : ι → ℝ)
+    (f : (∀ i, Ω i) → ℝ) (c : ι → ℝ) (hf : Measurable f)
     (hc : ∀ i (x y : ∀ i, Ω i), (∀ j, j ≠ i → x j = y j) → |f x - f y| ≤ c i)
     (hsum : 0 < ∑ i, c i ^ 2) {lam : ℝ} (hlam : 0 ≤ lam) :
     (Measure.pi μ {x | lam ≤ f x - ∫ y, f y ∂(Measure.pi μ)}).toReal
