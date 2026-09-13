@@ -124,6 +124,42 @@ theorem abs_sub_le_sum_of_bddDiff {ι : Type*} [Fintype ι] [DecidableEq ι] {Ω
         _ ≤ c i + ∑ j ∈ s, c j := add_le_add h1 h2
   exact key Finset.univ x y fun j hj ↦ absurd (Finset.mem_univ j) hj
 
+theorem integral_integral_update_pi {ι : Type*} [Fintype ι] [DecidableEq ι] {Ω : ι → Type*}
+    [∀ i, MeasurableSpace (Ω i)] (μ : ∀ i, Measure (Ω i)) [∀ i, IsProbabilityMeasure (μ i)]
+    (i : ι) (G : (∀ j, Ω j) → ℝ) (hG : Integrable G (Measure.pi μ)) :
+    ∫ x, G x ∂(Measure.pi μ)
+      = ∫ x, (∫ ω, G (Function.update x i ω) ∂(μ i)) ∂(Measure.pi μ) := by
+  have hΦ := measurePreserving_update_pi μ i
+  have hGm : AEStronglyMeasurable G
+      (Measure.map (fun p : (∀ j, Ω j) × Ω i ↦ Function.update p.1 i p.2)
+        ((Measure.pi μ).prod (μ i))) := by
+    rw [hΦ.map_eq]; exact hG.aestronglyMeasurable
+  have h1 := integral_map (φ := fun p : (∀ j, Ω j) × Ω i ↦ Function.update p.1 i p.2)
+    (f := G) hΦ.measurable.aemeasurable hGm
+  rw [hΦ.map_eq] at h1
+  have hint : Integrable (fun p : (∀ j, Ω j) × Ω i ↦ G (Function.update p.1 i p.2))
+      ((Measure.pi μ).prod (μ i)) := hΦ.integrable_comp_of_integrable hG
+  rw [h1]
+  exact integral_prod _ hint
+
+theorem integral_integral_update_pi_symm {ι : Type*} [Fintype ι] [DecidableEq ι] {Ω : ι → Type*}
+    [∀ i, MeasurableSpace (Ω i)] (μ : ∀ i, Measure (Ω i)) [∀ i, IsProbabilityMeasure (μ i)]
+    (i : ι) (G : (∀ j, Ω j) → ℝ) (hG : Integrable G (Measure.pi μ)) :
+    ∫ x, G x ∂(Measure.pi μ)
+      = ∫ ω, (∫ x, G (Function.update x i ω) ∂(Measure.pi μ)) ∂(μ i) := by
+  have hΦ := measurePreserving_update_pi μ i
+  have hGm : AEStronglyMeasurable G
+      (Measure.map (fun p : (∀ j, Ω j) × Ω i ↦ Function.update p.1 i p.2)
+        ((Measure.pi μ).prod (μ i))) := by
+    rw [hΦ.map_eq]; exact hG.aestronglyMeasurable
+  have h1 := integral_map (φ := fun p : (∀ j, Ω j) × Ω i ↦ Function.update p.1 i p.2)
+    (f := G) hΦ.measurable.aemeasurable hGm
+  rw [hΦ.map_eq] at h1
+  have hint : Integrable (fun p : (∀ j, Ω j) × Ω i ↦ G (Function.update p.1 i p.2))
+      ((Measure.pi μ).prod (μ i)) := hΦ.integrable_comp_of_integrable hG
+  rw [h1]
+  exact integral_prod_symm _ hint
+
 /-- **Azuma–Hoeffding for the Doob martingale of a bounded-differences function**: under the
 hypotheses of the bounded differences inequality, the centred function `f - 𝔼 f` has a
 sub-Gaussian moment-generating function with parameter `(∑ i, c i ^ 2) / 4`.
