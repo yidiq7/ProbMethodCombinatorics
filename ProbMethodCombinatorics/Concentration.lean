@@ -57,6 +57,41 @@ theorem measurePreserving_update_pi {ι : Type*} [Fintype ι] [DecidableEq ι] {
     fun j hj ↦ by rw [Function.update_of_ne (Finset.ne_of_mem_erase hj)]
   rw [Finset.prod_congr rfl h1, Function.update_self, measure_univ, one_mul, mul_comm]
 
+theorem integral_exp_mul_sub_integral_le_of_abs_sub_le {α : Type*} [MeasurableSpace α]
+    (ν : Measure α) [IsProbabilityMeasure ν] (g : α → ℝ) (hg : Measurable g) {b : ℝ}
+    (hb : ∀ ω ω', |g ω - g ω'| ≤ b) (t : ℝ) :
+    ∫ ω, Real.exp (t * (g ω - ∫ ω', g ω' ∂ν)) ∂ν ≤ Real.exp (t ^ 2 * b ^ 2 / 8) := by
+  have hne : Nonempty α := nonempty_of_isProbabilityMeasure ν
+  obtain ⟨ω₀⟩ := id hne
+  have hb0 : 0 ≤ b := le_trans (by simp) (hb ω₀ ω₀)
+  have hbdd : BddBelow (Set.range g) := by
+    refine ⟨g ω₀ - b, ?_⟩
+    rintro _ ⟨ω, rfl⟩
+    have := (abs_le.mp (hb ω₀ ω)).2
+    linarith
+  set a := sInf (Set.range g) with ha
+  have hmem : ∀ ω, g ω ∈ Set.Icc a (a + b) := by
+    intro ω
+    refine ⟨csInf_le hbdd ⟨ω, rfl⟩, ?_⟩
+    have : g ω - b ≤ a := by
+      refine le_csInf (Set.range_nonempty g) ?_
+      rintro _ ⟨ω', rfl⟩
+      have := (abs_le.mp (hb ω ω')).2
+      linarith
+    linarith
+  have hsg := hasSubgaussianMGF_of_mem_Icc (μ := ν) (X := g) hg.aemeasurable
+    (ae_of_all _ hmem)
+  have hmgf := hsg.mgf_le t
+  have hcoe : ((((‖a + b - a‖₊ / 2 : NNReal)) ^ 2 : NNReal) : ℝ) = b ^ 2 / 4 := by
+    have hnn : (‖a + b - a‖₊ : ℝ) = b := by
+      simp [Real.norm_eq_abs, abs_of_nonneg hb0]
+    push_cast [hnn]
+    ring
+  rw [mgf] at hmgf
+  refine hmgf.trans_eq ?_
+  rw [Real.exp_eq_exp, hcoe]
+  ring
+
 /-- **Azuma–Hoeffding for the Doob martingale of a bounded-differences function**: under the
 hypotheses of the bounded differences inequality, the centred function `f - 𝔼 f` has a
 sub-Gaussian moment-generating function with parameter `(∑ i, c i ^ 2) / 4`.
