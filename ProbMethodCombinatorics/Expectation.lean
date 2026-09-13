@@ -242,7 +242,68 @@ theorem exists_isIndepSet_caro_wei (G : SimpleGraph V) [DecidableRel G.Adj] :
 theorem card_edgeFinset_le_of_cliqueFree (G : SimpleGraph V) [DecidableRel G.Adj]
     {r : ℕ} (hr : 1 ≤ r) (h : G.CliqueFree (r + 1)) :
     (G.edgeFinset.card : ℝ) ≤ (1 - 1 / r) * (Fintype.card V : ℝ) ^ 2 / 2 := by
-  sorry
+  have hrpos : (0 : ℝ) < r := by exact_mod_cast hr
+  rcases Nat.eq_zero_or_pos (Fintype.card V) with hV | hV
+  · have : IsEmpty V := Fintype.card_eq_zero_iff.1 hV
+    have hE : G.edgeFinset.card = 0 := by
+      have h2 := SimpleGraph.sum_degrees_eq_twice_card_edges G
+      rw [Finset.univ_eq_empty, Finset.sum_empty] at h2
+      omega
+    rw [hE, hV]
+    norm_num
+  have : Nonempty V := Fintype.card_pos_iff.1 hV
+  have hdeg : ∀ v : V, (G.degree v : ℝ) < (Fintype.card V : ℝ) := fun v => by
+    exact_mod_cast G.degree_lt_card_verts v
+  -- Caro–Wei in the complement produces a clique of `G`.
+  obtain ⟨S, hS, hScard⟩ := exists_isIndepSet_caro_wei Gᶜ
+  rw [SimpleGraph.isIndepSet_compl] at hS
+  -- `K (r + 1)`-freeness caps the size of that clique by `r`.
+  have hSr : (S.card : ℝ) ≤ r := by
+    have hn : S.card ≤ r := by
+      by_contra hc
+      obtain ⟨T, hTS, hTcard⟩ := Finset.exists_subset_card_eq (not_le.1 hc)
+      exact h T ⟨hS.subset (Finset.coe_subset.2 hTS), hTcard⟩
+    exact_mod_cast hn
+  -- In the complement, `dᶜ v + 1 = n - d v`.
+  have hcompl : ∀ v : V, ((Gᶜ.degree v : ℝ) + 1) = (Fintype.card V : ℝ) - G.degree v := by
+    intro v
+    have h1 : Gᶜ.degree v + G.degree v + 1 = Fintype.card V := by
+      have h2 := SimpleGraph.degree_compl (G := G) (v := v)
+      have h3 : G.degree v < Fintype.card V := G.degree_lt_card_verts v
+      omega
+    have h4 : ((Gᶜ.degree v + G.degree v + 1 : ℕ) : ℝ) = (Fintype.card V : ℝ) := by
+      exact_mod_cast congrArg (Nat.cast : ℕ → ℝ) h1
+    push_cast at h4
+    linarith
+  have hfpos : ∀ v : V, (0 : ℝ) < (Fintype.card V : ℝ) - G.degree v := fun v => by
+    have := hdeg v; linarith
+  have hsum : ∑ v : V, ((Fintype.card V : ℝ) - G.degree v)⁻¹ ≤ r := by
+    refine le_trans (le_of_eq ?_) (hScard.trans hSr)
+    exact Finset.sum_congr rfl fun v _ => by rw [hcompl v]
+  -- The handshake lemma evaluates `∑ v, (n - d v)`.
+  have hsumf : ∑ v : V, ((Fintype.card V : ℝ) - G.degree v)
+      = (Fintype.card V : ℝ) ^ 2 - 2 * G.edgeFinset.card := by
+    have hd : ((∑ v : V, G.degree v : ℕ) : ℝ) = 2 * G.edgeFinset.card := by
+      rw [SimpleGraph.sum_degrees_eq_twice_card_edges]; push_cast; ring
+    push_cast at hd
+    rw [Finset.sum_sub_distrib, Finset.sum_const, Finset.card_univ, nsmul_eq_mul, hd]
+    ring
+  have hsfpos : (0 : ℝ) < (Fintype.card V : ℝ) ^ 2 - 2 * G.edgeFinset.card := by
+    rw [← hsumf]
+    exact Finset.sum_pos (fun v _ => hfpos v) Finset.univ_nonempty
+  -- Cauchy–Schwarz in Engel form against the constant sequence `1`.
+  have htitu := Finset.sq_sum_div_le_sum_sq_div (g := fun v : V => (Fintype.card V : ℝ) - G.degree v)
+    Finset.univ (fun _ => (1 : ℝ)) (fun v _ => hfpos v)
+  simp only [Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_one, one_pow, one_div] at htitu
+  rw [hsumf] at htitu
+  have h9 : (Fintype.card V : ℝ) ^ 2
+      ≤ r * ((Fintype.card V : ℝ) ^ 2 - 2 * G.edgeFinset.card) :=
+    (div_le_iff₀ hsfpos).1 (htitu.trans hsum)
+  have hsplit : (1 - 1 / (r : ℝ)) * (Fintype.card V : ℝ) ^ 2 / 2
+      = ((r : ℝ) * (Fintype.card V : ℝ) ^ 2 - (Fintype.card V : ℝ) ^ 2) / (2 * r) := by
+    field_simp
+  rw [hsplit, le_div_iff₀ (by linarith : (0 : ℝ) < 2 * r)]
+  nlinarith [h9]
 
 end IndependentSets
 
