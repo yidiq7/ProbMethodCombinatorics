@@ -24,3 +24,7 @@ contributor playbook.
 | `ProbMethodCombinatorics/SetSystems.lean` | §1.2 — Bollobás' two families theorem |
 | `ProbMethodCombinatorics/PropertyB.lean` | §1.3 — 2-colourable hypergraphs |
 | `ProbMethodCombinatorics/Expectation.lean` | §2.1, §2.3 — Szele, Caro–Wei, Turán |
+| `ProbMethodCombinatorics/Alterations.lean` | Ch. 3 — Markov, dominating sets, Heilbronn, girth vs. chromatic number |
+| `ProbMethodCombinatorics/SecondMoment.lean` | Ch. 4 — the second-moment engine |
+| `ProbMethodCombinatorics/Chernoff.lean` | Ch. 5 — the Chernoff bound, discrepancy, equiangular vectors |
+| `ProbMethodCombinatorics/LocalLemma.lean` | Ch. 6 — the Lovász local lemma and its applications |

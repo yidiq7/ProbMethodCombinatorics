@@ -333,6 +333,7 @@ is idempotent and reuses an existing PR rather than creating a duplicate.
   route, a file per group for the mathematics, and `graph.json` listing
   every declaration the plan knows about with what depends on what.
   Search it for lemmas the project already has before writing your own.
+  Your task's `blueprint_ref`, when it has one, names your node.
 - The rest of the directory is the project itself, checked out at the
   pinned commit recorded in `.choir-lease.json`.
 

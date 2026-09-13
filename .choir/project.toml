@@ -9,7 +9,7 @@ prover = "lean4"
 # only, never by hand; read gate-side (gate/protocol.py) and enforced
 # client-side at claim time.
 choir_protocol = 8
-choir_commit = "1c85185d57acb0e0c0ac7a2770f2a1e2917d1d19"
+choir_commit = "0b83049ccaf27767c892239c0f4d5fc446087df9"
 
 # Automation level — read by the orchestrator agent at loop start.
 # auto | approve | manual. See docs/agents/ORCHESTRATOR.md in the Choir repo.
