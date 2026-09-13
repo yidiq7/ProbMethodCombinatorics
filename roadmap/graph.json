@@ -1083,7 +1083,7 @@
       "decl": "ProbMethodCombinatorics.prod_le_binomialRandom_iInter",
       "doc": "correlation.md#harris_lower_family--prod_le_binomialrandom_iinter",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": [
         "harris_binomial"

@@ -275,3 +275,14 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   which the project does not have, and its smallest open case is open mathematics.
   `choir/type:prove` was dropped again on ten of the twelve, the same race recorded on
   2026-09-12; repaired with `gh issue edit` as that entry prescribes.
+- **2026-09-13 — `measure_sub_integral_ge_le` was false as stated; measurability added.**
+  Issue #81 was claimed and released with no PR — the same silent signal that caught the two
+  Chernoff statements and `exists_nearly_equiangular`, and the reason that signal is worth
+  watching even though `metrics struggle` cannot see it.  The bounded differences hypothesis
+  does **not** imply `f` is measurable; a Mathlib measure applied to a non-measurable set
+  returns its *outer* measure, and `∫` of a non-integrable function returns junk `0`.  So a
+  non-measurable `f` with range of diameter `c₀` — a Bernstein set indicator, say — puts the
+  left-hand side at `1` against a right-hand side below `1`.  `hf : Measurable f` is now a
+  hypothesis.  Measurable plus bounded differences gives boundedness and hence integrability,
+  so the `∫` needs nothing further.  **When an author-side statement is wrong, the cost lands
+  on whoever claimed it first and shows up as a released lease, not as a failed check.**
