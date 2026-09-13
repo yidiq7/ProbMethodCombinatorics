@@ -60,6 +60,24 @@ edge-count bound the book proves, so the edge-count bound stays a task.
 
 ## Log
 
+- **2026-09-13 — the uniform two-colouring measure is duplicated, and that is my fault.**
+  #49 and #50 each build it from scratch in `LocalLemma.lean` (`Measure.pi` over `Bool`, the
+  cylinder probability, disjoint-support independence via `iIndepFun_pi`, the dependency
+  graph) — about 100 lines twice, in an 846-line file.  #28's prose said that machinery was
+  "worth stating as their own declarations" but left it to contributors; **a definition other
+  tasks depend on is an interface and should have been authored centrally before those tasks
+  were published.**  Mitigations: golf task #52 rewrites `twoColorable_of_regular` to go
+  through `twoColorable_of_inter_card_le`, which removes one copy; #30's prose now points at
+  the template and asks its holder to flag rather than write a third copy.  **If #30 needs
+  more than the `key` lemma, extract the layer centrally instead.**
+
+- **2026-09-13 — re-pinning is necessary but not sufficient; warn claimed tasks too.**
+  Stale-pin reverts hit twice (#42, #48).  Re-pinning an issue does not help a worker whose
+  workspace already exists — that tree was cloned at the old pin.  **After merging, comment on
+  every open *claimed* task whose `target_file` matches a file the merge touched**, telling the
+  holder to rebase.  Cheap to do: `choir orch task <n>` gives `target_file`, and the merge's
+  own diff gives the files.  Done for #12, #15, #29 on this pass.
+
 - **2026-09-13 — Chapter 1 §1.1 is closed and the local lemma is proved.**  PRs #41–#44
   landed the general local lemma with its induction step, Ramsey's theorem with the
   off-diagonal Erdős–Szekeres statement, `lt_ramseyNumber`, and the symmetric local lemma.

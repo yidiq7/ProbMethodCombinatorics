@@ -318,6 +318,30 @@
         "markov_counting"
       ]
     },
+    "chromatic_indep_bound": {
+      "kind": "theorem",
+      "parent": "alterations",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.card_le_mul_indepNum_of_colorable",
+      "doc": "alterations.md#card_le_mul_indepnum_of_colorable",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "girth_random_half": {
+      "kind": "theorem",
+      "parent": "alterations",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.exists_girth_gt_and_mul_indepNum_lt",
+      "doc": "alterations.md#exists_girth_gt_and_mul_indepnum_lt",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": [
+        "markov_counting"
+      ]
+    },
     "girth_chromatic": {
       "kind": "theorem",
       "parent": "alterations",
@@ -325,10 +349,12 @@
       "decl": "ProbMethodCombinatorics.exists_girth_gt_and_chromaticNumber_gt",
       "doc": "alterations.md#girth_chromatic--exists_girth_gt_and_chromaticnumber_gt",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": [
-        "markov_counting"
+        "markov_counting",
+        "chromatic_indep_bound",
+        "girth_random_half"
       ]
     },
     "property_b_sharp": {
@@ -643,7 +669,7 @@
       "decl": "ProbMethodCombinatorics.twoColorable_of_inter_card_le",
       "doc": "local-lemma.md#two_colorable_local--twocolorable_of_inter_card_le",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "two_colorable"
       ],
@@ -658,12 +684,12 @@
       "decl": "ProbMethodCombinatorics.twoColorable_of_regular",
       "doc": "local-lemma.md#two_colorable_regular--twocolorable_of_regular",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "two_colorable"
       ],
       "proof_uses": [
-        "two_colorable_local"
+        "lll_symmetric"
       ]
     },
     "ramsey_spencer": {
