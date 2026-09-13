@@ -699,7 +699,7 @@
       "decl": "ProbMethodCombinatorics.lt_ramseyNumber_of_local_lemma",
       "doc": "local-lemma.md#ramsey_spencer--lt_ramseynumber_of_local_lemma",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "ramsey_number",
         "ramsey_property"
