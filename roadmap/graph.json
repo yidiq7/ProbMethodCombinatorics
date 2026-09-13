@@ -610,6 +610,17 @@
         "lll_general"
       ]
     },
+    "weierstrass_product": {
+      "kind": "theorem",
+      "parent": "local_lemma",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.one_sub_sum_le_prod_one_sub",
+      "doc": "local-lemma.md#one_sub_sum_le_prod_one_sub--weierstrass-product-inequality",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
     "lll_sum": {
       "kind": "theorem",
       "parent": "local_lemma",
@@ -617,7 +628,7 @@
       "decl": "ProbMethodCombinatorics.lovasz_local_lemma_of_sum_le",
       "doc": "local-lemma.md#lovasz_local_lemma_of_sum_le",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "is_dependency_graph"
       ],

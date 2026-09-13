@@ -60,6 +60,12 @@ Theorem 6.1.7. `ℙ(A i) ≤ p`, `|N i| ≤ d`, `e p (d+1) ≤ 1` ⟹ positive p
 The form used in practice. Follows from the general form with `x i = 1/(d+1)`, using
 `(1 - 1/(d+1))^d > 1/e`. The constant `e` is optimal (Shearer 1985).
 
+## `one_sub_sum_le_prod_one_sub` — Weierstrass product inequality
+
+`1 - ∑_{j ∈ s} y j ≤ ∏_{j ∈ s} (1 - y j)` for weights in `[0,1]`, contributed with
+`lll_sum` (PR #45).  Mathlib has no equivalent — checked — and the statement is general
+(any `Finset κ`, real-valued), so it is reusable rather than bespoke to the local lemma.
+
 ## `lovasz_local_lemma_of_sum_le`
 
 Corollary 6.1.10. `ℙ(A i) < 1/2` and `∑_{j ∈ N i} ℙ(A j) ≤ 1/4` ⟹ positive probability none
