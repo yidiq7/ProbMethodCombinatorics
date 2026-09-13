@@ -566,74 +566,6 @@ theorem twoColorable_of_inter_card_le {k : ℕ} (hk : 2 ≤ k) {H : Finset (Fins
     (hd : ∀ e ∈ H, ((H.erase e).filter fun f => (e ∩ f).Nonempty).card ≤ d)
     (h : Real.exp 1 * (d + 1) ≤ 2 ^ (k - 1)) :
     TwoColorable H := by
-  -- The uniform random two-colouring of `α`.
-  set ν : Measure Bool := (2 : ENNReal)⁻¹ • (Measure.dirac true + Measure.dirac false) with hν
-  have hνuniv : ν Set.univ = 1 := by
-    rw [hν]
-    simp only [Measure.smul_apply, Measure.add_apply, measure_univ, smul_eq_mul]
-    rw [show (1 : ENNReal) + 1 = 2 from by norm_num]
-    exact ENNReal.inv_mul_cancel (by norm_num) (by norm_num)
-  have : IsProbabilityMeasure ν := ⟨hνuniv⟩
-  have hνsingle : ∀ b : Bool, ν {b} = (2 : ENNReal)⁻¹ := by
-    intro b
-    rw [hν]
-    cases b <;> simp [Measure.smul_apply, Measure.add_apply]
-  set μ : Measure (α → Bool) := Measure.pi (fun _ : α => ν) with hμ
-  have : IsProbabilityMeasure μ := by rw [hμ]; infer_instance
-  -- The probability that a colouring is constant on a given set of vertices.
-  have hcyl : ∀ (T : Finset α) (b : Bool),
-      μ {x : α → Bool | ∀ u ∈ T, x u = b} = (2 : ENNReal)⁻¹ ^ T.card := by
-    intro T b
-    have hset : {x : α → Bool | ∀ u ∈ T, x u = b}
-        = Set.univ.pi (fun a => if a ∈ T then ({b} : Set Bool) else Set.univ) := by
-      ext x
-      constructor
-      · intro h a _
-        show x a ∈ (if a ∈ T then ({b} : Set Bool) else Set.univ)
-        by_cases ha : a ∈ T
-        · rw [if_pos ha]; exact h a ha
-        · rw [if_neg ha]; exact Set.mem_univ _
-      · intro h u hu
-        have hxu : x u ∈ (if u ∈ T then ({b} : Set Bool) else Set.univ) := h u (Set.mem_univ u)
-        rw [if_pos hu] at hxu
-        exact hxu
-    rw [hset, hμ, Measure.pi_pi]
-    have hrew : ∀ a : α, ν (if a ∈ T then ({b} : Set Bool) else Set.univ)
-        = if a ∈ T then (2 : ENNReal)⁻¹ else 1 := by
-      intro a
-      by_cases ha : a ∈ T
-      · rw [if_pos ha, if_pos ha]; exact hνsingle b
-      · rw [if_neg ha, if_neg ha]; exact hνuniv
-    rw [Finset.prod_congr rfl (fun a _ => hrew a), Finset.prod_ite_mem, Finset.univ_inter,
-      Finset.prod_const]
-  -- Events depending on disjoint sets of coordinates are independent.
-  have key : ∀ (T : Finset α) (S₁ S₂ : Set (α → Bool)),
-      (∀ x y : α → Bool, (∀ a ∈ T, x a = y a) → (x ∈ S₁ ↔ y ∈ S₁)) →
-      (∀ x y : α → Bool, (∀ a ∉ T, x a = y a) → (x ∈ S₂ ↔ y ∈ S₂)) →
-      μ (S₁ ∩ S₂) = μ S₁ * μ S₂ := by
-    intro T S₁ S₂ h₁ h₂
-    have hindep : iIndepFun (fun (a : α) (x : α → Bool) => x a) μ := by
-      rw [hμ]
-      exact ProbabilityTheory.iIndepFun_pi (μ := fun _ : α => ν)
-        (X := fun _ : α => (id : Bool → Bool)) (fun _ => aemeasurable_id)
-    have hind := hindep.indepFun_finset T Tᶜ disjoint_compl_right
-      (fun a => measurable_pi_apply a)
-    have e₁ : (fun (x : α → Bool) (u : { a // a ∈ T }) => x (u : α)) ⁻¹'
-        ((fun (x : α → Bool) (u : { a // a ∈ T }) => x (u : α)) '' S₁) = S₁ := by
-      refine Set.Subset.antisymm ?_ (Set.subset_preimage_image _ _)
-      rintro x ⟨y, hy, hxy⟩
-      exact (h₁ y x (fun a ha => congrFun hxy ⟨a, ha⟩)).1 hy
-    have e₂ : (fun (x : α → Bool) (u : { a // a ∈ Tᶜ }) => x (u : α)) ⁻¹'
-        ((fun (x : α → Bool) (u : { a // a ∈ Tᶜ }) => x (u : α)) '' S₂) = S₂ := by
-      refine Set.Subset.antisymm ?_ (Set.subset_preimage_image _ _)
-      rintro x ⟨y, hy, hxy⟩
-      exact (h₂ y x (fun a ha => congrFun hxy ⟨a, Finset.mem_compl.2 ha⟩)).1 hy
-    have hmul := hind.measure_inter_preimage_eq_mul
-      ((fun (x : α → Bool) (u : { a // a ∈ T }) => x (u : α)) '' S₁)
-      ((fun (x : α → Bool) (u : { a // a ∈ Tᶜ }) => x (u : α)) '' S₂)
-      (Set.toFinite _).measurableSet (Set.toFinite _).measurableSet
-    rw [e₁, e₂] at hmul
-    exact hmul
   -- The bad events and their dependency graph.
   obtain ⟨A, hAdef⟩ : ∃ A : { e // e ∈ H } → Set (α → Bool), ∀ e x,
       (x ∈ A e ↔ ∀ u ∈ (e : Finset α), ∀ v ∈ (e : Finset α), x u = x v) :=
@@ -651,9 +583,9 @@ theorem twoColorable_of_inter_card_le {k : ℕ} (hk : 2 ≤ k) {H : Finset (Fins
     constructor
     · intro hx u hu v hv; rw [← hxy u hu, ← hxy v hv]; exact hx u hu v hv
     · intro hy u hu v hv; rw [hxy u hu, hxy v hv]; exact hy u hu v hv
-  have hNdep : IsDependencyGraph μ A N := by
+  have hNdep : IsDependencyGraph (uniformColoring α) A N := by
     intro i s hs g
-    refine key (i : Finset α) (A i) (pattern A s g) (hAinv i) ?_
+    refine uniformColoring_inter_eq_mul (i : Finset α) (A i) (pattern A s g) (hAinv i) ?_
     intro x y hxy
     have hj : ∀ j ∈ s, (x ∈ (if g j then A j else (A j)ᶜ) ↔ y ∈ (if g j then A j else (A j)ᶜ)) := by
       intro j hjs
@@ -669,7 +601,7 @@ theorem twoColorable_of_inter_card_le {k : ℕ} (hk : 2 ≤ k) {H : Finset (Fins
     simp only [pattern, Set.mem_iInter]
     exact ⟨fun h j hjs => (hj j hjs).1 (h j hjs), fun h j hjs => (hj j hjs).2 (h j hjs)⟩
   -- Each bad event has probability at most `2 ^ (1 - k)`.
-  have hp : ∀ i, (μ (A i)).toReal ≤ 2 * ((2 : ℝ)⁻¹) ^ k := by
+  have hp : ∀ i, (uniformColoring α (A i)).toReal ≤ 2 * ((2 : ℝ)⁻¹) ^ k := by
     intro i
     have hne : (i : Finset α).Nonempty := by
       rw [← Finset.card_pos, huniform _ i.2]; omega
@@ -681,13 +613,16 @@ theorem twoColorable_of_inter_card_le {k : ℕ} (hk : 2 ≤ k) {H : Finset (Fins
       cases hb : x u₀
       · right; intro u hu; rw [hx u hu u₀ hu₀, hb]
       · left; intro u hu; rw [hx u hu u₀ hu₀, hb]
-    have hle : μ (A i) ≤ 2 * (2 : ENNReal)⁻¹ ^ k := by
-      calc μ (A i) ≤ μ ({x : α → Bool | ∀ u ∈ (i : Finset α), x u = true}
+    have hle : uniformColoring α (A i) ≤ 2 * (2 : ENNReal)⁻¹ ^ k := by
+      calc uniformColoring α (A i)
+          ≤ uniformColoring α ({x : α → Bool | ∀ u ∈ (i : Finset α), x u = true}
               ∪ {x : α → Bool | ∀ u ∈ (i : Finset α), x u = false}) := measure_mono hsub
-        _ ≤ μ {x : α → Bool | ∀ u ∈ (i : Finset α), x u = true}
-              + μ {x : α → Bool | ∀ u ∈ (i : Finset α), x u = false} := measure_union_le _ _
+        _ ≤ uniformColoring α {x : α → Bool | ∀ u ∈ (i : Finset α), x u = true}
+              + uniformColoring α {x : α → Bool | ∀ u ∈ (i : Finset α), x u = false} :=
+              measure_union_le _ _
         _ = 2 * (2 : ENNReal)⁻¹ ^ k := by
-            rw [hcyl _ true, hcyl _ false, huniform _ i.2]; ring
+            rw [uniformColoring_const _ true, uniformColoring_const _ false, huniform _ i.2]
+            ring
     have htop : (2 : ENNReal) * (2 : ENNReal)⁻¹ ^ k ≠ ⊤ :=
       ENNReal.mul_ne_top (by norm_num) (ENNReal.pow_ne_top (by norm_num))
     have := ENNReal.toReal_mono htop hle
