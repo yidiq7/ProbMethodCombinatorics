@@ -35,3 +35,37 @@ is the right instinct.  Keep such generalizations **inside** the proof unless th
 otherwise — a new top-level declaration is a statement nobody reviewed when the task was
 written, and it is the one thing in a PR the kernel cannot check for you.  If you think a
 generalization deserves to be reusable, say so on the issue and it can become its own node.
+
+## 2026-09-13 — Leaning on an unproved sibling means declaring a reduction
+
+**If your proof calls a declaration that still carries a placeholder, your PR will fail
+`comparator` with `outcome: illegal-axiom` unless you declare a reduction.**
+
+`sorry-delta` passes in that situation — you added no new placeholder — but comparator
+checks the **axiom closure of your target**, and calling a `sorry`-bearing lemma puts
+`sorryAx` in it.  Under this project's `sorry = block` policy an ordinary `prove`
+submission is refused that axiom, by design: it is what makes a green gate on a prove PR
+mean *unconditionally proved*.
+
+The sanctioned route is a `choir-reduction` block in the PR body naming what you leaned on:
+
+    ```choir-reduction
+    choir-reduction-version: 1
+    parent: <your task's target decl>
+    children:
+      - decl: <the placeholder-carrying declaration you called>
+        blueprint_ref: <its node id, if it has one>
+        note: <where the obligation comes from>
+    ```
+
+`sorryAx` is permitted for a declared reduction, and comparator degrades to "right
+statement, kernel-consistent modulo a named open obligation".  The gate reads the block
+from the PR body, but checks only re-run on push — push an empty commit to re-trigger.
+
+Two practical notes:
+
+- Many tasks here name dependencies that are *stated but unproved*.  Using their
+  statements is correct and expected; just declare the reduction.  Alternatively wait for
+  the dependency to merge, after which the same diff passes as an ordinary proof.
+- A child entry is matched by its **last name segment**, and any other declaration in the
+  same file with that segment disarms it.  Check for collisions before relying on one.
