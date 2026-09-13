@@ -142,6 +142,54 @@ theorem card_triangleFreeGraphs_le (ε : ℝ) (hε : 0 < ε) :
 The easy half, and the one that fixes the constant `1/4`.  No containers involved. -/
 theorem le_card_triangleFreeGraphs (n : ℕ) :
     2 ^ (n / 2 * ((n + 1) / 2)) ≤ (triangleFreeGraphs n).card := by
-  sorry
+  set L : Finset (Fin n) := univ.map (Fin.castLEEmb (Nat.div_le_self n 2)) with hLdef
+  set f : Fin n × Fin n → Sym2 (Fin n) := fun p => s(p.1, p.2) with hfdef
+  have hLcard : L.card = n / 2 := by simp [hLdef]
+  have hLccard : Lᶜ.card = (n + 1) / 2 := by
+    have h : Lᶜ.card = n - n / 2 := by rw [Finset.card_compl, hLcard, Fintype.card_fin]
+    omega
+  have hsides : ∀ F : Finset (Fin n × Fin n), F ⊆ L ×ˢ Lᶜ → ∀ x y : Fin n,
+      s(x, y) ∈ F.image f → (x ∈ L ↔ y ∉ L) := by
+    intro F hF x y hxy
+    obtain ⟨⟨a, b⟩, hab, hE⟩ := Finset.mem_image.mp hxy
+    obtain ⟨ha, hb⟩ := Finset.mem_product.mp (hF hab)
+    rw [Finset.mem_compl] at hb
+    rcases Sym2.eq_iff.mp hE with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
+    · simp [ha, hb]
+    · simp [ha, hb]
+  have hmaps : ∀ F ∈ (L ×ˢ Lᶜ).powerset, F.image f ∈ triangleFreeGraphs n := by
+    intro F hF
+    rw [Finset.mem_powerset] at hF
+    rw [triangleFreeGraphs, Finset.mem_filter]
+    refine ⟨Finset.mem_univ _, ?_, ?_⟩
+    · intro e he
+      obtain ⟨⟨a, b⟩, hab, rfl⟩ := Finset.mem_image.mp he
+      obtain ⟨ha, hb⟩ := Finset.mem_product.mp (hF hab)
+      rw [Finset.mem_compl] at hb
+      simp only [hfdef, Sym2.mk_isDiag_iff]
+      rintro rfl
+      exact hb ha
+    · intro a b c hsub
+      have hab := hsides F hF a b (hsub (by simp [triangleEdges]))
+      have hac := hsides F hF a c (hsub (by simp [triangleEdges]))
+      have hbc := hsides F hF b c (hsub (by simp [triangleEdges]))
+      tauto
+  have hsub : ∀ A B : Finset (Fin n × Fin n), A ⊆ L ×ˢ Lᶜ → B ⊆ L ×ˢ Lᶜ →
+      A.image f = B.image f → A ⊆ B := by
+    intro A B hA hB h p hp
+    have hpB : f p ∈ B.image f := by rw [← h]; exact Finset.mem_image_of_mem f hp
+    obtain ⟨q, hq, hqp⟩ := Finset.mem_image.mp hpB
+    obtain ⟨hq1, -⟩ := Finset.mem_product.mp (hB hq)
+    obtain ⟨-, hp2⟩ := Finset.mem_product.mp (hA hp)
+    rw [Finset.mem_compl] at hp2
+    rcases Sym2.eq_iff.mp hqp with ⟨h1, h2⟩ | ⟨h1, h2⟩
+    · rwa [show p = q from Prod.ext h1.symm h2.symm]
+    · exact absurd (h1 ▸ hq1) hp2
+  have hcard : ((L ×ˢ Lᶜ).powerset).card ≤ (triangleFreeGraphs n).card := by
+    refine Finset.card_le_card_of_injOn (fun F => F.image f) (fun F hF => hmaps F hF) ?_
+    intro A hA B hB h
+    rw [Finset.mem_coe, Finset.mem_powerset] at hA hB
+    exact Finset.Subset.antisymm (hsub A B hA hB h) (hsub B A hB hA h.symm)
+  rwa [Finset.card_powerset, Finset.card_product, hLcard, hLccard] at hcard
 
 end ProbMethodCombinatorics
