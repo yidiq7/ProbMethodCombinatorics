@@ -1266,6 +1266,293 @@ theorem card_lt_of_triangleIntersecting {n : ℕ} (𝒢 : Finset (Finset (Sym2 (
       _ ≤ 2 ^ (n - 1) := Nat.pow_le_pow_right (by norm_num) (by omega)
   omega
 
+/-! ### 10.2 The Brégman–Minc inequality -/
+
+section Bregman
+
+/-- The permutations counted by the permanent of a `0/1` matrix `A`: those `π` with
+`A i (π i) = 1` for every `i`, i.e. the perfect matchings of the associated bipartite graph. -/
+noncomputable def permSupport {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ) :
+    Finset (Equiv.Perm (Fin n)) :=
+  univ.filter fun π => ∀ i, A i (π i) = 1
+
+/-- Radhakrishnan's counter `Nᵢ`.  Reveal the entries `(j, π j)` of the matching `π` in the order
+given by `τ` — row `j` before row `k` when `τ j < τ k`.  When row `i` is revealed, the entries of
+row `i` still available are the ones in row `i` whose column `π j` has not been used by an
+earlier row, and `availCount A π τ i` counts them.  Row `i` itself is always available, so the
+count is at least `1`, and it is at most the number `dᵢ` of ones in row `i`. -/
+noncomputable def availCount {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ) (π τ : Equiv.Perm (Fin n))
+    (i : Fin n) : ℕ :=
+  (univ.filter fun j => A i (π j) = 1 ∧ τ i ≤ τ j).card
+
+/-- The part of the matching `π` that has been revealed strictly before row `i`, when the rows
+are revealed in the order given by `τ`: the entry of row `j` if `τ j < τ i`, and `none`
+otherwise. -/
+def revealedBefore {n : ℕ} (τ : Equiv.Perm (Fin n)) (i : Fin n) (π : Equiv.Perm (Fin n)) :
+    Fin n → Option (Fin n) :=
+  fun j => if τ j < τ i then some (π j) else none
+
+/-- For a `0/1` matrix the permanent counts the permutations lying in the support: each term of
+`∑ σ, ∏ i, A (σ i) i` is `1` when `σ` is a matching and `0` otherwise. -/
+theorem permanent_eq_card_permSupport {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ)
+    (hA : ∀ i j, A i j = 0 ∨ A i j = 1) : A.permanent = ((permSupport A).card : ℝ) := by
+  have h1 : A.permanent = ∑ π : Equiv.Perm (Fin n), ∏ i, A i (π i) := by
+    rw [← Matrix.permanent_transpose A]
+    simp [Matrix.permanent]
+  rw [h1, permSupport, Finset.card_filter]
+  push_cast
+  refine Finset.sum_congr rfl fun π _ => ?_
+  by_cases h : ∀ i, A i (π i) = 1
+  · simp [h]
+  · obtain ⟨i, hi⟩ := not_forall.mp h
+    rw [if_neg h, Finset.prod_eq_zero (mem_univ i) ((hA i (π i)).resolve_right hi)]
+
+/-- The entropy of a uniform random element of a nonempty finset `P` is `log₂ |P|`.  This is the
+equality case of `entropy_le_logb_card`, and it is how every application in this chapter turns a
+count into an entropy. -/
+theorem entropy_uniformPMF [Fintype Ω] [DecidableEq Ω] {P : Finset Ω} (hP : P.Nonempty) :
+    entropy (uniformPMF P) id = Real.logb 2 (P.card : ℝ) := by
+  have hcard : (P.card : ℝ) ≠ 0 := Nat.cast_ne_zero.mpr hP.card_ne_zero
+  have hprob : ∀ s : Ω, probOf (uniformPMF P) id s = uniformPMF P s := by
+    intro s
+    unfold probOf
+    simp [Finset.filter_eq']
+  have hterm : ∀ s : Ω, -uniformPMF P s * Real.logb 2 (uniformPMF P s)
+      = if s ∈ P then ((P.card : ℝ))⁻¹ * Real.logb 2 (P.card : ℝ) else 0 := by
+    intro s
+    unfold uniformPMF
+    split
+    · rw [Real.logb_inv]; ring
+    · simp
+  rw [entropy]
+  simp only [hprob, hterm, Finset.sum_ite_mem, Finset.univ_inter, Finset.sum_const, nsmul_eq_mul]
+  rw [← mul_assoc, mul_inv_cancel₀ hcard, one_mul]
+
+/-- Row `i` of a `0/1` matrix has exactly `dᵢ` ones, in whatever order a permutation `π` lists
+the columns. -/
+theorem card_filter_row_eq {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ)
+    (hA : ∀ i j, A i j = 0 ∨ A i j = 1) (d : Fin n → ℕ) (hd : ∀ i, ∑ j, A i j = (d i : ℝ))
+    (i : Fin n) (π : Equiv.Perm (Fin n)) :
+    (univ.filter fun j => A i (π j) = 1).card = d i := by
+  have h1 : (univ.filter fun j => A i (π j) = 1).card = (univ.filter fun j => A i j = 1).card :=
+    Finset.card_equiv π (by intro j; simp)
+  have h2 : ((univ.filter fun j => A i j = 1).card : ℝ) = (d i : ℝ) := by
+    rw [Finset.card_filter]
+    push_cast
+    rw [← hd i]
+    refine Finset.sum_congr rfl fun j _ => ?_
+    rcases hA i j with h | h <;> simp [h]
+  rw [h1]
+  exact_mod_cast h2
+
+/-- `log₂ (k!)` is the sum of `log₂ m` over `1 ≤ m ≤ k`. -/
+theorem sum_logb_Icc_eq {k : ℕ} :
+    ∑ m ∈ Finset.Icc 1 k, Real.logb 2 (m : ℝ) = Real.logb 2 (Nat.factorial k : ℝ) := by
+  have hIcc : Finset.Icc 1 k = Finset.Ico 1 (k + 1) := by ext m; simp
+  rw [hIcc, ← Finset.prod_Ico_id_eq_factorial k, Nat.cast_prod, Real.logb_prod]
+  intro m hm
+  have : 1 ≤ m := (Finset.mem_Ico.mp hm).1
+  positivity
+
+/-- **The combinatorial heart of Radhakrishnan's proof**, the step the notes leave as "Why?" on
+p. 180.  Fix a finset `D` of `[n]` and an element `i ∈ D`.  For a uniform random permutation `τ`
+the rank of `i` inside `D`, counted from the top — the number of `j ∈ D` with `τ i ≤ τ j` — is
+uniform on `{1, …, |D|}`: each of those `|D|` values is taken by exactly `n! / |D|` of the `n!`
+permutations.
+
+In the Brégman–Minc proof `D` is the set of `j` with `A i (π j) = 1`, which has `dᵢ` elements and
+contains `i`, and the rank is `availCount A π τ i`; the conclusion is that `Nᵢ` is uniform on
+`[dᵢ]` for a fixed matching `π`.
+
+This is stated multiplicatively to stay in `ℕ`.  The proof is a double count: for a fixed `τ`
+the rank is injective on `D`, so exactly one `j ∈ D` has rank `m`; and composing `τ` with the
+transposition of `i` and `j` exchanges the rank of `i` with the rank of `j`, so all `j ∈ D` give
+the same fibre size. -/
+theorem card_filter_rank_mul_card_eq_factorial {n : ℕ} (D : Finset (Fin n)) (i : Fin n)
+    (hi : i ∈ D) {m : ℕ} (hm : m ∈ Finset.Icc 1 D.card) :
+    (univ.filter fun τ : Equiv.Perm (Fin n) =>
+        (D.filter fun j => τ i ≤ τ j).card = m).card * D.card = Nat.factorial n := by
+  obtain ⟨rank, hrank⟩ : ∃ r : Equiv.Perm (Fin n) → Fin n → ℕ,
+      ∀ τ j, r τ j = (D.filter fun l => τ j ≤ τ l).card := ⟨_, fun _ _ => rfl⟩
+  have hmono : ∀ (τ : Equiv.Perm (Fin n)) (j j' : Fin n), j ∈ D → τ j < τ j' →
+      rank τ j' < rank τ j := by
+    intro τ j j' hjD hlt
+    rw [hrank, hrank]
+    refine Finset.card_lt_card ⟨fun l hl => ?_, fun hsub => ?_⟩
+    · rw [Finset.mem_filter] at hl ⊢
+      exact ⟨hl.1, le_trans hlt.le hl.2⟩
+    · have hj : j ∈ D.filter fun l => τ j ≤ τ l := Finset.mem_filter.mpr ⟨hjD, le_rfl⟩
+      have h2 := hsub hj
+      rw [Finset.mem_filter] at h2
+      exact absurd h2.2 (not_le.mpr hlt)
+  have hinj : ∀ (τ : Equiv.Perm (Fin n)), ∀ j ∈ D, ∀ j' ∈ D, rank τ j = rank τ j' → j = j' := by
+    intro τ j hjD j' hj'D heq
+    rcases lt_trichotomy (τ j) (τ j') with h | h | h
+    · have := hmono τ j j' hjD h
+      omega
+    · exact τ.injective h
+    · have := hmono τ j' j hj'D h
+      omega
+  have hmemIcc : ∀ (τ : Equiv.Perm (Fin n)), ∀ j ∈ D, rank τ j ∈ Finset.Icc 1 D.card := by
+    intro τ j hjD
+    rw [Finset.mem_Icc, hrank]
+    exact ⟨Finset.card_pos.mpr ⟨j, Finset.mem_filter.mpr ⟨hjD, le_rfl⟩⟩,
+      Finset.card_le_card (Finset.filter_subset _ _)⟩
+  have himg : ∀ τ : Equiv.Perm (Fin n), D.image (rank τ) = Finset.Icc 1 D.card := by
+    intro τ
+    refine Finset.eq_of_subset_of_card_le (fun x hx => ?_) ?_
+    · obtain ⟨j, hjD, rfl⟩ := Finset.mem_image.mp hx
+      exact hmemIcc τ j hjD
+    · rw [Finset.card_image_of_injOn (fun j hj j' hj' h => hinj τ j hj j' hj' h), Nat.card_Icc]
+      omega
+  have hone : ∀ τ : Equiv.Perm (Fin n), (D.filter fun j => rank τ j = m).card = 1 := by
+    intro τ
+    have hmimg : m ∈ D.image (rank τ) := by rw [himg τ]; exact hm
+    obtain ⟨j, hjD, hj⟩ := Finset.mem_image.mp hmimg
+    rw [Finset.card_eq_one]
+    refine ⟨j, Finset.eq_singleton_iff_unique_mem.mpr ⟨Finset.mem_filter.mpr ⟨hjD, hj⟩, ?_⟩⟩
+    intro x hx
+    rw [Finset.mem_filter] at hx
+    exact hinj τ x hx.1 j hjD (by rw [hx.2, hj])
+  have hswap : ∀ j ∈ D, (univ.filter fun τ : Equiv.Perm (Fin n) => rank τ j = m).card
+      = (univ.filter fun τ : Equiv.Perm (Fin n) => rank τ i = m).card := by
+    intro j hjD
+    have hcD : ∀ l, l ∈ D ↔ (Equiv.swap i j) l ∈ D := by
+      intro l
+      rcases eq_or_ne l i with rfl | hli
+      · simp [Equiv.swap_apply_left, hi, hjD]
+      · rcases eq_or_ne l j with rfl | hlj
+        · simp [Equiv.swap_apply_right, hi, hjD]
+        · rw [Equiv.swap_apply_of_ne_of_ne hli hlj]
+    have hkey : ∀ τ : Equiv.Perm (Fin n), rank (τ * Equiv.swap i j) i = rank τ j := by
+      intro τ
+      rw [hrank, hrank]
+      refine Finset.card_equiv (Equiv.swap i j) fun l => ?_
+      rw [Finset.mem_filter, Finset.mem_filter, Equiv.Perm.mul_apply, Equiv.Perm.mul_apply,
+        Equiv.swap_apply_left]
+      exact and_congr (hcD l) Iff.rfl
+    refine Finset.card_equiv (Equiv.mulRight (Equiv.swap i j)) fun τ => ?_
+    rw [Finset.mem_filter, Finset.mem_filter]
+    simp only [Finset.mem_univ, true_and, Equiv.coe_mulRight, hkey τ]
+  have hcount : ∑ τ : Equiv.Perm (Fin n), (D.filter fun j => rank τ j = m).card
+      = Nat.factorial n := by
+    rw [Finset.sum_congr rfl (fun τ _ => hone τ)]
+    simp [Fintype.card_perm]
+  have hswapsum : ∑ τ : Equiv.Perm (Fin n), (D.filter fun j => rank τ j = m).card
+      = D.card * (univ.filter fun τ : Equiv.Perm (Fin n) => rank τ i = m).card := by
+    calc ∑ τ : Equiv.Perm (Fin n), (D.filter fun j => rank τ j = m).card
+        = ∑ τ : Equiv.Perm (Fin n), ∑ j ∈ D, (if rank τ j = m then 1 else 0) := by
+          simp only [Finset.card_filter]
+      _ = ∑ j ∈ D, ∑ τ : Equiv.Perm (Fin n), (if rank τ j = m then 1 else 0) := Finset.sum_comm
+      _ = ∑ j ∈ D, (univ.filter fun τ : Equiv.Perm (Fin n) => rank τ j = m).card := by
+          simp only [Finset.card_filter]
+      _ = ∑ j ∈ D, (univ.filter fun τ : Equiv.Perm (Fin n) => rank τ i = m).card :=
+          Finset.sum_congr rfl hswap
+      _ = D.card * (univ.filter fun τ : Equiv.Perm (Fin n) => rank τ i = m).card := by
+          rw [Finset.sum_const, smul_eq_mul]
+  simp only [← hrank]
+  rw [mul_comm, ← hswapsum]
+  exact hcount
+
+/-- Averaging `log₂ Nᵢ` over the reveal order: for a fixed matching `π` in the support,
+`∑_τ log₂ (availCount A π τ i) = (n! / dᵢ) · log₂ (dᵢ!)`, i.e. `𝔼_τ log₂ Nᵢ = log₂(dᵢ!)/dᵢ`.
+This is `card_filter_rank_mul_card_eq_factorial` summed against `log₂`. -/
+theorem sum_logb_availCount {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ)
+    (hA : ∀ i j, A i j = 0 ∨ A i j = 1) (d : Fin n → ℕ) (hd : ∀ i, ∑ j, A i j = (d i : ℝ))
+    {π : Equiv.Perm (Fin n)} (hπ : π ∈ permSupport A) (i : Fin n) :
+    ∑ τ : Equiv.Perm (Fin n), Real.logb 2 (availCount A π τ i)
+      = (Nat.factorial n : ℝ) / (d i : ℝ) * Real.logb 2 (Nat.factorial (d i) : ℝ) := by
+  have hπ' : ∀ k, A k (π k) = 1 := (Finset.mem_filter.mp hπ).2
+  have hDcard : (univ.filter fun j => A i (π j) = 1).card = d i :=
+    card_filter_row_eq A hA d hd i π
+  have hiD : i ∈ (univ.filter fun j => A i (π j) = 1) := by simp [hπ' i]
+  have hav : ∀ τ : Equiv.Perm (Fin n), availCount A π τ i
+      = ((univ.filter fun j => A i (π j) = 1).filter fun j => τ i ≤ τ j).card := by
+    intro τ
+    rw [availCount, Finset.filter_filter]
+  have hmem : ∀ τ : Equiv.Perm (Fin n), availCount A π τ i ∈ Finset.Icc 1 (d i) := by
+    intro τ
+    rw [Finset.mem_Icc, hav τ]
+    refine ⟨Finset.card_pos.mpr ⟨i, by simp [hπ' i]⟩, ?_⟩
+    rw [← hDcard]
+    exact Finset.card_le_card (Finset.filter_subset _ _)
+  rw [← Finset.sum_fiberwise_of_maps_to (fun τ _ => hmem τ)
+    (fun τ => Real.logb 2 (availCount A π τ i))]
+  have key : ∀ m ∈ Finset.Icc 1 (d i),
+      ∑ τ ∈ univ.filter (fun τ : Equiv.Perm (Fin n) => availCount A π τ i = m),
+          Real.logb 2 (availCount A π τ i)
+        = (Nat.factorial n : ℝ) / (d i : ℝ) * Real.logb 2 (m : ℝ) := by
+    intro m hm
+    rw [Finset.sum_congr rfl (fun τ hτ => by rw [(Finset.mem_filter.mp hτ).2]),
+      Finset.sum_const, nsmul_eq_mul]
+    congr 1
+    have hcnt := card_filter_rank_mul_card_eq_factorial
+      (univ.filter fun j => A i (π j) = 1) i hiD (m := m) (by rwa [hDcard])
+    have hd0 : (d i : ℝ) ≠ 0 := by
+      have : 1 ≤ d i := (Finset.mem_Icc.mp hm).1.trans (Finset.mem_Icc.mp hm).2
+      positivity
+    rw [eq_div_iff hd0]
+    simp only [hav] at *
+    rw [hDcard] at hcnt
+    exact_mod_cast hcnt
+  rw [Finset.sum_congr rfl key, ← Finset.mul_sum, sum_logb_Icc_eq]
+
+/-- **The chain rule along a reveal order.**  Reveal the values of a random permutation `π` in
+the order given by `τ` — row `j` before row `k` when `τ j < τ k`.  Then the entropy of `π` is the
+sum, over the rows `i`, of the entropy of `π i` conditioned on what was revealed before row `i`.
+
+This is Lemma 10.1.7 (`condEntropy_eq_sub`) telescoped along the order `τ`: writing `Pₖ` for the
+first `k` entries revealed, `H(P_{k+1}) = H(Pₖ) + H(π_{τ⁻¹ k} ∣ Pₖ)`, with `P₀` constant and
+`Pₙ` determining `π`. -/
+theorem entropy_eq_sum_condEntropy_revealedBefore {n : ℕ} (p : Equiv.Perm (Fin n) → ℝ)
+    (hp : ∀ ω, 0 ≤ p ω) (hp1 : ∑ ω, p ω = 1) (τ : Equiv.Perm (Fin n)) :
+    entropy p id = ∑ i, condEntropy p (fun π => π i) (revealedBefore τ i) := by
+  sorry
+
+/-- **The greedy bound on one conditional entropy** (the "`≤ log₂ Nᵢ`" step of Theorem 10.2.1).
+Condition a uniform matching `π` of the `0/1` matrix `A` on the entries revealed before row `i`.
+The count `availCount A π τ i` is determined by those entries — it is `dᵢ` minus the number of
+ones of row `i` in a column already used — and `π i` must be one of the ones of row `i` in a
+column not yet used, so it takes at most `availCount A π τ i` values.  The uniform bound
+`entropy_le_logb_card`, applied inside each fibre of the conditioning variable and averaged,
+therefore bounds the conditional entropy by the expectation of `log₂ Nᵢ`. -/
+theorem condEntropy_le_expected_logb_availCount {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ)
+    (hA : ∀ i j, A i j = 0 ∨ A i j = 1) (hP : (permSupport A).Nonempty)
+    (τ : Equiv.Perm (Fin n)) (i : Fin n) :
+    condEntropy (uniformPMF (permSupport A)) (fun π => π i) (revealedBefore τ i)
+      ≤ ((permSupport A).card : ℝ)⁻¹ *
+        ∑ π ∈ permSupport A, Real.logb 2 (availCount A π τ i) := by
+  sorry
+
+/-- **Radhakrishnan's entropy bound, for one reveal order** (the displayed inequality on p. 180
+of the notes).  Let `π` be uniform on the matchings of `A`, and fix an order `τ` in which to
+reveal the entries `(j, π j)` — row `j` before row `k` when `τ j < τ k`.  The chain rule
+`condEntropy_eq_sub`, applied along that order, gives
+
+`H(π) = ∑ᵢ H(πᵢ ∣ πⱼ : j revealed before i)`,
+
+and conditioned on the entries already revealed, `πᵢ` is confined to the `availCount A π τ i`
+columns of row `i` that are still free, so `entropy_le_logb_card` applied inside each fibre
+bounds the `i`-th term by the average of `log₂ Nᵢ`.  The right-hand side below is that average
+over `π ∈ permSupport A`.
+
+The inequality holds for each fixed `τ` separately; what Radhakrishnan's proof gains by taking
+`τ` random is that averaging the right-hand side over `τ` makes it computable, which is
+`card_filter_rank_mul_card_eq_factorial`. -/
+theorem entropy_permSupport_le_expected_logb_availCount {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ)
+    (hA : ∀ i j, A i j = 0 ∨ A i j = 1) (hP : (permSupport A).Nonempty)
+    (τ : Equiv.Perm (Fin n)) :
+    entropy (uniformPMF (permSupport A)) id ≤
+      ((permSupport A).card : ℝ)⁻¹ *
+        ∑ π ∈ permSupport A, ∑ i, Real.logb 2 (availCount A π τ i) := by
+  rw [entropy_eq_sum_condEntropy_revealedBefore (uniformPMF (permSupport A))
+    (uniformPMF_nonneg _) (sum_uniformPMF hP) τ]
+  refine (Finset.sum_le_sum fun i (_ : i ∈ univ) =>
+    condEntropy_le_expected_logb_availCount A hA hP τ i).trans_eq ?_
+  rw [← Finset.mul_sum, Finset.sum_comm]
+
+end Bregman
+
 /-- **Brégman–Minc inequality** (Theorem 10.2.1, conjectured by Minc 1963, proved by Brégman
 1973).  For a `0/1` matrix whose `i`-th row sums to `dᵢ`, the permanent — the number of perfect
 matchings of the corresponding bipartite graph — is at most `∏ᵢ (dᵢ!) ^ (1 / dᵢ)`.  The proof is
@@ -1273,7 +1560,67 @@ Radhakrishnan's: reveal the entries of a uniform random permutation in a uniform
 theorem permanent_le_prod_factorial {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ)
     (hA : ∀ i j, A i j = 0 ∨ A i j = 1) (d : Fin n → ℕ) (hd : ∀ i, ∑ j, A i j = (d i : ℝ)) :
     A.permanent ≤ ∏ i, (Nat.factorial (d i) : ℝ) ^ ((d i : ℝ))⁻¹ := by
-  sorry
+  have hfacpos : ∀ i, (0 : ℝ) < (Nat.factorial (d i) : ℝ) := fun i => by
+    exact_mod_cast Nat.factorial_pos (d i)
+  have hRpos : 0 < ∏ i, (Nat.factorial (d i) : ℝ) ^ ((d i : ℝ))⁻¹ :=
+    Finset.prod_pos fun i _ => Real.rpow_pos_of_pos (hfacpos i) _
+  have hperm : A.permanent = ((permSupport A).card : ℝ) := permanent_eq_card_permSupport A hA
+  rcases (permSupport A).eq_empty_or_nonempty with hP | hP
+  · rw [hperm, hP]
+    simpa using hRpos.le
+  · have hcardpos : (0 : ℝ) < ((permSupport A).card : ℝ) := by
+      exact_mod_cast Finset.card_pos.mpr hP
+    have hfac : (Nat.factorial n : ℝ) ≠ 0 := by
+      exact_mod_cast Nat.factorial_ne_zero n
+    have hd1 : ∀ i, (d i : ℝ) ≠ 0 := by
+      obtain ⟨π, hπ⟩ := hP
+      have hπ' : ∀ k, A k (π k) = 1 := (Finset.mem_filter.mp hπ).2
+      intro i
+      have h1 : (1 : ℝ) ≤ (d i : ℝ) := by
+        rw [← hd i, ← hπ' i]
+        exact Finset.single_le_sum (f := fun j => A i j)
+          (fun j _ => by rcases hA i j with h | h <;> simp [h]) (mem_univ (π i))
+      linarith
+    have hlogR : Real.logb 2 (∏ i, (Nat.factorial (d i) : ℝ) ^ ((d i : ℝ))⁻¹)
+        = ∑ i, ((d i : ℝ))⁻¹ * Real.logb 2 (Nat.factorial (d i) : ℝ) := by
+      rw [Real.logb_prod _ _ (fun i _ => ne_of_gt (Real.rpow_pos_of_pos (hfacpos i) _))]
+      refine Finset.sum_congr rfl fun i _ => ?_
+      rw [Real.logb, Real.logb, Real.log_rpow (hfacpos i)]
+      ring
+    have hmain : Real.logb 2 ((permSupport A).card : ℝ)
+        ≤ ∑ i, ((d i : ℝ))⁻¹ * Real.logb 2 (Nat.factorial (d i) : ℝ) := by
+      have hstep : ∀ τ : Equiv.Perm (Fin n), Real.logb 2 ((permSupport A).card : ℝ)
+          ≤ ((permSupport A).card : ℝ)⁻¹ *
+            ∑ π ∈ permSupport A, ∑ i, Real.logb 2 (availCount A π τ i) := by
+        intro τ
+        have h := entropy_permSupport_le_expected_logb_availCount A hA hP τ
+        rwa [entropy_uniformPMF hP] at h
+      have havg := Finset.sum_le_sum
+        (fun τ (_ : τ ∈ (univ : Finset (Equiv.Perm (Fin n)))) => hstep τ)
+      rw [Finset.sum_const, nsmul_eq_mul, ← Finset.mul_sum, Finset.card_univ, Fintype.card_perm,
+        Fintype.card_fin, Finset.sum_comm] at havg
+      have h1 : Real.logb 2 ((permSupport A).card : ℝ)
+          ≤ ((permSupport A).card : ℝ)⁻¹ * ((Nat.factorial n : ℝ))⁻¹ *
+            ∑ π ∈ permSupport A, ∑ τ : Equiv.Perm (Fin n),
+              ∑ i, Real.logb 2 (availCount A π τ i) := by
+        rw [mul_comm ((permSupport A).card : ℝ)⁻¹, mul_assoc,
+          le_inv_mul_iff₀ (by exact_mod_cast Nat.factorial_pos n : (0 : ℝ) < Nat.factorial n)]
+        exact havg
+      refine h1.trans_eq ?_
+      have hsum : ∀ π ∈ permSupport A,
+          ∑ τ : Equiv.Perm (Fin n), ∑ i, Real.logb 2 (availCount A π τ i)
+            = ∑ i, (Nat.factorial n : ℝ) / (d i : ℝ) * Real.logb 2 (Nat.factorial (d i) : ℝ) := by
+        intro π hπ
+        rw [Finset.sum_comm]
+        exact Finset.sum_congr rfl fun i _ => sum_logb_availCount A hA d hd hπ i
+      rw [Finset.sum_congr rfl hsum, Finset.sum_const, nsmul_eq_mul, Finset.mul_sum,
+        Finset.mul_sum]
+      refine Finset.sum_congr rfl fun i _ => ?_
+      field_simp
+    rw [hperm]
+    refine (Real.logb_le_logb one_lt_two hcardpos hRpos).mp ?_
+    rw [hlogR]
+    exact hmain
 
 /-- **Entropy bound on a binomial tail** (Theorem 10.1.12).  For `0 < k ≤ n / 2`,
 `∑_{i ≤ k} binom n i ≤ 2 ^ (H(k/n) n)`, where `H` is the binary entropy function.  Mathlib's
