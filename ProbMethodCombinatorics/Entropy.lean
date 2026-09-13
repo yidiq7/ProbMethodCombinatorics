@@ -129,7 +129,118 @@ that the mutual information `I(X; Y)` is nonnegative.  The proof is Jensen's ine
 to the convex function `t ↦ log₂ (1 / t)`. -/
 theorem entropy_pair_le_add (hp : ∀ ω, 0 ≤ p ω) (hp1 : ∑ ω, p ω = 1) (X : Ω → S) (Y : Ω → T) :
     entropy p (fun ω => (X ω, Y ω)) ≤ entropy p X + entropy p Y := by
-  sorry
+  have hL : (0 : ℝ) < Real.log 2 := Real.log_pos (by norm_num)
+  have hqnn : ∀ x : S × T, 0 ≤ probOf p (fun ω => (X ω, Y ω)) x := fun x => probOf_nonneg hp _ x
+  have hsumY : ∑ t : T, probOf p Y t = 1 := by rw [sum_probOf]; exact hp1
+  have hmargX : ∀ s : S, ∑ t : T, probOf p (fun ω => (X ω, Y ω)) (s, t) = probOf p X s := by
+    intro s
+    have hfib : ∀ t : T, probOf p (fun ω => (X ω, Y ω)) (s, t)
+        = ∑ ω ∈ (univ.filter fun ω => X ω = s).filter fun ω => Y ω = t, p ω := by
+      intro t
+      unfold probOf
+      refine Finset.sum_congr ?_ fun _ _ => rfl
+      ext ω
+      simp only [Finset.mem_filter, Finset.mem_univ, true_and, Prod.mk.injEq]
+    calc ∑ t : T, probOf p (fun ω => (X ω, Y ω)) (s, t)
+        = ∑ t : T, ∑ ω ∈ (univ.filter fun ω => X ω = s).filter fun ω => Y ω = t, p ω :=
+          Finset.sum_congr rfl fun t _ => hfib t
+      _ = probOf p X s := by
+          rw [Finset.sum_fiberwise_eq_sum_filter]
+          simp [probOf]
+  have hmargY : ∀ t : T, ∑ s : S, probOf p (fun ω => (X ω, Y ω)) (s, t) = probOf p Y t := by
+    intro t
+    have hfib : ∀ s : S, probOf p (fun ω => (X ω, Y ω)) (s, t)
+        = ∑ ω ∈ (univ.filter fun ω => Y ω = t).filter fun ω => X ω = s, p ω := by
+      intro s
+      unfold probOf
+      refine Finset.sum_congr ?_ fun _ _ => rfl
+      ext ω
+      simp only [Finset.mem_filter, Finset.mem_univ, true_and, Prod.mk.injEq]
+      tauto
+    calc ∑ s : S, probOf p (fun ω => (X ω, Y ω)) (s, t)
+        = ∑ s : S, ∑ ω ∈ (univ.filter fun ω => Y ω = t).filter fun ω => X ω = s, p ω :=
+          Finset.sum_congr rfl fun s _ => hfib s
+      _ = probOf p Y t := by
+          rw [Finset.sum_fiberwise_eq_sum_filter]
+          simp [probOf]
+  have hqleX : ∀ (s : S) (t : T), probOf p (fun ω => (X ω, Y ω)) (s, t) ≤ probOf p X s := by
+    intro s t
+    rw [← hmargX s]
+    exact Finset.single_le_sum (fun t' _ => hqnn (s, t')) (Finset.mem_univ t)
+  have hqleY : ∀ (s : S) (t : T), probOf p (fun ω => (X ω, Y ω)) (s, t) ≤ probOf p Y t := by
+    intro s t
+    rw [← hmargY t]
+    exact Finset.single_le_sum (fun s' _ => hqnn (s', t)) (Finset.mem_univ s)
+  have key : ∀ u v w : ℝ, 0 ≤ w → w ≤ u → w ≤ v →
+      -w * Real.logb 2 w
+        ≤ -w * Real.logb 2 u + -w * Real.logb 2 v + (u * v - w) / Real.log 2 := by
+    intro u v w hw hwu hwv
+    rcases hw.eq_or_lt with rfl | hw0
+    · simp only [neg_zero, zero_mul, sub_zero, zero_add]
+      exact div_nonneg (mul_nonneg hwu hwv) hL.le
+    · have hu0 : 0 < u := lt_of_lt_of_le hw0 hwu
+      have hv0 : 0 < v := lt_of_lt_of_le hw0 hwv
+      have h1 : Real.log (u * v / w) ≤ u * v / w - 1 :=
+        Real.log_le_sub_one_of_pos (by positivity)
+      have h2 := mul_le_mul_of_nonneg_left h1 hw
+      rw [Real.log_div (by positivity) (ne_of_gt hw0),
+        Real.log_mul (ne_of_gt hu0) (ne_of_gt hv0)] at h2
+      have h3 : w * (u * v / w - 1) = u * v - w := by field_simp
+      rw [h3] at h2
+      have h4 : -w * Real.log w ≤ -w * Real.log u + -w * Real.log v + (u * v - w) := by
+        linarith
+      have h5 := mul_le_mul_of_nonneg_right h4 (le_of_lt (inv_pos.mpr hL))
+      calc -w * Real.logb 2 w = (-w * Real.log w) * (Real.log 2)⁻¹ := by
+            rw [Real.logb]; ring
+        _ ≤ (-w * Real.log u + -w * Real.log v + (u * v - w)) * (Real.log 2)⁻¹ := h5
+        _ = -w * Real.logb 2 u + -w * Real.logb 2 v + (u * v - w) / Real.log 2 := by
+            rw [Real.logb, Real.logb]; ring
+  have hjoint : entropy p (fun ω => (X ω, Y ω))
+      = ∑ s : S, ∑ t : T, -probOf p (fun ω => (X ω, Y ω)) (s, t)
+          * Real.logb 2 (probOf p (fun ω => (X ω, Y ω)) (s, t)) := by
+    rw [entropy, Fintype.sum_prod_type]
+  have hX : ∑ s : S, ∑ t : T, -probOf p (fun ω => (X ω, Y ω)) (s, t)
+      * Real.logb 2 (probOf p X s) = entropy p X := by
+    rw [entropy]
+    refine Finset.sum_congr rfl fun s _ => ?_
+    calc ∑ t : T, -probOf p (fun ω => (X ω, Y ω)) (s, t) * Real.logb 2 (probOf p X s)
+        = (∑ t : T, probOf p (fun ω => (X ω, Y ω)) (s, t)) * -Real.logb 2 (probOf p X s) := by
+          rw [Finset.sum_mul]
+          exact Finset.sum_congr rfl fun t _ => by ring
+      _ = -probOf p X s * Real.logb 2 (probOf p X s) := by rw [hmargX s]; ring
+  have hY : ∑ s : S, ∑ t : T, -probOf p (fun ω => (X ω, Y ω)) (s, t)
+      * Real.logb 2 (probOf p Y t) = entropy p Y := by
+    rw [Finset.sum_comm, entropy]
+    refine Finset.sum_congr rfl fun t _ => ?_
+    calc ∑ s : S, -probOf p (fun ω => (X ω, Y ω)) (s, t) * Real.logb 2 (probOf p Y t)
+        = (∑ s : S, probOf p (fun ω => (X ω, Y ω)) (s, t)) * -Real.logb 2 (probOf p Y t) := by
+          rw [Finset.sum_mul]
+          exact Finset.sum_congr rfl fun s _ => by ring
+      _ = -probOf p Y t * Real.logb 2 (probOf p Y t) := by rw [hmargY t]; ring
+  have hZero : ∑ s : S, ∑ t : T, (probOf p X s * probOf p Y t
+      - probOf p (fun ω => (X ω, Y ω)) (s, t)) / Real.log 2 = 0 := by
+    have h0 : ∀ s : S, ∑ t : T, (probOf p X s * probOf p Y t
+        - probOf p (fun ω => (X ω, Y ω)) (s, t)) = 0 := by
+      intro s
+      rw [Finset.sum_sub_distrib, ← Finset.mul_sum, hsumY, mul_one, hmargX s, sub_self]
+    calc ∑ s : S, ∑ t : T, (probOf p X s * probOf p Y t
+          - probOf p (fun ω => (X ω, Y ω)) (s, t)) / Real.log 2
+        = ∑ s : S, (∑ t : T, (probOf p X s * probOf p Y t
+            - probOf p (fun ω => (X ω, Y ω)) (s, t))) / Real.log 2 :=
+          Finset.sum_congr rfl fun s _ => (Finset.sum_div _ _ _).symm
+      _ = 0 := by simp [h0]
+  calc entropy p (fun ω => (X ω, Y ω))
+      = ∑ s : S, ∑ t : T, -probOf p (fun ω => (X ω, Y ω)) (s, t)
+          * Real.logb 2 (probOf p (fun ω => (X ω, Y ω)) (s, t)) := hjoint
+    _ ≤ ∑ s : S, ∑ t : T, (-probOf p (fun ω => (X ω, Y ω)) (s, t) * Real.logb 2 (probOf p X s)
+          + -probOf p (fun ω => (X ω, Y ω)) (s, t) * Real.logb 2 (probOf p Y t)
+          + (probOf p X s * probOf p Y t
+              - probOf p (fun ω => (X ω, Y ω)) (s, t)) / Real.log 2) :=
+        Finset.sum_le_sum fun s _ => Finset.sum_le_sum fun t _ =>
+          key _ _ _ (hqnn (s, t)) (hqleX s t) (hqleY s t)
+    _ = entropy p X + entropy p Y := by
+        simp only [Finset.sum_add_distrib]
+        rw [hX, hY, hZero, add_zero]
 
 /-- **Dropping conditioning** (Lemma 10.1.10): `H(X ∣ Y) ≤ H(X)`.  This is immediate from
 `condEntropy_eq_sub` and `entropy_pair_le_add`. -/
