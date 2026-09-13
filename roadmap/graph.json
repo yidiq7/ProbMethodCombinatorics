@@ -49,7 +49,7 @@
       "decl": "ProbMethodCombinatorics.exists_cutEdges_two_mul_card_le",
       "doc": "introduction.md#large_bipartite_subgraph--exists_cutedges_two_mul_card_le",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "cut_edges"
       ],
