@@ -1057,16 +1057,334 @@ while all of `e` sits below it and all of `f` sits above it is at most
 `∫ x in (1 - p) / 2..(1 + p) / 2, x ^ n * (1 - x) ^ n`, when `e` and `f` are disjoint `n`-element
 sets avoiding `v`.
 
-Conditionally on `w v = x` the `n` weights on `e` and the `n` weights on `f` are independent of
-`w v` and of each other, so the conditional probability is `x ^ n * (1 - x) ^ n`; integrating the
-density of `w v` over the middle window gives the bound. -/
+Cutting the middle window into `N` equal pieces `[t j, t (j + 1)]` bounds the event by `N` boxes:
+if `w v` lies in the `j`-th piece then all of `e` lies below `t (j + 1)` and all of `f` above
+`t j`, an event of probability `(t (j + 1) - t j) * t (j + 1) ^ n * (1 - t j) ^ n` because the
+`2 * n + 1` coordinates involved are independent.  Since `x ^ n * (1 - x) ^ n` moves by at most
+`n * (t (j + 1) - t j)` across a piece, the resulting sum exceeds the integral by at most
+`n * p ^ 2 / N`, and letting `N` grow gives the bound. -/
 theorem uniformWeights_heaviest_lightest_le {α : Type*} [Fintype α] [DecidableEq α]
     {n : ℕ} {p : ℝ} (hp0 : 0 < p) (hp1 : p ≤ 1) {v : α} {e f : Finset α}
     (hef : Disjoint e f) (hve : v ∉ e) (hvf : v ∉ f) (he : e.card = n) (hf : f.card = n) :
     uniformWeights α {w : α → ℝ | (1 - p) / 2 ≤ w v ∧ w v ≤ (1 + p) / 2 ∧
         (∀ u ∈ e, w u ≤ w v) ∧ (∀ u ∈ f, w v ≤ w u)}
       ≤ ENNReal.ofReal (∫ x in (1 - p) / 2..(1 + p) / 2, x ^ n * (1 - x) ^ n) := by
-  sorry
+  have hpow : ∀ (m : ℕ) (x y : ℝ), 0 ≤ x → x ≤ y → y ≤ 1 → y ^ m - x ^ m ≤ m * (y - x) := by
+    intro m
+    induction m with
+    | zero => intro x y _ _ _; simp
+    | succ m ih =>
+      intro x y hx hxy hy
+      have h1 := ih x y hx hxy hy
+      have hy0 : (0:ℝ) ≤ y := le_trans hx hxy
+      have hxm0 : (0:ℝ) ≤ x ^ m := pow_nonneg hx m
+      have hxm1 : x ^ m ≤ 1 := pow_le_one₀ hx (le_trans hxy hy)
+      have hd : (0:ℝ) ≤ y - x := by linarith
+      have hym : (0:ℝ) ≤ y ^ m - x ^ m := by
+        have h := pow_le_pow_left₀ hx hxy m
+        linarith
+      have hid : y ^ (m + 1) - x ^ (m + 1) = y * (y ^ m - x ^ m) + (y - x) * x ^ m := by ring
+      have t1 : y * (y ^ m - x ^ m) ≤ y ^ m - x ^ m := by nlinarith
+      have t2 : (y - x) * x ^ m ≤ y - x := by nlinarith
+      push_cast
+      linarith
+  have hpoint : ∀ r s x : ℝ, 0 ≤ r → r ≤ x → x ≤ s → s ≤ 1 →
+      s ^ n * (1 - r) ^ n - n * (s - r) ≤ x ^ n * (1 - x) ^ n := by
+    intro r s x hr0 hrx hxs hs1
+    have hx0 : (0:ℝ) ≤ x := le_trans hr0 hrx
+    have hx1 : x ≤ (1:ℝ) := le_trans hxs hs1
+    have h1 : s ^ n - x ^ n ≤ n * (s - x) := hpow n x s hx0 hxs hs1
+    have h2 : (1 - r) ^ n - (1 - x) ^ n ≤ n * ((1 - r) - (1 - x)) :=
+      hpow n (1 - x) (1 - r) (by linarith) (by linarith) (by linarith)
+    have h3 : (1 - r) ^ n ≤ 1 := pow_le_one₀ (by linarith) (by linarith)
+    have h4 : x ^ n ≤ 1 := pow_le_one₀ hx0 hx1
+    have h5 : (0:ℝ) ≤ s ^ n - x ^ n := by
+      have h := pow_le_pow_left₀ hx0 hxs n
+      linarith
+    have h6 : (0:ℝ) ≤ (1 - r) ^ n - (1 - x) ^ n := by
+      have h := pow_le_pow_left₀ (show (0:ℝ) ≤ 1 - x by linarith) (show 1 - x ≤ 1 - r by linarith) n
+      linarith
+    have h7 : (0:ℝ) ≤ x ^ n := pow_nonneg hx0 n
+    have h8 : (0:ℝ) ≤ (1 - r) ^ n := pow_nonneg (by linarith) n
+    have hid : s ^ n * (1 - r) ^ n - x ^ n * (1 - x) ^ n
+        = (1 - r) ^ n * (s ^ n - x ^ n) + x ^ n * ((1 - r) ^ n - (1 - x) ^ n) := by ring
+    nlinarith [hid, h1, h2, h3, h4, h5, h6, h7, h8]
+  have hint : ∀ r s : ℝ, 0 ≤ r → r ≤ s → s ≤ 1 →
+      (s - r) * (s ^ n * (1 - r) ^ n)
+        ≤ (∫ x in r..s, x ^ n * (1 - x) ^ n) + n * (s - r) ^ 2 := by
+    intro r s hr0 hrs hs1
+    have hcont : Continuous fun x : ℝ => x ^ n * (1 - x) ^ n := by fun_prop
+    have hmono : (∫ _ in r..s, (s ^ n * (1 - r) ^ n - n * (s - r)))
+        ≤ ∫ x in r..s, x ^ n * (1 - x) ^ n :=
+      intervalIntegral.integral_mono_on hrs (continuous_const.intervalIntegrable _ _)
+        (hcont.intervalIntegrable _ _) fun x hx => hpoint r s x hr0 hx.1 hx.2 hs1
+    rw [intervalIntegral.integral_const, smul_eq_mul] at hmono
+    nlinarith [hmono]
+  have hbox : ∀ r s : ℝ, 0 ≤ r → r ≤ s → s ≤ 1 →
+      uniformWeights α {w : α → ℝ | (r ≤ w v ∧ w v ≤ s) ∧ (∀ u ∈ e, w u ≤ s) ∧
+          (∀ u ∈ f, r ≤ w u)}
+        = ENNReal.ofReal ((s - r) * (s ^ n * (1 - r) ^ n)) := by
+    intro r s hr0 hrs hs1
+    have hs0 : (0:ℝ) ≤ s := le_trans hr0 hrs
+    have hr1 : r ≤ (1:ℝ) := le_trans hrs hs1
+    have hconv : ENNReal.ofReal ((s - r) * (s ^ n * (1 - r) ^ n))
+        = ENNReal.ofReal (s - r) * ENNReal.ofReal s ^ n * ENNReal.ofReal (1 - r) ^ n := by
+      rw [ENNReal.ofReal_mul (by linarith : (0:ℝ) ≤ s - r),
+        ENNReal.ofReal_mul (pow_nonneg hs0 n), ENNReal.ofReal_pow hs0,
+        ENNReal.ofReal_pow (by linarith : (0:ℝ) ≤ 1 - r)]
+      ring
+    rw [hconv]
+    have hset : {w : α → ℝ | (r ≤ w v ∧ w v ≤ s) ∧ (∀ u ∈ e, w u ≤ s) ∧ (∀ u ∈ f, r ≤ w u)}
+        = Set.univ.pi (fun i => if i = v then Set.Icc r s else if i ∈ e then Set.Iic s
+            else if i ∈ f then Set.Ici r else Set.univ) := by
+      ext w
+      constructor
+      · rintro ⟨hv, hE, hF⟩ i _
+        show w i ∈ (if i = v then Set.Icc r s else if i ∈ e then Set.Iic s
+            else if i ∈ f then Set.Ici r else Set.univ)
+        by_cases h1 : i = v
+        · rw [if_pos h1, h1]
+          exact ⟨hv.1, hv.2⟩
+        · rw [if_neg h1]
+          by_cases h2 : i ∈ e
+          · rw [if_pos h2]
+            exact hE i h2
+          · rw [if_neg h2]
+            by_cases h3 : i ∈ f
+            · rw [if_pos h3]
+              exact hF i h3
+            · rw [if_neg h3]
+              exact Set.mem_univ _
+      · intro h
+        have hget : ∀ i : α, w i ∈ (if i = v then Set.Icc r s else if i ∈ e then Set.Iic s
+            else if i ∈ f then Set.Ici r else Set.univ) := fun i => h i (Set.mem_univ i)
+        refine ⟨?_, ?_, ?_⟩
+        · have hi := hget v
+          rw [if_pos rfl] at hi
+          exact ⟨hi.1, hi.2⟩
+        · intro u hu
+          have hi := hget u
+          rw [if_neg (fun hc : u = v => hve (hc ▸ hu)), if_pos hu] at hi
+          exact hi
+        · intro u hu
+          have hi := hget u
+          rw [if_neg (fun hc : u = v => hvf (hc ▸ hu)),
+            if_neg (Finset.disjoint_right.mp hef hu), if_pos hu] at hi
+          exact hi
+    rw [hset, uniformWeights_pi]
+    have hG : ∀ i : α, MeasureTheory.volume ((if i = v then Set.Icc r s else if i ∈ e then Set.Iic s
+        else if i ∈ f then Set.Ici r else Set.univ) ∩ Set.Icc (0:ℝ) 1)
+        = if i = v then ENNReal.ofReal (s - r) else if i ∈ e then ENNReal.ofReal s
+          else if i ∈ f then ENNReal.ofReal (1 - r) else 1 := by
+      intro i
+      by_cases h1 : i = v
+      · rw [if_pos h1, if_pos h1,
+          Set.inter_eq_self_of_subset_left (Set.Icc_subset_Icc hr0 hs1), Real.volume_Icc]
+      · rw [if_neg h1, if_neg h1]
+        by_cases h2 : i ∈ e
+        · rw [if_pos h2, if_pos h2, show Set.Iic s ∩ Set.Icc (0:ℝ) 1 = Set.Icc 0 s from ?_,
+            Real.volume_Icc, sub_zero]
+          ext x
+          simp only [Set.mem_inter_iff, Set.mem_Iic, Set.mem_Icc]
+          constructor
+          · rintro ⟨h1', h2', -⟩
+            exact ⟨h2', h1'⟩
+          · rintro ⟨h1', h2'⟩
+            exact ⟨h2', h1', le_trans h2' hs1⟩
+        · rw [if_neg h2, if_neg h2]
+          by_cases h3 : i ∈ f
+          · rw [if_pos h3, if_pos h3, show Set.Ici r ∩ Set.Icc (0:ℝ) 1 = Set.Icc r 1 from ?_,
+              Real.volume_Icc]
+            ext x
+            simp only [Set.mem_inter_iff, Set.mem_Ici, Set.mem_Icc]
+            constructor
+            · rintro ⟨h1', -, h3'⟩
+              exact ⟨h1', h3'⟩
+            · rintro ⟨h1', h2'⟩
+              exact ⟨h1', le_trans hr0 h1', h2'⟩
+          · rw [if_neg h3, if_neg h3, Set.univ_inter, Real.volume_Icc]
+            norm_num
+    rw [Finset.prod_congr rfl (fun i _ => hG i)]
+    have hsub : insert v (e ∪ f) ⊆ (Finset.univ : Finset α) := Finset.subset_univ _
+    rw [← Finset.prod_subset hsub (by
+      intro i _ hi
+      have h1 : i ≠ v := fun hc => hi (Finset.mem_insert.mpr (Or.inl hc))
+      have h2 : i ∉ e := fun hc => hi (Finset.mem_insert.mpr (Or.inr (Finset.mem_union_left _ hc)))
+      have h3 : i ∉ f := fun hc => hi (Finset.mem_insert.mpr (Or.inr (Finset.mem_union_right _ hc)))
+      rw [if_neg h1, if_neg h2, if_neg h3])]
+    rw [Finset.prod_insert (by
+      intro hc
+      rcases Finset.mem_union.mp hc with h | h
+      · exact hve h
+      · exact hvf h), Finset.prod_union hef]
+    have hev : ∀ i ∈ e, (if i = v then ENNReal.ofReal (s - r) else if i ∈ e then ENNReal.ofReal s
+        else if i ∈ f then ENNReal.ofReal (1 - r) else 1) = ENNReal.ofReal s := by
+      intro i hi
+      rw [if_neg (fun hc : i = v => hve (hc ▸ hi)), if_pos hi]
+    have hfv : ∀ i ∈ f, (if i = v then ENNReal.ofReal (s - r) else if i ∈ e then ENNReal.ofReal s
+        else if i ∈ f then ENNReal.ofReal (1 - r) else 1) = ENNReal.ofReal (1 - r) := by
+      intro i hi
+      rw [if_neg (fun hc : i = v => hvf (hc ▸ hi)), if_neg (Finset.disjoint_right.mp hef hi),
+        if_pos hi]
+    rw [Finset.prod_congr rfl hev, Finset.prod_congr rfl hfv, Finset.prod_const, Finset.prod_const,
+      he, hf, if_pos rfl, mul_assoc]
+
+  have hcont : Continuous fun x : ℝ => x ^ n * (1 - x) ^ n := by fun_prop
+  have hp2 : (0:ℝ) ≤ (1 - p) / 2 := by linarith
+  have hI0 : (0:ℝ) ≤ ∫ x in (1 - p) / 2..(1 + p) / 2, x ^ n * (1 - x) ^ n := by
+    refine intervalIntegral.integral_nonneg (by linarith) ?_
+    intro x hx
+    exact mul_nonneg (pow_nonneg (le_trans hp2 hx.1) _) (pow_nonneg (by linarith [hx.2]) _)
+  have hmain : ∀ N : ℕ, 0 < N →
+      uniformWeights α {w : α → ℝ | (1 - p) / 2 ≤ w v ∧ w v ≤ (1 + p) / 2 ∧
+          (∀ u ∈ e, w u ≤ w v) ∧ (∀ u ∈ f, w v ≤ w u)}
+        ≤ ENNReal.ofReal ((∫ x in (1 - p) / 2..(1 + p) / 2, x ^ n * (1 - x) ^ n)
+            + n * p ^ 2 / N) := by
+    intro N hN
+    have hNR : (0:ℝ) < N := by exact_mod_cast hN
+    have hpN : (0:ℝ) < p / N := by positivity
+    obtain ⟨t, ht⟩ : ∃ t : ℕ → ℝ, ∀ j : ℕ, t j = (1 - p) / 2 + j * (p / N) := ⟨_, fun _ => rfl⟩
+    have hstep : ∀ j : ℕ, t (j + 1) - t j = p / N := by
+      intro j
+      rw [ht, ht]
+      push_cast
+      ring
+    have ht0 : t 0 = (1 - p) / 2 := by rw [ht]; norm_num
+    have htN : t N = (1 + p) / 2 := by
+      rw [ht]
+      field_simp
+      ring
+    have hmono : ∀ i j : ℕ, i ≤ j → t i ≤ t j := by
+      intro i j hij
+      rw [ht, ht]
+      have hc : (i:ℝ) ≤ j := by exact_mod_cast hij
+      nlinarith
+    have hge0 : ∀ j : ℕ, 0 ≤ t j := by
+      intro j
+      have h := hmono 0 j (Nat.zero_le j)
+      rw [ht0] at h
+      linarith
+    have hle1 : ∀ j : ℕ, j ≤ N → t j ≤ 1 := by
+      intro j hj
+      have h := hmono j N hj
+      rw [htN] at h
+      linarith
+    have hcover : {w : α → ℝ | (1 - p) / 2 ≤ w v ∧ w v ≤ (1 + p) / 2 ∧
+        (∀ u ∈ e, w u ≤ w v) ∧ (∀ u ∈ f, w v ≤ w u)} ⊆
+        ⋃ j ∈ Finset.range N, {w : α → ℝ | (t j ≤ w v ∧ w v ≤ t (j + 1)) ∧
+          (∀ u ∈ e, w u ≤ t (j + 1)) ∧ (∀ u ∈ f, t j ≤ w u)} := by
+      rintro w ⟨hl, hr, hE, hF⟩
+      obtain ⟨j, hjN, hj1, hj2⟩ : ∃ j : ℕ, j < N ∧ t j ≤ w v ∧ w v ≤ t (j + 1) := by
+        obtain ⟨y, hy⟩ : ∃ y : ℝ, y = (w v - (1 - p) / 2) * N / p := ⟨_, rfl⟩
+        have hy0 : (0:ℝ) ≤ y := by
+          rw [hy]
+          exact div_nonneg (mul_nonneg (by linarith) hNR.le) hp0.le
+        have hyN : y ≤ N := by
+          rw [hy, div_le_iff₀ hp0]
+          nlinarith
+        have hkey : y * (p / N) = w v - (1 - p) / 2 := by
+          rw [hy]
+          field_simp
+        obtain ⟨j, hj⟩ : ∃ j : ℕ, j = min ⌊y⌋₊ (N - 1) := ⟨_, rfl⟩
+        have hjlt : j < N := by
+          rw [hj]
+          exact lt_of_le_of_lt (min_le_right _ _) (by omega)
+        have hjle : (j : ℝ) ≤ y := by
+          refine le_trans ?_ (Nat.floor_le hy0)
+          rw [hj]
+          exact_mod_cast min_le_left ⌊y⌋₊ (N - 1)
+        have hjge : y ≤ (j : ℝ) + 1 := by
+          by_cases hc : ⌊y⌋₊ ≤ N - 1
+          · have hje : j = ⌊y⌋₊ := by omega
+            rw [hje]
+            exact le_of_lt (Nat.lt_floor_add_one _)
+          · have hje : j = N - 1 := by omega
+            rw [hje]
+            have hcast : ((N - 1 : ℕ) : ℝ) + 1 = (N : ℝ) := by
+              have h1 : (1:ℕ) ≤ N := hN
+              push_cast [Nat.cast_sub h1]
+              ring
+            rw [hcast]
+            exact hyN
+        refine ⟨j, hjlt, ?_, ?_⟩
+        · rw [ht]
+          have h := mul_le_mul_of_nonneg_right hjle hpN.le
+          rw [hkey] at h
+          linarith
+        · rw [ht]
+          have h := mul_le_mul_of_nonneg_right hjge hpN.le
+          rw [hkey] at h
+          push_cast
+          linarith
+      exact Set.mem_biUnion (Finset.mem_range.mpr hjN)
+        ⟨⟨hj1, hj2⟩, fun u hu => le_trans (hE u hu) hj2, fun u hu => le_trans hj1 (hF u hu)⟩
+    refine le_trans (MeasureTheory.measure_mono hcover) ?_
+    refine le_trans (MeasureTheory.measure_biUnion_finset_le _ _) ?_
+    have hterm : ∀ j ∈ Finset.range N,
+        uniformWeights α {w : α → ℝ | (t j ≤ w v ∧ w v ≤ t (j + 1)) ∧
+          (∀ u ∈ e, w u ≤ t (j + 1)) ∧ (∀ u ∈ f, t j ≤ w u)}
+        = ENNReal.ofReal ((t (j + 1) - t j) * (t (j + 1) ^ n * (1 - t j) ^ n)) := by
+      intro j hj
+      rw [Finset.mem_range] at hj
+      exact hbox (t j) (t (j + 1)) (hge0 j) (hmono j (j + 1) (Nat.le_succ j))
+        (hle1 (j + 1) (by omega))
+    have hnn : ∀ j ∈ Finset.range N,
+        (0:ℝ) ≤ (t (j + 1) - t j) * (t (j + 1) ^ n * (1 - t j) ^ n) := by
+      intro j hj
+      rw [Finset.mem_range] at hj
+      have h1 : t j ≤ t (j + 1) := hmono j (j + 1) (Nat.le_succ j)
+      have h2 : t (j + 1) ≤ 1 := hle1 (j + 1) (by omega)
+      have h3 : (0:ℝ) ≤ t (j + 1) := hge0 (j + 1)
+      have h4 : t j ≤ 1 := le_trans h1 h2
+      exact mul_nonneg (by linarith)
+        (mul_nonneg (pow_nonneg h3 n) (pow_nonneg (by linarith) n))
+    rw [Finset.sum_congr rfl hterm, ← ENNReal.ofReal_sum_of_nonneg hnn]
+    refine ENNReal.ofReal_le_ofReal ?_
+    have hsum : ∀ j ∈ Finset.range N,
+        (t (j + 1) - t j) * (t (j + 1) ^ n * (1 - t j) ^ n)
+          ≤ (∫ x in t j..t (j + 1), x ^ n * (1 - x) ^ n) + n * (p / N) ^ 2 := by
+      intro j hj
+      rw [Finset.mem_range] at hj
+      have h := hint (t j) (t (j + 1)) (hge0 j) (hmono j (j + 1) (Nat.le_succ j))
+        (hle1 (j + 1) (by omega))
+      rw [← hstep j]
+      exact h
+    refine le_trans (Finset.sum_le_sum hsum) ?_
+    rw [Finset.sum_add_distrib, Finset.sum_const, Finset.card_range, nsmul_eq_mul,
+      intervalIntegral.sum_integral_adjacent_intervals
+        (fun k _ => (hcont.intervalIntegrable _ _)), ht0, htN]
+    have harith : (N : ℝ) * ((n : ℝ) * (p / N) ^ 2) = (n : ℝ) * p ^ 2 / N := by
+      field_simp
+    rw [harith]
+  -- pass to the limit
+  have hfin : uniformWeights α {w : α → ℝ | (1 - p) / 2 ≤ w v ∧ w v ≤ (1 + p) / 2 ∧
+      (∀ u ∈ e, w u ≤ w v) ∧ (∀ u ∈ f, w v ≤ w u)} ≠ ⊤ := MeasureTheory.measure_ne_top _ _
+  have hreal : (uniformWeights α {w : α → ℝ | (1 - p) / 2 ≤ w v ∧ w v ≤ (1 + p) / 2 ∧
+      (∀ u ∈ e, w u ≤ w v) ∧ (∀ u ∈ f, w v ≤ w u)}).toReal
+      ≤ ∫ x in (1 - p) / 2..(1 + p) / 2, x ^ n * (1 - x) ^ n := by
+    refine le_of_forall_pos_le_add ?_
+    intro ε hε
+    obtain ⟨N, hNgt⟩ := exists_nat_gt (max 1 ((n : ℝ) * p ^ 2 / ε))
+    have hN1 : 0 < N := by
+      have h : (1:ℝ) ≤ max 1 ((n : ℝ) * p ^ 2 / ε) := le_max_left _ _
+      have : (0:ℝ) < N := by linarith
+      exact_mod_cast this
+    have hNR : (0:ℝ) < N := by exact_mod_cast hN1
+    have h2 := ENNReal.toReal_le_of_le_ofReal (by positivity) (hmain N hN1)
+    have h3 : (n : ℝ) * p ^ 2 / N < ε := by
+      rw [div_lt_iff₀ hNR]
+      have h : (n : ℝ) * p ^ 2 / ε ≤ max 1 ((n : ℝ) * p ^ 2 / ε) := le_max_right _ _
+      have h4 : (n : ℝ) * p ^ 2 / ε < N := by linarith
+      rw [div_lt_iff₀ hε] at h4
+      linarith
+    linarith
+  calc uniformWeights α {w : α → ℝ | (1 - p) / 2 ≤ w v ∧ w v ≤ (1 + p) / 2 ∧
+        (∀ u ∈ e, w u ≤ w v) ∧ (∀ u ∈ f, w v ≤ w u)}
+      = ENNReal.ofReal ((uniformWeights α {w : α → ℝ | (1 - p) / 2 ≤ w v ∧ w v ≤ (1 + p) / 2 ∧
+        (∀ u ∈ e, w u ≤ w v) ∧ (∀ u ∈ f, w v ≤ w u)}).toReal) :=
+        (ENNReal.ofReal_toReal hfin).symm
+    _ ≤ _ := ENNReal.ofReal_le_ofReal hreal
+
 
 /-- **A fixed ordered pair of edges conflicts in the middle window with probability at most the
 Beta-type integral.**  Under independent uniform weights, if `e` and `f` are `k`-element edges
