@@ -122,7 +122,43 @@ computation on p. 176 of the notes.  Together with symmetry of the joint entropy
 **chain rule** `H(X, Y) = H(Y) + H(X ∣ Y)` (Lemma 10.1.7). -/
 theorem condEntropy_eq_sub (hp : ∀ ω, 0 ≤ p ω) (X : Ω → S) (Y : Ω → T) :
     condEntropy p X Y = entropy p (fun ω => (X ω, Y ω)) - entropy p Y := by
-  sorry
+  have key : ∀ t : T, ∑ s : S, probOf p (fun ω => (X ω, Y ω)) (s, t) = probOf p Y t := by
+    intro t
+    have hfil : ∀ s : S, (univ.filter fun ω => (X ω, Y ω) = (s, t))
+        = (univ.filter fun ω => Y ω = t).filter fun ω => X ω = s := by
+      intro s
+      ext ω
+      simp [Prod.ext_iff, and_comm]
+    calc ∑ s : S, probOf p (fun ω => (X ω, Y ω)) (s, t)
+        = ∑ s : S, ∑ ω ∈ (univ.filter fun ω => Y ω = t).filter fun ω => X ω = s, p ω := by
+          simp only [probOf, hfil]
+      _ = ∑ ω ∈ (univ.filter fun ω => Y ω = t).filter fun ω => X ω ∈ (univ : Finset S), p ω :=
+          Finset.sum_fiberwise_eq_sum_filter _ _ _ _
+      _ = probOf p Y t := by simp [probOf]
+  have aux : ∀ (b : ℝ) (a : S → ℝ), (∀ s, 0 ≤ a s) → ∑ s, a s = b →
+      ∑ s, -a s * Real.logb 2 (a s / b)
+        = (∑ s, -a s * Real.logb 2 (a s)) - -b * Real.logb 2 b := by
+    intro b a ha hab
+    have hb0 : (0 : ℝ) ≤ b := hab ▸ Finset.sum_nonneg fun s _ => ha s
+    rcases hb0.eq_or_lt with hb | hb
+    · have hz : ∀ s, a s = 0 := fun s =>
+        (Finset.sum_eq_zero_iff_of_nonneg fun s _ => ha s).1 (hab.trans hb.symm) s (mem_univ s)
+      subst hb
+      simp [hz]
+    · have hbne : b ≠ 0 := ne_of_gt hb
+      have hpt : ∀ s ∈ (univ : Finset S), -a s * Real.logb 2 (a s / b)
+          = -a s * Real.logb 2 (a s) + a s * Real.logb 2 b := by
+        intro s _
+        rcases (ha s).eq_or_lt with hs | hs
+        · simp [← hs]
+        · rw [Real.logb_div (ne_of_gt hs) hbne]; ring
+      rw [Finset.sum_congr rfl hpt, Finset.sum_add_distrib, ← Finset.sum_mul, hab]
+      ring
+  simp only [condEntropy, entropy]
+  conv_rhs => rw [Fintype.sum_prod_type, Finset.sum_comm]
+  rw [← Finset.sum_sub_distrib]
+  exact Finset.sum_congr rfl fun t _ =>
+    aux _ _ (fun s => probOf_nonneg hp _ (s, t)) (key t)
 
 /-- **Subadditivity** for two variables (Lemma 10.1.8): `H(X, Y) ≤ H(X) + H(Y)`, equivalently
 that the mutual information `I(X; Y)` is nonnegative.  The proof is Jensen's inequality applied
