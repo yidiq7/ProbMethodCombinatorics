@@ -936,6 +936,56 @@ theorem permanent_le_prod_factorial {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ)
 theorem sum_choose_le_exp_binEntropy {n k : ℕ} (hk : 0 < k) (h2k : 2 * k ≤ n) :
     ((∑ i ∈ range (k + 1), n.choose i : ℕ) : ℝ)
       ≤ Real.exp (n * Real.binEntropy ((k : ℝ) / n)) := by
-  sorry
+  obtain ⟨m, rfl⟩ : ∃ m, n = k + m := ⟨n - k, by omega⟩
+  have hkm : k ≤ m := by omega
+  have hm : 0 < m := lt_of_lt_of_le hk hkm
+  have hkR : (0:ℝ) < k := by exact_mod_cast hk
+  have hmR : (0:ℝ) < m := by exact_mod_cast hm
+  have hx0 : (0:ℝ) < (k:ℝ) / m := div_pos hkR hmR
+  have hx1 : (k:ℝ) / m ≤ 1 := (div_le_one hmR).mpr (by exact_mod_cast hkm)
+  -- the moment generating function inequality
+  have hmgf : (∑ i ∈ range (k + 1), (((k + m).choose i : ℕ) : ℝ)) * ((k:ℝ)/m) ^ k
+      ≤ (1 + (k:ℝ)/m) ^ (k + m) := by
+    rw [Finset.sum_mul]
+    calc ∑ i ∈ range (k + 1), (((k + m).choose i : ℕ) : ℝ) * ((k:ℝ)/m) ^ k
+        ≤ ∑ i ∈ range (k + 1), (((k + m).choose i : ℕ) : ℝ) * ((k:ℝ)/m) ^ i := by
+          refine Finset.sum_le_sum fun i hi => ?_
+          have : ((k:ℝ)/m) ^ k ≤ ((k:ℝ)/m) ^ i :=
+            pow_le_pow_of_le_one hx0.le hx1 (Nat.lt_succ_iff.mp (mem_range.mp hi))
+          exact mul_le_mul_of_nonneg_left this (Nat.cast_nonneg _)
+      _ ≤ ∑ i ∈ range (k + m + 1), (((k + m).choose i : ℕ) : ℝ) * ((k:ℝ)/m) ^ i := by
+          have hsub : range (k + 1) ⊆ range (k + m + 1) :=
+            Finset.range_subset_range.mpr (by omega)
+          exact Finset.sum_le_sum_of_subset_of_nonneg hsub fun i _ _ => by positivity
+      _ = (1 + (k:ℝ)/m) ^ (k + m) := by
+          rw [add_comm (1:ℝ) ((k:ℝ)/m), add_pow]
+          exact Finset.sum_congr rfl fun i _ => by rw [one_pow, mul_one]; ring
+  -- clear the denominators
+  have h1 : (1:ℝ) + (k:ℝ)/m = ((k:ℝ) + m)/m := by field_simp; ring
+  rw [h1, div_pow, div_pow] at hmgf
+  have key : (∑ i ∈ range (k + 1), (((k + m).choose i : ℕ) : ℝ)) * ((k:ℝ)^k * (m:ℝ)^m)
+      ≤ ((k:ℝ) + m) ^ (k + m) := by
+    have hpos : (0:ℝ) < (m:ℝ) ^ (k + m) := by positivity
+    have h2 := mul_le_mul_of_nonneg_right hmgf hpos.le
+    calc (∑ i ∈ range (k + 1), (((k + m).choose i : ℕ) : ℝ)) * ((k:ℝ)^k * (m:ℝ)^m)
+        = (∑ i ∈ range (k + 1), (((k + m).choose i : ℕ) : ℝ)) * ((k:ℝ)^k / (m:ℝ)^k)
+            * (m:ℝ) ^ (k + m) := by
+          rw [pow_add]
+          field_simp
+      _ ≤ ((k:ℝ) + m) ^ (k + m) / (m:ℝ) ^ (k + m) * (m:ℝ) ^ (k + m) := h2
+      _ = ((k:ℝ) + m) ^ (k + m) := by field_simp
+  -- the entropy bound is the logarithm of the same quantity
+  have hlog : ((k:ℝ) + m) * Real.binEntropy ((k:ℝ) / ((k:ℝ) + m))
+      = Real.log (((k:ℝ) + m) ^ (k + m) / ((k:ℝ)^k * (m:ℝ)^m)) := by
+    have hsub : (1:ℝ) - (k:ℝ) / ((k:ℝ) + m) = (m:ℝ) / ((k:ℝ) + m) := by field_simp; ring
+    rw [Real.log_div (by positivity) (by positivity), Real.log_mul (by positivity) (by positivity),
+      Real.log_pow, Real.log_pow, Real.log_pow, Real.binEntropy, hsub, inv_div, inv_div,
+      Real.log_div (by positivity) (by positivity), Real.log_div (by positivity) (by positivity)]
+    field_simp
+    push_cast
+    ring
+  push_cast
+  rw [hlog, Real.exp_log (by positivity), le_div_iff₀ (by positivity)]
+  exact key
 
 end ProbMethodCombinatorics
