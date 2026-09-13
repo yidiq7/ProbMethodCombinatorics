@@ -27,6 +27,18 @@ not determined by `A`. Applications supply `N` from the structure of the problem
 6.1.5: events depending on disjoint sets of independent variables are independent), never by
 testing pairs for independence.
 
+## `measure_inter_biInter_compl_le` — the induction step
+
+Equation (6.1) of Theorem 6.1.9, contributed as its own declaration with the general form
+(PR #41): for `i ∉ S`,
+
+    ℙ(A i ∩ ⋂_{j ∈ S} (A j)ᶜ) ≤ x i · ℙ(⋂_{j ∈ S} (A j)ᶜ).
+
+Note the **product form** rather than `ℙ(A i | ⋂_{j ∈ S} (A j)ᶜ) ≤ x i`.  The two agree when
+the conditioning event has positive measure, and the product form is automatically true when
+it is null — which removes the positivity side conditions that make the conditional statement
+awkward to carry through the induction.  Worth imitating elsewhere in this group.
+
 ## `lovasz_local_lemma` — general form
 
 Theorem 6.1.9. With weights `x i ∈ [0,1)` satisfying `ℙ(A i) ≤ x i ∏_{j ∈ N i} (1 - x j)`,

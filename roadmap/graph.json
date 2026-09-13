@@ -138,7 +138,7 @@
       "decl": "ProbMethodCombinatorics.lt_ramseyNumber",
       "doc": "introduction.md#lt_ramsey_number--lt_ramseynumber",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "ramsey_number",
         "ramsey_property"
@@ -558,6 +558,19 @@
       ],
       "proof_uses": []
     },
+    "lll_induction_step": {
+      "kind": "theorem",
+      "parent": "local_lemma",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.measure_inter_biInter_compl_le",
+      "doc": "local-lemma.md#measure_inter_binter_compl_le--the-induction-step",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "is_dependency_graph"
+      ],
+      "proof_uses": []
+    },
     "lll_general": {
       "kind": "theorem",
       "parent": "local_lemma",
@@ -565,7 +578,7 @@
       "decl": "ProbMethodCombinatorics.lovasz_local_lemma",
       "doc": "local-lemma.md#lovasz_local_lemma--general-form",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "is_dependency_graph"
       ],
