@@ -73,7 +73,20 @@ delete a vertex from each, and bounds the independence number by `3n / log n` to
 `SimpleGraph.chromaticNumber` (as `ℕ∞`) are Mathlib's; the chromatic bound
 `χ(G) ≥ |V| / α(G)` may or may not be there and is worth stating separately if not.
 
-Expect a reduction rather than a single PR.
+**Came back as a reduction (PR #48), which is what was expected.** Two new nodes:
+
+`card_le_mul_indepNum_of_colorable` — `|V| ≤ m * α(G)` for an `m`-colourable graph, the
+`χ ≥ |V|/α` step in division-free form. Proved. Mathlib relates neither `chromaticNumber` nor
+`Colorable` to `indepNum`, so this is ours.
+
+`exists_girth_gt_and_mul_indepNum_lt` — the random-graph half: for every `l, m` a graph with
+girth `> l` and `m * α < n`. Still open; this is the analytic heart of the chapter.
+
+One property of the published statement, found in review: `SimpleGraph.girth` is `egirth.toNat`,
+**`ℕ`-valued with junk value `0` on acyclic graphs**, so `(l : ℕ∞) < G.girth` also asserts the
+graph has a cycle. That was not deliberate when the statement was authored. It is harmless —
+a graph with `χ > k ≥ 1` cannot be acyclic — but any future statement mentioning `girth` should
+account for it.
 
 ## `property_b_sharp` — `exists_twoColorable_of_card_le`
 
