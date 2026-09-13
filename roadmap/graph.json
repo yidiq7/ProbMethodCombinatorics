@@ -310,7 +310,7 @@
       "decl": "ProbMethodCombinatorics.exists_heilbronn_configuration",
       "doc": "alterations.md#twice_area-heilbronn--twicearea-exists_heilbronn_configuration",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "twice_area"
       ],

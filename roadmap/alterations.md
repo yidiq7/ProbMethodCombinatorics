@@ -42,6 +42,13 @@ square with every triple spanning a triangle of area at least `c / n²`.
 unsigned area; the factor of two is absorbed into `c`. Working in `ℝ × ℝ` with the
 determinant keeps this elementary algebra rather than measure theory.
 
+**Proved (PR #47) by the algebraic route.**  Bertrand supplies a prime `P ∈ (n, 2n]`; the
+points are `(x, x² mod P)/P`.  Modulo `P` the determinant collapses to `(b-a)(c-a)(c-b)`,
+non-zero because `ZMod P` is a field and the residues are distinct — so the *integer*
+determinant is non-zero, hence at least 1 in absolute value, and twice-area is at least
+`1/P² ≥ 1/(4n²)`.  `c = 1/4`.  No Pick's theorem and no analysis.  The record of both routes
+is kept below because the comparison is the lesson.
+
 **Two routes, and the book's is not the easier one.** The probabilistic proof needs the
 annulus estimate `ℙ(area(pqr) ≤ ε) ≲ ε`, which is a genuine integral computation.
 The algebraic construction in the same section — Erdős, via Roth 1951 — is far more
