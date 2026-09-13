@@ -25,7 +25,16 @@ the counting one (Zhao, Theorem 3.3.1). -/
 theorem card_filter_le_sum_div {ι : Type*} (s : Finset ι) (f : ι → ℝ)
     (hf : ∀ i ∈ s, 0 ≤ f i) {a : ℝ} (ha : 0 < a) :
     ((s.filter fun i => a ≤ f i).card : ℝ) ≤ (∑ i ∈ s, f i) / a := by
-  sorry
+  rw [le_div_iff₀ ha]
+  have hsum : ∑ i ∈ s.filter fun i => a ≤ f i, f i ≤ ∑ i ∈ s, f i :=
+    Finset.sum_le_sum_of_subset_of_nonneg (Finset.filter_subset _ _)
+      fun i hi _ => hf i hi
+  have hcard : ((s.filter fun i => a ≤ f i).card : ℝ) * a
+      ≤ ∑ i ∈ s.filter fun i => a ≤ f i, f i := by
+    have := Finset.card_nsmul_le_sum (s.filter fun i => a ≤ f i) f a
+      fun i hi => (Finset.mem_filter.mp hi).2
+    simpa [nsmul_eq_mul, mul_comm] using this
+  exact hcard.trans hsum
 
 section Dominating
 
