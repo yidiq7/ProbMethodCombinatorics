@@ -491,11 +491,22 @@
       ],
       "proof_uses": []
     },
-    "cherkashin_kozik": {
+    "beta_integral_bound": {
       "kind": "theorem",
       "parent": "alterations",
       "file": "ProbMethodCombinatorics/Alterations.lean",
-      "decl": "ProbMethodCombinatorics.exists_conflictFree_of_card_le",
+      "decl": "ProbMethodCombinatorics.integral_pow_mul_one_sub_pow_le",
+      "doc": "alterations.md#property_b_sharp--exists_twocolorable_of_card_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "ck_union_bound": {
+      "kind": "theorem",
+      "parent": "alterations",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.exists_conflictFree_of_union_bound_lt_one",
       "doc": "alterations.md#property_b_sharp--exists_twocolorable_of_card_le",
       "statement": "formalized",
       "proof": "planned",
@@ -503,6 +514,22 @@
         "conflicting_pair"
       ],
       "proof_uses": []
+    },
+    "cherkashin_kozik": {
+      "kind": "theorem",
+      "parent": "alterations",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.exists_conflictFree_of_card_le",
+      "doc": "alterations.md#property_b_sharp--exists_twocolorable_of_card_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "conflicting_pair"
+      ],
+      "proof_uses": [
+        "beta_integral_bound",
+        "ck_union_bound"
+      ]
     },
     "property_b_sharp": {
       "kind": "theorem",
