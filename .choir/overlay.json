@@ -54,7 +54,7 @@
     },
     "pyproject.toml": {
       "class": "managed",
-      "sha256": "7c9c6a4abea8974ac31b52ac2b1d81c20ed3102c96e26e142a5ca4274ebd19cf"
+      "sha256": "77b6ddca35e185afc343c2a6cf98d2e4f2a5f08350ef135aa8d9b689dcdb5e4d"
     },
     "uv.lock": {
       "class": "managed",

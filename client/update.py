@@ -17,6 +17,9 @@ touch a real repo — mirrors `client._subprocess`'s `CompletedRun` /
 
 from __future__ import annotations
 
+import contextlib
+import os
+import stat
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -74,6 +77,30 @@ def _run(runner: Runner, cmd: Sequence[str], cwd: Path) -> CompletedRun:
         raise UpdateError(str(e)) from e
 
 
+def unhide_pth_files(root: Path) -> int:
+    """Clear `UF_HIDDEN` from the checkout venv's editable-install pointers.
+
+    `site.addpackage` skips a hidden `.pth`, which leaves `choir` resolvable
+    but unimportable. Other `.pth` files belong to other tools and are left
+    alone. Returns the number cleared; 0 where `os.chflags` does not exist.
+    """
+    chflags = getattr(os, "chflags", None)
+    if chflags is None:
+        return 0
+    cleared = 0
+    for pth in (root / ".venv").glob("lib/python*/site-packages/*editable*.pth"):
+        try:
+            flags = pth.stat().st_flags
+        except OSError:
+            continue
+        if not flags & stat.UF_HIDDEN:
+            continue
+        with contextlib.suppress(OSError):
+            chflags(pth, flags & ~stat.UF_HIDDEN)
+            cleared += 1
+    return cleared
+
+
 def run_update(*, runner: Runner | None = None) -> UpdateResult:
     """Update the Choir checkout in place: pull, then reinstall deps.
 
@@ -112,5 +139,7 @@ def run_update(*, runner: Runner | None = None) -> UpdateResult:
     sync = _run(run, ["uv", "sync", "--extra", "dev"], root)
     if not sync.ok:
         raise UpdateError(f"uv sync --extra dev failed:\n{sync.stderr.strip()}")
+
+    unhide_pth_files(root)
 
     return UpdateResult(old_sha=old_sha, new_sha=new_sha, changed=old_sha != new_sha)

@@ -70,8 +70,18 @@ ignore = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# `slow` is deselected by default: those tests shell out to a real Isabelle or
+# Lean toolchain to check Choir's model of the prover's syntax against the
+# prover itself. They need a local install (they skip without one), take ~45s
+# of the suite's ~60s, and never run in CI, which installs no toolchain. Run
+# them with `pytest -m slow` before changing anything under `gate/provers/`.
 addopts = [
     "-ra",
     "--strict-markers",
     "--strict-config",
+    "-m",
+    "not slow",
+]
+markers = [
+    "slow: shells out to a real prover toolchain (run with `pytest -m slow`)",
 ]
