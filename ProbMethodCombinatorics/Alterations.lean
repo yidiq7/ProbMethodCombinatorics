@@ -3,6 +3,8 @@ import Mathlib.Analysis.SpecialFunctions.Sqrt
 import Mathlib.Combinatorics.SimpleGraph.Girth
 import Mathlib.Combinatorics.SimpleGraph.Coloring.Vertex
 import Mathlib.Combinatorics.SimpleGraph.Finite
+import Mathlib.NumberTheory.Bertrand
+import Mathlib.Algebra.Field.ZMod
 import ProbMethodCombinatorics.PropertyB
 
 /-!
@@ -68,7 +70,94 @@ theorem exists_heilbronn_configuration :
       (∀ p ∈ S, p.1 ∈ Set.Icc (0 : ℝ) 1 ∧ p.2 ∈ Set.Icc (0 : ℝ) 1) ∧
       ∀ p ∈ S, ∀ q ∈ S, ∀ r ∈ S, p ≠ q → p ≠ r → q ≠ r →
         c / (n : ℝ) ^ 2 ≤ twiceArea p q r := by
-  sorry
+  refine ⟨1 / 4, by norm_num, fun n => ?_⟩
+  rcases Nat.eq_zero_or_pos n with rfl | hn
+  · exact ⟨∅, rfl, by simp, by simp⟩
+  obtain ⟨P, hP, hnP, hP2n⟩ := Nat.exists_prime_lt_and_le_two_mul n hn.ne'
+  have : Fact P.Prime := ⟨hP⟩
+  have hP0 : 0 < P := hP.pos
+  have hPR : (0 : ℝ) < (P : ℝ) := by exact_mod_cast hP0
+  set g : ℕ → ℝ × ℝ := fun x => ((x : ℝ) / P, ((x ^ 2 % P : ℕ) : ℝ) / P) with hg
+  have hginj : Function.Injective g := by
+    intro x y hxy
+    have h1 : (x : ℝ) / P = (y : ℝ) / P := congrArg Prod.fst hxy
+    field_simp at h1
+    exact_mod_cast h1
+  have hcard : ((Finset.range P).image g).card = P := by
+    rw [Finset.card_image_of_injective _ hginj, Finset.card_range]
+  obtain ⟨S, hST, hScard⟩ :=
+    Finset.exists_subset_card_eq (s := (Finset.range P).image g) (n := n) (by omega)
+  -- distinct residues below `P` give distinct elements of `ZMod P`
+  have hne : ∀ x y : ℕ, x < P → y < P → x ≠ y → (x : ZMod P) ≠ (y : ZMod P) := by
+    intro x y hx hy hxy h
+    exact hxy (by
+      have := congrArg ZMod.val h
+      rwa [ZMod.val_cast_of_lt hx, ZMod.val_cast_of_lt hy] at this)
+  -- a triangle whose scaled-down vertices come from distinct integer points with non-zero
+  -- determinant has twice-area at least `1 / P ^ 2`
+  have hmain : ∀ x y z xx yy zz : ℕ,
+      ((y : ℤ) - (x : ℤ)) * ((zz : ℤ) - (xx : ℤ))
+        - ((z : ℤ) - (x : ℤ)) * ((yy : ℤ) - (xx : ℤ)) ≠ 0 →
+      1 / (P : ℝ) ^ 2 ≤
+        |((y : ℝ) / P - (x : ℝ) / P) * ((zz : ℝ) / P - (xx : ℝ) / P)
+          - ((z : ℝ) / P - (x : ℝ) / P) * ((yy : ℝ) / P - (xx : ℝ) / P)| := by
+    intro x y z xx yy zz hD
+    have hrw : ((y : ℝ) / P - (x : ℝ) / P) * ((zz : ℝ) / P - (xx : ℝ) / P)
+        - ((z : ℝ) / P - (x : ℝ) / P) * ((yy : ℝ) / P - (xx : ℝ) / P)
+        = ((((y : ℤ) - (x : ℤ)) * ((zz : ℤ) - (xx : ℤ))
+          - ((z : ℤ) - (x : ℤ)) * ((yy : ℤ) - (xx : ℤ)) : ℤ) : ℝ) / (P : ℝ) ^ 2 := by
+      push_cast
+      field_simp
+    rw [hrw, abs_div, abs_of_pos (show (0 : ℝ) < (P : ℝ) ^ 2 by positivity)]
+    have h1 : (1 : ℝ) ≤ |((((y : ℤ) - (x : ℤ)) * ((zz : ℤ) - (xx : ℤ))
+        - ((z : ℤ) - (x : ℤ)) * ((yy : ℤ) - (xx : ℤ)) : ℤ) : ℝ)| := by
+      have := Int.cast_le (R := ℝ) |>.2 (Int.one_le_abs hD)
+      simpa using this
+    gcongr
+  refine ⟨S, hScard, ?_, ?_⟩
+  · intro u hu
+    obtain ⟨x, hx, rfl⟩ := Finset.mem_image.mp (hST hu)
+    have hxP : x < P := Finset.mem_range.mp hx
+    have hmP : x ^ 2 % P < P := Nat.mod_lt _ hP0
+    refine ⟨⟨by positivity, ?_⟩, ⟨by positivity, ?_⟩⟩
+    · rw [hg]
+      exact (div_le_one hPR).2 (by exact_mod_cast hxP.le)
+    · rw [hg]
+      exact (div_le_one hPR).2 (by exact_mod_cast hmP.le)
+  · intro u hu v hv w hw huv huw hvw
+    obtain ⟨a, ha, rfl⟩ := Finset.mem_image.mp (hST hu)
+    obtain ⟨b, hb, rfl⟩ := Finset.mem_image.mp (hST hv)
+    obtain ⟨c, hc, rfl⟩ := Finset.mem_image.mp (hST hw)
+    have haP : a < P := Finset.mem_range.mp ha
+    have hbP : b < P := Finset.mem_range.mp hb
+    have hcP : c < P := Finset.mem_range.mp hc
+    have hab : a ≠ b := fun h => huv (by rw [h])
+    have hac : a ≠ c := fun h => huw (by rw [h])
+    have hbc : b ≠ c := fun h => hvw (by rw [h])
+    -- twice the area before scaling is an integer, congruent mod `P` to a product of three
+    -- differences, none of which vanishes in the field `ZMod P`
+    have hDne : ((b : ℤ) - (a : ℤ)) * (((c ^ 2 % P : ℕ) : ℤ) - ((a ^ 2 % P : ℕ) : ℤ))
+        - ((c : ℤ) - (a : ℤ)) * (((b ^ 2 % P : ℕ) : ℤ) - ((a ^ 2 % P : ℕ) : ℤ)) ≠ 0 := by
+      intro h0
+      have hz : ((((b : ℤ) - (a : ℤ)) * (((c ^ 2 % P : ℕ) : ℤ) - ((a ^ 2 % P : ℕ) : ℤ))
+          - ((c : ℤ) - (a : ℤ)) * (((b ^ 2 % P : ℕ) : ℤ) - ((a ^ 2 % P : ℕ) : ℤ)) : ℤ)
+          : ZMod P) = 0 := by rw [h0]; simp
+      push_cast [ZMod.natCast_mod] at hz
+      have hprod : ((b : ZMod P) - (a : ZMod P)) * ((c : ZMod P) - (a : ZMod P))
+          * ((c : ZMod P) - (b : ZMod P)) = 0 := by linear_combination hz
+      rcases mul_eq_zero.mp hprod with h | h
+      · rcases mul_eq_zero.mp h with h | h
+        · exact hne b a hbP haP (Ne.symm hab) (sub_eq_zero.mp h)
+        · exact hne c a hcP haP (Ne.symm hac) (sub_eq_zero.mp h)
+      · exact hne c b hcP hbP (Ne.symm hbc) (sub_eq_zero.mp h)
+    have hP4 : (P : ℝ) ^ 2 ≤ 4 * (n : ℝ) ^ 2 := by
+      have h2 : (P : ℝ) ≤ 2 * (n : ℝ) := by exact_mod_cast hP2n
+      nlinarith [hPR.le]
+    have hstep : (1 : ℝ) / 4 / (n : ℝ) ^ 2 ≤ 1 / (P : ℝ) ^ 2 := by
+      rw [div_div]
+      exact one_div_le_one_div_of_le (by positivity) hP4
+    simp only [twiceArea, hg]
+    exact hstep.trans (hmain a b c (a ^ 2 % P) (b ^ 2 % P) (c ^ 2 % P) hDne)
 
 end Heilbronn
 
