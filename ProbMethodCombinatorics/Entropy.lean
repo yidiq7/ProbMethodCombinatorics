@@ -222,6 +222,13 @@ noncomputable def availCount {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ) (π τ :
     (i : Fin n) : ℕ :=
   (univ.filter fun j => A i (π j) = 1 ∧ τ i ≤ τ j).card
 
+/-- The part of the matching `π` that has been revealed strictly before row `i`, when the rows
+are revealed in the order given by `τ`: the entry of row `j` if `τ j < τ i`, and `none`
+otherwise. -/
+def revealedBefore {n : ℕ} (τ : Equiv.Perm (Fin n)) (i : Fin n) (π : Equiv.Perm (Fin n)) :
+    Fin n → Option (Fin n) :=
+  fun j => if τ j < τ i then some (π j) else none
+
 /-- For a `0/1` matrix the permanent counts the permutations lying in the support: each term of
 `∑ σ, ∏ i, A (σ i) i` is `1` when `σ` is a matching and `0` otherwise. -/
 theorem permanent_eq_card_permSupport {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ)
@@ -427,6 +434,33 @@ theorem sum_logb_availCount {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ)
     exact_mod_cast hcnt
   rw [Finset.sum_congr rfl key, ← Finset.mul_sum, sum_logb_Icc_eq]
 
+/-- **The chain rule along a reveal order.**  Reveal the values of a random permutation `π` in
+the order given by `τ` — row `j` before row `k` when `τ j < τ k`.  Then the entropy of `π` is the
+sum, over the rows `i`, of the entropy of `π i` conditioned on what was revealed before row `i`.
+
+This is Lemma 10.1.7 (`condEntropy_eq_sub`) telescoped along the order `τ`: writing `Pₖ` for the
+first `k` entries revealed, `H(P_{k+1}) = H(Pₖ) + H(π_{τ⁻¹ k} ∣ Pₖ)`, with `P₀` constant and
+`Pₙ` determining `π`. -/
+theorem entropy_eq_sum_condEntropy_revealedBefore {n : ℕ} (p : Equiv.Perm (Fin n) → ℝ)
+    (hp : ∀ ω, 0 ≤ p ω) (hp1 : ∑ ω, p ω = 1) (τ : Equiv.Perm (Fin n)) :
+    entropy p id = ∑ i, condEntropy p (fun π => π i) (revealedBefore τ i) := by
+  sorry
+
+/-- **The greedy bound on one conditional entropy** (the "`≤ log₂ Nᵢ`" step of Theorem 10.2.1).
+Condition a uniform matching `π` of the `0/1` matrix `A` on the entries revealed before row `i`.
+The count `availCount A π τ i` is determined by those entries — it is `dᵢ` minus the number of
+ones of row `i` in a column already used — and `π i` must be one of the ones of row `i` in a
+column not yet used, so it takes at most `availCount A π τ i` values.  The uniform bound
+`entropy_le_logb_card`, applied inside each fibre of the conditioning variable and averaged,
+therefore bounds the conditional entropy by the expectation of `log₂ Nᵢ`. -/
+theorem condEntropy_le_expected_logb_availCount {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ)
+    (hA : ∀ i j, A i j = 0 ∨ A i j = 1) (hP : (permSupport A).Nonempty)
+    (τ : Equiv.Perm (Fin n)) (i : Fin n) :
+    condEntropy (uniformPMF (permSupport A)) (fun π => π i) (revealedBefore τ i)
+      ≤ ((permSupport A).card : ℝ)⁻¹ *
+        ∑ π ∈ permSupport A, Real.logb 2 (availCount A π τ i) := by
+  sorry
+
 /-- **Radhakrishnan's entropy bound, for one reveal order** (the displayed inequality on p. 180
 of the notes).  Let `π` be uniform on the matchings of `A`, and fix an order `τ` in which to
 reveal the entries `(j, π j)` — row `j` before row `k` when `τ j < τ k`.  The chain rule
@@ -448,7 +482,11 @@ theorem entropy_permSupport_le_expected_logb_availCount {n : ℕ} (A : Matrix (F
     entropy (uniformPMF (permSupport A)) id ≤
       ((permSupport A).card : ℝ)⁻¹ *
         ∑ π ∈ permSupport A, ∑ i, Real.logb 2 (availCount A π τ i) := by
-  sorry
+  rw [entropy_eq_sum_condEntropy_revealedBefore (uniformPMF (permSupport A))
+    (uniformPMF_nonneg _) (sum_uniformPMF hP) τ]
+  refine (Finset.sum_le_sum fun i (_ : i ∈ univ) =>
+    condEntropy_le_expected_logb_availCount A hA hP τ i).trans_eq ?_
+  rw [← Finset.mul_sum, Finset.sum_comm]
 
 end Bregman
 
