@@ -86,6 +86,21 @@ The book's proof takes a uniform random ordering of `⋃ (A i ∪ B i)` and obse
 events "all of `A i` precedes all of `B i`" are disjoint.  Formalizing means counting
 orderings, not sampling them.
 
+**Proved (PR #58)** by the book's argument rendered as a count rather than a sampling
+statement.  An ordering of the ground set is an embedding `{x // x ∈ S} ↪ Fin |S|`, and the
+heart is
+
+    card_orderingsPrecede_mul_choose :
+      |{orderings placing all of A before all of B}| * (|A| + |B|).choose |A| = |S|!
+
+which is the book's `ℙ(E i) = ((|A i| + |B i|).choose |A i|)⁻¹` with denominators cleared.
+Disjointness of the `E i` follows from `A i ∩ B j ≠ ∅` in both directions, and the sum is
+capped by `Fintype.card_embedding_eq`.
+
+The PR also added an `Orderings` section — `eraseOrdering`, `consOrdering` and their
+round-trip lemmas — as the induction machinery for that identity.  It is scaffolding for this
+one theorem, not an interface: nothing else references it, so it gets no graph nodes.
+
 Sperner, LYM and Erdős–Ko–Rado — the rest of §1.2 — are already in Mathlib and are
 recorded as upstream nodes.
 

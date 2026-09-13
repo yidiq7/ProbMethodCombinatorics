@@ -189,6 +189,26 @@ pairs of vertices, each read as a graph through `SimpleGraph.fromEdgeSet`. -/
 def graphFamily (n M : ℕ) : Finset (Finset (Sym2 (Fin n))) :=
   Finset.powersetCard M Finset.univ
 
+/-- The vertices lying on a cycle of length at most `l` of the graph read off from the edge set
+`E` through `SimpleGraph.fromEdgeSet`. -/
+noncomputable def shortCycleSupport (l : ℕ) {n : ℕ} (E : Finset (Sym2 (Fin n))) :
+    Finset (Fin n) :=
+  (Set.toFinite {v : Fin n | ∃ (a : Fin n)
+      (w : (SimpleGraph.fromEdgeSet (E : Set (Sym2 (Fin n)))).Walk a a),
+      w.IsCycle ∧ w.length ≤ l ∧ v ∈ w.support}).toFinset
+
+/-- **The expectation computation** behind the first step of Zhao, Theorem 3.4.1.  The expected
+number of cycles of length at most `l` in `G(n, M)` with `M = girthEdgeCount n` is
+`∑_{i=3}^{l} (n choose i) (i - 1)! / 2 · p ^ i = O((log n) ^ (2 l))` with `p ≈ 2 (log n) ^ 2 / n`,
+so the expected number of vertices lying on such a cycle, at most `l` times that, is `o(n)`:
+for all large `n` it is below `n / 4`, here in the division-free form
+`4 * ∑ #S(E) < n * #(sample space)`. -/
+theorem exists_sum_shortCycleSupport_card_lt (l : ℕ) :
+    ∃ n₀ : ℕ, ∀ n ≥ n₀,
+      4 * ∑ E ∈ graphFamily n (girthEdgeCount n), ((shortCycleSupport l E).card : ℝ)
+        < n * ((graphFamily n (girthEdgeCount n)).card : ℝ) := by
+  sorry
+
 /-- **Few short cycles** (first step of Zhao, Theorem 3.4.1).  For all large `n`, fewer than half
 the graphs of `G(n, M)` with `M = girthEdgeCount n` fail to have a set `S` of at most `n / 2`
 vertices meeting every cycle of length at most `l`.
@@ -202,7 +222,41 @@ theorem exists_bad_card_lt_and_shortCycleCover (l : ℕ) :
         ∃ S : Finset (Fin n), 2 * S.card ≤ n ∧
           ∀ (a : Fin n) (w : (SimpleGraph.fromEdgeSet (E : Set (Sym2 (Fin n)))).Walk a a),
             w.IsCycle → w.length ≤ l → ∃ v ∈ S, v ∈ w.support := by
-  sorry
+  obtain ⟨n₀, hn₀⟩ := exists_sum_shortCycleSupport_card_lt l
+  refine ⟨n₀, fun n hn => ?_⟩
+  have key := hn₀ n hn
+  have hnonneg : ∀ E ∈ graphFamily n (girthEdgeCount n),
+      (0 : ℝ) ≤ ((shortCycleSupport l E).card : ℝ) := fun _ _ => by positivity
+  have hsum : (0 : ℝ) ≤ ∑ E ∈ graphFamily n (girthEdgeCount n),
+      ((shortCycleSupport l E).card : ℝ) := Finset.sum_nonneg hnonneg
+  have hprod : (0 : ℝ) < n * ((graphFamily n (girthEdgeCount n)).card : ℝ) := by linarith
+  have hnpos : (0 : ℝ) < n := by
+    rcases (Nat.cast_nonneg n : (0 : ℝ) ≤ n).lt_or_eq with h | h
+    · exact h
+    · rw [← h, zero_mul] at hprod; exact absurd hprod (lt_irrefl 0)
+  refine ⟨(graphFamily n (girthEdgeCount n)).filter
+    fun E => (n : ℝ) / 2 ≤ ((shortCycleSupport l E).card : ℝ), Finset.filter_subset _ _, ?_, ?_⟩
+  · have hmarkov := card_filter_le_sum_div (graphFamily n (girthEdgeCount n))
+      (fun E => ((shortCycleSupport l E).card : ℝ)) hnonneg
+      (show (0 : ℝ) < (n : ℝ) / 2 by positivity)
+    rw [le_div_iff₀ (show (0 : ℝ) < (n : ℝ) / 2 by positivity)] at hmarkov
+    have hlt : ((2 * ((graphFamily n (girthEdgeCount n)).filter
+        fun E => (n : ℝ) / 2 ≤ ((shortCycleSupport l E).card : ℝ)).card : ℕ) : ℝ) * n
+        < ((graphFamily n (girthEdgeCount n)).card : ℝ) * n := by
+      push_cast
+      nlinarith [hmarkov]
+    exact_mod_cast lt_of_mul_lt_mul_right hlt hnpos.le
+  · intro E hE hEB
+    refine ⟨shortCycleSupport l E, ?_, ?_⟩
+    · have : ¬ ((n : ℝ) / 2 ≤ ((shortCycleSupport l E).card : ℝ)) := fun h =>
+        hEB (Finset.mem_filter.mpr ⟨hE, h⟩)
+      have h2 : ((2 * (shortCycleSupport l E).card : ℕ) : ℝ) ≤ ((n : ℕ) : ℝ) := by
+        push_cast
+        linarith [not_le.mp this]
+      exact_mod_cast h2
+    · intro a w hcyc hlen
+      exact ⟨a, (Set.Finite.mem_toFinset _).mpr ⟨a, w, hcyc, hlen, w.start_mem_support⟩,
+        w.start_mem_support⟩
 
 /-- **No large independent set** (third step of Zhao, Theorem 3.4.1).  For every `ε > 0` and all
 large `n`, fewer than half the graphs of `G(n, M)` with `M = girthEdgeCount n` have an independent

@@ -60,6 +60,26 @@ edge-count bound the book proves, so the edge-count bound stays a task.
 
 ## Log
 
+- **2026-09-13 — first golf landed; two measure-layer copies left.**  PR #62 rewrote
+  `twoColorable_of_regular` through `twoColorable_of_inter_card_le`: **163 lines removed, 15
+  added.**  Golf tasks #54 and #55 will take the other two copies through the extracted
+  `uniformColoring` layer.
+- **2026-09-13 — this machine is memory-constrained.**  The contributor agents build Lean
+  locally, several `lean` processes at ~1.3 GB each, and a background poller was killed under
+  the pressure.  **Don't run `lake build` in the orchestrator checkout except to verify a
+  statement being authored** — CI builds every PR anyway, and the local build competes with the
+  workers actually producing proofs.
+
+- **2026-09-13 — the Chernoff diagnosis paid off, and the reduction contract closed itself.**
+  #21 had been abandoned twice; correcting the false statement and pointing at Mathlib's
+  `Real.cosh_le_exp_half_sq` unblocked it, and PR #61 proved it on the next attempt by exactly
+  the route given.  Checked afterwards with `#print axioms`: both
+  `card_filter_le_exp_mul` and `card_filter_abs_le_exp_mul` now depend only on
+  `propext, Classical.choice, Quot.sound`.  **The two-sided bound merged in #40 as a declared
+  reduction and became unconditionally proved automatically when its obligation landed** — no
+  resubmission, no bookkeeping.  Worth remembering when weighing whether to accept a reduction.
+  (Note: `#print axioms` reads the built olean, so rebuild after pulling before trusting it.)
+
 - **2026-09-13 — two published statements were false; both corrected.**
   `card_filter_le_exp_mul` and `card_filter_abs_le_exp_mul` (Chernoff, one- and two-sided)
   omitted `0 < n`.  At `n = 0` the empty sum is `0` and the threshold `λ √0` is `0`, so the
