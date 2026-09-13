@@ -253,7 +253,7 @@
       "decl": "ProbMethodCombinatorics.card_filter_le_sum_div",
       "doc": "alterations.md#markov_counting--card_filter_le_sum_div",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": []
     },
@@ -371,7 +371,7 @@
       "decl": "ProbMethodCombinatorics.variance_sum_indicator_le",
       "doc": "second-moment.md#variance_indicator_bound--variance_sum_indicator_le",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": []
     },
