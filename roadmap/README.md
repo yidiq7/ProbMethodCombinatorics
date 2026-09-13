@@ -60,11 +60,13 @@ edge-count bound the book proves, so the edge-count bound stays a task.
 
 ## Log
 
-- **2026-09-13 — the extracted measure layer is paying for itself.**  Golf #62 removed 148
-  lines, #69 another 65; `LocalLemma.lean` is down from ~1150 to ~935.  One copy of the
-  construction remains, in `lt_ramseyNumber_of_local_lemma`, and golf #55 is claimed against it.
-  Extracting the layer centrally cost one session's work and has now been recouped twice over,
-  with the real gain being that a fourth application would reuse it rather than rebuild it.
+- **2026-09-13 — the duplicated measure layer is fully retired.**  Golfs #62, #69 and #70
+  removed 148, 65 and 69 lines respectively; `LocalLemma.lean` went from ~1150 to ~866 and
+  now contains exactly one construction of the uniform two-colouring measure, used by all
+  three applications through `uniformColoring`.  **The sequencing lesson stands**: the need
+  for this interface was visible when #28 was written, and publishing #28–#30 against
+  machinery none of them had cost three contributors a duplicated construction each plus
+  three golf tasks.  Author the interface first.
 
 - **2026-09-13 — the five remaining statements were audited for the degenerate-input defect
   and are sound.**  Done proactively after three corrections rather than waiting for a fourth
