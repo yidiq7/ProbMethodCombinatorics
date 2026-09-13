@@ -965,6 +965,26 @@ theorem integral_pow_mul_one_sub_pow_le (n : ℕ) {p : ℝ} (hp0 : 0 ≤ p) (hp1
   have h : (1 + p) / 2 - (1 - p) / 2 = p := by ring
   rw [h]
 
+/-- **A fixed ordered pair of edges conflicts in the middle window with probability at most the
+Beta-type integral.**  Under independent uniform weights, if `e` and `f` are `k`-element edges
+then the chance that some vertex `v` is `w`-heaviest in `e`, `w`-lightest in `f`, and weighted in
+the middle window `[(1 - p) / 2, (1 + p) / 2]` is at most
+`∫ x in (1 - p) / 2..(1 + p) / 2, x ^ (k - 1) * (1 - x) ^ (k - 1)`.
+
+If `e` and `f` are disjoint there is no such `v` at all.  If they meet in two or more vertices a
+conflict at `v` forces a tie between two independent uniform weights, which is a null event.  If
+they meet in the single vertex `v`, then conditionally on `w v = x` the remaining `k - 1` vertices
+of `e` must all be weighted below `x` and the remaining `k - 1` vertices of `f` all above it;
+those `2 * (k - 1)` weights are independent, so the conditional probability is
+`x ^ (k - 1) * (1 - x) ^ (k - 1)`, and integrating over the middle window gives the bound. -/
+theorem uniformWeights_conflictingPair_mid_le {α : Type*} [Fintype α] [DecidableEq α]
+    {k : ℕ} (hk : 2 ≤ k) {p : ℝ} (hp0 : 0 < p) (hp1 : p ≤ 1) {e f : Finset α}
+    (he : e.card = k) (hf : f.card = k) :
+    uniformWeights α {w : α → ℝ | ∃ v : α, ConflictingPair w e f v ∧
+        (1 - p) / 2 ≤ w v ∧ w v ≤ (1 + p) / 2}
+      ≤ ENNReal.ofReal (∫ x in (1 - p) / 2..(1 + p) / 2, x ^ (k - 1) * (1 - x) ^ (k - 1)) := by
+  sorry
+
 /-- **The union bound behind the Cherkashin–Kozik estimate.**  Give each vertex an independent
 uniform weight in `[0, 1]` and split `[0, 1]` into `L = [0, (1 - p) / 2)`, the middle window
 `M = [(1 - p) / 2, (1 + p) / 2]`, and `R = ((1 + p) / 2, 1]`.
@@ -985,7 +1005,88 @@ theorem exists_conflictFree_of_union_bound_lt_one {α : Type*} [Fintype α] [Dec
         + (H.card : ℝ) ^ 2 * ∫ x in (1 - p) / 2..(1 + p) / 2, x ^ (k - 1) * (1 - x) ^ (k - 1)
         < 1) :
     ∃ w : α → ℝ, ∀ e ∈ H, ∀ f ∈ H, ∀ v : α, ¬ ConflictingPair w e f v := by
-  sorry
+  have ha0 : (0 : ℝ) ≤ (1 - p) / 2 := by linarith
+  have ha1 : (1 - p) / 2 ≤ (1 : ℝ) := by linarith
+  have hab : (1 - p) / 2 ≤ (1 + p) / 2 := by linarith
+  have hb0 : (0 : ℝ) ≤ (1 + p) / 2 := by linarith
+  have hI0 : (0 : ℝ) ≤ ∫ x in (1 - p) / 2..(1 + p) / 2, x ^ (k - 1) * (1 - x) ^ (k - 1) := by
+    refine intervalIntegral.integral_nonneg hab ?_
+    intro x hx
+    exact mul_nonneg (pow_nonneg (le_trans ha0 hx.1) _) (pow_nonneg (by linarith [hx.2]) _)
+  by_contra hcon
+  -- every weighting carries a conflicting pair, so the three bad events cover everything
+  have hbad : ∀ w : α → ℝ, ∃ e ∈ H, ∃ f ∈ H, ∃ v : α, ConflictingPair w e f v := by
+    intro w
+    by_contra h
+    exact hcon ⟨w, fun e he f hf v hcp => h ⟨e, he, f, hf, v, hcp⟩⟩
+  have hcover : (Set.univ : Set (α → ℝ)) ⊆
+      ((⋃ e ∈ H, {w : α → ℝ | ∀ u ∈ e, w u < (1 - p) / 2}) ∪
+        (⋃ f ∈ H, {w : α → ℝ | ∀ u ∈ f, (1 + p) / 2 < w u})) ∪
+      (⋃ e ∈ H, ⋃ f ∈ H, {w : α → ℝ | ∃ v : α, ConflictingPair w e f v ∧
+        (1 - p) / 2 ≤ w v ∧ w v ≤ (1 + p) / 2}) := by
+    intro w _
+    obtain ⟨e, he, f, hf, v, hcp⟩ := hbad w
+    obtain ⟨hve, hvf, hmax, hmin⟩ := hcp
+    by_cases h1 : w v < (1 - p) / 2
+    · exact Or.inl (Or.inl (Set.mem_biUnion he fun u hu => lt_of_le_of_lt (hmax u hu) h1))
+    · by_cases h2 : (1 + p) / 2 < w v
+      · exact Or.inl (Or.inr (Set.mem_biUnion hf fun u hu => lt_of_lt_of_le h2 (hmin u hu)))
+      · exact Or.inr (Set.mem_biUnion he (Set.mem_biUnion hf
+          ⟨v, ⟨hve, hvf, hmax, hmin⟩, not_lt.mp h1, not_lt.mp h2⟩))
+  have h1 : uniformWeights α (⋃ e ∈ H, {w : α → ℝ | ∀ u ∈ e, w u < (1 - p) / 2})
+      ≤ ∑ _e ∈ H, ENNReal.ofReal ((1 - p) / 2) ^ k := by
+    refine le_trans (MeasureTheory.measure_biUnion_finset_le H _)
+      (Finset.sum_le_sum fun e he => ?_)
+    rw [uniformWeights_forall_lt e ha1, huniform e he]
+  have h2 : uniformWeights α (⋃ f ∈ H, {w : α → ℝ | ∀ u ∈ f, (1 + p) / 2 < w u})
+      ≤ ∑ _f ∈ H, ENNReal.ofReal ((1 - p) / 2) ^ k := by
+    refine le_trans (MeasureTheory.measure_biUnion_finset_le H _)
+      (Finset.sum_le_sum fun f hf => ?_)
+    rw [uniformWeights_forall_gt f hb0, huniform f hf,
+      show (1 : ℝ) - (1 + p) / 2 = (1 - p) / 2 by ring]
+  have h3 : uniformWeights α (⋃ e ∈ H, ⋃ f ∈ H, {w : α → ℝ | ∃ v : α, ConflictingPair w e f v ∧
+        (1 - p) / 2 ≤ w v ∧ w v ≤ (1 + p) / 2})
+      ≤ ∑ _e ∈ H, ∑ _f ∈ H,
+          ENNReal.ofReal (∫ x in (1 - p) / 2..(1 + p) / 2, x ^ (k - 1) * (1 - x) ^ (k - 1)) := by
+    refine le_trans (MeasureTheory.measure_biUnion_finset_le H _)
+      (Finset.sum_le_sum fun e he => ?_)
+    refine le_trans (MeasureTheory.measure_biUnion_finset_le H _)
+      (Finset.sum_le_sum fun f hf => ?_)
+    exact uniformWeights_conflictingPair_mid_le hk hp0 hp1 (huniform e he) (huniform f hf)
+  -- the total mass of the three events is at least `1`
+  have hchain : (1 : ENNReal) ≤ (H.card : ENNReal) * ENNReal.ofReal ((1 - p) / 2) ^ k
+      + (H.card : ENNReal) * ENNReal.ofReal ((1 - p) / 2) ^ k
+      + (H.card : ENNReal) ^ 2
+        * ENNReal.ofReal (∫ x in (1 - p) / 2..(1 + p) / 2, x ^ (k - 1) * (1 - x) ^ (k - 1)) := by
+    rw [show (1 : ENNReal) = uniformWeights α Set.univ from MeasureTheory.measure_univ.symm]
+    refine le_trans (MeasureTheory.measure_mono hcover) ?_
+    refine le_trans (MeasureTheory.measure_union_le _ _) ?_
+    refine le_trans (add_le_add (MeasureTheory.measure_union_le _ _) le_rfl) ?_
+    refine add_le_add (add_le_add (le_trans h1 ?_) (le_trans h2 ?_)) (le_trans h3 ?_)
+    · rw [Finset.sum_const, nsmul_eq_mul]
+    · rw [Finset.sum_const, nsmul_eq_mul]
+    · rw [Finset.sum_const, Finset.sum_const, nsmul_eq_mul, nsmul_eq_mul, ← mul_assoc, ← sq]
+  -- but the hypothesis says it is less than `1`
+  have hreal : (H.card : ℝ) * ((1 - p) / 2) ^ k + (H.card : ℝ) * ((1 - p) / 2) ^ k
+      + (H.card : ℝ) ^ 2 * ∫ x in (1 - p) / 2..(1 + p) / 2, x ^ (k - 1) * (1 - x) ^ (k - 1)
+      < 1 := by
+    have h : 2 * (H.card : ℝ) * ((1 - p) / 2) ^ k
+        = (H.card : ℝ) * ((1 - p) / 2) ^ k + (H.card : ℝ) * ((1 - p) / 2) ^ k := by ring
+    linarith
+  have hconv : ENNReal.ofReal ((H.card : ℝ) * ((1 - p) / 2) ^ k
+      + (H.card : ℝ) * ((1 - p) / 2) ^ k
+      + (H.card : ℝ) ^ 2 * ∫ x in (1 - p) / 2..(1 + p) / 2, x ^ (k - 1) * (1 - x) ^ (k - 1))
+      = (H.card : ENNReal) * ENNReal.ofReal ((1 - p) / 2) ^ k
+      + (H.card : ENNReal) * ENNReal.ofReal ((1 - p) / 2) ^ k
+      + (H.card : ENNReal) ^ 2
+        * ENNReal.ofReal (∫ x in (1 - p) / 2..(1 + p) / 2, x ^ (k - 1) * (1 - x) ^ (k - 1)) := by
+    have hpk : (0 : ℝ) ≤ ((1 - p) / 2) ^ k := pow_nonneg ha0 k
+    rw [ENNReal.ofReal_add (by positivity) (mul_nonneg (by positivity) hI0),
+      ENNReal.ofReal_add (by positivity) (by positivity),
+      ENNReal.ofReal_mul (Nat.cast_nonneg _), ENNReal.ofReal_mul (sq_nonneg ((H.card : ℝ))),
+      ENNReal.ofReal_pow ha0, ENNReal.ofReal_pow (Nat.cast_nonneg _), ENNReal.ofReal_natCast]
+  rw [← hconv] at hchain
+  exact absurd (ENNReal.ofReal_lt_one.mpr hreal) (not_lt.mpr hchain)
 
 end CherkashinKozik
 
