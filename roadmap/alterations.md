@@ -111,6 +111,17 @@ minus about `2M/(n+1)` loops.  Harmless at `M ≈ n log² n`, and both open stat
 true, but a prover must not assume exactly `M` edges.  If either estimate turns out to want a
 cleaner model, changing these definitions is the centralized layer's job, not a contributor's.
 
+### Three reusable lemmas from the expectation computation (PR #67)
+
+- `sum_shortCycleSupport_card_le_cycleBound` — the double count: `∑_E #shortCycleSupport l E`
+  is at most `∑_{i=3}^{l} i · nⁱ · C(N - i, M - i)`, since `C(N-i, M-i)` of the `M`-subsets
+  contain `i` prescribed pairs.
+- `choose_mul_pow_le_choose_add_mul_pow` — `C(a,b)·aⁱ ≤ C(a+i, b+i)·(b+i)ⁱ`.  This is the
+  `G(n,M)`-to-`G(n,p)` bridge: it turns `C(N-i, M-i) / C(N,M)` into `(M/(N-i))ⁱ` **entirely in
+  ℕ**, with no real division.  General-purpose; worth reaching for elsewhere.
+- `exists_mul_pow_log_lt` — `c (log n)^k < n` eventually, from Mathlib's
+  `Real.isLittleO_pow_log_id_atTop`.
+
 ## `property_b_sharp` — `exists_twoColorable_of_card_le`
 
 Theorem 3.5.1 (Radhakrishnan–Srinivasan 2000): for some `c > 0`, every `k`-uniform
