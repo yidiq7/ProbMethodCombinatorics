@@ -1030,6 +1030,77 @@
       "proof": "formalized",
       "uses": [],
       "proof_uses": []
+    },
+    "correlation": {
+      "kind": "group",
+      "doc": "correlation.md"
+    },
+    "harris_kleitman_upstream": {
+      "kind": "theorem",
+      "parent": "correlation",
+      "decl": "IsUpperSet.le_card_inter_finset",
+      "upstream": true
+    },
+    "fkg_upstream": {
+      "kind": "theorem",
+      "parent": "correlation",
+      "decl": "fkg",
+      "upstream": true
+    },
+    "harris_binomial": {
+      "kind": "theorem",
+      "parent": "correlation",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.binomialRandom_mul_le_inter",
+      "doc": "correlation.md#harris_binomial--binomialrandom_mul_le_inter",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
+    },
+    "harris_lower_family": {
+      "kind": "theorem",
+      "parent": "correlation",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.prod_le_binomialRandom_iInter",
+      "doc": "correlation.md#harris_lower_family--prod_le_binomialrandom_iinter",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": [
+        "harris_binomial"
+      ]
+    },
+    "triangle_free_lower": {
+      "kind": "theorem",
+      "parent": "correlation",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.le_binomialRandom_cliqueFree_three",
+      "doc": "correlation.md#triangle_free_lower--le_binomialrandom_cliquefree_three",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": [
+        "harris_lower_family"
+      ]
+    },
+    "harris_monotone_fn": {
+      "kind": "theorem",
+      "parent": "correlation",
+      "doc": "correlation.md#not-stated",
+      "statement": "planned",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
+    },
+    "riordan_selby": {
+      "kind": "theorem",
+      "parent": "correlation",
+      "doc": "correlation.md#not-stated",
+      "statement": "planned",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
     }
   }
 }
