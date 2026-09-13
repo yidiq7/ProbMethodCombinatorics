@@ -160,6 +160,163 @@ theorem integral_integral_update_pi_symm {ι : Type*} [Fintype ι] [DecidableEq 
   rw [h1]
   exact integral_prod_symm _ hint
 
+theorem integrable_of_abs_sub_le {α : Type*} [MeasurableSpace α] (ν : Measure α)
+    [IsProbabilityMeasure ν] (g : α → ℝ) (hg : Measurable g) {C : ℝ}
+    (hb : ∀ z z', |g z - g z'| ≤ C) : Integrable g ν := by
+  have hne : Nonempty α := nonempty_of_isProbabilityMeasure ν
+  obtain ⟨z₀⟩ := id hne
+  refine Integrable.of_mem_Icc (g z₀ - C) (g z₀ + C) hg.aemeasurable (ae_of_all _ fun z ↦ ?_)
+  have := abs_le.mp (hb z₀ z)
+  constructor <;> [linarith [this.2]; linarith [this.1]]
+
+theorem measurable_integral_merge {ι : Type*} [Fintype ι] [DecidableEq ι] {Ω : ι → Type*}
+    [∀ i, MeasurableSpace (Ω i)] (μ : ∀ i, Measure (Ω i)) [∀ i, IsProbabilityMeasure (μ i)]
+    (f : (∀ i, Ω i) → ℝ) (hf : Measurable f) (s : Finset ι) :
+    Measurable fun x : ∀ i, Ω i ↦
+      ∫ y, f (fun j ↦ if j ∈ s then x j else y j) ∂(Measure.pi μ) := by
+  have hm : Measurable fun p : ((∀ j, Ω j) × (∀ j, Ω j)) ↦
+      f (fun j ↦ if j ∈ s then p.1 j else p.2 j) := by
+    refine hf.comp (measurable_pi_lambda _ fun j ↦ ?_)
+    by_cases hj : j ∈ s
+    · simp only [hj, if_true]
+      exact (measurable_pi_apply j).comp measurable_fst
+    · simp only [hj, if_false]
+      exact (measurable_pi_apply j).comp measurable_snd
+  exact (hm.stronglyMeasurable.integral_prod_right' (ν := Measure.pi μ)).measurable
+
+theorem abs_sub_integral_merge_le {ι : Type*} [Fintype ι] [DecidableEq ι] {Ω : ι → Type*}
+    [∀ i, MeasurableSpace (Ω i)] (μ : ∀ i, Measure (Ω i)) [∀ i, IsProbabilityMeasure (μ i)]
+    (f : (∀ i, Ω i) → ℝ) (c : ι → ℝ) (hf : Measurable f)
+    (hc : ∀ i (x y : ∀ i, Ω i), (∀ j, j ≠ i → x j = y j) → |f x - f y| ≤ c i)
+    (s : Finset ι) (i : ι) (x x' : ∀ j, Ω j) (h : ∀ j, j ≠ i → x j = x' j) :
+    |(∫ y, f (fun j ↦ if j ∈ s then x j else y j) ∂(Measure.pi μ))
+      - ∫ y, f (fun j ↦ if j ∈ s then x' j else y j) ∂(Measure.pi μ)| ≤ c i := by
+  have hmeas : ∀ z : ∀ j, Ω j, Measurable fun y : ∀ j, Ω j ↦
+      f (fun j ↦ if j ∈ s then z j else y j) := by
+    intro z
+    refine hf.comp (measurable_pi_lambda _ fun j ↦ ?_)
+    by_cases hj : j ∈ s
+    · simp only [hj, if_true]
+      exact measurable_const
+    · simp only [hj, if_false]
+      exact measurable_pi_apply j
+  have hint : ∀ z : ∀ j, Ω j, Integrable (fun y : ∀ j, Ω j ↦
+      f (fun j ↦ if j ∈ s then z j else y j)) (Measure.pi μ) := fun z ↦
+    integrable_of_abs_sub_le _ _ (hmeas z) (C := ∑ i, c i)
+      (fun u v ↦ abs_sub_le_sum_of_bddDiff f c hc _ _)
+  rw [← integral_sub (hint x) (hint x')]
+  have hb : ∀ y : ∀ j, Ω j, ‖f (fun j ↦ if j ∈ s then x j else y j)
+      - f (fun j ↦ if j ∈ s then x' j else y j)‖ ≤ c i := by
+    intro y
+    rw [Real.norm_eq_abs]
+    refine hc i _ _ fun j hj ↦ ?_
+    by_cases hjs : j ∈ s
+    · simp only [hjs, if_true, h j hj]
+    · simp only [hjs, if_false]
+  simpa [Real.norm_eq_abs] using norm_integral_le_of_norm_le_const (μ := Measure.pi μ)
+    (ae_of_all _ hb)
+
+theorem integral_exp_mul_integral_merge_le {ι : Type*} [Fintype ι] [DecidableEq ι]
+    {Ω : ι → Type*} [∀ i, MeasurableSpace (Ω i)] (μ : ∀ i, Measure (Ω i))
+    [∀ i, IsProbabilityMeasure (μ i)] (f : (∀ i, Ω i) → ℝ) (c : ι → ℝ) (hf : Measurable f)
+    (hc : ∀ i (x y : ∀ i, Ω i), (∀ j, j ≠ i → x j = y j) → |f x - f y| ≤ c i)
+    (t : ℝ) (s : Finset ι) :
+    ∫ x, Real.exp (t * ((∫ y, f (fun j ↦ if j ∈ s then x j else y j) ∂(Measure.pi μ)) - ∫ y, f y ∂(Measure.pi μ))) ∂(Measure.pi μ)
+      ≤ Real.exp (t ^ 2 * (∑ i ∈ s, c i ^ 2) / 8) := by
+  have hmeasM : ∀ (s : Finset ι) (z : ∀ j, Ω j),
+      Measurable fun y : ∀ j, Ω j ↦ f (fun j ↦ if j ∈ s then z j else y j) := by
+    intro s z
+    refine hf.comp (measurable_pi_lambda _ fun j ↦ ?_)
+    by_cases hj : j ∈ s
+    · simp only [hj, if_true]
+      exact measurable_const
+    · simp only [hj, if_false]
+      exact measurable_pi_apply j
+  have hintM : ∀ (s : Finset ι) (z : ∀ j, Ω j),
+      Integrable (fun y : ∀ j, Ω j ↦ f (fun j ↦ if j ∈ s then z j else y j)) (Measure.pi μ) :=
+    fun s z ↦ integrable_of_abs_sub_le _ _ (hmeasM s z) (C := ∑ i, c i)
+      (fun u v ↦ abs_sub_le_sum_of_bddDiff f c hc _ _)
+  have hintf : Integrable f (Measure.pi μ) :=
+    integrable_of_abs_sub_le _ _ hf (fun u v ↦ abs_sub_le_sum_of_bddDiff f c hc _ _)
+  have hK : ∀ (s : Finset ι) (x : ∀ j, Ω j), |(∫ y, f (fun j ↦ if j ∈ s then x j else y j) ∂(Measure.pi μ)) - ∫ y, f y ∂(Measure.pi μ)| ≤ ∑ i, c i := by
+    intro s x
+    rw [← integral_sub (hintM s x) hintf]
+    have hb : ∀ y : ∀ j, Ω j,
+        ‖f (fun j ↦ if j ∈ s then x j else y j) - f y‖ ≤ ∑ i, c i := fun y ↦ by
+      rw [Real.norm_eq_abs]
+      exact abs_sub_le_sum_of_bddDiff f c hc _ _
+    simpa [Real.norm_eq_abs] using
+      norm_integral_le_of_norm_le_const (μ := Measure.pi μ) (ae_of_all _ hb)
+  have hbnd : ∀ (s : Finset ι) (x : ∀ j, Ω j),
+      t * ((∫ y, f (fun j ↦ if j ∈ s then x j else y j) ∂(Measure.pi μ)) - ∫ y, f y ∂(Measure.pi μ)) ≤ |t| * ∑ i, c i := by
+    intro s x
+    calc t * ((∫ y, f (fun j ↦ if j ∈ s then x j else y j) ∂(Measure.pi μ)) - ∫ y, f y ∂(Measure.pi μ))
+        ≤ |t * ((∫ y, f (fun j ↦ if j ∈ s then x j else y j) ∂(Measure.pi μ)) - ∫ y, f y ∂(Measure.pi μ))| := le_abs_self _
+      _ = |t| * |(∫ y, f (fun j ↦ if j ∈ s then x j else y j) ∂(Measure.pi μ)) - ∫ y, f y ∂(Measure.pi μ)| := abs_mul _ _
+      _ ≤ |t| * ∑ i, c i := mul_le_mul_of_nonneg_left (hK s x) (abs_nonneg t)
+  have hexpInt : ∀ s : Finset ι,
+      Integrable (fun x : ∀ j, Ω j ↦ Real.exp (t * ((∫ y, f (fun j ↦ if j ∈ s then x j else y j) ∂(Measure.pi μ)) - ∫ y, f y ∂(Measure.pi μ)))) (Measure.pi μ) := by
+    intro s
+    exact Integrable.of_mem_Icc 0 (Real.exp (|t| * ∑ i, c i))
+      ((((measurable_integral_merge μ f hf s).sub_const _).const_mul t).exp).aemeasurable
+      (ae_of_all _ fun x ↦ ⟨(Real.exp_pos _).le, Real.exp_le_exp.mpr (hbnd s x)⟩)
+  induction s using Finset.induction_on with
+  | empty => simp
+  | insert i s hi ih =>
+    have hA : ∀ x : ∀ j, Ω j, (∫ ω, (∫ y, f (fun j ↦ if j ∈ insert i s then Function.update x i ω j else y j) ∂(Measure.pi μ)) ∂(μ i)) = ∫ y, f (fun j ↦ if j ∈ s then x j else y j) ∂(Measure.pi μ) := by
+      intro x
+      rw [integral_integral_update_pi_symm μ i
+        (fun y ↦ f (fun j ↦ if j ∈ s then x j else y j)) (hintM s x)]
+      refine integral_congr_ae (ae_of_all _ fun ω ↦ ?_)
+      refine integral_congr_ae (ae_of_all _ fun y ↦ ?_)
+      show f (fun j ↦ if j ∈ insert i s then Function.update x i ω j else y j)
+        = f (fun j ↦ if j ∈ s then x j else Function.update y i ω j)
+      congr 1
+      funext j
+      rcases eq_or_ne j i with rfl | hj
+      · simp [hi]
+      · simp [Finset.mem_insert, hj]
+    have hstep : ∀ x : ∀ j, Ω j,
+        (∫ ω, Real.exp (t * ((∫ y, f (fun j ↦ if j ∈ insert i s then Function.update x i ω j else y j) ∂(Measure.pi μ)) - ∫ y, f y ∂(Measure.pi μ))) ∂(μ i))
+          ≤ Real.exp (t * ((∫ y, f (fun j ↦ if j ∈ s then x j else y j) ∂(Measure.pi μ)) - ∫ y, f y ∂(Measure.pi μ))) * Real.exp (t ^ 2 * c i ^ 2 / 8) := by
+      intro x
+      have hgm : Measurable fun ω ↦ ∫ y, f (fun j ↦ if j ∈ insert i s then Function.update x i ω j else y j) ∂(Measure.pi μ) :=
+        (measurable_integral_merge μ f hf (insert i s)).comp (measurable_update x)
+      have hgb : ∀ ω ω' : Ω i, |(∫ y, f (fun j ↦ if j ∈ insert i s then Function.update x i ω j else y j) ∂(Measure.pi μ)) - (∫ y, f (fun j ↦ if j ∈ insert i s then Function.update x i ω' j else y j) ∂(Measure.pi μ))| ≤ c i := by
+        intro ω ω'
+        refine abs_sub_integral_merge_le μ f c hf hc (insert i s) i _ _ fun j hj ↦ ?_
+        rw [Function.update_of_ne hj, Function.update_of_ne hj]
+      have hH := integral_exp_mul_sub_integral_le_of_abs_sub_le (μ i)
+        (fun ω ↦ ∫ y, f (fun j ↦ if j ∈ insert i s then Function.update x i ω j else y j) ∂(Measure.pi μ)) hgm hgb t
+      rw [hA x] at hH
+      calc (∫ ω, Real.exp (t * ((∫ y, f (fun j ↦ if j ∈ insert i s then Function.update x i ω j else y j) ∂(Measure.pi μ)) - ∫ y, f y ∂(Measure.pi μ))) ∂(μ i))
+          = ∫ ω, Real.exp (t * ((∫ y, f (fun j ↦ if j ∈ s then x j else y j) ∂(Measure.pi μ)) - ∫ y, f y ∂(Measure.pi μ)))
+              * Real.exp (t * ((∫ y, f (fun j ↦ if j ∈ insert i s then Function.update x i ω j else y j) ∂(Measure.pi μ)) - (∫ y, f (fun j ↦ if j ∈ s then x j else y j) ∂(Measure.pi μ)))) ∂(μ i) := by
+            refine integral_congr_ae (ae_of_all _ fun ω ↦ ?_)
+            show Real.exp (t * ((∫ y, f (fun j ↦ if j ∈ insert i s then Function.update x i ω j else y j) ∂(Measure.pi μ)) - ∫ y, f y ∂(Measure.pi μ)))
+              = Real.exp (t * ((∫ y, f (fun j ↦ if j ∈ s then x j else y j) ∂(Measure.pi μ)) - ∫ y, f y ∂(Measure.pi μ))) * Real.exp (t * ((∫ y, f (fun j ↦ if j ∈ insert i s then Function.update x i ω j else y j) ∂(Measure.pi μ)) - (∫ y, f (fun j ↦ if j ∈ s then x j else y j) ∂(Measure.pi μ))))
+            rw [← Real.exp_add, Real.exp_eq_exp]
+            ring
+        _ = Real.exp (t * ((∫ y, f (fun j ↦ if j ∈ s then x j else y j) ∂(Measure.pi μ)) - ∫ y, f y ∂(Measure.pi μ)))
+              * ∫ ω, Real.exp (t * ((∫ y, f (fun j ↦ if j ∈ insert i s then Function.update x i ω j else y j) ∂(Measure.pi μ)) - (∫ y, f (fun j ↦ if j ∈ s then x j else y j) ∂(Measure.pi μ)))) ∂(μ i) := integral_const_mul _ _
+        _ ≤ Real.exp (t * ((∫ y, f (fun j ↦ if j ∈ s then x j else y j) ∂(Measure.pi μ)) - ∫ y, f y ∂(Measure.pi μ))) * Real.exp (t ^ 2 * c i ^ 2 / 8) :=
+            mul_le_mul_of_nonneg_left hH (Real.exp_pos _).le
+    rw [integral_integral_update_pi μ i
+      (fun x ↦ Real.exp (t * ((∫ y, f (fun j ↦ if j ∈ insert i s then x j else y j) ∂(Measure.pi μ))
+        - ∫ y, f y ∂(Measure.pi μ)))) (hexpInt (insert i s))]
+    calc (∫ x, (∫ ω, Real.exp (t * ((∫ y, f (fun j ↦ if j ∈ insert i s then Function.update x i ω j else y j) ∂(Measure.pi μ)) - ∫ y, f y ∂(Measure.pi μ))) ∂(μ i)) ∂(Measure.pi μ))
+        ≤ ∫ x, Real.exp (t * ((∫ y, f (fun j ↦ if j ∈ s then x j else y j) ∂(Measure.pi μ)) - ∫ y, f y ∂(Measure.pi μ))) * Real.exp (t ^ 2 * c i ^ 2 / 8) ∂(Measure.pi μ) :=
+          integral_mono_of_nonneg
+            (ae_of_all _ fun x ↦ integral_nonneg fun ω ↦ (Real.exp_pos _).le)
+            ((hexpInt s).mul_const _) (ae_of_all _ hstep)
+      _ = (∫ x, Real.exp (t * ((∫ y, f (fun j ↦ if j ∈ s then x j else y j) ∂(Measure.pi μ)) - ∫ y, f y ∂(Measure.pi μ))) ∂(Measure.pi μ)) * Real.exp (t ^ 2 * c i ^ 2 / 8) :=
+          integral_mul_const _ _
+      _ ≤ Real.exp (t ^ 2 * (∑ j ∈ s, c j ^ 2) / 8) * Real.exp (t ^ 2 * c i ^ 2 / 8) :=
+          mul_le_mul_of_nonneg_right ih (Real.exp_pos _).le
+      _ = Real.exp (t ^ 2 * (∑ j ∈ insert i s, c j ^ 2) / 8) := by
+          rw [← Real.exp_add, Finset.sum_insert hi]
+          ring_nf
+
 /-- **Azuma–Hoeffding for the Doob martingale of a bounded-differences function**: under the
 hypotheses of the bounded differences inequality, the centred function `f - 𝔼 f` has a
 sub-Gaussian moment-generating function with parameter `(∑ i, c i ^ 2) / 4`.
