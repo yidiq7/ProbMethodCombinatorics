@@ -27,7 +27,16 @@ variance is small compared to the square of its mean is positive with high proba
 theorem prob_eq_zero_le_variance_div_sq [IsProbabilityMeasure μ] {X : Ω → ℝ}
     (hX : MemLp X 2 μ) (hmean : μ[X] ≠ 0) :
     (μ {ω | X ω = 0}).toReal ≤ Var[X; μ] / μ[X] ^ 2 := by
-  sorry
+  have hc : 0 < |μ[X]| := abs_pos.mpr hmean
+  have hsub : {ω | X ω = 0} ⊆ {ω | |μ[X]| ≤ |X ω - μ[X]|} := fun ω hω => by
+    show |μ[X]| ≤ |X ω - μ[X]|
+    rw [show X ω = 0 from hω, zero_sub, abs_neg]
+  have hle : μ {ω | X ω = 0} ≤ ENNReal.ofReal (Var[X; μ] / |μ[X]| ^ 2) :=
+    (measure_mono hsub).trans (meas_ge_le_variance_div_sq hX hc)
+  have hnn : 0 ≤ Var[X; μ] / |μ[X]| ^ 2 :=
+    div_nonneg (variance_nonneg X μ) (sq_nonneg _)
+  have := ENNReal.toReal_mono ENNReal.ofReal_ne_top hle
+  rwa [ENNReal.toReal_ofReal hnn, sq_abs] at this
 
 /-- **The second moment variance bound for sums of indicators** (Zhao, Setup 4.2.2 and the
 display preceding Lemma 4.2.4): if `X` counts how many of the events `A i` occur, and `D`
