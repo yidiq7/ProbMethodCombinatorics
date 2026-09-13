@@ -60,6 +60,11 @@ edge-count bound the book proves, so the edge-count bound stays a task.
 
 ## Log
 
+- **2026-09-12 — overlay resynced to Choir `e8a1d24`.** Protocol still 8; the change touched
+  only `scripts/` (iCloud-sync detection and environment relocation in `orchestrator-init.sh`
+  and `join.sh`) plus `client/update.py`, so no gate behaviour moved and no open work was
+  affected.  Contributors already set up should run `choir worker update` to pick up the new
+  `join.sh`.
 - **2026-09-12 — the gate is confirmed working end to end (PR #31).** The repo's first pull
   request, a README-only change, ran all nine checks green: `rebuild` 2m17s (the Mathlib
   cache step works), `comparator` 1m12s (the comparator builds at the `v4.33.0` pin and
