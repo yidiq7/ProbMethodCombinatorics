@@ -254,3 +254,35 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   rather than re-running `create-task`.  The `issue-intake` workflow reports `skipped` on
   orchestrator-created issues, which is expected — `create-task` round-trips through the
   same parser locally.
+- **2026-09-13 — Chapter 10 stated and published** as issues #83–#94, pinned to `f40b890`.
+  Twelve declarations in a new `Entropy.lean`, and — the decision worth recording — a
+  **shared entropy layer proved by the orchestrator before any task was published**, rather
+  than left for the first task to invent.  Mathlib has `Real.negMulLog`, `Real.binEntropy`
+  and `Matrix.permanent` but no Shannon entropy of a discrete random variable, so without a
+  central layer the chapter's twelve obligations would each have defined their own; that is
+  exactly what happened in Chapter 6 with `fairCoin`/`uniformColoring` and cost three golf
+  tasks and 311 lines to undo.  Chapter 10 is **counting**, not measure-theoretic: every
+  random variable in it lives on a finite sample space and every conclusion is a cardinality.
+  `condEntropy` is defined as the book defines it, as an expectation over `y`, so that the
+  chain rule stays a theorem — defining it as `H(X,Y) - H(Y)` would have made §10.1's
+  content disappear into an unfolding.
+  Two statements are not transcriptions of a displayed theorem — the three-coordinate
+  Loomis–Whitney bound and the binomial tail bound — and both were **checked numerically
+  before publishing**, as were the edge cases of `triangle_intersecting` (`n ≤ 2` forces an
+  empty family) and `bregman_minc` (a zero row gives `0 ≤ 1`).  The diagonal-pair hypothesis
+  on `triangle_intersecting` is load-bearing: without it the statement is false by `2ⁿ`.
+  §10.3 Sidorenko is deliberately **not** stated — it needs homomorphism counts and graphons,
+  which the project does not have, and its smallest open case is open mathematics.
+  `choir/type:prove` was dropped again on ten of the twelve, the same race recorded on
+  2026-09-12; repaired with `gh issue edit` as that entry prescribes.
+- **2026-09-13 — `measure_sub_integral_ge_le` was false as stated; measurability added.**
+  Issue #81 was claimed and released with no PR — the same silent signal that caught the two
+  Chernoff statements and `exists_nearly_equiangular`, and the reason that signal is worth
+  watching even though `metrics struggle` cannot see it.  The bounded differences hypothesis
+  does **not** imply `f` is measurable; a Mathlib measure applied to a non-measurable set
+  returns its *outer* measure, and `∫` of a non-integrable function returns junk `0`.  So a
+  non-measurable `f` with range of diameter `c₀` — a Bernstein set indicator, say — puts the
+  left-hand side at `1` against a right-hand side below `1`.  `hf : Measurable f` is now a
+  hypothesis.  Measurable plus bounded differences gives boundedness and hence integrability,
+  so the `∫` needs nothing further.  **When an author-side statement is wrong, the cost lands
+  on whoever claimed it first and shows up as a released lease, not as a failed check.**

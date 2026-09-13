@@ -37,11 +37,16 @@ colouring, independent transversals and directed cycles.  Theorem 1.1.9 (Spencer
 lower bound via the local lemma) belongs here rather than in `introduction`, since it is
 the local lemma that does the work.
 
-## `correlation`, `janson`, `concentration`, `entropy`, `containers` — Chapters 7–11
+## `containers` — Chapter 11
 
-Harris–FKG and applications; Janson's inequalities and the chromatic number of a random
-graph; bounded differences, martingale concentration, isoperimetry, Talagrand, the
-Euclidean TSP; entropy, Shearer's lemma, Sidorenko; hypergraph containers.
+Hypergraph containers: the container lemma itself, and its applications to counting
+independent sets in hypergraphs, to Ramsey and Turán-type problems in sparse random graphs,
+and to sum-free sets.  The last chapter still unstated, and the only one whose *statement*
+is a substantial design problem rather than a transcription: the container lemma quantifies
+over a family of "container" sets produced by an algorithm, and how much of that algorithm
+has to appear in the statement is the open question.
 
-Chapters 9–11 are research-level and are the right place to expect reductions rather than
-single-PR proofs.
+Research-level, and the right place to expect reductions rather than single-PR proofs.
+
+Chapters 7–10 were stated and published; see `correlation.md`, `janson.md`,
+`concentration.md` and `entropy.md`.

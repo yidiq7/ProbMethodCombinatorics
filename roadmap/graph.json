@@ -1083,7 +1083,7 @@
       "decl": "ProbMethodCombinatorics.prod_le_binomialRandom_iInter",
       "doc": "correlation.md#harris_lower_family--prod_le_binomialrandom_iinter",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": [
         "harris_binomial"
@@ -1319,6 +1319,252 @@
       "proof": "planned",
       "uses": [],
       "proof_uses": []
+    },
+    "entropy": {
+      "kind": "group",
+      "doc": "entropy.md"
+    },
+    "entropy_probOf": {
+      "kind": "definition",
+      "parent": "entropy",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.probOf",
+      "doc": "entropy.md#the-shared-layer",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "entropy_def": {
+      "kind": "definition",
+      "parent": "entropy",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.entropy",
+      "doc": "entropy.md#the-shared-layer",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "entropy_condEntropy": {
+      "kind": "definition",
+      "parent": "entropy",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.condEntropy",
+      "doc": "entropy.md#the-shared-layer",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "entropy_uniformPMF": {
+      "kind": "definition",
+      "parent": "entropy",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.uniformPMF",
+      "doc": "entropy.md#the-shared-layer",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "entropy_triangleEdges": {
+      "kind": "definition",
+      "parent": "entropy",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.triangleEdges",
+      "doc": "entropy.md#the-shared-layer",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "entropy_nonneg": {
+      "kind": "theorem",
+      "parent": "entropy",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.entropy_nonneg",
+      "doc": "entropy.md#101-basic-properties",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "entropy_def"
+      ],
+      "proof_uses": []
+    },
+    "entropy_uniform_bound": {
+      "kind": "theorem",
+      "parent": "entropy",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.entropy_le_logb_card",
+      "doc": "entropy.md#101-basic-properties",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "entropy_def"
+      ],
+      "proof_uses": []
+    },
+    "entropy_chain_rule": {
+      "kind": "theorem",
+      "parent": "entropy",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.condEntropy_eq_sub",
+      "doc": "entropy.md#101-basic-properties",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "entropy_def",
+        "entropy_condEntropy"
+      ],
+      "proof_uses": []
+    },
+    "entropy_subadditive": {
+      "kind": "theorem",
+      "parent": "entropy",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.entropy_pair_le_add",
+      "doc": "entropy.md#101-basic-properties",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "entropy_def"
+      ],
+      "proof_uses": []
+    },
+    "entropy_drop_conditioning": {
+      "kind": "theorem",
+      "parent": "entropy",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.condEntropy_le_entropy",
+      "doc": "entropy.md#101-basic-properties",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "entropy_def",
+        "entropy_condEntropy"
+      ],
+      "proof_uses": [
+        "entropy_chain_rule",
+        "entropy_subadditive"
+      ]
+    },
+    "entropy_subadditive_general": {
+      "kind": "theorem",
+      "parent": "entropy",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.entropy_pi_le_sum",
+      "doc": "entropy.md#101-basic-properties",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "entropy_def"
+      ],
+      "proof_uses": [
+        "entropy_subadditive",
+        "entropy_chain_rule"
+      ]
+    },
+    "shearer": {
+      "kind": "theorem",
+      "parent": "entropy",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.shearer",
+      "doc": "entropy.md#104-shearers-lemma",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "entropy_def"
+      ],
+      "proof_uses": [
+        "entropy_chain_rule",
+        "entropy_drop_conditioning",
+        "entropy_nonneg"
+      ]
+    },
+    "shearer_triple": {
+      "kind": "theorem",
+      "parent": "entropy",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.shearer_triple",
+      "doc": "entropy.md#104-shearers-lemma",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "entropy_def"
+      ],
+      "proof_uses": [
+        "entropy_chain_rule",
+        "entropy_drop_conditioning"
+      ]
+    },
+    "loomis_whitney_discrete": {
+      "kind": "theorem",
+      "parent": "entropy",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.card_sq_le_prod_card_image",
+      "doc": "entropy.md#applications",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": [
+        "shearer_triple",
+        "entropy_uniform_bound",
+        "entropy_uniformPMF"
+      ]
+    },
+    "triangle_intersecting": {
+      "kind": "theorem",
+      "parent": "entropy",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.card_lt_of_triangleIntersecting",
+      "doc": "entropy.md#applications",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "entropy_triangleEdges"
+      ],
+      "proof_uses": [
+        "shearer",
+        "entropy_uniform_bound"
+      ]
+    },
+    "bregman_minc": {
+      "kind": "theorem",
+      "parent": "entropy",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.permanent_le_prod_factorial",
+      "doc": "entropy.md#applications",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": [
+        "entropy_chain_rule",
+        "entropy_uniform_bound"
+      ]
+    },
+    "binomial_tail_entropy": {
+      "kind": "theorem",
+      "parent": "entropy",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.sum_choose_le_exp_binEntropy",
+      "doc": "entropy.md#applications",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
+    },
+    "permanent_upstream": {
+      "kind": "definition",
+      "parent": "entropy",
+      "decl": "Matrix.permanent",
+      "upstream": true
+    },
+    "binEntropy_upstream": {
+      "kind": "definition",
+      "parent": "entropy",
+      "decl": "Real.binEntropy",
+      "upstream": true
     }
   }
 }

@@ -37,6 +37,34 @@ declarations and `Classical.*` helpers, and flags any net increase over the base
   for anything another file might use.
 - Imports are targeted, not `import Mathlib`.  Add the narrowest module that works.
 
+## Finding lemmas in Mathlib v4.33.0
+
+Three traps that have each cost a contributor real time on this project.
+
+**`grep` does not find derived lemmas.**  `@[to_additive]` and `@[to_dual]` generate
+declarations that exist in the environment but appear nowhere in the source.  `grep "theorem
+isLowerSet_"` finds nothing; `isLowerSet_iInter₂` is real.  Search for the *other* name —
+multiplicative for `to_additive`, the order-dual for `to_dual` — or use `exact?` / `loogle` /
+the LSP, which see the environment rather than the text.
+
+**Prefer `gcongr` to named monotonicity lemmas.**  `mul_le_mul_left'` no longer exists in
+v4.33.0, and the left/right convention has swapped underneath the names that remain:
+
+    theorem mul_le_mul_right [MulLeftMono α]  (bc : b ≤ c) (a : α) : a * b ≤ a * c
+    theorem mul_le_mul_left  [MulRightMono α] (bc : b ≤ c) (a : α) : b * a ≤ c * a
+
+so the old `mul_le_mul_left' h a` is today's `mul_le_mul_right h a`, with
+`add_le_add_left`/`add_le_add_right` swapped to match.  `gcongr` is insulated from all of
+this and is the project's default for any congruence-shaped inequality step.
+
+**Avoid truncated subtraction in `ℝ≥0∞`.**  `a - b` in `ENNReal` is `tsub`, and every
+rearrangement through it drags a `b ≤ a` side condition behind it.  Rearrange *additively*
+instead — `ENNReal` is a `CommSemiring`, so `ring` works — and cancel with
+`ENNReal.add_le_add_iff_right`, discharging finiteness with `ne_top_of_le_ne_top`.  See
+`prod_le_binomialRandom_iInter` in `Correlation.lean` for the pattern.
+`open scoped ENNReal` is already in the header of every measure-theoretic file; without it
+`ℝ≥0∞` parses as `ℝ ≥ 0 ∞` and fails with `failed to synthesize OfNat Type 0`.
+
 ## Docstrings and comments
 
 Write comments in final form.  A docstring says what the declaration says — it is not a

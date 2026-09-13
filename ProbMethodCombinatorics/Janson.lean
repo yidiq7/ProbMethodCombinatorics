@@ -22,6 +22,7 @@ Nothing in this chapter is in Mathlib.
 namespace ProbMethodCombinatorics
 
 open MeasureTheory ProbabilityTheory unitInterval
+open scoped ENNReal
 
 variable {ι κ : Type*} [Fintype κ]
 

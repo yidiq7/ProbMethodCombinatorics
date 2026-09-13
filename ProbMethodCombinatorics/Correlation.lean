@@ -23,6 +23,7 @@ What is not upstream is the case the applications need: a product of Bernoulli m
 namespace ProbMethodCombinatorics
 
 open MeasureTheory ProbabilityTheory unitInterval SimpleGraph
+open scoped ENNReal
 
 variable {V : Type*} [Fintype V]
 
@@ -113,7 +114,56 @@ theorem prod_le_binomialRandom_iInter {ι : Type*} [Fintype ι] (p : I)
     (A : ι → Set (SimpleGraph V)) (hA : ∀ i, IsLowerSet (A i))
     (hAm : ∀ i, MeasurableSet (A i)) :
     ∏ i, binomialRandom V p (A i) ≤ binomialRandom V p (⋂ i, A i) := by
-  sorry
+  classical
+  -- The inclusion-exclusion rearrangement, additively so as to avoid truncated subtraction:
+  -- `a`, `b` are the probabilities of two events, `a'`, `b'` those of their complements, and
+  -- `u`, `w`, `c` those of the union, its complement, and the intersection.
+  have arith : ∀ a a' b b' u w c : ENNReal, a + a' = 1 → b + b' = 1 → u + w = 1 →
+      u + c = a + b → a' * b' ≤ w → a * b ≤ c := by
+    intro a a' b b' u w c ha hb hu hc h
+    have ha' : a' ≤ 1 := by rw [← ha]; exact le_add_self
+    have hb' : b' ≤ 1 := by rw [← hb]; exact le_add_self
+    have hab' : a' * b' ≠ ⊤ :=
+      ne_top_of_le_ne_top ENNReal.one_ne_top (by simpa using mul_le_mul' ha' hb')
+    have hutop : u ≠ ⊤ := ne_top_of_le_ne_top ENNReal.one_ne_top (by rw [← hu]; exact le_self_add)
+    have hexp : a * b + (a * b' + a' * b) + a' * b' = 1 := by
+      calc a * b + (a * b' + a' * b) + a' * b' = (a + a') * (b + b') := by ring
+        _ = 1 := by rw [ha, hb, one_mul]
+    have hule : u ≤ a * b + (a * b' + a' * b) := by
+      refine (ENNReal.add_le_add_iff_right hab').mp ?_
+      calc u + a' * b' ≤ u + w := by gcongr
+        _ = 1 := hu
+        _ = a * b + (a * b' + a' * b) + a' * b' := hexp.symm
+    refine (ENNReal.add_le_add_iff_right hutop).mp ?_
+    calc a * b + u ≤ a * b + (a * b + (a * b' + a' * b)) := by gcongr
+      _ = a * (b + b') + (a + a') * b := by ring
+      _ = a + b := by rw [ha, hb, mul_one, one_mul]
+      _ = c + u := by rw [← hc]; ring
+  -- Two decreasing events, from the increasing case applied to the complements.
+  have pair : ∀ S T : Set (SimpleGraph V), IsLowerSet S → IsLowerSet T →
+      MeasurableSet S → MeasurableSet T →
+      binomialRandom V p S * binomialRandom V p T ≤ binomialRandom V p (S ∩ T) := by
+    intro S T hS hT hSm hTm
+    have hcompl := binomialRandom_mul_le_inter p Sᶜ Tᶜ hS.compl hT.compl hSm.compl hTm.compl
+    rw [← Set.compl_union] at hcompl
+    have hSsum := measure_add_measure_compl (μ := binomialRandom V p) hSm
+    have hTsum := measure_add_measure_compl (μ := binomialRandom V p) hTm
+    have hUsum := measure_add_measure_compl (μ := binomialRandom V p) (hSm.union hTm)
+    rw [measure_univ] at hSsum hTsum hUsum
+    exact arith _ _ _ _ _ _ _ hSsum hTsum hUsum
+      (measure_union_add_inter (μ := binomialRandom V p) S hTm) hcompl
+  -- Induction on the family; a finite intersection of lower sets is again a lower set.
+  have main : ∀ s : Finset ι,
+      ∏ i ∈ s, binomialRandom V p (A i) ≤ binomialRandom V p (⋂ i ∈ s, A i) := by
+    intro s
+    induction s using Finset.induction_on with
+    | empty => simp
+    | insert a s ha ih =>
+        rw [Finset.prod_insert ha, Finset.set_biInter_insert]
+        exact (mul_le_mul_right ih _).trans
+          (pair (A a) (⋂ i ∈ s, A i) (hA a) (isLowerSet_iInter₂ fun i _ => hA i) (hAm a)
+            (s.measurableSet_biInter fun i _ => hAm i))
+  simpa using main Finset.univ
 
 /-- **Zhao, Theorem 7.2.2**: `ℙ(G(n, p) is triangle-free) ≥ (1 - p³) ^ (n choose 3)`.
 
