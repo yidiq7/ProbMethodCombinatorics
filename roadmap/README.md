@@ -60,6 +60,13 @@ edge-count bound the book proves, so the edge-count bound stays a task.
 
 ## Log
 
+- **2026-09-13 — re-pinning is necessary but not sufficient; warn claimed tasks too.**
+  Stale-pin reverts hit twice (#42, #48).  Re-pinning an issue does not help a worker whose
+  workspace already exists — that tree was cloned at the old pin.  **After merging, comment on
+  every open *claimed* task whose `target_file` matches a file the merge touched**, telling the
+  holder to rebase.  Cheap to do: `choir orch task <n>` gives `target_file`, and the merge's
+  own diff gives the files.  Done for #12, #15, #29 on this pass.
+
 - **2026-09-13 — Chapter 1 §1.1 is closed and the local lemma is proved.**  PRs #41–#44
   landed the general local lemma with its induction step, Ramsey's theorem with the
   off-diagonal Erdős–Szekeres statement, `lt_ramseyNumber`, and the symmetric local lemma.
