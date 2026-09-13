@@ -22,6 +22,23 @@ namespace ProbMethodCombinatorics
 open MeasureTheory ProbabilityTheory
 open scoped ENNReal
 
+/-- **Azuma–Hoeffding for the Doob martingale of a bounded-differences function**: under the
+hypotheses of the bounded differences inequality, the centred function `f - 𝔼 f` has a
+sub-Gaussian moment-generating function with parameter `(∑ i, c i ^ 2) / 4`.
+
+This is Zhao's Theorem 9.2.9 (the Doob-martingale refinement of Azuma's inequality) combined with
+Hoeffding's lemma (Lemma 9.2.12): writing `f - 𝔼 f` as the sum of the increments of the Doob
+martingale `Zᵢ = 𝔼[f | x₁, …, xᵢ]`, each increment lies, conditionally on the preceding
+coordinates, in an interval of length `c i`, hence is conditionally sub-Gaussian with parameter
+`(c i) ^ 2 / 4`, and the parameters add along the martingale. -/
+theorem hasSubgaussianMGF_sub_integral_of_bddDiff {ι : Type*} [Fintype ι] {Ω : ι → Type*}
+    [∀ i, MeasurableSpace (Ω i)] (μ : ∀ i, Measure (Ω i)) [∀ i, IsProbabilityMeasure (μ i)]
+    (f : (∀ i, Ω i) → ℝ) (c : ι → ℝ) (hf : Measurable f)
+    (hc : ∀ i (x y : ∀ i, Ω i), (∀ j, j ≠ i → x j = y j) → |f x - f y| ≤ c i) :
+    HasSubgaussianMGF (fun x ↦ f x - ∫ y, f y ∂(Measure.pi μ))
+      (((∑ i, c i ^ 2) / 4).toNNReal) (Measure.pi μ) := by
+  sorry
+
 /-- **The bounded differences inequality** (Zhao, Theorem 9.1.3; also McDiarmid's inequality and
 the Azuma–Hoeffding inequality).  If changing the `i`-th coordinate alone moves `f` by at most
 `c i`, then `f` of independent coordinates is concentrated about its mean:
@@ -49,6 +66,13 @@ theorem measure_sub_integral_ge_le {ι : Type*} [Fintype ι] {Ω : ι → Type*}
     (hsum : 0 < ∑ i, c i ^ 2) {lam : ℝ} (hlam : 0 ≤ lam) :
     (Measure.pi μ {x | lam ≤ f x - ∫ y, f y ∂(Measure.pi μ)}).toReal
       ≤ Real.exp (-2 * lam ^ 2 / ∑ i, c i ^ 2) := by
-  sorry
+  have hcoe : ((((∑ i, c i ^ 2) / 4).toNNReal : NNReal) : ℝ) = (∑ i, c i ^ 2) / 4 :=
+    Real.coe_toNNReal _ (by positivity)
+  have := (hasSubgaussianMGF_sub_integral_of_bddDiff μ f c hf hc).measure_ge_le hlam
+  rw [Measure.real, hcoe] at this
+  refine this.trans_eq ?_
+  congr 1
+  field_simp
+  ring
 
 end ProbMethodCombinatorics
