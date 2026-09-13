@@ -189,8 +189,8 @@ theorem abs_sub_le_sum_of_bddDiff {ι : Type*} [Fintype ι] [DecidableEq ι] {Ω
         _ ≤ c i + ∑ j ∈ s, c j := add_le_add h1 h2
   exact key Finset.univ x y fun j hj ↦ absurd (Finset.mem_univ j) hj
 
-/-- The partial integral `x ↦ ∫ y, f (x on s, y off s)`, the value at `x` of the Doob
-martingale of `f` at time `s`, is measurable. -/
+/-- The function `x ↦ ∫ y, f (x on s, y off s)`, the value at `x` of the Doob martingale of `f`
+at time `s`, is measurable. -/
 theorem measurable_integral_merge {ι : Type*} [Fintype ι] [DecidableEq ι] {Ω : ι → Type*}
     [∀ i, MeasurableSpace (Ω i)] (μ : ∀ i, Measure (Ω i)) [∀ i, IsProbabilityMeasure (μ i)]
     (f : (∀ i, Ω i) → ℝ) (hf : Measurable f) (s : Finset ι) :
@@ -206,8 +206,8 @@ theorem measurable_integral_merge {ι : Type*} [Fintype ι] [DecidableEq ι] {Ω
       exact (measurable_pi_apply j).comp measurable_snd
   exact (hm.stronglyMeasurable.integral_prod_right' (ν := Measure.pi μ)).measurable
 
-/-- The partial integrals of `f` inherit the bounded differences of `f`: changing coordinate `i`
-of `x` alone moves `x ↦ ∫ y, f (x on s, y off s)` by at most `c i`. -/
+/-- Integrating out the coordinates outside `s` preserves the bounded differences of `f`:
+changing coordinate `i` of `x` alone moves `x ↦ ∫ y, f (x on s, y off s)` by at most `c i`. -/
 theorem abs_sub_integral_merge_le {ι : Type*} [Fintype ι] [DecidableEq ι] {Ω : ι → Type*}
     [∀ i, MeasurableSpace (Ω i)] (μ : ∀ i, Measure (Ω i)) [∀ i, IsProbabilityMeasure (μ i)]
     (f : (∀ i, Ω i) → ℝ) (c : ι → ℝ) (hf : Measurable f)
@@ -241,8 +241,9 @@ theorem abs_sub_integral_merge_le {ι : Type*} [Fintype ι] [DecidableEq ι] {Ω
     (ae_of_all _ hb)
 
 /-- The moment-generating function bound behind the bounded differences inequality: for every
-finite set `s` of coordinates, the partial integral of `f` over the coordinates outside `s`,
-centred at `∫ f`, satisfies `𝔼 exp (t (F s - 𝔼 f)) ≤ exp (t² (∑ i ∈ s, c i ^ 2) / 8)`.
+finite set `s` of coordinates, the function `F s : x ↦ ∫ y, f (x on s, y off s)` obtained by
+integrating out the coordinates outside `s`, centred at `∫ f`, satisfies
+`𝔼 exp (t (F s - 𝔼 f)) ≤ exp (t² (∑ i ∈ s, c i ^ 2) / 8)`.
 
 This is Zhao's Theorem 9.2.9, the Doob-martingale refinement of Azuma's inequality, proved by
 induction on `s`.  Adding a coordinate `i` to `s` multiplies the moment-generating function by
@@ -403,8 +404,7 @@ theorem hasSubgaussianMGF_sub_integral_of_bddDiff {ι : Type*} [Fintype ι] {Ω 
     (hc : ∀ i (x y : ∀ i, Ω i), (∀ j, j ≠ i → x j = y j) → |f x - f y| ≤ c i) :
     HasSubgaussianMGF (fun x ↦ f x - ∫ y, f y ∂(Measure.pi μ))
       (((∑ i, c i ^ 2) / 4).toNNReal) (Measure.pi μ) := by
-  let _ : DecidableEq ι := fun a b ↦
-    decidable_of_iff (Fintype.equivFin ι a = Fintype.equivFin ι b) (Equiv.apply_eq_iff_eq _)
+  let _ : DecidableEq ι := (Fintype.equivFin ι).decidableEq
   have hintf : Integrable f (Measure.pi μ) :=
     integrable_of_abs_sub_le _ _ hf fun u v ↦ abs_sub_le_sum_of_bddDiff f c hc _ _
   have hKuniv : ∀ x : ∀ j, Ω j, |f x - ∫ y, f y ∂(Measure.pi μ)| ≤ ∑ i, c i := by
