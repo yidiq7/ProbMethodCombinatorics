@@ -697,6 +697,21 @@
         "chernoff_bound"
       ]
     },
+    "chernoff_subset": {
+      "kind": "theorem",
+      "parent": "chernoff",
+      "file": "ProbMethodCombinatorics/Chernoff.lean",
+      "decl": "ProbMethodCombinatorics.card_filter_abs_sum_subset_le",
+      "doc": "chernoff.md#discrepancy--exists_tosign_abs_sum_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "to_sign"
+      ],
+      "proof_uses": [
+        "chernoff_abs"
+      ]
+    },
     "discrepancy": {
       "kind": "theorem",
       "parent": "chernoff",
@@ -704,11 +719,12 @@
       "decl": "ProbMethodCombinatorics.exists_toSign_abs_sum_le",
       "doc": "chernoff.md#discrepancy--exists_tosign_abs_sum_le",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "to_sign"
       ],
       "proof_uses": [
+        "chernoff_subset",
         "chernoff_abs"
       ]
     },
