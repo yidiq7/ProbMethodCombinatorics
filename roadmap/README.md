@@ -60,6 +60,14 @@ edge-count bound the book proves, so the edge-count bound stays a task.
 
 ## Log
 
+- **2026-09-13 — the blocking poller cannot survive on this machine; use `poll --once`.**
+  `choir orch poll` blocks for up to `max_wait_seconds`, and a long-lived process is what the
+  OOM killer takes first while the contributor agents' `lean` builds spike to 1–2 GB each.  It
+  was killed six times.  **`poll --once` does one check and exits**, which survives, but it
+  gives no wake-up — so on a memory-constrained machine the loop is overseer-driven rather
+  than self-driving: check with `poll --once`, act, stop.  Nothing is lost either way, because
+  the loop keeps no state in the process; it all lives in this repo.
+
 - **2026-09-13 — the duplicated measure layer is fully retired.**  Golfs #62, #69 and #70
   removed 148, 65 and 69 lines respectively; `LocalLemma.lean` went from ~1150 to ~866 and
   now contains exactly one construction of the uniform two-colouring measure, used by all
