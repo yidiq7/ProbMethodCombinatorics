@@ -178,7 +178,7 @@
       "decl": "ProbMethodCombinatorics.twoColorable_of_card_lt",
       "doc": "introduction.md#two_colorable-two_colorable_of_card_lt",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "two_colorable"
       ],
@@ -358,7 +358,7 @@
       "decl": "ProbMethodCombinatorics.prob_eq_zero_le_variance_div_sq",
       "doc": "second-moment.md#prob_zero_bound--prob_eq_zero_le_variance_div_sq",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": [
         "chebyshev"
