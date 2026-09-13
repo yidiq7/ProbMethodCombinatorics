@@ -60,6 +60,22 @@ edge-count bound the book proves, so the edge-count bound stays a task.
 
 ## Log
 
+- **2026-09-13 — a proof that leans on an unproved sibling must declare a reduction.**
+  PR #40 (two-sided Chernoff, task #22) was mathematically correct and failed `comparator`
+  with `illegal-axiom`: it calls `card_filter_le_exp_mul`, still a placeholder, so `sorryAx`
+  entered the target's axiom closure.  `sorry-delta` passed, which makes the failure
+  look surprising.  This is **designed** — under `sorry = block` comparator refuses `sorryAx`
+  on an ordinary submission precisely so a green gate means *unconditionally proved* —
+  and the sanctioned route is a `choir-reduction` block, for which `sorryAx` is permitted.
+  Seven open tasks (#7, #23, #26, #27, #28, #29, #30) carried task prose that told
+  contributors to use an unproved dependency's statement without mentioning this; all are
+  corrected in place, and the rule is in `skills/orchestrator-notes.md`.
+  **Do not "fix" this by moving the project to `sorry = report`** — that would permit
+  `sorryAx` everywhere and destroy exactly the guarantee the policy buys.
+  Planning consequence: when a group's nodes form a chain, publishing them all at once is
+  still right, but expect the dependents to land as reductions, or to land after their
+  dependency merges.
+
 - **2026-09-12 — overlay resynced to Choir `e8a1d24`.** Protocol still 8; the change touched
   only `scripts/` (iCloud-sync detection and environment relocation in `orchestrator-init.sh`
   and `join.sh`) plus `client/update.py`, so no gate behaviour moved and no open work was
