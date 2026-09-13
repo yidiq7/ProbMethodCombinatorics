@@ -60,6 +60,13 @@ edge-count bound the book proves, so the edge-count bound stays a task.
 
 ## Log
 
+- **2026-09-12 — the gate is confirmed working end to end (PR #31).** The repo's first pull
+  request, a README-only change, ran all nine checks green: `rebuild` 2m17s (the Mathlib
+  cache step works), `comparator` 1m12s (the comparator builds at the `v4.33.0` pin and
+  runs), `trust-report` 2m23s, and the six string-level audits in about 7s each.  Merged
+  through `choir orch merge`, so the preflight is exercised too.  **Still unverified: the
+  fork-PR path** — a same-repo branch raises no held workflow runs, so the first genuine
+  contributor PR is the first test of the approval sweep.
 - **2026-09-12 — overlay upgraded.** Protocol 8 → 8 (unchanged), Choir commit
   `1c85185` → `6b40b47`; `gate/checks.py` and so `REQUIRED_PRESENT` were unchanged, and the
   fingerprint guard passed, so no PR was at risk of the absent-check refusal.
