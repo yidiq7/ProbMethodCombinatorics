@@ -88,6 +88,29 @@ graph has a cycle. That was not deliberate when the statement was authored. It i
 a graph with `χ > k ≥ 1` cannot be acyclic — but any future statement mentioning `girth` should
 account for it.
 
+## The Erdős 1959 random-graph step
+
+Reduced twice (PR #48, then PR #57).  What is proved: the alteration step
+(`exists_girth_gt_and_indepNum_le_of_shortCycleCover` — delete `S`, keep the independence
+number, gain girth), the union bound combining the two halves, and the packaging into the
+published theorem.  What is open: the two probabilistic estimates, tasks #59 and #60.
+
+**Two definitions came in with #57 and are now the project's to maintain**, since both open
+statements mention them:
+
+- `girthEdgeCount n = ⌈n (log n)²⌉₊` — the edge count, giving density `p ≈ 2 (log n)²/n`,
+  twice the book's.  Still inside the window `log n / n ≪ p ≪ n^(-1+1/l)` the argument needs.
+- `graphFamily n M = Finset.powersetCard M Finset.univ` over `Sym2 (Fin n)` — the uniform
+  `M`-subset model, which keeps the whole argument a `Finset` count rather than a measure and
+  so stays in Chapter 3's idiom.
+
+**A wart in `graphFamily`, verified rather than assumed:** `univ : Finset (Sym2 (Fin n))`
+includes the diagonal, so this samples `M` pairs from `n(n+1)/2` *including loops*, which
+`fromEdgeSet` then discards.  It is not exactly `G(n, M)` — the realised edge count is `M`
+minus about `2M/(n+1)` loops.  Harmless at `M ≈ n log² n`, and both open statements remain
+true, but a prover must not assume exactly `M` edges.  If either estimate turns out to want a
+cleaner model, changing these definitions is the centralized layer's job, not a contributor's.
+
 ## `property_b_sharp` — `exists_twoColorable_of_card_le`
 
 Theorem 3.5.1 (Radhakrishnan–Srinivasan 2000): for some `c > 0`, every `k`-uniform
