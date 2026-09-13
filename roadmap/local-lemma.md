@@ -72,6 +72,26 @@ Corollary 6.1.10. `ℙ(A i) < 1/2` and `∑_{j ∈ N i} ℙ(A j) ≤ 1/4` ⟹ po
 occur. From the general form with `x i = 2 ℙ(A i)` and a union bound on the product. The
 right tool when the bad events have genuinely different probabilities.
 
+## The uniform random two-colouring — `fairCoin`, `uniformColoring` and friends
+
+Authored centrally on 2026-09-13, after #49, #50 and #53 each rebuilt it from scratch.
+
+`uniformColoring κ = Measure.pi fun _ => fairCoin` — each coordinate an independent fair
+coin — with two working facts:
+
+- `uniformColoring_const T b` : a colouring is constant `b` on `T` with probability `2⁻¹ ^ |T|`;
+- `uniformColoring_inter_eq_mul` : events determined by **disjoint** sets of coordinates are
+  independent.  This is Setup 6.1.5 in the form the applications need.
+
+The index type is arbitrary, which is the point: the hypergraph applications colour vertices
+(`α`), Spencer's Ramsey bound colours edges (`Finset (Fin n)`).  **Every new application in
+this chapter should use these rather than rebuilding `Measure.pi` over `Bool`.**
+
+The lesson for the plan, not just this file: the need for this layer was visible when #28 was
+written, and the prose said so while leaving it to contributors.  A definition several tasks
+depend on is an interface, and interfaces are authored centrally *before* the tasks that need
+them are published.
+
 ## `two_colorable_local` — `twoColorable_of_inter_card_le`
 
 Theorem 6.2.1: a `k`-uniform hypergraph whose every edge meets at most `d` others is

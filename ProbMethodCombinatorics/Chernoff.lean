@@ -26,15 +26,22 @@ theorem toSign_not (b : Bool) : toSign (!b) = -toSign b := by
   cases b <;> norm_num [toSign]
 
 /-- **Chernoff bound** (Zhao, Theorem 5.0.1): for `S = X₁ + ⋯ + Xₙ` with the `Xᵢ` uniform iid
-`±1`, `ℙ(S ≥ λ√n) ≤ exp (-λ² / 2)`, stated as a count over the `2 ^ n` sign sequences. -/
-theorem card_filter_le_exp_mul (n : ℕ) {lam : ℝ} (hlam : 0 < lam) :
+`±1`, `ℙ(S ≥ λ√n) ≤ exp (-λ² / 2)`, stated as a count over the `2 ^ n` sign sequences.
+
+`0 < n` is necessary, not bookkeeping: at `n = 0` the empty sum is `0` and the threshold
+`λ √0` is `0`, so every sign sequence — there is one — meets the condition, while the bound
+`exp (-λ²/2) · 2 ^ 0` is strictly below `1`.  The optimisation `t = λ / √n` in the proof needs
+it too. -/
+theorem card_filter_le_exp_mul (n : ℕ) (hn : 0 < n) {lam : ℝ} (hlam : 0 < lam) :
     (((univ : Finset (Fin n → Bool)).filter
         fun x => lam * Real.sqrt n ≤ ∑ i, toSign (x i)).card : ℝ)
       ≤ Real.exp (-lam ^ 2 / 2) * 2 ^ n := by
   sorry
 
-/-- **Two-sided Chernoff bound** (Zhao, Corollary 5.0.3): `ℙ(|S| ≥ λ√n) ≤ 2 exp (-λ² / 2)`. -/
-theorem card_filter_abs_le_exp_mul (n : ℕ) {lam : ℝ} (hlam : 0 < lam) :
+/-- **Two-sided Chernoff bound** (Zhao, Corollary 5.0.3): `ℙ(|S| ≥ λ√n) ≤ 2 exp (-λ² / 2)`.
+
+`0 < n` is necessary for the same reason as in `card_filter_le_exp_mul`. -/
+theorem card_filter_abs_le_exp_mul (n : ℕ) (hn : 0 < n) {lam : ℝ} (hlam : 0 < lam) :
     (((univ : Finset (Fin n → Bool)).filter
         fun x => lam * Real.sqrt n ≤ |∑ i, toSign (x i)|).card : ℝ)
       ≤ 2 * Real.exp (-lam ^ 2 / 2) * 2 ^ n := by
@@ -69,7 +76,7 @@ theorem card_filter_abs_le_exp_mul (n : ℕ) {lam : ℝ} (hlam : 0 < lam) :
       funext i
       simp
   have hAle : (A.card : ℝ) ≤ Real.exp (-lam ^ 2 / 2) * 2 ^ n :=
-    card_filter_le_exp_mul n hlam
+    card_filter_le_exp_mul n hn hlam
   have h1 : ((univ : Finset (Fin n → Bool)).filter
       (fun x => lam * Real.sqrt n ≤ |∑ i, toSign (x i)|)).card ≤ A.card + B.card :=
     le_trans (Finset.card_le_card hsub) (Finset.card_union_le A B)

@@ -60,6 +60,38 @@ edge-count bound the book proves, so the edge-count bound stays a task.
 
 ## Log
 
+- **2026-09-13 — two published statements were false; both corrected.**
+  `card_filter_le_exp_mul` and `card_filter_abs_le_exp_mul` (Chernoff, one- and two-sided)
+  omitted `0 < n`.  At `n = 0` the empty sum is `0` and the threshold `λ √0` is `0`, so the
+  single sign sequence satisfies the condition while the bound is below `1`.  **The tell was
+  behavioural, not a failed check:** #21 was claimed and released twice with no PR, and
+  `metrics struggle` stays empty for abandoned claims, so only reading the statement found it.
+  A machine-checked counterexample was built before either statement was touched.
+  `card_filter_abs_le_exp_mul` merged earlier (#40) as a *declared reduction* on the false
+  lemma, so nothing was ever claimed to be unconditionally proved — the reduction contract did
+  its job.  Both statements now carry `0 < n`; #40's merged proof threads it through and the
+  build is clean.  **This is an overseer-visible change: the project's Chernoff bounds now say
+  slightly less than they did.**  Anything downstream must dispose of `n = 0` itself; #23
+  (discrepancy) is unaffected because its `2 ≤ F.card` is unsatisfiable at `n = 0`.
+
+- **2026-09-13 — the uniform two-colouring measure is duplicated, and that is my fault.**
+  #49 and #50 each build it from scratch in `LocalLemma.lean` (`Measure.pi` over `Bool`, the
+  cylinder probability, disjoint-support independence via `iIndepFun_pi`, the dependency
+  graph) — about 100 lines twice, in an 846-line file.  #28's prose said that machinery was
+  "worth stating as their own declarations" but left it to contributors; **a definition other
+  tasks depend on is an interface and should have been authored centrally before those tasks
+  were published.**  Mitigations: golf task #52 rewrites `twoColorable_of_regular` to go
+  through `twoColorable_of_inter_card_le`, which removes one copy; #30's prose now points at
+  the template and asks its holder to flag rather than write a third copy.  **If #30 needs
+  more than the `key` lemma, extract the layer centrally instead.**
+
+- **2026-09-13 — re-pinning is necessary but not sufficient; warn claimed tasks too.**
+  Stale-pin reverts hit twice (#42, #48).  Re-pinning an issue does not help a worker whose
+  workspace already exists — that tree was cloned at the old pin.  **After merging, comment on
+  every open *claimed* task whose `target_file` matches a file the merge touched**, telling the
+  holder to rebase.  Cheap to do: `choir orch task <n>` gives `target_file`, and the merge's
+  own diff gives the files.  Done for #12, #15, #29 on this pass.
+
 - **2026-09-13 — Chapter 1 §1.1 is closed and the local lemma is proved.**  PRs #41–#44
   landed the general local lemma with its induction step, Ramsey's theorem with the
   off-diagonal Erdős–Szekeres statement, `lt_ramseyNumber`, and the symmetric local lemma.

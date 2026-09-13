@@ -161,12 +161,48 @@ theorem exists_heilbronn_configuration :
 
 end Heilbronn
 
+/-- The colour classes of a proper colouring are independent sets, so a graph colourable with
+`m` colours has at most `m * α(G)` vertices.  This is the bound `χ(G) ≥ |V| / α(G)` used in the
+last step of Zhao, Theorem 3.4.1, in division-free form. -/
+theorem card_le_mul_indepNum_of_colorable {V : Type*} [Fintype V] (G : SimpleGraph V) {m : ℕ}
+    (hG : G.Colorable m) : Fintype.card V ≤ m * G.indepNum := by
+  obtain ⟨C⟩ := hG
+  have key : ∀ c : Fin m, (univ.filter fun v => C v = c).card ≤ G.indepNum := by
+    intro c
+    refine SimpleGraph.IsIndepSet.card_le_indepNum ?_
+    intro v hv w hw _
+    simp only [Finset.coe_filter, Finset.mem_univ, true_and, Set.mem_ofPred_eq] at hv hw
+    exact fun hadj => C.valid hadj (hv.trans hw.symm)
+  calc Fintype.card V = ∑ c : Fin m, (univ.filter fun v => C v = c).card := by
+        rw [← Finset.card_univ]
+        exact Finset.card_eq_sum_card_fiberwise fun v _ => Finset.mem_univ (C v)
+    _ ≤ ∑ _c : Fin m, G.indepNum := Finset.sum_le_sum fun c _ => key c
+    _ = m * G.indepNum := by simp
+
+/-- The random-graph half of Zhao, Theorem 3.4.1: for every `l` and every `m` there is a graph
+whose girth exceeds `l` and whose independence number `α` satisfies `m * α < n`.
+
+Erdős's construction takes `G ~ G(n, p)` with `p = (log n) ^ 2 / n`, deletes one vertex from each
+cycle of length at most `l`, and bounds `α` by `3 n / log n`.  Note that `SimpleGraph.girth` is
+valued in `ℕ` with junk value `0` on acyclic graphs, so the first conjunct also asserts that the
+graph has a cycle. -/
+theorem exists_girth_gt_and_mul_indepNum_lt (l m : ℕ) :
+    ∃ (n : ℕ) (G : SimpleGraph (Fin n)), (l : ℕ∞) < G.girth ∧ m * G.indepNum < n := by
+  sorry
+
 /-- **Erdős 1959** (Zhao, Theorem 3.4.1): there are graphs of arbitrarily large girth and
 arbitrarily large chromatic number — high chromatic number cannot be certified locally. -/
 theorem exists_girth_gt_and_chromaticNumber_gt (k l : ℕ) :
     ∃ (n : ℕ) (G : SimpleGraph (Fin n)),
       (l : ℕ∞) < G.girth ∧ (k : ℕ∞) < G.chromaticNumber := by
-  sorry
+  obtain ⟨n, G, hgirth, hindep⟩ := exists_girth_gt_and_mul_indepNum_lt l k
+  refine ⟨n, G, hgirth, ?_⟩
+  by_contra hle
+  rw [not_lt] at hle
+  have hcard := card_le_mul_indepNum_of_colorable G
+    (SimpleGraph.chromaticNumber_le_iff_colorable.mp hle)
+  rw [Fintype.card_fin] at hcard
+  omega
 
 /-- **Radhakrishnan–Srinivasan 2000** (Zhao, Theorem 3.5.1): for some absolute constant `c > 0`,
 every `k`-uniform hypergraph with at most `c * √(k / log k) * 2 ^ k` edges is 2-colourable.  This
