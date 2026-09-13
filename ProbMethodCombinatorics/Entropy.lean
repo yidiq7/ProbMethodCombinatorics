@@ -179,6 +179,84 @@ theorem shearer_triple {U : Type*} [Fintype U] [DecidableEq U] (p : Ω → ℝ)
 
 end ShearerApplications
 
+/-- A value outside the range of `X` has probability zero. -/
+private theorem probOf_eq_zero_of_notMem_image {Ω S : Type*} [Fintype Ω] [Fintype S]
+    [DecidableEq S] (p : Ω → ℝ) (X : Ω → S) (s : S)
+    (hs : s ∉ (univ : Finset Ω).image X) : probOf p X s = 0 := by
+  refine Finset.sum_eq_zero fun ω hω => absurd ?_ hs
+  rw [Finset.mem_filter] at hω
+  exact hω.2 ▸ Finset.mem_image_of_mem X (Finset.mem_univ ω)
+
+/-- Entropy is at most the logarithm of the size of the range. -/
+private theorem entropy_le_logb_card_image {Ω S : Type*} [Fintype Ω] [Fintype S]
+    [DecidableEq S] {p : Ω → ℝ} (hp : ∀ ω, 0 ≤ p ω) (hp1 : ∑ ω, p ω = 1) (X : Ω → S) :
+    entropy p X ≤ Real.logb 2 (((univ : Finset Ω).image X).card : ℝ) :=
+  entropy_le_logb_card hp hp1 X _ fun s hs => probOf_eq_zero_of_notMem_image p X s hs
+
+/-- The uniform distribution on `Ω` gives an injective random variable entropy `log₂ |Ω|`. -/
+private theorem entropy_uniformPMF_univ_of_injective {Ω S : Type*} [Fintype Ω] [DecidableEq Ω]
+    [Nonempty Ω] [Fintype S] [DecidableEq S] {X : Ω → S} (hX : Function.Injective X) :
+    entropy (uniformPMF (univ : Finset Ω)) X = Real.logb 2 (Fintype.card Ω : ℝ) := by
+  have hn : ((Fintype.card Ω : ℝ)) ≠ 0 := Nat.cast_ne_zero.mpr Fintype.card_ne_zero
+  have hval : ∀ ω : Ω, uniformPMF (univ : Finset Ω) ω = ((Fintype.card Ω : ℝ))⁻¹ := by
+    intro ω
+    simp [uniformPMF]
+  have hprob : ∀ s : S, probOf (uniformPMF (univ : Finset Ω)) X s
+      = if s ∈ (univ : Finset Ω).image X then ((Fintype.card Ω : ℝ))⁻¹ else 0 := by
+    intro s
+    by_cases hs : s ∈ (univ : Finset Ω).image X
+    · obtain ⟨ω, -, rfl⟩ := Finset.mem_image.mp hs
+      rw [if_pos hs]
+      show (∑ ω' ∈ univ.filter fun ω' => X ω' = X ω, uniformPMF (univ : Finset Ω) ω')
+        = ((Fintype.card Ω : ℝ))⁻¹
+      rw [show (univ.filter fun ω' => X ω' = X ω) = {ω} from by ext ω'; simp [hX.eq_iff]]
+      simp [hval]
+    · rw [if_neg hs]
+      exact probOf_eq_zero_of_notMem_image _ X s hs
+  have hsum : entropy (uniformPMF (univ : Finset Ω)) X
+      = ∑ s : S, if s ∈ (univ : Finset Ω).image X then
+          -((Fintype.card Ω : ℝ))⁻¹ * Real.logb 2 (((Fintype.card Ω : ℝ))⁻¹) else 0 := by
+    refine Finset.sum_congr rfl fun s _ => ?_
+    rw [hprob s]
+    split_ifs <;> simp
+  rw [hsum]
+  rw [Finset.sum_ite_mem, Finset.univ_inter, Finset.sum_const,
+    Finset.card_image_of_injective _ hX, Finset.card_univ, nsmul_eq_mul]
+  rw [Real.logb_inv]
+  field_simp
+
+/-- The range of `ω ↦ g ω` over the subtype `↥A` is the image of `A` under `g`. -/
+private theorem card_image_univ_coe {σ τ : Type*} [DecidableEq σ] [DecidableEq τ]
+    (A : Finset σ) (g : σ → τ) :
+    ((univ : Finset ↥A).image fun ω => g ω.1).card = (A.image g).card := by
+  congr 1
+  ext t
+  simp
+
+/-- Postcomposing with an injection does not change the size of a range. -/
+private theorem card_image_univ_of_injective {Ω S S' : Type*} [Fintype Ω] [DecidableEq S]
+    [DecidableEq S'] (W : Ω → S) (f : S → S') (hf : Function.Injective f) :
+    ((univ : Finset Ω).image W).card = ((univ : Finset Ω).image fun ω => f (W ω)).card := by
+  rw [show ((univ : Finset Ω).image fun ω => f (W ω))
+      = ((univ : Finset Ω).image W).image f from (Finset.image_image).symm,
+    Finset.card_image_of_injective _ hf]
+
+/-- The range of a pair of subtype-valued coordinates has the same size as the corresponding
+image of `A` under the pair of the underlying maps. -/
+private theorem card_image_univ_pair {σ τ₁ τ₂ : Type*} [DecidableEq σ] [DecidableEq τ₁]
+    [DecidableEq τ₂] (A : Finset σ) {B₁ : Finset τ₁} {B₂ : Finset τ₂}
+    (W₁ : ↥A → ↥B₁) (W₂ : ↥A → ↥B₂) (g₁ : σ → τ₁) (g₂ : σ → τ₂)
+    (h₁ : ∀ ω : ↥A, (W₁ ω : τ₁) = g₁ ω.1) (h₂ : ∀ ω : ↥A, (W₂ ω : τ₂) = g₂ ω.1) :
+    ((univ : Finset ↥A).image fun ω => (W₁ ω, W₂ ω)).card
+      = (A.image fun x => (g₁ x, g₂ x)).card := by
+  rw [card_image_univ_of_injective (fun ω : ↥A => (W₁ ω, W₂ ω))
+    (fun q : ↥B₁ × ↥B₂ => ((q.1 : τ₁), (q.2 : τ₂)))
+    (by intro q q' h
+        simp only [Prod.mk.injEq] at h
+        exact Prod.ext (Subtype.ext h.1) (Subtype.ext h.2))]
+  simp only [h₁, h₂]
+  exact card_image_univ_coe A (fun x => (g₁ x, g₂ x))
+
 /-- **Discrete Loomis–Whitney in three coordinates** (Theorem 10.4.3): a finite set of points in
 a product of three types has `|A|² ≤ |π₁₂ A| · |π₁₃ A| · |π₂₃ A|`.  Apply `shearer_triple` to a
 uniform random point of `A`, using `entropy_le_logb_card` on each projection. -/
@@ -186,7 +264,55 @@ theorem card_sq_le_prod_card_image {α β γ : Type*} [DecidableEq α] [Decidabl
     [DecidableEq γ] (A : Finset (α × β × γ)) :
     A.card ^ 2 ≤ (A.image fun x => (x.1, x.2.1)).card * (A.image fun x => (x.1, x.2.2)).card
       * (A.image fun x => x.2).card := by
-  sorry
+  rcases A.eq_empty_or_nonempty with rfl | hA
+  · simp
+  obtain ⟨a₀, ha₀⟩ := id hA
+  have : Nonempty ↥A := ⟨⟨a₀, ha₀⟩⟩
+  obtain ⟨X, hX⟩ : ∃ X : ↥A → ↥(A.image fun x => x.1), ∀ ω : ↥A, (X ω : α) = ω.1.1 :=
+    ⟨fun ω => ⟨ω.1.1, Finset.mem_image_of_mem _ ω.2⟩, fun _ => rfl⟩
+  obtain ⟨Y, hY⟩ : ∃ Y : ↥A → ↥(A.image fun x => x.2.1), ∀ ω : ↥A, (Y ω : β) = ω.1.2.1 :=
+    ⟨fun ω => ⟨ω.1.2.1, Finset.mem_image_of_mem _ ω.2⟩, fun _ => rfl⟩
+  obtain ⟨Z, hZ⟩ : ∃ Z : ↥A → ↥(A.image fun x => x.2.2), ∀ ω : ↥A, (Z ω : γ) = ω.1.2.2 :=
+    ⟨fun ω => ⟨ω.1.2.2, Finset.mem_image_of_mem _ ω.2⟩, fun _ => rfl⟩
+  have hp : ∀ ω : ↥A, 0 ≤ uniformPMF (univ : Finset ↥A) ω := uniformPMF_nonneg _
+  have hp1 : ∑ ω : ↥A, uniformPMF (univ : Finset ↥A) ω = 1 := sum_uniformPMF Finset.univ_nonempty
+  have hinj : Function.Injective fun ω : ↥A => (X ω, Y ω, Z ω) := by
+    intro ω ω' h
+    simp only [Prod.mk.injEq] at h
+    refine Subtype.ext ?_
+    have e1 : (ω : α × β × γ).1 = (ω' : α × β × γ).1 := by rw [← hX, ← hX, h.1]
+    have e2 : (ω : α × β × γ).2.1 = (ω' : α × β × γ).2.1 := by rw [← hY, ← hY, h.2.1]
+    have e3 : (ω : α × β × γ).2.2 = (ω' : α × β × γ).2.2 := by rw [← hZ, ← hZ, h.2.2]
+    exact Prod.ext e1 (Prod.ext e2 e3)
+  have hmain : 2 * Real.logb 2 (A.card : ℝ)
+      ≤ Real.logb 2 ((A.image fun x => (x.1, x.2.1)).card : ℝ)
+        + Real.logb 2 ((A.image fun x => (x.1, x.2.2)).card : ℝ)
+        + Real.logb 2 ((A.image fun x => x.2).card : ℝ) := by
+    have hs := shearer_triple (uniformPMF (univ : Finset ↥A)) hp hp1 X Y Z
+    rw [entropy_uniformPMF_univ_of_injective hinj, Fintype.card_coe] at hs
+    refine hs.trans (add_le_add (add_le_add ?_ ?_) ?_)
+    · refine (entropy_le_logb_card_image hp hp1 _).trans (le_of_eq ?_)
+      rw [card_image_univ_pair A X Y (fun x => x.1) (fun x => x.2.1) hX hY]
+    · refine (entropy_le_logb_card_image hp hp1 _).trans (le_of_eq ?_)
+      rw [card_image_univ_pair A X Z (fun x => x.1) (fun x => x.2.2) hX hZ]
+    · refine (entropy_le_logb_card_image hp hp1 _).trans (le_of_eq ?_)
+      rw [card_image_univ_pair A Y Z (fun x => x.2.1) (fun x => x.2.2) hY hZ]
+  have hApos : (0 : ℝ) < (A.card : ℝ) := by
+    exact_mod_cast Finset.card_pos.mpr hA
+  have h1 : (0 : ℝ) < ((A.image fun x => (x.1, x.2.1)).card : ℝ) := by
+    exact_mod_cast Finset.card_pos.mpr (hA.image _)
+  have h2 : (0 : ℝ) < ((A.image fun x => (x.1, x.2.2)).card : ℝ) := by
+    exact_mod_cast Finset.card_pos.mpr (hA.image _)
+  have h3 : (0 : ℝ) < ((A.image fun x => x.2).card : ℝ) := by
+    exact_mod_cast Finset.card_pos.mpr (hA.image _)
+  have hfin : ((A.card : ℝ)) ^ 2
+      ≤ ((A.image fun x => (x.1, x.2.1)).card : ℝ) * ((A.image fun x => (x.1, x.2.2)).card : ℝ)
+        * ((A.image fun x => x.2).card : ℝ) := by
+    rw [← Real.logb_le_logb (b := 2) one_lt_two (by positivity) (by positivity),
+      Real.logb_pow, Real.logb_mul (by positivity) h3.ne', Real.logb_mul h1.ne' h2.ne']
+    push_cast
+    linarith
+  exact_mod_cast hfin
 
 /-- The three edges of the triangle on the vertices `a`, `b`, `c`, as unordered pairs. -/
 def triangleEdges {α : Type*} [DecidableEq α] (a b c : α) : Finset (Sym2 α) :=
