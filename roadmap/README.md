@@ -60,6 +60,16 @@ edge-count bound the book proves, so the edge-count bound stays a task.
 
 ## Log
 
+- **2026-09-13 — the five remaining statements were audited for the degenerate-input defect
+  and are sound.**  Done proactively after three corrections rather than waiting for a fourth
+  worker to bounce.  `exists_bad_card_lt_and_indepNum_le`, `exists_conflictFree_of_card_le`
+  and `exists_nearly_equiangular` are already `∀ n ≥ n₀` / `∀ k ≥ k₀`, so they have no bottom
+  end.  `exists_isDominating_card_le` is fine at `V = ∅` (take `U = ∅`; both sides are `0`),
+  and its `hdeg` is unsatisfiable when `δ > n - 1`, so those cases are vacuous rather than
+  false.  `exists_toSign_abs_sum_le` is vacuous at `n = 0` (only one `Finset (Fin 0)` exists,
+  so `2 ≤ F.card` fails) and comfortably true at `n = 1, 2`; note its bound `2√(n log m)`
+  exceeds `n` whenever `m = 2ⁿ`, so the content is entirely in the regime `m ≪ 2ⁿ`.
+
 - **2026-09-13 — a third statement was false at degenerate `n`; corrected.**
   `exists_nearly_equiangular` claimed its bound for every `n`.  False at `n = 0` (no unit
   vector exists, yet `2 ^ (c * 0) = 1` forces `S` non-empty — machine-checked) and at `n = 1`

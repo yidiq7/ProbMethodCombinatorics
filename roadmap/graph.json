@@ -685,6 +685,21 @@
         "chernoff_abs"
       ]
     },
+    "large_sign_family": {
+      "kind": "theorem",
+      "parent": "chernoff",
+      "file": "ProbMethodCombinatorics/Chernoff.lean",
+      "decl": "ProbMethodCombinatorics.exists_large_sign_family",
+      "doc": "chernoff.md#nearly_equiangular--exists_nearly_equiangular",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "to_sign"
+      ],
+      "proof_uses": [
+        "chernoff_abs"
+      ]
+    },
     "nearly_equiangular": {
       "kind": "theorem",
       "parent": "chernoff",
@@ -692,10 +707,11 @@
       "decl": "ProbMethodCombinatorics.exists_nearly_equiangular",
       "doc": "chernoff.md#nearly_equiangular--exists_nearly_equiangular",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": [
-        "chernoff_abs"
+        "chernoff_abs",
+        "large_sign_family"
       ]
     },
     "hajos": {

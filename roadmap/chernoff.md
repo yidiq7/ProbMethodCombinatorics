@@ -75,6 +75,26 @@ exponentially many. Proof: take `m = ⌈2^{cn}⌉` random vectors in `{-1,1}ⁿ`
 to probability `p = (1 + √α)/2`, so `𝔼[vᵢ · vⱼ] = (2p-1)² = α`; Chernoff plus a union bound
 over the `m²` pairs. Normalize by `√n` at the end.
 
+### `exists_large_sign_family` — many sign vectors with small pairwise correlation
+
+Contributed with `nearly_equiangular` (PR #68): for `0 < β ≤ 1` there are at least
+`exp(β² m / 2) / 4` vectors in `{±1}^m` whose pairwise correlations are all at most `β m` in
+absolute value.  A greedy sphere-packing bound, from the two-sided Chernoff estimate.
+
+**`β ≤ 1` is load-bearing, and the contributor flagged it rather than relying on it
+silently.**  For `β > √(2 log 2) ≈ 1.177` the correlation condition holds for *every* pair —
+the sum is at most `m` — so the family could be all `2^m` vectors, while `exp(β² m / 2)/4`
+exceeds `2^m`.  The statement would be false there.
+
+### Why the equiangular proof departs from the book
+
+Zhao biases the random vectors (`+1` with probability `(1 + √α)/2`) so that
+`𝔼[vᵢ · vⱼ] = α`, which needs a **biased** Chernoff bound; this project has only the uniform
+one.  PR #68 instead freezes `k = ⌊α n⌋` coordinates at `+1` and lets the sign family choose
+the remaining `m = n - k`: the frozen block supplies the mean `k/n ≈ α`, the free block stays
+within `β`, and the uniform bound suffices.  Worth remembering — when the source's route needs
+machinery the corpus lacks, moving the source of the bias is often cheaper than building it.
+
 ## Not stated
 
 **§5.3, the Hajós conjecture counterexample** (Theorem 5.3.2: whp `G(n, 1/2)` has no
