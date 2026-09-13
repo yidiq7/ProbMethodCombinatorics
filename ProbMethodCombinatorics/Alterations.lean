@@ -934,6 +934,92 @@ theorem uniformWeights_forall_gt {α : Type*} [Fintype α] [DecidableEq α]
   rw [hs, Real.volume_Ioc] at h
   exact h
 
+
+/-- **Ties are null.**  Two distinct vertices receive equal weights with probability zero: this
+is where the continuity of the weight distribution is used, and it has no counterpart for
+two-colourings.
+
+For each `n` the tie event is covered by the `n` boxes on which both coordinates lie in the same
+window of length `1 / n`, together with the null event that the first coordinate escapes `[0, 1]`,
+so the tie event has measure at most `1 / n`. -/
+theorem uniformWeights_eq_null {α : Type*} [Fintype α] [DecidableEq α] {u v : α} (huv : u ≠ v) :
+    uniformWeights α {w : α → ℝ | w u = w v} = 0 := by
+  have hout : uniformWeights α {w : α → ℝ | w u ∉ Set.Icc (0 : ℝ) 1} = 0 := by
+    have hset : {w : α → ℝ | w u ∉ Set.Icc (0 : ℝ) 1}
+        = {w : α → ℝ | ∀ t ∈ ({u} : Finset α), w t ∈ (Set.Icc (0 : ℝ) 1)ᶜ} := by
+      ext w
+      constructor
+      · intro hw t ht
+        rw [Finset.mem_singleton] at ht
+        subst ht
+        exact hw
+      · intro hw
+        exact hw u (Finset.mem_singleton_self u)
+    rw [hset, uniformWeights_forall_mem, Set.compl_inter_self, measure_empty,
+      Finset.card_singleton, pow_one]
+  have hkey : ∀ n : ℕ, uniformWeights α {w : α → ℝ | w u = w v} ≤ (n : ENNReal)⁻¹ := by
+    intro n
+    rcases Nat.eq_zero_or_pos n with rfl | hn
+    · simp
+    have hn0 : (0 : ℝ) < n := by exact_mod_cast hn
+    have hcover : {w : α → ℝ | w u = w v} ⊆ {w : α → ℝ | w u ∉ Set.Icc (0 : ℝ) 1} ∪
+        ⋃ j ∈ Finset.range n, {w : α → ℝ | ∀ t ∈ ({u, v} : Finset α),
+          w t ∈ Set.Icc ((j : ℝ) / n) (((j : ℝ) + 1) / n)} := by
+      intro w hw
+      have hw' : w u = w v := hw
+      by_cases hmem : w u ∈ Set.Icc (0 : ℝ) 1
+      · refine Or.inr ?_
+        obtain ⟨hx0, hx1⟩ := hmem
+        set j : ℕ := min ⌊w u * n⌋₊ (n - 1) with hj
+        have hjn : j < n := lt_of_le_of_lt (min_le_right _ _) (by omega)
+        have hjle : (j : ℝ) ≤ w u * n := by
+          refine le_trans ?_ (Nat.floor_le (by positivity))
+          exact_mod_cast min_le_left ⌊w u * n⌋₊ (n - 1)
+        have hjlt : w u * n ≤ (j : ℝ) + 1 := by
+          by_cases hc : ⌊w u * n⌋₊ ≤ n - 1
+          · have hjeq : j = ⌊w u * n⌋₊ := by omega
+            rw [hjeq]
+            exact le_of_lt (Nat.lt_floor_add_one _)
+          · have hjeq : j = n - 1 := by omega
+            rw [hjeq]
+            have hcast : ((n - 1 : ℕ) : ℝ) + 1 = (n : ℝ) := by
+              have h1 : (1 : ℕ) ≤ n := hn
+              push_cast [Nat.cast_sub h1]
+              ring
+            rw [hcast]
+            nlinarith
+        refine Set.mem_biUnion (Finset.mem_range.mpr hjn) ?_
+        intro t ht
+        have hteq : w t = w u := by
+          simp only [Finset.mem_insert, Finset.mem_singleton] at ht
+          rcases ht with rfl | rfl
+          · rfl
+          · exact hw'.symm
+        rw [hteq]
+        exact ⟨(div_le_iff₀ hn0).mpr hjle, (le_div_iff₀ hn0).mpr hjlt⟩
+      · exact Or.inl hmem
+    refine le_trans (measure_mono hcover) ?_
+    refine le_trans (measure_union_le _ _) ?_
+    rw [hout, zero_add]
+    refine le_trans (measure_biUnion_finset_le _ _) ?_
+    have hbox : ∀ j ∈ Finset.range n, uniformWeights α {w : α → ℝ | ∀ t ∈ ({u, v} : Finset α),
+        w t ∈ Set.Icc ((j : ℝ) / n) (((j : ℝ) + 1) / n)} ≤ ((n : ENNReal)⁻¹) ^ 2 := by
+      intro j _
+      rw [uniformWeights_forall_mem, Finset.card_pair huv]
+      refine pow_le_pow_left₀ zero_le ?_ 2
+      refine le_trans (measure_mono Set.inter_subset_left) ?_
+      rw [Real.volume_Icc]
+      have hlen : ((j : ℝ) + 1) / n - (j : ℝ) / n = 1 / n := by
+        rw [div_sub_div_same]
+        norm_num
+      rw [hlen, one_div, ENNReal.ofReal_inv_of_pos hn0, ENNReal.ofReal_natCast]
+    refine le_trans (Finset.sum_le_sum hbox) ?_
+    rw [Finset.sum_const, Finset.card_range, nsmul_eq_mul, sq, ← mul_assoc,
+      ENNReal.mul_inv_cancel (by exact_mod_cast hn.ne') (ENNReal.natCast_ne_top n), one_mul]
+  by_contra hne
+  obtain ⟨n, hn⟩ := ENNReal.exists_inv_nat_lt hne
+  exact absurd (hkey n) (not_le.mpr hn)
+
 end UniformWeights
 
 
@@ -965,6 +1051,23 @@ theorem integral_pow_mul_one_sub_pow_le (n : ℕ) {p : ℝ} (hp0 : 0 ≤ p) (hp1
   have h : (1 + p) / 2 - (1 - p) / 2 = p := by ring
   rw [h]
 
+/-- **The core Beta-type estimate for a single shared vertex.**  Under independent uniform
+weights, the probability that `v` is weighted in the middle window `[(1 - p) / 2, (1 + p) / 2]`
+while all of `e` sits below it and all of `f` sits above it is at most
+`∫ x in (1 - p) / 2..(1 + p) / 2, x ^ n * (1 - x) ^ n`, when `e` and `f` are disjoint `n`-element
+sets avoiding `v`.
+
+Conditionally on `w v = x` the `n` weights on `e` and the `n` weights on `f` are independent of
+`w v` and of each other, so the conditional probability is `x ^ n * (1 - x) ^ n`; integrating the
+density of `w v` over the middle window gives the bound. -/
+theorem uniformWeights_heaviest_lightest_le {α : Type*} [Fintype α] [DecidableEq α]
+    {n : ℕ} {p : ℝ} (hp0 : 0 < p) (hp1 : p ≤ 1) {v : α} {e f : Finset α}
+    (hef : Disjoint e f) (hve : v ∉ e) (hvf : v ∉ f) (he : e.card = n) (hf : f.card = n) :
+    uniformWeights α {w : α → ℝ | (1 - p) / 2 ≤ w v ∧ w v ≤ (1 + p) / 2 ∧
+        (∀ u ∈ e, w u ≤ w v) ∧ (∀ u ∈ f, w v ≤ w u)}
+      ≤ ENNReal.ofReal (∫ x in (1 - p) / 2..(1 + p) / 2, x ^ n * (1 - x) ^ n) := by
+  sorry
+
 /-- **A fixed ordered pair of edges conflicts in the middle window with probability at most the
 Beta-type integral.**  Under independent uniform weights, if `e` and `f` are `k`-element edges
 then the chance that some vertex `v` is `w`-heaviest in `e`, `w`-lightest in `f`, and weighted in
@@ -978,12 +1081,80 @@ of `e` must all be weighted below `x` and the remaining `k - 1` vertices of `f` 
 those `2 * (k - 1)` weights are independent, so the conditional probability is
 `x ^ (k - 1) * (1 - x) ^ (k - 1)`, and integrating over the middle window gives the bound. -/
 theorem uniformWeights_conflictingPair_mid_le {α : Type*} [Fintype α] [DecidableEq α]
-    {k : ℕ} (hk : 2 ≤ k) {p : ℝ} (hp0 : 0 < p) (hp1 : p ≤ 1) {e f : Finset α}
+    {k : ℕ} {p : ℝ} (hp0 : 0 < p) (hp1 : p ≤ 1) {e f : Finset α}
     (he : e.card = k) (hf : f.card = k) :
     uniformWeights α {w : α → ℝ | ∃ v : α, ConflictingPair w e f v ∧
         (1 - p) / 2 ≤ w v ∧ w v ≤ (1 + p) / 2}
       ≤ ENNReal.ofReal (∫ x in (1 - p) / 2..(1 + p) / 2, x ^ (k - 1) * (1 - x) ^ (k - 1)) := by
-  sorry
+  rcases Finset.eq_empty_or_nonempty (e ∩ f) with hemp | ⟨v₀, hv₀⟩
+  · -- disjoint edges have no shared vertex, so they never conflict
+    have hset : {w : α → ℝ | ∃ v : α, ConflictingPair w e f v ∧
+        (1 - p) / 2 ≤ w v ∧ w v ≤ (1 + p) / 2} = (∅ : Set (α → ℝ)) := by
+      ext w
+      constructor
+      · rintro ⟨v, ⟨hve, hvf, -, -⟩, -, -⟩
+        exact absurd (Finset.mem_inter.mpr ⟨hve, hvf⟩)
+          (by rw [hemp]; exact Finset.notMem_empty v)
+      · exact fun h => absurd h (Set.notMem_empty w)
+    rw [hset, MeasureTheory.measure_empty]
+    exact zero_le
+  · by_cases hcard : (e ∩ f).card = 1
+    · -- the edges meet in the single vertex `v₀`
+      have hinter : e ∩ f = {v₀} := by
+        obtain ⟨x, hx⟩ := Finset.card_eq_one.mp hcard
+        rw [hx] at hv₀ ⊢
+        rw [Finset.mem_singleton.mp hv₀]
+      have hv₀e : v₀ ∈ e := (Finset.mem_inter.mp hv₀).1
+      have hv₀f : v₀ ∈ f := (Finset.mem_inter.mp hv₀).2
+      have hsub : {w : α → ℝ | ∃ v : α, ConflictingPair w e f v ∧
+          (1 - p) / 2 ≤ w v ∧ w v ≤ (1 + p) / 2} ⊆
+          {w : α → ℝ | (1 - p) / 2 ≤ w v₀ ∧ w v₀ ≤ (1 + p) / 2 ∧
+            (∀ u ∈ e.erase v₀, w u ≤ w v₀) ∧ (∀ u ∈ f.erase v₀, w v₀ ≤ w u)} := by
+        rintro w ⟨v, ⟨hve, hvf, hmax, hmin⟩, hl, hr⟩
+        have hvv : v = v₀ := by
+          have hv : v ∈ e ∩ f := Finset.mem_inter.mpr ⟨hve, hvf⟩
+          rw [hinter] at hv
+          exact Finset.mem_singleton.mp hv
+        subst hvv
+        exact ⟨hl, hr, fun u hu => hmax u (Finset.mem_of_mem_erase hu),
+          fun u hu => hmin u (Finset.mem_of_mem_erase hu)⟩
+      refine le_trans (MeasureTheory.measure_mono hsub) ?_
+      refine uniformWeights_heaviest_lightest_le hp0 hp1 ?_ (Finset.notMem_erase v₀ e)
+        (Finset.notMem_erase v₀ f) ?_ ?_
+      · rw [Finset.disjoint_left]
+        intro u hue huf
+        have hu : u ∈ e ∩ f := Finset.mem_inter.mpr
+          ⟨Finset.mem_of_mem_erase hue, Finset.mem_of_mem_erase huf⟩
+        rw [hinter, Finset.mem_singleton] at hu
+        exact (Finset.ne_of_mem_erase hue) hu
+      · rw [Finset.card_erase_of_mem hv₀e, he]
+      · rw [Finset.card_erase_of_mem hv₀f, hf]
+    · -- two or more shared vertices force a tie, which is a null event
+      have hge : 2 ≤ (e ∩ f).card := by
+        have h1 : 1 ≤ (e ∩ f).card := Finset.card_pos.mpr ⟨v₀, hv₀⟩
+        omega
+      have hsub : {w : α → ℝ | ∃ v : α, ConflictingPair w e f v ∧
+          (1 - p) / 2 ≤ w v ∧ w v ≤ (1 + p) / 2} ⊆
+          ⋃ v ∈ e ∩ f, ⋃ u ∈ (e ∩ f).erase v, {w : α → ℝ | w u = w v} := by
+        rintro w ⟨v, ⟨hve, hvf, hmax, hmin⟩, -, -⟩
+        have hvmem : v ∈ e ∩ f := Finset.mem_inter.mpr ⟨hve, hvf⟩
+        have hne : ((e ∩ f).erase v).Nonempty := by
+          rw [← Finset.card_pos, Finset.card_erase_of_mem hvmem]
+          omega
+        obtain ⟨u, hu⟩ := hne
+        refine Set.mem_biUnion hvmem (Set.mem_biUnion hu ?_)
+        have humem := Finset.mem_of_mem_erase hu
+        exact le_antisymm (hmax u (Finset.mem_inter.mp humem).1)
+          (hmin u (Finset.mem_inter.mp humem).2)
+      refine le_trans (MeasureTheory.measure_mono hsub) ?_
+      refine le_trans (MeasureTheory.measure_biUnion_finset_le _ _) ?_
+      refine le_trans
+        (Finset.sum_le_sum fun v _ => MeasureTheory.measure_biUnion_finset_le _ _) ?_
+      have hz : ∀ v ∈ e ∩ f, ∑ u ∈ (e ∩ f).erase v, uniformWeights α {w : α → ℝ | w u = w v}
+          = 0 := fun v _ =>
+        Finset.sum_eq_zero fun u hu => uniformWeights_eq_null (Finset.ne_of_mem_erase hu)
+      rw [Finset.sum_congr rfl hz, Finset.sum_const, smul_zero]
+      exact zero_le
 
 /-- **The union bound behind the Cherkashin–Kozik estimate.**  Give each vertex an independent
 uniform weight in `[0, 1]` and split `[0, 1]` into `L = [0, (1 - p) / 2)`, the middle window
@@ -1052,7 +1223,7 @@ theorem exists_conflictFree_of_union_bound_lt_one {α : Type*} [Fintype α] [Dec
       (Finset.sum_le_sum fun e he => ?_)
     refine le_trans (MeasureTheory.measure_biUnion_finset_le H _)
       (Finset.sum_le_sum fun f hf => ?_)
-    exact uniformWeights_conflictingPair_mid_le hk hp0 hp1 (huniform e he) (huniform f hf)
+    exact uniformWeights_conflictingPair_mid_le hp0 hp1 (huniform e he) (huniform f hf)
   -- the total mass of the three events is at least `1`
   have hchain : (1 : ENNReal) ≤ (H.card : ENNReal) * ENNReal.ofReal ((1 - p) / 2) ^ k
       + (H.card : ENNReal) * ENNReal.ofReal ((1 - p) / 2) ^ k
