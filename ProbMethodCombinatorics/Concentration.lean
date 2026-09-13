@@ -332,7 +332,42 @@ theorem hasSubgaussianMGF_sub_integral_of_bddDiff {ι : Type*} [Fintype ι] {Ω 
     (hc : ∀ i (x y : ∀ i, Ω i), (∀ j, j ≠ i → x j = y j) → |f x - f y| ≤ c i) :
     HasSubgaussianMGF (fun x ↦ f x - ∫ y, f y ∂(Measure.pi μ))
       (((∑ i, c i ^ 2) / 4).toNNReal) (Measure.pi μ) := by
-  sorry
+  let _ : DecidableEq ι := fun a b ↦
+    decidable_of_iff (Fintype.equivFin ι a = Fintype.equivFin ι b) (Equiv.apply_eq_iff_eq _)
+  have hintf : Integrable f (Measure.pi μ) :=
+    integrable_of_abs_sub_le _ _ hf fun u v ↦ abs_sub_le_sum_of_bddDiff f c hc _ _
+  have hKuniv : ∀ x : ∀ j, Ω j, |f x - ∫ y, f y ∂(Measure.pi μ)| ≤ ∑ i, c i := by
+    intro x
+    have h1 : (∫ y, (f x - f y) ∂(Measure.pi μ)) = f x - ∫ y, f y ∂(Measure.pi μ) := by
+      rw [integral_sub (integrable_const _) hintf]
+      simp
+    rw [← h1]
+    have hb : ∀ y : ∀ j, Ω j, ‖f x - f y‖ ≤ ∑ i, c i := fun y ↦ by
+      rw [Real.norm_eq_abs]
+      exact abs_sub_le_sum_of_bddDiff f c hc _ _
+    simpa [Real.norm_eq_abs] using
+      norm_integral_le_of_norm_le_const (μ := Measure.pi μ) (ae_of_all _ hb)
+  have huniv : ∀ x : ∀ j, Ω j,
+      (∫ y, f (fun j ↦ if j ∈ (Finset.univ : Finset ι) then x j else y j) ∂(Measure.pi μ))
+        = f x := by
+    intro x
+    simp
+  constructor
+  · intro t
+    refine Integrable.of_mem_Icc 0 (Real.exp (|t| * ∑ i, c i))
+      (((hf.sub_const _).const_mul t).exp).aemeasurable (ae_of_all _ fun x ↦ ?_)
+    refine ⟨(Real.exp_pos _).le, Real.exp_le_exp.mpr ?_⟩
+    calc t * (f x - ∫ y, f y ∂(Measure.pi μ))
+        ≤ |t * (f x - ∫ y, f y ∂(Measure.pi μ))| := le_abs_self _
+      _ = |t| * |f x - ∫ y, f y ∂(Measure.pi μ)| := abs_mul _ _
+      _ ≤ |t| * ∑ i, c i := mul_le_mul_of_nonneg_left (hKuniv x) (abs_nonneg t)
+  · intro t
+    have hmain := integral_exp_mul_integral_merge_le μ f c hf hc t Finset.univ
+    simp only [huniv] at hmain
+    refine (le_of_eq ?_).trans (hmain.trans (le_of_eq ?_))
+    · rw [mgf]
+    · rw [Real.exp_eq_exp, Real.coe_toNNReal _ (by positivity)]
+      ring
 
 /-- **The bounded differences inequality** (Zhao, Theorem 9.1.3; also McDiarmid's inequality and
 the Azuma–Hoeffding inequality).  If changing the `i`-th coordinate alone moves `f` by at most
