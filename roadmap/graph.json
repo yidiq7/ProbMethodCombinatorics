@@ -215,7 +215,7 @@
       "decl": "ProbMethodCombinatorics.exists_isIndepSet_caro_wei",
       "doc": "expectation.md#caro_wei--exists_isindepset_caro_wei",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": []
     },
