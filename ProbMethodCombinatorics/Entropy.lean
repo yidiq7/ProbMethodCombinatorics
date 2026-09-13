@@ -427,22 +427,27 @@ theorem sum_logb_availCount {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ)
     exact_mod_cast hcnt
   rw [Finset.sum_congr rfl key, ← Finset.mul_sum, sum_logb_Icc_eq]
 
-/-- **Radhakrishnan's entropy bound** (the displayed inequality on p. 180 of the notes).  Let `π`
-be uniform on the matchings of `A` and `τ` an independent uniform reveal order.  Revealing the
-entries of `π` in the order `τ` and applying the chain rule `condEntropy_eq_sub` along that
-order,
+/-- **Radhakrishnan's entropy bound, for one reveal order** (the displayed inequality on p. 180
+of the notes).  Let `π` be uniform on the matchings of `A`, and fix an order `τ` in which to
+reveal the entries `(j, π j)` — row `j` before row `k` when `τ j < τ k`.  The chain rule
+`condEntropy_eq_sub`, applied along that order, gives
 
-`H(π) = 𝔼_τ ∑ᵢ H(πᵢ ∣ πⱼ : j revealed before i)`,
+`H(π) = ∑ᵢ H(πᵢ ∣ πⱼ : j revealed before i)`,
 
-and conditioned on what has been revealed, `πᵢ` takes at most `availCount A π τ i` values, so
-`entropy_le_logb_card` bounds each term by `𝔼 log₂ Nᵢ`.  The right-hand side here is that
-expectation written out: the average over `π ∈ permSupport A` and over all `n!` orders `τ`. -/
+and conditioned on the entries already revealed, `πᵢ` is confined to the `availCount A π τ i`
+columns of row `i` that are still free, so `entropy_le_logb_card` applied inside each fibre
+bounds the `i`-th term by the average of `log₂ Nᵢ`.  The right-hand side below is that average
+over `π ∈ permSupport A`.
+
+The inequality holds for each fixed `τ` separately; what Radhakrishnan's proof gains by taking
+`τ` random is that averaging the right-hand side over `τ` makes it computable, which is
+`card_filter_rank_mul_card_eq_factorial`. -/
 theorem entropy_permSupport_le_expected_logb_availCount {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ)
-    (hA : ∀ i j, A i j = 0 ∨ A i j = 1) (hP : (permSupport A).Nonempty) :
+    (hA : ∀ i j, A i j = 0 ∨ A i j = 1) (hP : (permSupport A).Nonempty)
+    (τ : Equiv.Perm (Fin n)) :
     entropy (uniformPMF (permSupport A)) id ≤
-      ((permSupport A).card : ℝ)⁻¹ * ((Nat.factorial n : ℝ))⁻¹ *
-        ∑ π ∈ permSupport A, ∑ τ : Equiv.Perm (Fin n),
-          ∑ i, Real.logb 2 (availCount A π τ i) := by
+      ((permSupport A).card : ℝ)⁻¹ *
+        ∑ π ∈ permSupport A, ∑ i, Real.logb 2 (availCount A π τ i) := by
   sorry
 
 end Bregman
@@ -483,8 +488,23 @@ theorem permanent_le_prod_factorial {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ)
       ring
     have hmain : Real.logb 2 ((permSupport A).card : ℝ)
         ≤ ∑ i, ((d i : ℝ))⁻¹ * Real.logb 2 (Nat.factorial (d i) : ℝ) := by
-      have h1 := entropy_permSupport_le_expected_logb_availCount A hA hP
-      rw [entropy_uniformPMF hP] at h1
+      have hstep : ∀ τ : Equiv.Perm (Fin n), Real.logb 2 ((permSupport A).card : ℝ)
+          ≤ ((permSupport A).card : ℝ)⁻¹ *
+            ∑ π ∈ permSupport A, ∑ i, Real.logb 2 (availCount A π τ i) := by
+        intro τ
+        have h := entropy_permSupport_le_expected_logb_availCount A hA hP τ
+        rwa [entropy_uniformPMF hP] at h
+      have havg := Finset.sum_le_sum
+        (fun τ (_ : τ ∈ (univ : Finset (Equiv.Perm (Fin n)))) => hstep τ)
+      rw [Finset.sum_const, nsmul_eq_mul, ← Finset.mul_sum, Finset.card_univ, Fintype.card_perm,
+        Fintype.card_fin, Finset.sum_comm] at havg
+      have h1 : Real.logb 2 ((permSupport A).card : ℝ)
+          ≤ ((permSupport A).card : ℝ)⁻¹ * ((Nat.factorial n : ℝ))⁻¹ *
+            ∑ π ∈ permSupport A, ∑ τ : Equiv.Perm (Fin n),
+              ∑ i, Real.logb 2 (availCount A π τ i) := by
+        rw [mul_comm ((permSupport A).card : ℝ)⁻¹, mul_assoc,
+          le_inv_mul_iff₀ (by exact_mod_cast Nat.factorial_pos n : (0 : ℝ) < Nat.factorial n)]
+        exact havg
       refine h1.trans_eq ?_
       have hsum : ∀ π ∈ permSupport A,
           ∑ τ : Equiv.Perm (Fin n), ∑ i, Real.logb 2 (availCount A π τ i)
