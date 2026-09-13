@@ -756,6 +756,114 @@ theorem exists_girth_gt_and_chromaticNumber_gt (k l : ℕ) :
   rw [Fintype.card_fin] at hcard
   omega
 
+section GreedyColoring
+
+/-- A *conflicting pair* for the vertex weights `w`: edges `e` and `f` sharing a vertex `v` whose
+weight is largest in `e` and smallest in `f`.
+
+Pluhár's greedy colouring visits the vertices in increasing order of weight and colours each one
+blue unless that would complete an all-blue edge; it leaves an edge monochromatic only when the
+hypergraph has a conflicting pair. -/
+def ConflictingPair {α : Type*} (w : α → ℝ) (e f : Finset α) (v : α) : Prop :=
+  v ∈ e ∧ v ∈ f ∧ (∀ u ∈ e, w u ≤ w v) ∧ (∀ u ∈ f, w v ≤ w u)
+
+/-- **Correctness of the greedy colouring** (Pluhár; the combinatorial half of Zhao,
+Theorem 3.5.1).  A hypergraph with no empty edge whose vertex weights admit no conflicting pair
+is 2-colourable.
+
+Colour the vertices in increasing order of weight, each one blue unless that would make some edge
+all blue, in which case red.  No edge is then all blue, because the greedy rule refuses the blue
+at its heaviest vertex.  If some edge `f` were all red, its lightest vertex `v` was refused the
+blue by an edge `e` all of whose other vertices are lighter than `v`, and then `e`, `f`, `v` is a
+conflicting pair. -/
+theorem twoColorable_of_no_conflictingPair {α : Type*} [Fintype α] [DecidableEq α]
+    {H : Finset (Finset α)} (hne : ∀ e ∈ H, e.Nonempty) (w : α → ℝ)
+    (hw : ∀ e ∈ H, ∀ f ∈ H, ∀ v : α, ¬ ConflictingPair w e f v) :
+    TwoColorable H := by
+  -- Colour a `w`-downward-closed prefix `S` greedily: no edge inside `S` is all blue, and every
+  -- red vertex of `S` is the heaviest vertex of some edge.
+  have key : ∀ S : Finset α, ∃ c : α → Bool,
+      (∀ e ∈ H, e ⊆ S → ∃ u ∈ e, c u = false) ∧
+      (∀ v ∈ S, c v = false → ∃ e ∈ H, v ∈ e ∧ ∀ u ∈ e, w u ≤ w v) := by
+    intro S
+    induction S using Finset.strongInduction with
+    | _ S ih =>
+      rcases S.eq_empty_or_nonempty with rfl | hS
+      · refine ⟨fun _ => true, ?_, ?_⟩
+        · intro e he hsub
+          obtain ⟨x, hx⟩ := hne e he
+          exact absurd (hsub hx) (by simp)
+        · intro v hv
+          simp at hv
+      · obtain ⟨v, hvS, hvmax⟩ := Finset.exists_max_image S w hS
+        obtain ⟨c, hA, hB⟩ := ih (S.erase v) (Finset.erase_ssubset hvS)
+        have hrest : ∀ e : Finset α, e ⊆ S → v ∉ e → e ⊆ S.erase v :=
+          fun e hsub hve x hx =>
+          Finset.mem_erase.2 ⟨fun h => hve (h ▸ hx), hsub hx⟩
+        by_cases hred : ∃ e ∈ H, v ∈ e ∧ e ⊆ S ∧ ∀ u ∈ e, u ≠ v → c u = true
+        · refine ⟨fun u => if u = v then false else c u, ?_, ?_⟩
+          · intro e he hsub
+            by_cases hve : v ∈ e
+            · exact ⟨v, hve, by simp⟩
+            · obtain ⟨u, hu, hcu⟩ := hA e he (hrest e hsub hve)
+              have huv : u ≠ v := fun h => hve (h ▸ hu)
+              exact ⟨u, hu, by simpa only [if_neg huv] using hcu⟩
+          · intro u huS hcu
+            by_cases huv : u = v
+            · subst huv
+              obtain ⟨e, he, hue, hsub, -⟩ := hred
+              exact ⟨e, he, hue, fun x hx => hvmax x (hsub hx)⟩
+            · exact hB u (Finset.mem_erase.2 ⟨huv, huS⟩) (by simpa [huv] using hcu)
+        · refine ⟨fun u => if u = v then true else c u, ?_, ?_⟩
+          · intro e he hsub
+            by_cases hve : v ∈ e
+            · by_contra hcon
+              refine hred ⟨e, he, hve, hsub, fun u hu huv => ?_⟩
+              by_contra hcu
+              exact hcon ⟨u, hu, by simpa [huv] using hcu⟩
+            · obtain ⟨u, hu, hcu⟩ := hA e he (hrest e hsub hve)
+              have huv : u ≠ v := fun h => hve (h ▸ hu)
+              exact ⟨u, hu, by simpa only [if_neg huv] using hcu⟩
+          · intro u huS hcu
+            by_cases huv : u = v
+            · simp [huv] at hcu
+            · exact hB u (Finset.mem_erase.2 ⟨huv, huS⟩) (by simpa [huv] using hcu)
+  obtain ⟨c, hA, hB⟩ := key Finset.univ
+  refine ⟨c, fun e he => ?_⟩
+  obtain ⟨u, hu, hcu⟩ := hA e he (Finset.subset_univ e)
+  by_cases hblue : ∃ x ∈ e, c x = true
+  · obtain ⟨x, hx, hcx⟩ := hblue
+    exact ⟨u, hu, x, hx, by rw [hcu, hcx]; simp⟩
+  · exfalso
+    obtain ⟨v, hv, hvmin⟩ := Finset.exists_min_image e w (hne e he)
+    have hcv : c v = false := by
+      by_contra hcon
+      exact hblue ⟨v, hv, by simpa using hcon⟩
+    obtain ⟨e', he', hve', hmax⟩ := hB v (Finset.mem_univ v) hcv
+    exact hw e' he' e he v ⟨hve', hv, hmax, hvmin⟩
+
+/-- **The Cherkashin–Kozik estimate** (the analytic half of Zhao, Theorem 3.5.1).  For some
+absolute constant `c > 0` and every large enough `k`, every `k`-uniform hypergraph with at most
+`c * √(k / log k) * 2 ^ k` edges carries vertex weights with no conflicting pair.
+
+Give each vertex an independent uniform weight in `[0, 1]` and split `[0, 1]` as `L ∪ M ∪ R`
+with `M = [(1 - p) / 2, (1 + p) / 2]` and `p = log (2 ^ (k - 1) * k / m) / k`, `m = #H`.  Some
+edge lies wholly in `L` or wholly in `R` with probability at most `2 * m * ((1 - p) / 2) ^ k`.
+Otherwise the shared vertex of a conflicting pair lies in `M`, and a fixed ordered pair of edges
+conflicts there with probability at most the Beta-type integral
+`∫ x in (1 - p) / 2..(1 + p) / 2, x ^ (k - 1) * (1 - x) ^ (k - 1)`, which is at most
+`p * 4 ^ (1 - k)`; that costs at most `m ^ 2 * p * 4 ^ (1 - k)`.  For
+`m ≤ c * √(k / log k) * 2 ^ k` the two terms sum to less than `1`, so some weighting works. -/
+theorem exists_conflictFree_of_card_le :
+    ∃ (c : ℝ) (k₀ : ℕ), 0 < c ∧
+      ∀ (α : Type) (_ : Fintype α) (_ : DecidableEq α) (k : ℕ), k₀ ≤ k →
+        ∀ H : Finset (Finset α), (∀ e ∈ H, e.card = k) →
+          (H.card : ℝ) ≤ c * Real.sqrt (k / Real.log k) * 2 ^ k →
+          ∃ w : α → ℝ, ∀ e ∈ H, ∀ f ∈ H, ∀ v : α, ¬ ConflictingPair w e f v := by
+  sorry
+
+end GreedyColoring
+
 /-- **Radhakrishnan–Srinivasan 2000** (Zhao, Theorem 3.5.1): for some absolute constant `c > 0`,
 every `k`-uniform hypergraph with at most `c * √(k / log k) * 2 ^ k` edges is 2-colourable.  This
 is the best known lower bound on `m k`, and strengthens `twoColorable_of_card_lt`. -/
@@ -763,6 +871,47 @@ theorem exists_twoColorable_of_card_le :
     ∃ c : ℝ, 0 < c ∧ ∀ (α : Type) (_ : Fintype α) (_ : DecidableEq α) (k : ℕ), 2 ≤ k →
       ∀ H : Finset (Finset α), (∀ e ∈ H, e.card = k) →
         (H.card : ℝ) ≤ c * Real.sqrt (k / Real.log k) * 2 ^ k → TwoColorable H := by
-  sorry
+  obtain ⟨c₀, k₀, hc₀, hB⟩ := exists_conflictFree_of_card_le
+  have hlog2 : (0 : ℝ) < Real.log 2 := Real.log_pos (by norm_num)
+  set s : ℝ := Real.sqrt ((k₀ : ℝ) / Real.log 2)
+  have hs0 : (0 : ℝ) ≤ s := Real.sqrt_nonneg _
+  have hD : (0 : ℝ) < 1 / (2 * (s + 1)) := by positivity
+  refine ⟨min c₀ (1 / (2 * (s + 1))), lt_min hc₀ hD, ?_⟩
+  intro α hfin hdec k hk H huniform hcard
+  have hsq : (0 : ℝ) ≤ Real.sqrt ((k : ℝ) / Real.log k) := Real.sqrt_nonneg _
+  have h2k : (0 : ℝ) < (2 : ℝ) ^ k := by positivity
+  by_cases hkk : k₀ ≤ k
+  · have hle : (H.card : ℝ) ≤ c₀ * Real.sqrt ((k : ℝ) / Real.log k) * 2 ^ k :=
+      hcard.trans (mul_le_mul_of_nonneg_right
+        (mul_le_mul_of_nonneg_right (min_le_left _ _) hsq) h2k.le)
+    obtain ⟨w, hw⟩ := hB α hfin hdec k hkk H huniform hle
+    exact twoColorable_of_no_conflictingPair
+      (fun e he => Finset.card_pos.mp (by rw [huniform e he]; omega)) w hw
+  · have hklt : (k : ℝ) ≤ (k₀ : ℝ) := by
+      have : k ≤ k₀ := by omega
+      exact_mod_cast this
+    have hlogk : Real.log 2 ≤ Real.log k :=
+      Real.log_le_log (by norm_num) (by exact_mod_cast hk)
+    have h1 : (k : ℝ) / Real.log k ≤ (k₀ : ℝ) / Real.log 2 := by
+      gcongr
+    have h2 : Real.sqrt ((k : ℝ) / Real.log k) ≤ s := Real.sqrt_le_sqrt h1
+    have h3 : min c₀ (1 / (2 * (s + 1))) * Real.sqrt ((k : ℝ) / Real.log k)
+        ≤ 1 / (2 * (s + 1)) * s :=
+      mul_le_mul (min_le_right _ _) h2 hsq hD.le
+    have h4 : 1 / (2 * (s + 1)) * s < 1 / 2 := by
+      rw [div_mul_eq_mul_div, one_mul,
+        div_lt_iff₀ (show (0 : ℝ) < 2 * (s + 1) by positivity)]
+      linarith
+    have h5 : (H.card : ℝ) < 1 / 2 * 2 ^ k :=
+      lt_of_le_of_lt (hcard.trans (mul_le_mul_of_nonneg_right h3 h2k.le))
+        (mul_lt_mul_of_pos_right h4 h2k)
+    have h6 : (2 : ℝ) ^ (k - 1) * 2 = (2 : ℝ) ^ k := by
+      rw [← pow_succ]
+      congr 1
+      omega
+    have h7 : (H.card : ℝ) < ((2 ^ (k - 1) : ℕ) : ℝ) := by
+      push_cast
+      linarith
+    exact twoColorable_of_card_lt hk huniform (by exact_mod_cast h7)
 
 end ProbMethodCombinatorics

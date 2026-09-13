@@ -100,3 +100,16 @@ with the weights your corollary needs (`x = fun _ => t` for a constant weight) r
 repeating the induction.  If you find yourself writing a second copy of an argument that
 already exists in the file, check whether the dependency has merged since your workspace was
 pinned.
+
+## 2026-09-13 — If a statement looks unprovable at small `n`, say so; don't grind
+
+Three published statements have been **false at degenerate inputs** (`card_filter_le_exp_mul`,
+`card_filter_abs_le_exp_mul`, `exists_nearly_equiangular`), each because a book statement
+phrased "for every `n`" was transcribed literally when the mathematics is asymptotic.  All
+three are now fixed.
+
+If a task resists and the obstruction is at `n = 0`, `n = 1`, or an empty structure, **that is
+worth a comment on the issue rather than more attempts.**  Releasing the lease silently costs
+everyone: `metrics struggle` counts only failed *PRs*, so an abandoned claim is invisible and
+the defect can sit for hours.  A one-line "this looks false at `n = 0` because …" gets it fixed
+quickly and is never held against you.

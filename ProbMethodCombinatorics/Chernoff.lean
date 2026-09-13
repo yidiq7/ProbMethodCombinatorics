@@ -157,12 +157,17 @@ theorem exists_toSign_abs_sum_le {n : ℕ} (F : Finset (Finset (Fin n))) (hF : 2
   sorry
 
 /-- **Exponentially many nearly equiangular vectors** (Zhao, Theorem 5.2.1): for every
-`α ∈ (0, 1)` and `ε > 0` there is `c > 0` such that every `ℝⁿ` contains at least `2 ^ (c n)`
-unit vectors whose pairwise inner products all lie in `[α - ε, α + ε]`.
+`α ∈ (0, 1)` and `ε > 0` there is `c > 0` such that for all large `n`, `ℝⁿ` contains at least
+`2 ^ (c n)` unit vectors whose pairwise inner products all lie in `[α - ε, α + ε]`.
 
-Contrast the exactly-equiangular case, where at most `n + 1` vectors are possible. -/
+Contrast the exactly-equiangular case, where at most `n + 1` vectors are possible.
+
+The bound holds only for large `n`, and the `n₀` is not bookkeeping.  At `n = 0` there is no
+unit vector at all while `2 ^ (c * 0) = 1` demands a non-empty `S`; at `n = 1` the only unit
+vectors are `±1`, whose inner product is `-1`, so for small `ε` at most one of them qualifies
+while `2 ^ c > 1` demands two.  The book states the theorem for every `n`, which is loose. -/
 theorem exists_nearly_equiangular {α ε : ℝ} (hα : α ∈ Set.Ioo (0 : ℝ) 1) (hε : 0 < ε) :
-    ∃ c : ℝ, 0 < c ∧ ∀ n : ℕ, ∃ S : Finset (EuclideanSpace ℝ (Fin n)),
+    ∃ (c : ℝ) (n₀ : ℕ), 0 < c ∧ ∀ n ≥ n₀, ∃ S : Finset (EuclideanSpace ℝ (Fin n)),
       (2 : ℝ) ^ (c * n) ≤ S.card ∧ (∀ v ∈ S, ‖v‖ = 1) ∧
         ∀ v ∈ S, ∀ w ∈ S, v ≠ w → inner ℝ v w ∈ Set.Icc (α - ε) (α + ε) := by
   sorry

@@ -462,6 +462,44 @@
         "girth_random_half"
       ]
     },
+    "conflicting_pair": {
+      "kind": "definition",
+      "parent": "alterations",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.ConflictingPair",
+      "doc": "alterations.md#property_b_sharp--exists_twocolorable_of_card_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "greedy_correct": {
+      "kind": "theorem",
+      "parent": "alterations",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.twoColorable_of_no_conflictingPair",
+      "doc": "alterations.md#property_b_sharp--exists_twocolorable_of_card_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "conflicting_pair",
+        "two_colorable"
+      ],
+      "proof_uses": []
+    },
+    "cherkashin_kozik": {
+      "kind": "theorem",
+      "parent": "alterations",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.exists_conflictFree_of_card_le",
+      "doc": "alterations.md#property_b_sharp--exists_twocolorable_of_card_le",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "conflicting_pair"
+      ],
+      "proof_uses": []
+    },
     "property_b_sharp": {
       "kind": "theorem",
       "parent": "alterations",
@@ -469,11 +507,15 @@
       "decl": "ProbMethodCombinatorics.exists_twoColorable_of_card_le",
       "doc": "alterations.md#property_b_sharp--exists_twocolorable_of_card_le",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "two_colorable"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "greedy_correct",
+        "cherkashin_kozik",
+        "two_colorable_of_card_lt"
+      ]
     },
     "chebyshev": {
       "kind": "theorem",

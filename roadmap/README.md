@@ -60,6 +60,18 @@ edge-count bound the book proves, so the edge-count bound stays a task.
 
 ## Log
 
+- **2026-09-13 — a third statement was false at degenerate `n`; corrected.**
+  `exists_nearly_equiangular` claimed its bound for every `n`.  False at `n = 0` (no unit
+  vector exists, yet `2 ^ (c * 0) = 1` forces `S` non-empty — machine-checked) and at `n = 1`
+  for small `ε` (only `±1` are unit, inner product `-1`).  Now `∃ c n₀, ∀ n ≥ n₀`.
+  **Three of the statements I authored have been false at the bottom end** (both Chernoff
+  bounds, now this).  The cause is the same each time: transcribing a book statement that says
+  "for every `n`" when the mathematics is asymptotic.  **Rule: when a statement's bound grows
+  with `n`, check `n = 0` and `n = 1` before publishing it.**
+  The tell was again behavioural — #24 had one claim and one release with no PR, and
+  `metrics struggle` reports nothing for abandoned claims.  **Read the statement of any task
+  that gets released without a PR.**
+
 - **2026-09-13 — first golf landed; two measure-layer copies left.**  PR #62 rewrote
   `twoColorable_of_regular` through `twoColorable_of_inter_card_le`: **163 lines removed, 15
   added.**  Golf tasks #54 and #55 will take the other two copies through the extracted
