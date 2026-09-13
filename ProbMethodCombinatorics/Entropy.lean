@@ -107,7 +107,11 @@ variable {p : Ω → ℝ}
 /-- Entropy is nonnegative: each probability lies in `[0, 1]`, so `-pₛ log₂ pₛ ≥ 0`. -/
 theorem entropy_nonneg (hp : ∀ ω, 0 ≤ p ω) (hp1 : ∑ ω, p ω = 1) (X : Ω → S) :
     0 ≤ entropy p X := by
-  sorry
+  refine Finset.sum_nonneg fun s _ => ?_
+  have h0 : 0 ≤ probOf p X s := probOf_nonneg hp X s
+  have h1 : probOf p X s ≤ 1 := probOf_le_one hp hp1 X s
+  have hlog : Real.logb 2 (probOf p X s) ≤ 0 := Real.logb_nonpos one_lt_two h0 h1
+  nlinarith
 
 /-- **Uniform bound** (Lemma 10.1.4): `H(X) ≤ log₂ |support X|`.  The support is supplied as a
 finset `A` containing it, which avoids needing decidable equality on `ℝ`; taking `A` to be the
