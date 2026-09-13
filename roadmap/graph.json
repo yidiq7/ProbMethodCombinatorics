@@ -574,7 +574,7 @@
       "decl": "ProbMethodCombinatorics.card_filter_le_exp_mul",
       "doc": "chernoff.md#chernoff--card_filter_le_exp_mul",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "to_sign"
       ],
