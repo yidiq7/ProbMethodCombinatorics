@@ -287,7 +287,9 @@ theorem entropy_pair_le_add (hp : ∀ ω, 0 ≤ p ω) (hp1 : ∑ ω, p ω = 1) (
 theorem condEntropy_le_entropy (hp : ∀ ω, 0 ≤ p ω) (hp1 : ∑ ω, p ω = 1) (X : Ω → S)
     (Y : Ω → T) :
     condEntropy p X Y ≤ entropy p X := by
-  sorry
+  rw [condEntropy_eq_sub hp X Y]
+  have h := entropy_pair_le_add hp hp1 X Y
+  linarith
 
 end BasicProperties
 
