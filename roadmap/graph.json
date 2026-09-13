@@ -1070,9 +1070,11 @@
       "decl": "ProbMethodCombinatorics.binomialRandom_mul_le_inter",
       "doc": "correlation.md#harris_binomial--binomialrandom_mul_le_inter",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
-      "proof_uses": []
+      "proof_uses": [
+        "fkg_upstream"
+      ]
     },
     "harris_lower_family": {
       "kind": "theorem",

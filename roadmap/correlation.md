@@ -23,6 +23,17 @@ Theorem 7.1.1 for `G(V, p)`: two increasing graph properties are positively corr
 `SimpleGraph V` is a `CompleteAtomicBooleanAlgebra`, so `IsUpperSet` applies directly, and
 `SimpleGraph.binomialRandom` is Mathlib's `G(V, p)`.
 
+**Proved (PR #80) by reduction to `fkg`.** The step that makes it work: `G(V, p)` is not
+merely log-*super*modular but log-**modular**. `binomialRandom_singleton` gives each graph mass
+`p^|E(G)| · σp^(C(n,2) - |E(G)|)`, and `|E(a ⊓ b)| + |E(a ⊔ b)| = |E(a)| + |E(b)|` by
+inclusion–exclusion on edge sets, so `fkg`'s hypothesis holds with equality.
+
+The PR also settles a question left open when the task was written: **every set of graphs is
+measurable for a `Fintype V`.** `MeasurableSingletonClass (SimpleGraph V)` follows from
+`measurable_adj`, so the `MeasurableSet` hypotheses on this statement are redundant — callers
+can discharge them with `measurableSet_discrete` or similar. They are left in place rather than
+churned, but a future golf could drop them.
+
 The content beyond upstream is precisely that `p` is arbitrary — Harris–Kleitman is the
 `p = 1/2` case. The natural route is to transport the four functions theorem along
 `SimpleGraph.edgeSet`, whose measurable-embedding property Mathlib already provides
