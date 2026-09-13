@@ -53,6 +53,11 @@ theorem exists_ramseyProperty (k : ℕ) : ∃ n, RamseyProperty n k := by
 `2 * (n.choose k) < 2 ^ (k.choose 2)` then `R(k, k) > n`. -/
 theorem lt_ramseyNumber (n k : ℕ) (hk : 2 ≤ k)
     (h : 2 * n.choose k < 2 ^ k.choose 2) : n < ramseyNumber k := by
-  sorry
+  obtain ⟨c, hsymm, hc⟩ := exists_coloring_no_isMonochromatic n k hk h
+  have hne : {m | RamseyProperty m k}.Nonempty := exists_ramseyProperty k
+  have hmem : RamseyProperty (ramseyNumber k) k := Nat.sInf_mem hne
+  by_contra hlt
+  obtain ⟨S, hcard, hmono⟩ := hmem.mono (Nat.not_lt.1 hlt) c hsymm
+  exact hc S hcard hmono
 
 end ProbMethodCombinatorics
