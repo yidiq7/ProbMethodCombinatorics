@@ -1101,6 +1101,125 @@
       "proof": "planned",
       "uses": [],
       "proof_uses": []
+    },
+    "janson": {
+      "kind": "group",
+      "doc": "janson.md"
+    },
+    "janson_mu": {
+      "kind": "definition",
+      "parent": "janson",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.jansonMu",
+      "doc": "janson.md#setup",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "janson_delta": {
+      "kind": "definition",
+      "parent": "janson",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.jansonDelta",
+      "doc": "janson.md#setup",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "janson_count": {
+      "kind": "definition",
+      "parent": "janson",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.jansonCount",
+      "doc": "janson.md#setup",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "janson_one": {
+      "kind": "theorem",
+      "parent": "janson",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.janson_prob_none_le",
+      "doc": "janson.md#janson_one--janson_prob_none_le",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "janson_mu",
+        "janson_delta"
+      ],
+      "proof_uses": [
+        "harris_lower_family"
+      ]
+    },
+    "janson_two": {
+      "kind": "theorem",
+      "parent": "janson",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.janson_prob_none_le_of_mu_le",
+      "doc": "janson.md#janson_two--janson_prob_none_le_of_mu_le",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "janson_mu",
+        "janson_delta"
+      ],
+      "proof_uses": [
+        "janson_one"
+      ]
+    },
+    "janson_three": {
+      "kind": "theorem",
+      "parent": "janson",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.janson_lower_tail",
+      "doc": "janson.md#janson_three--janson_lower_tail",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "janson_mu",
+        "janson_delta",
+        "janson_count"
+      ],
+      "proof_uses": [
+        "janson_one"
+      ]
+    },
+    "triangle_free_asymptotic": {
+      "kind": "theorem",
+      "parent": "janson",
+      "doc": "janson.md#not-stated",
+      "statement": "planned",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": [
+        "janson_three"
+      ]
+    },
+    "chromatic_random_graph": {
+      "kind": "theorem",
+      "parent": "janson",
+      "doc": "janson.md#not-stated",
+      "statement": "planned",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": [
+        "janson_three"
+      ]
+    },
+    "harel_mousset_samotij": {
+      "kind": "theorem",
+      "parent": "janson",
+      "doc": "janson.md#not-stated",
+      "statement": "planned",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": [
+        "janson_three"
+      ]
     }
   }
 }
