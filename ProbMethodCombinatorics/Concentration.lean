@@ -20,6 +20,7 @@ Only the bounded differences inequality is stated here; the rest of the chapter 
 namespace ProbMethodCombinatorics
 
 open MeasureTheory ProbabilityTheory
+open scoped ENNReal
 
 /-- **The bounded differences inequality** (Zhao, Theorem 9.1.3; also McDiarmid's inequality and
 the Azuma–Hoeffding inequality).  If changing the `i`-th coordinate alone moves `f` by at most

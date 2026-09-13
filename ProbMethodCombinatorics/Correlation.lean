@@ -23,6 +23,7 @@ What is not upstream is the case the applications need: a product of Bernoulli m
 namespace ProbMethodCombinatorics
 
 open MeasureTheory ProbabilityTheory unitInterval SimpleGraph
+open scoped ENNReal
 
 variable {V : Type*} [Fintype V]
 
