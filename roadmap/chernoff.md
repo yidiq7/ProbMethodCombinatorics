@@ -20,6 +20,13 @@ just a `Fin n → Bool` and `Finset.univ` over it has `2 ⁿ` elements.
 
 ## `chernoff` — `card_filter_le_exp_mul`
 
+> **Corrected 2026-09-13: both Chernoff statements were false at `n = 0` and now carry
+> `0 < n`.** At `n = 0` the empty sum is `0` and the threshold `λ √0` is `0`, so the single
+> sign sequence meets the condition while the bound `exp(-λ²/2) · 2⁰` is strictly below `1`.
+> Verified with a machine-checked counterexample before the statements were touched.  The
+> proof needs the hypothesis anyway — it optimises at `t = λ / √n`.  Two workers claimed and
+> released #21 without submitting, which is what prompted looking.
+
 Theorem 5.0.1: `ℙ(S ≥ λ√n) ≤ exp(-λ²/2)` for `S` a sum of `n` uniform iid `±1`.
 
 The chapter's engine, and its proof is the reason the chapter exists: bound the moment

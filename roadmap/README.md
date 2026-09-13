@@ -60,6 +60,20 @@ edge-count bound the book proves, so the edge-count bound stays a task.
 
 ## Log
 
+- **2026-09-13 — two published statements were false; both corrected.**
+  `card_filter_le_exp_mul` and `card_filter_abs_le_exp_mul` (Chernoff, one- and two-sided)
+  omitted `0 < n`.  At `n = 0` the empty sum is `0` and the threshold `λ √0` is `0`, so the
+  single sign sequence satisfies the condition while the bound is below `1`.  **The tell was
+  behavioural, not a failed check:** #21 was claimed and released twice with no PR, and
+  `metrics struggle` stays empty for abandoned claims, so only reading the statement found it.
+  A machine-checked counterexample was built before either statement was touched.
+  `card_filter_abs_le_exp_mul` merged earlier (#40) as a *declared reduction* on the false
+  lemma, so nothing was ever claimed to be unconditionally proved — the reduction contract did
+  its job.  Both statements now carry `0 < n`; #40's merged proof threads it through and the
+  build is clean.  **This is an overseer-visible change: the project's Chernoff bounds now say
+  slightly less than they did.**  Anything downstream must dispose of `n = 0` itself; #23
+  (discrepancy) is unaffected because its `2 ≤ F.card` is unsatisfiable at `n = 0`.
+
 - **2026-09-13 — the uniform two-colouring measure is duplicated, and that is my fault.**
   #49 and #50 each build it from scratch in `LocalLemma.lean` (`Measure.pi` over `Bool`, the
   cylinder probability, disjoint-support independence via `iIndepFun_pi`, the dependency
