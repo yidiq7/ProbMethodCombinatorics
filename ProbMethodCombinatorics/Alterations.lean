@@ -179,6 +179,119 @@ theorem card_le_mul_indepNum_of_colorable {V : Type*} [Fintype V] (G : SimpleGra
     _ ≤ ∑ _c : Fin m, G.indepNum := Finset.sum_le_sum fun c _ => key c
     _ = m * G.indepNum := by simp
 
+/-- The number of edges of the random graph used in the proof of Zhao, Theorem 3.4.1: the
+uniform model `G(n, M)` is taken with `M = ⌈n (log n) ^ 2⌉`, i.e. edge density
+`p ≈ (log n) ^ 2 / n`. -/
+noncomputable def girthEdgeCount (n : ℕ) : ℕ := ⌈(n : ℝ) * Real.log n ^ 2⌉₊
+
+/-- The sample space of the uniform random graph `G(n, M)`: the `M`-element sets of unordered
+pairs of vertices, each read as a graph through `SimpleGraph.fromEdgeSet`. -/
+def graphFamily (n M : ℕ) : Finset (Finset (Sym2 (Fin n))) :=
+  Finset.powersetCard M Finset.univ
+
+/-- **Few short cycles** (first step of Zhao, Theorem 3.4.1).  For all large `n`, fewer than half
+the graphs of `G(n, M)` with `M = girthEdgeCount n` fail to have a set `S` of at most `n / 2`
+vertices meeting every cycle of length at most `l`.
+
+This is the expectation computation `E[#{cycles of length ≤ l}] ≤ l (log n) ^ (2 l) = o(n)`
+followed by the counting Markov bound `card_filter_le_sum_div`. -/
+theorem exists_bad_card_lt_and_shortCycleCover (l : ℕ) :
+    ∃ n₀ : ℕ, ∀ n ≥ n₀, ∃ B ⊆ graphFamily n (girthEdgeCount n),
+      2 * B.card < (graphFamily n (girthEdgeCount n)).card ∧
+      ∀ E ∈ graphFamily n (girthEdgeCount n), E ∉ B →
+        ∃ S : Finset (Fin n), 2 * S.card ≤ n ∧
+          ∀ (a : Fin n) (w : (SimpleGraph.fromEdgeSet (E : Set (Sym2 (Fin n)))).Walk a a),
+            w.IsCycle → w.length ≤ l → ∃ v ∈ S, v ∈ w.support := by
+  sorry
+
+/-- **No large independent set** (third step of Zhao, Theorem 3.4.1).  For every `ε > 0` and all
+large `n`, fewer than half the graphs of `G(n, M)` with `M = girthEdgeCount n` have an independent
+set of size `ε n`.
+
+This is the union bound `ℙ(α(G) ≥ x) ≤ (n choose x) (1 - p) ^ (x choose 2)` with `p ≈ (log n)^2/n`,
+which tends to `0` for `x = ε n`. -/
+theorem exists_bad_card_lt_and_indepNum_le {ε : ℝ} (hε : 0 < ε) :
+    ∃ n₀ : ℕ, ∀ n ≥ n₀, ∃ B ⊆ graphFamily n (girthEdgeCount n),
+      2 * B.card < (graphFamily n (girthEdgeCount n)).card ∧
+      ∀ E ∈ graphFamily n (girthEdgeCount n), E ∉ B →
+        ((SimpleGraph.fromEdgeSet (E : Set (Sym2 (Fin n)))).indepNum : ℝ) ≤ ε * n := by
+  sorry
+
+/-- The union bound combining the two halves of the random-graph step of Zhao, Theorem 3.4.1:
+there is a graph on `n > 0` vertices whose cycles of length at most `l` all meet some set `S` of
+at most `n / 2` vertices, and whose independence number is at most `ε n`. -/
+theorem exists_shortCycleCover_and_indepNum_le (l : ℕ) {ε : ℝ} (hε : 0 < ε) :
+    ∃ (n : ℕ) (G : SimpleGraph (Fin n)) (S : Finset (Fin n)),
+      0 < n ∧ 2 * S.card ≤ n ∧
+      (∀ (a : Fin n) (w : G.Walk a a), w.IsCycle → w.length ≤ l → ∃ v ∈ S, v ∈ w.support) ∧
+      (G.indepNum : ℝ) ≤ ε * n := by
+  obtain ⟨n₁, h₁⟩ := exists_bad_card_lt_and_shortCycleCover l
+  obtain ⟨n₂, h₂⟩ := exists_bad_card_lt_and_indepNum_le hε
+  obtain ⟨n, hn⟩ : ∃ n, n = max (max n₁ n₂) 1 := ⟨_, rfl⟩
+  obtain ⟨B₁, hB₁sub, hB₁card, hB₁⟩ := h₁ n (by omega)
+  obtain ⟨B₂, hB₂sub, hB₂card, hB₂⟩ := h₂ n (by omega)
+  have hsub : B₁ ∪ B₂ ⊆ graphFamily n (girthEdgeCount n) := Finset.union_subset hB₁sub hB₂sub
+  have hlt : (B₁ ∪ B₂).card < (graphFamily n (girthEdgeCount n)).card :=
+    lt_of_le_of_lt (Finset.card_union_le _ _) (by omega)
+  obtain ⟨E, hE, hEnot⟩ : ∃ E ∈ graphFamily n (girthEdgeCount n), E ∉ B₁ ∪ B₂ := by
+    by_contra hcon
+    have hss : graphFamily n (girthEdgeCount n) ⊆ B₁ ∪ B₂ := by
+      intro F hF
+      by_contra hFb
+      exact hcon ⟨F, hF, hFb⟩
+    exact absurd (Finset.card_le_card hss) (not_le.mpr hlt)
+  obtain ⟨S, hScard, hcov⟩ := hB₁ E hE fun h => hEnot (Finset.mem_union_left _ h)
+  exact ⟨n, SimpleGraph.fromEdgeSet _, S, by omega, hScard, hcov,
+    hB₂ E hE fun h => hEnot (Finset.mem_union_right _ h)⟩
+
+/-- **The alteration step** of Zhao, Theorem 3.4.1.  If every cycle of `G` of length at most `l`
+meets `S`, then deleting `S` leaves a graph on `n - #S` vertices whose independence number is no
+larger than that of `G`, and whose girth exceeds `l` as soon as it still contains a cycle. -/
+theorem exists_girth_gt_and_indepNum_le_of_shortCycleCover {n l : ℕ} (G : SimpleGraph (Fin n))
+    (S : Finset (Fin n))
+    (hcov : ∀ (a : Fin n) (w : G.Walk a a), w.IsCycle → w.length ≤ l →
+      ∃ v ∈ S, v ∈ w.support) :
+    ∃ H : SimpleGraph (Fin (n - S.card)),
+      H.indepNum ≤ G.indepNum ∧ (¬ H.IsAcyclic → (l : ℕ∞) < H.girth) := by
+  have hcardT : Fintype.card ((Sᶜ : Finset (Fin n)) : Type) = n - S.card := by
+    rw [Fintype.card_coe, Finset.card_compl, Fintype.card_fin]
+  let e : Fin (n - S.card) ≃ ((Sᶜ : Finset (Fin n)) : Type) :=
+    (Fintype.equivFinOfCardEq hcardT).symm
+  have hinj : Function.Injective (fun i : Fin (n - S.card) => ((e i : Fin n))) := by
+    intro i j h
+    exact e.injective (Subtype.ext h)
+  let f : Fin (n - S.card) ↪ Fin n := ⟨_, hinj⟩
+  have hfmem : ∀ i, f i ∉ S := by
+    intro i
+    have hi : (e i : Fin n) ∈ (Sᶜ : Finset (Fin n)) := (e i).2
+    exact Finset.mem_compl.mp hi
+  refine ⟨G.comap (f : Fin (n - S.card) → Fin n), ?_, ?_⟩
+  · obtain ⟨t, ht⟩ := (G.comap (f : Fin (n - S.card) → Fin n)).exists_isNIndepSet_indepNum
+    have h1 : G.IsIndepSet (t.image f) := by
+      intro a ha b hb hab
+      simp only [Finset.coe_image, Set.mem_image, Finset.mem_coe] at ha hb
+      obtain ⟨x, hx, rfl⟩ := ha
+      obtain ⟨y, hy, rfl⟩ := hb
+      have hxy : x ≠ y := fun h => hab (by rw [h])
+      simpa using ht.isIndepSet hx hy hxy
+    have h2 := h1.card_le_indepNum
+    rwa [Finset.card_image_of_injective _ f.injective, ht.card_eq] at h2
+  · intro hacy
+    obtain ⟨a, w, hw, hgirth⟩ := SimpleGraph.exists_girth_eq_length.mpr hacy
+    rw [hgirth]
+    have hlt : l < w.length := by
+      by_contra hle
+      have hle' : w.length ≤ l := Nat.le_of_not_lt hle
+      set F := SimpleGraph.Hom.comap (f : Fin (n - S.card) → Fin n) G with hF
+      have hFinj : Function.Injective (F : Fin (n - S.card) → Fin n) := hinj
+      have hWc : (w.map F).IsCycle := hw.map hFinj
+      have hWl : (w.map F).length ≤ l := by rwa [SimpleGraph.Walk.length_map]
+      obtain ⟨v, hvS, hvsupp⟩ := hcov (F a) (w.map F) hWc hWl
+      rw [SimpleGraph.Walk.support_map] at hvsupp
+      obtain ⟨x, hx, rfl⟩ := List.mem_map.mp hvsupp
+      exact hfmem x hvS
+    exact_mod_cast hlt
+
 /-- The random-graph half of Zhao, Theorem 3.4.1: for every `l` and every `m` there is a graph
 whose girth exceeds `l` and whose independence number `α` satisfies `m * α < n`.
 
@@ -188,7 +301,43 @@ valued in `ℕ` with junk value `0` on acyclic graphs, so the first conjunct als
 graph has a cycle. -/
 theorem exists_girth_gt_and_mul_indepNum_lt (l m : ℕ) :
     ∃ (n : ℕ) (G : SimpleGraph (Fin n)), (l : ℕ∞) < G.girth ∧ m * G.indepNum < n := by
-  sorry
+  obtain ⟨M, hM⟩ : ∃ M, M = m + 2 := ⟨_, rfl⟩
+  have hc : (0 : ℝ) < (M : ℝ) + 1 := by positivity
+  obtain ⟨n, G, S, hnpos, hS, hcov, hindep⟩ :=
+    exists_shortCycleCover_and_indepNum_le l (ε := 1 / (2 * ((M : ℝ) + 1))) (by positivity)
+  obtain ⟨H, hHi, hHg⟩ := exists_girth_gt_and_indepNum_le_of_shortCycleCover (l := l) G S hcov
+  have hNn : n ≤ 2 * (n - S.card) := by omega
+  have hNpos : 0 < n - S.card := by omega
+  have hkey : (M + 1) * H.indepNum ≤ n - S.card := by
+    have h1 : (H.indepNum : ℝ) ≤ (G.indepNum : ℝ) := by exact_mod_cast hHi
+    have h2 : (n : ℝ) ≤ 2 * ((n - S.card : ℕ) : ℝ) := by
+      simpa using (Nat.cast_le (α := ℝ)).mpr hNn
+    have h3 : ((M : ℝ) + 1) * (G.indepNum : ℝ)
+        ≤ ((M : ℝ) + 1) * (1 / (2 * ((M : ℝ) + 1)) * n) :=
+      mul_le_mul_of_nonneg_left hindep hc.le
+    have h4 : ((M : ℝ) + 1) * (1 / (2 * ((M : ℝ) + 1)) * n) = (n : ℝ) / 2 := by field_simp
+    have h5 : ((M : ℝ) + 1) * (H.indepNum : ℝ) ≤ ((M : ℝ) + 1) * (G.indepNum : ℝ) :=
+      mul_le_mul_of_nonneg_left h1 hc.le
+    rw [h4] at h3
+    have h7 : (((M + 1) * H.indepNum : ℕ) : ℝ) ≤ ((n - S.card : ℕ) : ℝ) := by
+      push_cast
+      linarith
+    exact_mod_cast h7
+  have hMlt : M * H.indepNum < n - S.card := by
+    rcases Nat.eq_zero_or_pos H.indepNum with h0 | h0
+    · rw [h0, Nat.mul_zero]
+      exact hNpos
+    · have h9 : M * H.indepNum < (M + 1) * H.indepNum := by
+        rw [add_mul, one_mul]
+        exact Nat.lt_add_of_pos_right h0
+      exact lt_of_lt_of_le h9 hkey
+  have hacy : ¬ H.IsAcyclic := by
+    intro hA
+    have hcc := card_le_mul_indepNum_of_colorable H hA.colorable_two
+    rw [Fintype.card_fin] at hcc
+    have h2a : 2 * H.indepNum ≤ M * H.indepNum := Nat.mul_le_mul (by omega) (le_refl _)
+    exact absurd (lt_of_le_of_lt h2a hMlt) (not_lt.mpr hcc)
+  exact ⟨n - S.card, H, hHg hacy, lt_of_le_of_lt (Nat.mul_le_mul (by omega) (le_refl _)) hMlt⟩
 
 /-- **Erdős 1959** (Zhao, Theorem 3.4.1): there are graphs of arbitrarily large girth and
 arbitrarily large chromatic number — high chromatic number cannot be certified locally. -/
