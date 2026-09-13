@@ -369,13 +369,17 @@
       "decl": "ProbMethodCombinatorics.exists_sum_shortCycleSupport_card_lt",
       "doc": "alterations.md#the-erdos-1959-random-graph-step",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "short_cycle_support",
         "graph_family",
         "girth_edge_count"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "cycle_double_count",
+        "choose_ratio_bound",
+        "pow_log_littleo"
+      ]
     },
     "girth_few_short_cycles": {
       "kind": "theorem",
@@ -949,6 +953,39 @@
       "uses": [
         "uniform_coloring"
       ],
+      "proof_uses": []
+    },
+    "cycle_double_count": {
+      "kind": "theorem",
+      "parent": "alterations",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.sum_shortCycleSupport_card_le_cycleBound",
+      "doc": "alterations.md#the-erdos-1959-random-graph-step",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "choose_ratio_bound": {
+      "kind": "theorem",
+      "parent": "alterations",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.choose_mul_pow_le_choose_add_mul_pow",
+      "doc": "alterations.md#the-erdos-1959-random-graph-step",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "pow_log_littleo": {
+      "kind": "theorem",
+      "parent": "alterations",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.exists_mul_pow_log_lt",
+      "doc": "alterations.md#the-erdos-1959-random-graph-step",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
       "proof_uses": []
     }
   }
