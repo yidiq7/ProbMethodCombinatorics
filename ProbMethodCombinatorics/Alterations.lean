@@ -2,6 +2,7 @@ import Mathlib.Analysis.Complex.ExponentialBounds
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Analysis.SpecialFunctions.Sqrt
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+import Mathlib.MeasureTheory.Constructions.Pi
 import Mathlib.Combinatorics.SimpleGraph.Girth
 import Mathlib.Combinatorics.SimpleGraph.Coloring.Vertex
 import Mathlib.Combinatorics.SimpleGraph.Finite
@@ -845,6 +846,96 @@ theorem twoColorable_of_no_conflictingPair {α : Type*} [Fintype α] [DecidableE
     exact hw e' he' e he v ⟨hve', hv, hmax, hvmin⟩
 
 section CherkashinKozik
+
+section UniformWeights
+
+open MeasureTheory
+
+/-- **Independent uniform vertex weights.**  Every vertex of `α` receives a weight drawn
+uniformly from `[0, 1]`, independently of the others: the product over `α` of Lebesgue measure
+restricted to the unit interval.
+
+This is the continuous counterpart of the uniform measure on two-colourings `α → Bool`. -/
+noncomputable def uniformWeights (α : Type*) [Fintype α] : Measure (α → ℝ) :=
+  Measure.pi fun _ : α => volume.restrict (Set.Icc (0 : ℝ) 1)
+
+instance (α : Type*) [Fintype α] : IsProbabilityMeasure (uniformWeights α) := by
+  have hone : IsProbabilityMeasure (volume.restrict (Set.Icc (0 : ℝ) 1)) :=
+    ⟨by rw [Measure.restrict_apply_univ, Real.volume_Icc]; norm_num⟩
+  rw [uniformWeights]
+  infer_instance
+
+/-- The weights are independent, so a box has the product of the lengths of its sides, each side
+measured inside `[0, 1]`. -/
+theorem uniformWeights_pi (α : Type*) [Fintype α] (s : α → Set ℝ) :
+    uniformWeights α (Set.univ.pi s) = ∏ i, volume (s i ∩ Set.Icc (0 : ℝ) 1) := by
+  rw [uniformWeights, Measure.pi_pi]
+  exact Finset.prod_congr rfl fun i _ => Measure.restrict_apply' measurableSet_Icc
+
+/-- The probability that every vertex of `e` is weighted inside `s` is the `#e`-th power of the
+length of `s ∩ [0, 1]`. -/
+theorem uniformWeights_forall_mem {α : Type*} [Fintype α] [DecidableEq α]
+    (e : Finset α) (s : Set ℝ) :
+    uniformWeights α {w : α → ℝ | ∀ u ∈ e, w u ∈ s}
+      = volume (s ∩ Set.Icc (0 : ℝ) 1) ^ e.card := by
+  have hset : {w : α → ℝ | ∀ u ∈ e, w u ∈ s}
+      = Set.univ.pi (fun i => if i ∈ e then s else Set.univ) := by
+    ext w
+    constructor
+    · intro h i _
+      show w i ∈ (if i ∈ e then s else Set.univ)
+      by_cases hi : i ∈ e
+      · rw [if_pos hi]; exact h i hi
+      · rw [if_neg hi]; exact Set.mem_univ _
+    · intro h u hu
+      have hwu : w u ∈ (if u ∈ e then s else Set.univ) := h u (Set.mem_univ u)
+      rw [if_pos hu] at hwu
+      exact hwu
+  rw [hset, uniformWeights_pi]
+  have hrew : ∀ i : α, volume ((if i ∈ e then s else Set.univ) ∩ Set.Icc (0 : ℝ) 1)
+      = if i ∈ e then volume (s ∩ Set.Icc (0 : ℝ) 1) else 1 := by
+    intro i
+    by_cases hi : i ∈ e
+    · rw [if_pos hi, if_pos hi]
+    · rw [if_neg hi, if_neg hi, Set.univ_inter, Real.volume_Icc]
+      norm_num
+  rw [Finset.prod_congr rfl (fun i _ => hrew i), Finset.prod_ite_mem, Finset.univ_inter,
+    Finset.prod_const]
+
+/-- The probability that `e` lies wholly in the left window `[0, a)` is `a ^ #e`. -/
+theorem uniformWeights_forall_lt {α : Type*} [Fintype α] [DecidableEq α]
+    (e : Finset α) {a : ℝ} (ha1 : a ≤ 1) :
+    uniformWeights α {w : α → ℝ | ∀ u ∈ e, w u < a} = ENNReal.ofReal a ^ e.card := by
+  have h := uniformWeights_forall_mem e (Set.Iio a)
+  have hs : Set.Iio a ∩ Set.Icc (0 : ℝ) 1 = Set.Ico 0 a := by
+    ext x
+    simp only [Set.mem_inter_iff, Set.mem_Iio, Set.mem_Icc, Set.mem_Ico]
+    constructor
+    · rintro ⟨h1, h2, -⟩
+      exact ⟨h2, h1⟩
+    · rintro ⟨h1, h2⟩
+      exact ⟨h2, h1, le_trans h2.le ha1⟩
+  rw [hs, Real.volume_Ico, sub_zero] at h
+  exact h
+
+/-- The probability that `e` lies wholly in the right window `(b, 1]` is `(1 - b) ^ #e`. -/
+theorem uniformWeights_forall_gt {α : Type*} [Fintype α] [DecidableEq α]
+    (e : Finset α) {b : ℝ} (hb0 : 0 ≤ b) :
+    uniformWeights α {w : α → ℝ | ∀ u ∈ e, b < w u} = ENNReal.ofReal (1 - b) ^ e.card := by
+  have h := uniformWeights_forall_mem e (Set.Ioi b)
+  have hs : Set.Ioi b ∩ Set.Icc (0 : ℝ) 1 = Set.Ioc b 1 := by
+    ext x
+    simp only [Set.mem_inter_iff, Set.mem_Ioi, Set.mem_Icc, Set.mem_Ioc]
+    constructor
+    · rintro ⟨h1, -, h3⟩
+      exact ⟨h1, h3⟩
+    · rintro ⟨h1, h2⟩
+      exact ⟨h1, le_trans hb0 h1.le, h2⟩
+  rw [hs, Real.volume_Ioc] at h
+  exact h
+
+end UniformWeights
+
 
 /-- **The Beta-type integral estimate** at the heart of Cherkashin–Kozik.  Over the middle
 window `[(1 - p) / 2, (1 + p) / 2]` of `[0, 1]`, which has length `p`, the integrand
