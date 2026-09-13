@@ -25,3 +25,13 @@ converting it in your PR — the statement is fixed and a PR that changes it is 
 Issues #4–#13 pin `dcaf5da`, #14–#20 pin `22ba93e`, #21–#30 pin `c943f93`.  Each batch added
 files without rewriting any existing declaration, so an older pin costs you nothing.  Work
 at the commit your task names; do not rebase onto `main` to pick up later chapters.
+
+## 2026-09-13 — Proofs that strengthen the target internally are welcome
+
+Both merged Chapter 1–2 proofs so far worked by proving something stronger inside the proof
+and specializing at the end: #33 covered the spoiled colourings by an explicit `Finset`, and
+#34 generalized Caro–Wei to an arbitrary vertex subset so the greedy induction closes.  That
+is the right instinct.  Keep such generalizations **inside** the proof unless the plan says
+otherwise — a new top-level declaration is a statement nobody reviewed when the task was
+written, and it is the one thing in a PR the kernel cannot check for you.  If you think a
+generalization deserves to be reusable, say so on the issue and it can become its own node.

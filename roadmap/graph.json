@@ -112,7 +112,7 @@
       "decl": "ProbMethodCombinatorics.exists_coloring_no_isMonochromatic",
       "doc": "introduction.md#ramsey_lower_erdos--exists_coloring_no_ismonochromatic",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "is_monochromatic"
       ],
