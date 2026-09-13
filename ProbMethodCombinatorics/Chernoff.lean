@@ -1,7 +1,9 @@
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Analysis.SpecialFunctions.Sqrt
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
 import Mathlib.Analysis.InnerProductSpace.EuclideanDist
 import Mathlib.Data.Fintype.Pi
+import ProbMethodCombinatorics.Alterations
 
 /-!
 # Chapter 5: Chernoff Bound
@@ -36,7 +38,65 @@ theorem card_filter_le_exp_mul (n : ℕ) (hn : 0 < n) {lam : ℝ} (hlam : 0 < la
     (((univ : Finset (Fin n → Bool)).filter
         fun x => lam * Real.sqrt n ≤ ∑ i, toSign (x i)).card : ℝ)
       ≤ Real.exp (-lam ^ 2 / 2) * 2 ^ n := by
-  sorry
+  have hn' : (0 : ℝ) < n := by exact_mod_cast hn
+  set s : ℝ := Real.sqrt n
+  have hs : 0 < s := Real.sqrt_pos.mpr hn'
+  have hss : s * s = (n : ℝ) := Real.mul_self_sqrt hn'.le
+  set t : ℝ := lam / s with ht_def
+  have ht : 0 < t := div_pos hlam hs
+  -- Transfer the threshold through the strictly monotone `x ↦ exp (t * x)`.
+  have hsub : ((univ : Finset (Fin n → Bool)).filter
+        fun x => lam * s ≤ ∑ i, toSign (x i))
+      ⊆ (univ : Finset (Fin n → Bool)).filter
+        fun x => Real.exp (t * (lam * s)) ≤ Real.exp (t * ∑ i, toSign (x i)) := by
+    intro x hx
+    simp only [mem_filter, mem_univ, true_and, Real.exp_le_exp] at hx ⊢
+    exact mul_le_mul_of_nonneg_left hx ht.le
+  -- The moment generating function factorises over the coordinates.
+  have hmgf : ∑ x : Fin n → Bool, Real.exp (t * ∑ i, toSign (x i))
+      = (Real.exp t + Real.exp (-t)) ^ n := by
+    have hx : ∀ x : Fin n → Bool, Real.exp (t * ∑ i, toSign (x i))
+        = ∏ i, Real.exp (t * toSign (x i)) := by
+      intro x
+      rw [Finset.mul_sum, Real.exp_sum]
+    have hpow : (∑ b : Bool, Real.exp (t * toSign b)) ^ n
+        = ∑ p : Fin n → Bool, ∏ i, Real.exp (t * toSign (p i)) :=
+      Fintype.sum_pow (fun b : Bool => Real.exp (t * toSign b)) n
+    simp only [hx]
+    rw [← hpow]
+    congr 1
+    simp [toSign]
+  have hexpn : (n : ℝ) * (t ^ 2 / 2) = lam ^ 2 / 2 := by
+    rw [← hss, ht_def]
+    field_simp
+  have hthr : t * (lam * s) = lam ^ 2 := by
+    rw [ht_def]
+    field_simp
+  calc (((univ : Finset (Fin n → Bool)).filter
+          fun x => lam * s ≤ ∑ i, toSign (x i)).card : ℝ)
+      ≤ (((univ : Finset (Fin n → Bool)).filter
+          fun x => Real.exp (t * (lam * s)) ≤ Real.exp (t * ∑ i, toSign (x i))).card : ℝ) := by
+        exact_mod_cast Nat.cast_le.mpr (Finset.card_le_card hsub)
+    _ ≤ (∑ x : Fin n → Bool, Real.exp (t * ∑ i, toSign (x i)))
+          / Real.exp (t * (lam * s)) :=
+        card_filter_le_sum_div _ _ (fun x _ => (Real.exp_pos _).le) (Real.exp_pos _)
+    _ = (Real.exp t + Real.exp (-t)) ^ n / Real.exp (lam ^ 2) := by rw [hmgf, hthr]
+    _ ≤ (2 * Real.exp (t ^ 2 / 2)) ^ n / Real.exp (lam ^ 2) := by
+        have hcosh : Real.exp t + Real.exp (-t) = 2 * Real.cosh t := by
+          rw [Real.cosh_eq]; ring
+        have h2 : Real.exp t + Real.exp (-t) ≤ 2 * Real.exp (t ^ 2 / 2) := by
+          rw [hcosh]
+          have := Real.cosh_le_exp_half_sq t
+          linarith
+        have hnn : (0 : ℝ) ≤ Real.exp t + Real.exp (-t) := by positivity
+        gcongr
+
+    _ = 2 ^ n * Real.exp (lam ^ 2 / 2) / Real.exp (lam ^ 2) := by
+        rw [mul_pow, ← Real.exp_nat_mul, hexpn]
+    _ = Real.exp (-lam ^ 2 / 2) * 2 ^ n := by
+        rw [mul_comm (Real.exp (-lam ^ 2 / 2)), mul_div_assoc, ← Real.exp_sub]
+        congr 2
+        ring
 
 /-- **Two-sided Chernoff bound** (Zhao, Corollary 5.0.3): `ℙ(|S| ≥ λ√n) ≤ 2 exp (-λ² / 2)`.
 
