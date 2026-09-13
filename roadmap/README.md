@@ -28,7 +28,8 @@ Groups, in order:
 | [`correlation`](correlation.md) | 7 | stated, in progress |
 | [`janson`](janson.md) | 8 | stated, in progress |
 | [`concentration`](concentration.md) | 9 | one node stated; rest planned |
-| [`later-chapters`](later-chapters.md) | 10–11 | planned, not yet stated |
+| [`entropy`](entropy.md) | 10 | stated, in progress |
+| [`containers`](containers.md) | 11 | stated, in progress |
 
 **Everything in Chapter 1 §1.2 except Bollobás' two families theorem is already in
 Mathlib** — Sperner (`IsAntichain.sperner`), LYM
@@ -286,3 +287,21 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   hypothesis.  Measurable plus bounded differences gives boundedness and hence integrability,
   so the `∫` needs nothing further.  **When an author-side statement is wrong, the cost lands
   on whoever claimed it first and shows up as a released lease, not as a failed check.**
+- **2026-09-13 — Chapter 11 stated and published** as issues #97–#102, pinned to `9362ab6`.
+  **The book is now stated end to end**: every chapter has a group file, and `later-chapters.md`
+  — which had been carrying whatever was not yet stated since the first frontier — is retired,
+  because each chapter file now carries its own "planned, not stated" section with the reason.
+  Two decisions worth keeping.  **Vertex sets in Chapter 11 are `Fin n`**, not an arbitrary
+  finite type: every theorem there reads "for every `c` there is a `δ` that works for all
+  graphs", so `δ` is chosen before the graph and hence before its vertex type, and
+  `∃ δ, ∀ {V : Type*} …` cannot be written — the universe cannot be bound under the
+  existential.  `Fin n` costs no generality.  **Asymptotics are written out as `ε`–`N`, never
+  as `o(1)`**, extending the idiom `exists_nearly_equiangular` established in Chapter 5.
+  Chapter 11 differs from every chapter before it in one way that changed how the tasks are
+  written: **the source does not prove its main theorems.**  Theorems 11.2.1 and 11.3.1 come
+  with an algorithm and a proof idea and defer to Morris' lecture notes.  So those tasks
+  invite a decomposition proposal on the issue rather than a proof, and name the missing
+  prerequisite — triangle supersaturation — instead of letting a contributor discover it
+  halfway in.  `IsTriangleFreeEdgeSet` is an `abbrev` rather than a `def` so that `Decidable`
+  resolution sees through it; that keeps the no-`Decidable`-instances rule intact without
+  making the statements uglier.
