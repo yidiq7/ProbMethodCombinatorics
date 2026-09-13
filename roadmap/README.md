@@ -60,6 +60,18 @@ edge-count bound the book proves, so the edge-count bound stays a task.
 
 ## Log
 
+- **2026-09-13 — open tasks were re-pinned to `f1497a65`, and must be kept current.**
+  PR #42 was built at task #7's pin `dcaf5da`, which predates #32 and #33; its branch still
+  held the placeholder versions of `RamseyProperty.mono` and
+  `exists_coloring_no_isMonochromatic`, so merging it would have reverted two proved
+  theorems.  `sorry-delta` caught it (`base 2 → head 3`) and the contributor's diff looked
+  clean, which is what makes the failure confusing.  **A worker's workspace is built at the
+  pinned commit and workers do not rebase — so keeping pins current is this role's job.**
+  All 18 open tasks re-pinned; the two claimed ones were told to rebase.  Re-pin after every
+  batch of merges, or at minimum whenever a merge lands in a file some open task targets.
+  PR #40 landed as the project's first **reduction**, naming `card_filter_le_exp_mul` (#21)
+  as its open obligation — ratified, no new nodes, since the child is already a task.
+
 - **2026-09-13 — a proof that leans on an unproved sibling must declare a reduction.**
   PR #40 (two-sided Chernoff, task #22) was mathematically correct and failed `comparator`
   with `illegal-axiom`: it calls `card_filter_le_exp_mul`, still a placeholder, so `sorryAx`
