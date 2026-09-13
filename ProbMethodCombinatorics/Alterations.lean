@@ -197,6 +197,221 @@ noncomputable def shortCycleSupport (l : ℕ) {n : ℕ} (E : Finset (Sym2 (Fin n
       (w : (SimpleGraph.fromEdgeSet (E : Set (Sym2 (Fin n)))).Walk a a),
       w.IsCycle ∧ w.length ≤ l ∧ v ∈ w.support}).toFinset
 
+section ShortCycleExpectation
+
+/-- **The double count behind the expectation computation** of Zhao, Theorem 3.4.1.  Each vertex
+of `shortCycleSupport l E` lies on a cycle of `SimpleGraph.fromEdgeSet E` of some length
+`i` with `3 ≤ i ≤ l`; such a cycle is described by one of at most `n ^ i` tuples of vertices,
+carries `i` vertices, and forces `i` distinct unordered pairs to lie in `E`.  At most
+`(N - i).choose (M - i)` of the `M`-element subsets of the `N = Fintype.card (Sym2 (Fin n))`
+unordered pairs contain `i` prescribed ones, so summing over the family gives this bound. -/
+theorem sum_shortCycleSupport_card_le_cycleBound (l n M : ℕ) :
+    ∑ E ∈ graphFamily n M, (shortCycleSupport l E).card
+      ≤ ∑ i ∈ Finset.Icc 3 l,
+          i * n ^ i * (Fintype.card (Sym2 (Fin n)) - i).choose (M - i) := by
+  obtain ⟨ef, hef⟩ : ∃ ef : (i : ℕ) → (Fin i → Fin n) → Finset (Sym2 (Fin n)),
+      ∀ (i : ℕ) (f : Fin i → Fin n), ef i f = Finset.image
+        (fun k : Fin i => s(f k, f ⟨(k.val + 1) % i, Nat.mod_lt _ (Nat.zero_lt_of_lt k.isLt)⟩))
+        Finset.univ := ⟨_, fun _ _ => rfl⟩
+  obtain ⟨cyc, hcyc⟩ : ∃ cyc : (i : ℕ) → Finset (Sym2 (Fin n)) → Finset (Fin i → Fin n),
+      ∀ (i : ℕ) (E : Finset (Sym2 (Fin n))), cyc i E =
+        Finset.univ.filter (fun f => Function.Injective f ∧ ef i f ⊆ E) := ⟨_, fun _ _ => rfl⟩
+  have cardEf : ∀ (i : ℕ), 3 ≤ i → ∀ f : Fin i → Fin n, Function.Injective f →
+      (ef i f).card = i := by
+    intro i hi3 f hf
+    have hsucc : ∀ x : ℕ, x < i →
+        ((x + 1) % i = 0 ∧ x + 1 = i) ∨ ((x + 1) % i = x + 1 ∧ x + 1 < i) := by
+      intro x hx
+      rcases eq_or_lt_of_le (Nat.succ_le_of_lt hx) with h | h
+      · have h' : x + 1 = i := h
+        exact Or.inl ⟨by rw [h', Nat.mod_self], h'⟩
+      · exact Or.inr ⟨Nat.mod_eq_of_lt h, h⟩
+    have hinj : Function.Injective
+        (fun k : Fin i =>
+          s(f k, f ⟨(k.val + 1) % i, Nat.mod_lt _ (Nat.zero_lt_of_lt k.isLt)⟩)) := by
+      intro k₁ k₂ h
+      simp only [Sym2.eq_iff] at h
+      rcases h with ⟨h1, _⟩ | ⟨h1, h2⟩
+      · exact hf h1
+      · exfalso
+        have v1 : (k₁ : ℕ) = ((k₂ : ℕ) + 1) % i := congrArg Fin.val (hf h1)
+        have v2 : ((k₁ : ℕ) + 1) % i = (k₂ : ℕ) := congrArg Fin.val (hf h2)
+        have b1 := k₁.isLt
+        have b2 := k₂.isLt
+        rcases hsucc (k₁ : ℕ) b1 with ⟨p1, q1⟩ | ⟨p1, q1⟩ <;>
+          rcases hsucc (k₂ : ℕ) b2 with ⟨p2, q2⟩ | ⟨p2, q2⟩ <;>
+          rw [p2] at v1 <;> rw [p1] at v2 <;> omega
+    rw [hef, Finset.card_image_of_injective _ hinj, Finset.card_univ, Fintype.card_fin]
+  have countSub : ∀ s : Finset (Sym2 (Fin n)),
+      ((graphFamily n M).filter (fun E => s ⊆ E)).card
+        ≤ (Fintype.card (Sym2 (Fin n)) - s.card).choose (M - s.card) := by
+    intro s
+    have hmap : ∀ E ∈ (graphFamily n M).filter (fun E => s ⊆ E),
+        E \ s ∈ Finset.powersetCard (M - s.card) (Finset.univ \ s) := by
+      intro E hE
+      rw [graphFamily, Finset.mem_filter, Finset.mem_powersetCard] at hE
+      obtain ⟨⟨_, hcard⟩, hsub⟩ := hE
+      rw [Finset.mem_powersetCard]
+      exact ⟨Finset.sdiff_subset_sdiff (Finset.subset_univ E) le_rfl,
+        by rw [Finset.card_sdiff_of_subset hsub, hcard]⟩
+    have hinj : Set.InjOn (fun E => E \ s)
+        (((graphFamily n M).filter (fun E => s ⊆ E)) : Finset _) := by
+      intro E₁ h₁ E₂ h₂ h
+      simp only [Finset.coe_filter] at h₁ h₂
+      simp only at h
+      have e₁ : E₁ \ s ∪ s = E₁ := Finset.sdiff_union_of_subset h₁.2
+      have e₂ : E₂ \ s ∪ s = E₂ := Finset.sdiff_union_of_subset h₂.2
+      rw [← e₁, ← e₂, h]
+    calc ((graphFamily n M).filter (fun E => s ⊆ E)).card
+        ≤ (Finset.powersetCard (M - s.card) (Finset.univ \ s)).card :=
+          Finset.card_le_card_of_injOn _ hmap hinj
+      _ = (Fintype.card (Sym2 (Fin n)) - s.card).choose (M - s.card) := by
+          rw [Finset.card_powersetCard, Finset.card_sdiff_of_subset (Finset.subset_univ s),
+            Finset.card_univ]
+  have step1 : ∀ E : Finset (Sym2 (Fin n)),
+      (shortCycleSupport l E).card ≤ ∑ i ∈ Finset.Icc 3 l, i * (cyc i E).card := by
+    intro E
+    have hsub : shortCycleSupport l E ⊆ (Finset.Icc 3 l).biUnion
+        (fun i => (cyc i E).biUnion (fun f => Finset.image f Finset.univ)) := by
+      intro v hv
+      rw [shortCycleSupport, Set.Finite.mem_toFinset] at hv
+      obtain ⟨a, w, hcy, hlen, hvs⟩ := hv
+      have h3 : 3 ≤ w.length := hcy.isCircuit.three_le_length
+      set i := w.length with hi
+      have hipos : 0 < i := by omega
+      have hend : w.getVert i = w.getVert 0 := by rw [hi, w.getVert_length, w.getVert_zero]
+      have hmod : ∀ m : ℕ, m ≤ i → w.getVert (m % i) = w.getVert m := by
+        intro m hm
+        rcases lt_or_eq_of_le hm with h | h
+        · rw [Nat.mod_eq_of_lt h]
+        · subst h; rw [Nat.mod_self, hend]
+      refine Finset.mem_biUnion.mpr ⟨i, Finset.mem_Icc.mpr ⟨h3, hlen⟩, ?_⟩
+      refine Finset.mem_biUnion.mpr ⟨fun k : Fin i => w.getVert k.val, ?_, ?_⟩
+      · rw [hcyc, Finset.mem_filter]
+        refine ⟨Finset.mem_univ _, ?_, ?_⟩
+        · intro k₁ k₂ h
+          simp only at h
+          have hk₁ : (k₁ : ℕ) < i := k₁.isLt
+          have hk₂ : (k₂ : ℕ) < i := k₂.isLt
+          have m1 : (k₁ : ℕ) ∈ {j : ℕ | j ≤ w.length - 1} := by
+            simp only [Set.mem_ofPred_eq]; omega
+          have m2 : (k₂ : ℕ) ∈ {j : ℕ | j ≤ w.length - 1} := by
+            simp only [Set.mem_ofPred_eq]; omega
+          exact Fin.ext (hcy.getVert_injOn' m1 m2 h)
+        · rw [hef, Finset.image_subset_iff]
+          intro k _
+          have hk : (k : ℕ) < i := k.isLt
+          have hadj := w.adj_getVert_succ (i := (k : ℕ)) (by omega)
+          have hval : w.getVert (((k : ℕ) + 1) % i) = w.getVert ((k : ℕ) + 1) :=
+            hmod _ (by omega)
+          simp only [hval]
+          rw [SimpleGraph.fromEdgeSet_adj] at hadj
+          exact hadj.1
+      · rw [SimpleGraph.Walk.mem_support_iff_exists_getVert] at hvs
+        obtain ⟨m, hm, hml⟩ := hvs
+        refine Finset.mem_image.mpr ⟨⟨m % i, Nat.mod_lt _ hipos⟩, Finset.mem_univ _, ?_⟩
+        simp only
+        rw [hmod m hml, hm]
+    calc (shortCycleSupport l E).card
+        ≤ ((Finset.Icc 3 l).biUnion
+            (fun i => (cyc i E).biUnion (fun f => Finset.image f Finset.univ))).card :=
+          Finset.card_le_card hsub
+      _ ≤ ∑ i ∈ Finset.Icc 3 l,
+            ((cyc i E).biUnion (fun f => Finset.image f Finset.univ)).card :=
+          Finset.card_biUnion_le
+      _ ≤ ∑ i ∈ Finset.Icc 3 l, i * (cyc i E).card := by
+          refine Finset.sum_le_sum fun i _ => ?_
+          calc ((cyc i E).biUnion (fun f => Finset.image f Finset.univ)).card
+              ≤ ∑ _f ∈ cyc i E, (Finset.univ : Finset (Fin i)).card := by
+                refine le_trans Finset.card_biUnion_le ?_
+                exact Finset.sum_le_sum fun f _ => Finset.card_image_le
+            _ = i * (cyc i E).card := by
+                rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, smul_eq_mul, mul_comm]
+  have step2 : ∀ i ∈ Finset.Icc 3 l,
+      ∑ E ∈ graphFamily n M, (cyc i E).card
+        ≤ n ^ i * (Fintype.card (Sym2 (Fin n)) - i).choose (M - i) := by
+    intro i hi
+    have hi3 : 3 ≤ i := (Finset.mem_Icc.mp hi).1
+    calc ∑ E ∈ graphFamily n M, (cyc i E).card
+        = ∑ E ∈ graphFamily n M,
+            ∑ f ∈ Finset.univ.filter (fun f : Fin i → Fin n => Function.Injective f),
+              (if ef i f ⊆ E then 1 else 0) := by
+          refine Finset.sum_congr rfl fun E _ => ?_
+          rw [hcyc, ← Finset.filter_filter, Finset.card_filter]
+      _ = ∑ f ∈ Finset.univ.filter (fun f : Fin i → Fin n => Function.Injective f),
+            ∑ E ∈ graphFamily n M, (if ef i f ⊆ E then 1 else 0) := Finset.sum_comm
+      _ = ∑ f ∈ Finset.univ.filter (fun f : Fin i → Fin n => Function.Injective f),
+            ((graphFamily n M).filter (fun E => ef i f ⊆ E)).card :=
+          Finset.sum_congr rfl fun f _ => (Finset.card_filter _ _).symm
+      _ ≤ ∑ _f ∈ Finset.univ.filter (fun f : Fin i → Fin n => Function.Injective f),
+            (Fintype.card (Sym2 (Fin n)) - i).choose (M - i) := by
+          refine Finset.sum_le_sum fun f hf => ?_
+          have hfi : Function.Injective f := (Finset.mem_filter.mp hf).2
+          have hcount := countSub (ef i f)
+          rwa [cardEf i hi3 f hfi] at hcount
+      _ = (Finset.univ.filter (fun f : Fin i → Fin n => Function.Injective f)).card
+            * (Fintype.card (Sym2 (Fin n)) - i).choose (M - i) := by
+          rw [Finset.sum_const, smul_eq_mul]
+      _ ≤ n ^ i * (Fintype.card (Sym2 (Fin n)) - i).choose (M - i) := by
+          refine Nat.mul_le_mul_right _ ?_
+          refine le_trans (Finset.card_filter_le _ _) ?_
+          rw [Finset.card_univ, Fintype.card_fun, Fintype.card_fin, Fintype.card_fin]
+  calc ∑ E ∈ graphFamily n M, (shortCycleSupport l E).card
+      ≤ ∑ E ∈ graphFamily n M, ∑ i ∈ Finset.Icc 3 l, i * (cyc i E).card :=
+        Finset.sum_le_sum fun E _ => step1 E
+    _ = ∑ i ∈ Finset.Icc 3 l, i * ∑ E ∈ graphFamily n M, (cyc i E).card := by
+        rw [Finset.sum_comm]
+        exact Finset.sum_congr rfl fun i _ => (Finset.mul_sum _ _ _).symm
+    _ ≤ ∑ i ∈ Finset.Icc 3 l,
+          i * (n ^ i * (Fintype.card (Sym2 (Fin n)) - i).choose (M - i)) :=
+        Finset.sum_le_sum fun i hi => Nat.mul_le_mul_left _ (step2 i hi)
+    _ = ∑ i ∈ Finset.Icc 3 l,
+          i * n ^ i * (Fintype.card (Sym2 (Fin n)) - i).choose (M - i) :=
+        Finset.sum_congr rfl fun i _ => (mul_assoc _ _ _).symm
+
+/-- The ratio `(a choose b) / ((a + i) choose (b + i))` is the falling factorial
+`b (b - 1) ⋯ (b - i + 1) / (a + i) ⋯ (a + 1)`, so it is at most `((b + i) / a) ^ i`.  This is
+the division-free form, the crude estimate `ℙ(i prescribed pairs are all sampled) ≤ (M / N) ^ i`
+used in the expectation computation of Zhao, Theorem 3.4.1. -/
+theorem choose_mul_pow_le_choose_add_mul_pow (a b i : ℕ) :
+    a.choose b * a ^ i ≤ (a + i).choose (b + i) * (b + i) ^ i := by
+  induction i with
+  | zero => simp
+  | succ i ih =>
+    have key : (a + i + 1) * (a + i).choose (b + i)
+        = (a + (i + 1)).choose (b + (i + 1)) * (b + (i + 1)) := by
+      have h := Nat.add_one_mul_choose_eq (a + i) (b + i)
+      simpa [Nat.add_assoc] using h
+    calc a.choose b * a ^ (i + 1) = a.choose b * a ^ i * a := by ring
+      _ ≤ a.choose b * a ^ i * (a + i + 1) := Nat.mul_le_mul_left _ (by omega)
+      _ ≤ (a + i).choose (b + i) * (b + i) ^ i * (a + i + 1) := Nat.mul_le_mul_right _ ih
+      _ = (a + i + 1) * (a + i).choose (b + i) * (b + i) ^ i := by ring
+      _ = (a + (i + 1)).choose (b + (i + 1)) * (b + (i + 1)) * (b + i) ^ i := by rw [key]
+      _ ≤ (a + (i + 1)).choose (b + (i + 1)) * (b + (i + 1)) * (b + (i + 1)) ^ i :=
+          Nat.mul_le_mul_left _ (Nat.pow_le_pow_left (by omega) i)
+      _ = (a + (i + 1)).choose (b + (i + 1)) * (b + (i + 1)) ^ (i + 1) := by ring
+
+/-- Any fixed power of `log n` is eventually beaten by `n`, with any constant in front.  This is
+`(log n) ^ k = o(n)`, the only analytic input to the expectation computation of Zhao,
+Theorem 3.4.1. -/
+theorem exists_mul_pow_log_lt (c : ℝ) (k : ℕ) :
+    ∃ n₀ : ℕ, ∀ n : ℕ, n₀ ≤ n → c * Real.log n ^ k < n := by
+  have h : (fun x : ℝ => c * Real.log x ^ k) =o[Filter.atTop] id :=
+    Real.isLittleO_pow_log_id_atTop.const_mul_left c
+  have h2 := h.def (show (0 : ℝ) < 1 / 2 by norm_num)
+  obtain ⟨a, ha⟩ := (h2.and (Filter.eventually_gt_atTop (0 : ℝ))).exists_forall_of_atTop
+  refine ⟨⌈a⌉₊ + 1, fun n hn => ?_⟩
+  have hna : a ≤ (n : ℝ) := by
+    have h1 : a ≤ (⌈a⌉₊ : ℝ) := Nat.le_ceil a
+    have h3 : ((⌈a⌉₊ : ℕ) : ℝ) ≤ (n : ℝ) := by exact_mod_cast Nat.le_of_succ_le hn
+    linarith
+  obtain ⟨hb, hpos⟩ := ha (n : ℝ) hna
+  simp only [Real.norm_eq_abs, id_eq, abs_of_pos hpos] at hb
+  have hle := le_abs_self (c * Real.log (n : ℝ) ^ k)
+  linarith
+
+end ShortCycleExpectation
+
 /-- **The expectation computation** behind the first step of Zhao, Theorem 3.4.1.  The expected
 number of cycles of length at most `l` in `G(n, M)` with `M = girthEdgeCount n` is
 `∑_{i=3}^{l} (n choose i) (i - 1)! / 2 · p ^ i = O((log n) ^ (2 l))` with `p ≈ 2 (log n) ^ 2 / n`,
@@ -207,7 +422,141 @@ theorem exists_sum_shortCycleSupport_card_lt (l : ℕ) :
     ∃ n₀ : ℕ, ∀ n ≥ n₀,
       4 * ∑ E ∈ graphFamily n (girthEdgeCount n), ((shortCycleSupport l E).card : ℝ)
         < n * ((graphFamily n (girthEdgeCount n)).card : ℝ) := by
-  sorry
+  obtain ⟨n₁, hn₁⟩ := exists_mul_pow_log_lt (4 * (l : ℝ) ^ 2 * 8 ^ l) (2 * l)
+  obtain ⟨n₂, hn₂⟩ := exists_mul_pow_log_lt 4 2
+  refine ⟨max (max n₁ n₂) (l + 4), fun n hn => ?_⟩
+  have hgen1 : n₁ ≤ n := le_trans (le_trans (le_max_left _ _) (le_max_left _ _)) hn
+  have hgen2 : n₂ ≤ n := le_trans (le_trans (le_max_right _ _) (le_max_left _ _)) hn
+  have hgen3 : l + 4 ≤ n := le_trans (le_max_right _ _) hn
+  have hA := sum_shortCycleSupport_card_le_cycleBound l n (girthEdgeCount n)
+  have hfam : ((graphFamily n (girthEdgeCount n)).card : ℝ)
+      = (((Fintype.card (Sym2 (Fin n))).choose (girthEdgeCount n) : ℕ) : ℝ) := by
+    rw [graphFamily, Finset.card_powersetCard, Finset.card_univ]
+  have hn4 : (4 : ℝ) ≤ (n : ℝ) := by exact_mod_cast (by omega : 4 ≤ n)
+  have hlR : (l : ℝ) ≤ (n : ℝ) := by exact_mod_cast (by omega : l ≤ n)
+  set L : ℝ := Real.log n with hLdef
+  set M : ℕ := girthEdgeCount n with hMdef
+  set N : ℕ := Fintype.card (Sym2 (Fin n)) with hNdef
+  have hsmall : 4 * L ^ 2 < (n : ℝ) := by rw [hLdef]; exact hn₂ n hgen2
+  have hlog2 : (1 : ℝ) / 2 ≤ Real.log 2 := by
+    have h := Real.log_le_sub_one_of_pos (show (0 : ℝ) < 1 / 2 by norm_num)
+    rw [show (1 : ℝ) / 2 = (2 : ℝ)⁻¹ by norm_num, Real.log_inv] at h
+    linarith
+  have hL1 : (1 : ℝ) ≤ L := by
+    have h4 : Real.log 4 = 2 * Real.log 2 := by
+      rw [show (4 : ℝ) = 2 ^ 2 by norm_num, Real.log_pow]; push_cast; ring
+    have hmono := Real.log_le_log (show (0 : ℝ) < 4 by norm_num) hn4
+    rw [h4] at hmono
+    rw [hLdef]
+    linarith
+  have hMub : (M : ℝ) < (n : ℝ) * L ^ 2 + 1 := by
+    rw [hMdef, girthEdgeCount, ← hLdef]; exact Nat.ceil_lt_add_one (by positivity)
+  have hMlb : (n : ℝ) * L ^ 2 ≤ (M : ℝ) := by
+    rw [hMdef, girthEdgeCount, ← hLdef]; exact Nat.le_ceil _
+  have hN2 : 2 * N = n * (n + 1) := by
+    rw [hNdef, Sym2.card, Fintype.card_fin]
+    have h := Nat.add_one_mul_choose_eq n 1
+    rw [Nat.choose_one_right] at h
+    calc 2 * (n + 1).choose 2 = (n + 1).choose 2 * 2 := by ring
+      _ = (n + 1) * n := h.symm
+      _ = n * (n + 1) := by ring
+  have hNR : (n : ℝ) ^ 2 ≤ 2 * (N : ℝ) := by
+    have hc : (2 : ℝ) * (N : ℝ) = (n : ℝ) * ((n : ℝ) + 1) := by exact_mod_cast hN2
+    nlinarith
+  have hL2 : (1 : ℝ) ≤ L ^ 2 := by nlinarith
+  have hnsq : 4 * (n : ℝ) ≤ (n : ℝ) ^ 2 := by nlinarith
+  have hn16 : (16 : ℝ) ≤ (n : ℝ) ^ 2 := by nlinarith
+  have hnL2 : (n : ℝ) ≤ (n : ℝ) * L ^ 2 := by nlinarith
+  have h4nL : 4 * ((n : ℝ) * L ^ 2) < (n : ℝ) ^ 2 := by nlinarith
+  have hlM : l ≤ M := by
+    have hcast : (l : ℝ) ≤ (M : ℝ) := by linarith
+    exact_mod_cast hcast
+  have hlN : l ≤ N := by
+    have hcast : (l : ℝ) ≤ (N : ℝ) := by linarith
+    exact_mod_cast hcast
+  have hMN : M ≤ N := by
+    have hcast : (M : ℝ) ≤ (N : ℝ) := by linarith
+    exact_mod_cast hcast
+  have hDpos : (0 : ℝ) < ((N.choose M : ℕ) : ℝ) := by exact_mod_cast Nat.choose_pos hMN
+  have hterm : ∀ i ∈ Finset.Icc 3 l,
+      ((i * n ^ i * ((N - i).choose (M - i)) : ℕ) : ℝ)
+        ≤ ((N.choose M : ℕ) : ℝ) * ((l : ℝ) * (8 * L ^ 2) ^ l) := by
+    intro i hi
+    rw [Finset.mem_Icc] at hi
+    have hil : i ≤ l := hi.2
+    have hiN : i ≤ N := le_trans hil hlN
+    have hiM : i ≤ M := le_trans hil hlM
+    have hilR : (i : ℝ) ≤ (l : ℝ) := by exact_mod_cast hil
+    have hiR : (i : ℝ) ≤ (n : ℝ) := le_trans hilR hlR
+    have hNi : (n : ℝ) ^ 2 / 4 ≤ (N : ℝ) - (i : ℝ) := by linarith
+    have hpos : (0 : ℝ) < (N : ℝ) - (i : ℝ) := by nlinarith
+    have ht1 : (1 : ℝ) ≤ 8 * L ^ 2 := by linarith
+    have hB := choose_mul_pow_le_choose_add_mul_pow (N - i) (M - i) i
+    rw [Nat.sub_add_cancel hiN, Nat.sub_add_cancel hiM] at hB
+    have hBR : (((N - i).choose (M - i) : ℕ) : ℝ) * ((N : ℝ) - (i : ℝ)) ^ i
+        ≤ ((N.choose M : ℕ) : ℝ) * (M : ℝ) ^ i := by
+      have hc : (((N - i : ℕ) : ℝ)) = (N : ℝ) - (i : ℝ) := by rw [Nat.cast_sub hiN]
+      calc (((N - i).choose (M - i) : ℕ) : ℝ) * ((N : ℝ) - (i : ℝ)) ^ i
+          = (((N - i).choose (M - i) * (N - i) ^ i : ℕ) : ℝ) := by push_cast [hc]; ring
+        _ ≤ ((N.choose M * M ^ i : ℕ) : ℝ) := by exact_mod_cast hB
+        _ = ((N.choose M : ℕ) : ℝ) * (M : ℝ) ^ i := by push_cast; ring
+    have hnM : (n : ℝ) * (M : ℝ) ≤ (8 * L ^ 2) * ((N : ℝ) - (i : ℝ)) := by nlinarith
+    have h3 : (0 : ℝ) ≤ ((N : ℝ) - (i : ℝ)) ^ i := by positivity
+    have hstep : ((n : ℝ) * (M : ℝ)) ^ i ≤ (8 * L ^ 2) ^ l * ((N : ℝ) - (i : ℝ)) ^ i := by
+      have h1 : ((n : ℝ) * (M : ℝ)) ^ i ≤ (8 * L ^ 2) ^ i * ((N : ℝ) - (i : ℝ)) ^ i := by
+        rw [← mul_pow]; gcongr
+      exact le_trans h1 (mul_le_mul_of_nonneg_right (pow_le_pow_right₀ ht1 hil) h3)
+    have hkey : ((i : ℝ) * (n : ℝ) ^ i * (((N - i).choose (M - i) : ℕ) : ℝ))
+        * ((N : ℝ) - (i : ℝ)) ^ i
+        ≤ (((N.choose M : ℕ) : ℝ) * ((l : ℝ) * (8 * L ^ 2) ^ l))
+          * ((N : ℝ) - (i : ℝ)) ^ i := by
+      have hAe : ((i : ℝ) * (n : ℝ) ^ i * (((N - i).choose (M - i) : ℕ) : ℝ))
+          * ((N : ℝ) - (i : ℝ)) ^ i
+          = (i : ℝ) * (n : ℝ) ^ i
+            * ((((N - i).choose (M - i) : ℕ) : ℝ) * ((N : ℝ) - (i : ℝ)) ^ i) := by ring
+      rw [hAe]
+      refine le_trans (mul_le_mul_of_nonneg_left hBR (by positivity)) ?_
+      have hEq : (i : ℝ) * (n : ℝ) ^ i * (((N.choose M : ℕ) : ℝ) * (M : ℝ) ^ i)
+          = ((N.choose M : ℕ) : ℝ) * ((i : ℝ) * ((n : ℝ) * (M : ℝ)) ^ i) := by
+        rw [mul_pow]; ring
+      have hEq2 : (((N.choose M : ℕ) : ℝ) * ((l : ℝ) * (8 * L ^ 2) ^ l))
+          * ((N : ℝ) - (i : ℝ)) ^ i
+          = ((N.choose M : ℕ) : ℝ)
+            * ((l : ℝ) * ((8 * L ^ 2) ^ l * ((N : ℝ) - (i : ℝ)) ^ i)) := by ring
+      rw [hEq, hEq2]
+      refine mul_le_mul_of_nonneg_left ?_ (by positivity)
+      have hpow0 : (0 : ℝ) ≤ ((n : ℝ) * (M : ℝ)) ^ i := by positivity
+      have hlast : (0 : ℝ) ≤ (8 * L ^ 2) ^ l * ((N : ℝ) - (i : ℝ)) ^ i := by positivity
+      have hi0 : (0 : ℝ) ≤ (i : ℝ) := by positivity
+      nlinarith
+    have hfin := le_of_mul_le_mul_right hkey (pow_pos hpos i)
+    calc ((i * n ^ i * ((N - i).choose (M - i)) : ℕ) : ℝ)
+        = (i : ℝ) * (n : ℝ) ^ i * (((N - i).choose (M - i) : ℕ) : ℝ) := by push_cast; ring
+      _ ≤ ((N.choose M : ℕ) : ℝ) * ((l : ℝ) * (8 * L ^ 2) ^ l) := hfin
+  have hcast : ∑ E ∈ graphFamily n M, ((shortCycleSupport l E).card : ℝ)
+      ≤ ∑ i ∈ Finset.Icc 3 l, ((i * n ^ i * ((N - i).choose (M - i)) : ℕ) : ℝ) := by
+    rw [← Nat.cast_sum, ← Nat.cast_sum]
+    exact_mod_cast hA
+  have hsum := Finset.sum_le_card_nsmul (Finset.Icc 3 l)
+    (fun i => ((i * n ^ i * ((N - i).choose (M - i)) : ℕ) : ℝ))
+    (((N.choose M : ℕ) : ℝ) * ((l : ℝ) * (8 * L ^ 2) ^ l)) hterm
+  rw [nsmul_eq_mul] at hsum
+  have hcardIcc : (((Finset.Icc 3 l).card : ℕ) : ℝ) ≤ (l : ℝ) := by
+    rw [Nat.card_Icc]
+    exact_mod_cast (by omega : l + 1 - 3 ≤ l)
+  have hB0 : (0 : ℝ) ≤ ((N.choose M : ℕ) : ℝ) * ((l : ℝ) * (8 * L ^ 2) ^ l) := by positivity
+  have htotal : ∑ E ∈ graphFamily n M, ((shortCycleSupport l E).card : ℝ)
+      ≤ (l : ℝ) * (((N.choose M : ℕ) : ℝ) * ((l : ℝ) * (8 * L ^ 2) ^ l)) :=
+    le_trans hcast (le_trans hsum (mul_le_mul_of_nonneg_right hcardIcc hB0))
+  have hlog : (4 * (l : ℝ) ^ 2 * 8 ^ l) * L ^ (2 * l) < (n : ℝ) := by
+    rw [hLdef]; exact hn₁ n hgen1
+  have htl : (8 * L ^ 2) ^ l = 8 ^ l * L ^ (2 * l) := by rw [mul_pow, pow_mul]
+  rw [hfam]
+  calc 4 * ∑ E ∈ graphFamily n M, ((shortCycleSupport l E).card : ℝ)
+      ≤ 4 * ((l : ℝ) * (((N.choose M : ℕ) : ℝ) * ((l : ℝ) * (8 * L ^ 2) ^ l))) := by linarith
+    _ = ((N.choose M : ℕ) : ℝ) * ((4 * (l : ℝ) ^ 2 * 8 ^ l) * L ^ (2 * l)) := by rw [htl]; ring
+    _ < ((N.choose M : ℕ) : ℝ) * (n : ℝ) := mul_lt_mul_of_pos_left hlog hDpos
+    _ = (n : ℝ) * ((N.choose M : ℕ) : ℝ) := by ring
 
 /-- **Few short cycles** (first step of Zhao, Theorem 3.4.1).  For all large `n`, fewer than half
 the graphs of `G(n, M)` with `M = girthEdgeCount n` fail to have a set `S` of at most `n / 2`
