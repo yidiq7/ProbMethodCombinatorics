@@ -753,6 +753,56 @@
       "proof_uses": [
         "lll_general"
       ]
+    },
+    "fair_coin": {
+      "kind": "definition",
+      "parent": "local_lemma",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.fairCoin",
+      "doc": "local-lemma.md#the-uniform-random-two-colouring",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "uniform_coloring": {
+      "kind": "definition",
+      "parent": "local_lemma",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.uniformColoring",
+      "doc": "local-lemma.md#the-uniform-random-two-colouring",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "fair_coin"
+      ],
+      "proof_uses": []
+    },
+    "uniform_coloring_const": {
+      "kind": "theorem",
+      "parent": "local_lemma",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.uniformColoring_const",
+      "doc": "local-lemma.md#the-uniform-random-two-colouring",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "uniform_coloring"
+      ],
+      "proof_uses": []
+    },
+    "uniform_coloring_indep": {
+      "kind": "theorem",
+      "parent": "local_lemma",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.uniformColoring_inter_eq_mul",
+      "doc": "local-lemma.md#the-uniform-random-two-colouring",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "uniform_coloring"
+      ],
+      "proof_uses": []
     }
   }
 }

@@ -457,6 +457,100 @@ theorem lovasz_local_lemma_of_sum_le [IsProbabilityMeasure μ]
   have hpos : 0 < ∏ i, (1 - x i) := Finset.prod_pos fun i _ => by linarith [hx₁ i]
   linarith
 
+section UniformColoring
+
+/-!
+### The uniform random two-colouring
+
+Every application of the local lemma in this chapter randomly two-colours a finite set and
+asks which events are independent.  The measure and its two working facts are collected here
+rather than rebuilt at each call site.  The index type is arbitrary: the applications colour
+vertices (`α`), the Ramsey bound colours edges (`Finset (Fin n)`).
+-/
+
+variable {κ : Type*} [Fintype κ] [DecidableEq κ]
+
+/-- The fair coin on `Bool`. -/
+noncomputable def fairCoin : Measure Bool :=
+  (2 : ENNReal)⁻¹ • (Measure.dirac true + Measure.dirac false)
+
+theorem fairCoin_univ : fairCoin Set.univ = 1 := by
+  rw [fairCoin]
+  simp only [Measure.smul_apply, Measure.add_apply, measure_univ, smul_eq_mul]
+  rw [show (1 : ENNReal) + 1 = 2 from by norm_num]
+  exact ENNReal.inv_mul_cancel (by norm_num) (by norm_num)
+
+instance : IsProbabilityMeasure fairCoin := ⟨fairCoin_univ⟩
+
+theorem fairCoin_singleton (b : Bool) : fairCoin {b} = (2 : ENNReal)⁻¹ := by
+  rw [fairCoin]; cases b <;> simp [Measure.smul_apply, Measure.add_apply]
+
+/-- The uniform probability measure on two-colourings of `κ`: each coordinate is an
+independent fair coin. -/
+noncomputable def uniformColoring (κ : Type*) [Fintype κ] : Measure (κ → Bool) :=
+  Measure.pi fun _ : κ => fairCoin
+
+instance : IsProbabilityMeasure (uniformColoring κ) := by
+  rw [uniformColoring]; infer_instance
+
+/-- A uniform random colouring is constant on a given finite set with probability `2 ^ -|T|`. -/
+theorem uniformColoring_const (T : Finset κ) (b : Bool) :
+    uniformColoring κ {x : κ → Bool | ∀ u ∈ T, x u = b} = (2 : ENNReal)⁻¹ ^ T.card := by
+  have hset : {x : κ → Bool | ∀ u ∈ T, x u = b}
+      = Set.univ.pi (fun a => if a ∈ T then ({b} : Set Bool) else Set.univ) := by
+    ext x
+    constructor
+    · intro h a _
+      show x a ∈ (if a ∈ T then ({b} : Set Bool) else Set.univ)
+      by_cases ha : a ∈ T
+      · rw [if_pos ha]; exact h a ha
+      · rw [if_neg ha]; exact Set.mem_univ _
+    · intro h u hu
+      have hxu : x u ∈ (if u ∈ T then ({b} : Set Bool) else Set.univ) := h u (Set.mem_univ u)
+      rw [if_pos hu] at hxu
+      exact hxu
+  rw [hset, uniformColoring, Measure.pi_pi]
+  have hrew : ∀ a : κ, fairCoin (if a ∈ T then ({b} : Set Bool) else Set.univ)
+      = if a ∈ T then (2 : ENNReal)⁻¹ else 1 := by
+    intro a
+    by_cases ha : a ∈ T
+    · rw [if_pos ha, if_pos ha]; exact fairCoin_singleton b
+    · rw [if_neg ha, if_neg ha]; exact fairCoin_univ
+  rw [Finset.prod_congr rfl (fun a _ => hrew a), Finset.prod_ite_mem, Finset.univ_inter,
+    Finset.prod_const]
+
+/-- **Events determined by disjoint sets of coordinates are independent.**  This is Setup 6.1.5
+specialized to a uniform two-colouring: `S₁` may depend only on the coordinates in `T`, and `S₂`
+only on those outside it. -/
+theorem uniformColoring_inter_eq_mul (T : Finset κ) (S₁ S₂ : Set (κ → Bool))
+    (h₁ : ∀ x y : κ → Bool, (∀ a ∈ T, x a = y a) → (x ∈ S₁ ↔ y ∈ S₁))
+    (h₂ : ∀ x y : κ → Bool, (∀ a ∉ T, x a = y a) → (x ∈ S₂ ↔ y ∈ S₂)) :
+    uniformColoring κ (S₁ ∩ S₂) = uniformColoring κ S₁ * uniformColoring κ S₂ := by
+  have hindep : iIndepFun (fun (a : κ) (x : κ → Bool) => x a) (uniformColoring κ) := by
+    rw [uniformColoring]
+    exact ProbabilityTheory.iIndepFun_pi (μ := fun _ : κ => fairCoin)
+      (X := fun _ : κ => (id : Bool → Bool)) (fun _ => aemeasurable_id)
+  have hind := hindep.indepFun_finset T Tᶜ disjoint_compl_right
+    (fun a => measurable_pi_apply a)
+  have e₁ : (fun (x : κ → Bool) (u : { a // a ∈ T }) => x (u : κ)) ⁻¹'
+      ((fun (x : κ → Bool) (u : { a // a ∈ T }) => x (u : κ)) '' S₁) = S₁ := by
+    refine Set.Subset.antisymm ?_ (Set.subset_preimage_image _ _)
+    rintro x ⟨y, hy, hxy⟩
+    exact (h₁ y x (fun a ha => congrFun hxy ⟨a, ha⟩)).1 hy
+  have e₂ : (fun (x : κ → Bool) (u : { a // a ∈ Tᶜ }) => x (u : κ)) ⁻¹'
+      ((fun (x : κ → Bool) (u : { a // a ∈ Tᶜ }) => x (u : κ)) '' S₂) = S₂ := by
+    refine Set.Subset.antisymm ?_ (Set.subset_preimage_image _ _)
+    rintro x ⟨y, hy, hxy⟩
+    exact (h₂ y x (fun a ha => congrFun hxy ⟨a, Finset.mem_compl.2 ha⟩)).1 hy
+  have hmul := hind.measure_inter_preimage_eq_mul
+    ((fun (x : κ → Bool) (u : { a // a ∈ T }) => x (u : κ)) '' S₁)
+    ((fun (x : κ → Bool) (u : { a // a ∈ Tᶜ }) => x (u : κ)) '' S₂)
+    (Set.toFinite _).measurableSet (Set.toFinite _).measurableSet
+  rw [e₁, e₂] at hmul
+  exact hmul
+
+end UniformColoring
+
 section Applications
 
 variable {α : Type*} [Fintype α] [DecidableEq α]
