@@ -99,7 +99,7 @@
       "decl": "ProbMethodCombinatorics.RamseyProperty.mono",
       "doc": "introduction.md#ramsey_property_mono--ramseypropertymono",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "ramsey_property"
       ],
