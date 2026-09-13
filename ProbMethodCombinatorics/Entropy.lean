@@ -145,6 +145,37 @@ section Subadditivity
 variable [Fintype Ω] {ι : Type*} [Fintype ι] [DecidableEq ι] {α : ι → Type*}
 variable [∀ i, Fintype (α i)] [∀ i, DecidableEq (α i)]
 
+private theorem entropy_const [Fintype S] [DecidableEq S] {p : Ω → ℝ} (hp1 : ∑ ω, p ω = 1)
+    (c : S) : entropy p (fun _ : Ω => c) = 0 := by
+  unfold entropy
+  refine Finset.sum_eq_zero fun s _ => ?_
+  rcases eq_or_ne c s with rfl | hcs
+  · have h : probOf p (fun _ : Ω => c) c = 1 := by simp [probOf, hp1]
+    rw [h]; simp
+  · have h : probOf p (fun _ : Ω => c) s = 0 := by simp [probOf, hcs]
+    rw [h]; simp
+
+private theorem entropy_eq_of_comp [Fintype S] [DecidableEq S] [Fintype T] [DecidableEq T]
+    (p : Ω → ℝ) {f : S → T} (hf : Function.Injective f) (X : Ω → S) (Z : Ω → T)
+    (hZ : ∀ ω, Z ω = f (X ω)) : entropy p Z = entropy p X := by
+  have hfun : Z = fun ω => f (X ω) := funext hZ
+  subst hfun
+  have hprob : ∀ s : S, probOf p (fun ω => f (X ω)) (f s) = probOf p X s := by
+    intro s
+    unfold probOf
+    exact Finset.sum_congr (Finset.filter_congr fun ω _ => by simp [hf.eq_iff]) fun _ _ => rfl
+  unfold entropy
+  rw [← Finset.sum_subset (Finset.subset_univ ((univ : Finset S).image f))]
+  · rw [Finset.sum_image fun x _ y _ h => hf h]
+    exact Finset.sum_congr rfl fun s _ => by rw [hprob s]
+  · intro t _ ht
+    have h0 : probOf p (fun ω => f (X ω)) t = 0 := by
+      unfold probOf
+      refine Finset.sum_eq_zero fun ω hω => ?_
+      exact absurd (Finset.mem_image.mpr
+        ⟨X ω, Finset.mem_univ _, (Finset.mem_filter.mp hω).2⟩) ht
+    rw [h0]; simp
+
 /-- **Subadditivity** in general (Lemma 10.1.8): `H(X₁, …, Xₙ) ≤ H(X₁) + ⋯ + H(Xₙ)`, obtained
 by iterating `entropy_pair_le_add`. -/
 theorem entropy_pi_le_sum (p : Ω → ℝ) (hp : ∀ ω, 0 ≤ p ω) (hp1 : ∑ ω, p ω = 1)
