@@ -46,6 +46,18 @@ The union bound becomes a counting argument: over all `2 ^ (n.choose 2)` symmetr
 colourings, each `k`-set is monochromatic in `2 ^ (1 + (n.choose 2) - (k.choose 2))` of
 them, so fewer than all of them are spoiled by some `k`-set.
 
+## `exists_monochromatic_of_choose_le` — Erdős–Szekeres
+
+The off-diagonal statement the Ramsey induction needs, contributed with `ramsey_finite`
+(PR #43): any `Finset` of at least `(k + l).choose k` vertices carries, under every symmetric
+colouring, a `true`-clique on `k` vertices or a `false`-clique on `l`.
+
+Two deliberate choices.  The vertex set is an arbitrary `Finset α` rather than `Fin n`, so the
+inductive step — fix a vertex, recurse into the two colour classes of its neighbourhood —
+stays inside the statement.  And the bound is `(k+l).choose k`, looser than the sharp
+`(k+l-2).choose (k-1)`; the task asked for whatever falls out of a clean induction, and it
+gives `R(k,k) ≤ (2k).choose k`, which is the classical Erdős–Szekeres diagonal bound.
+
 ## `ramsey_finite` — `exists_ramseyProperty`
 
 Ramsey's theorem (Ramsey 1929), in the weakest form this project needs: `∃ n,

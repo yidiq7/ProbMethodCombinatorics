@@ -118,6 +118,17 @@
       ],
       "proof_uses": []
     },
+    "erdos_szekeres": {
+      "kind": "theorem",
+      "parent": "introduction",
+      "file": "ProbMethodCombinatorics/Ramsey.lean",
+      "decl": "ProbMethodCombinatorics.exists_monochromatic_of_choose_le",
+      "doc": "introduction.md#exists_monochromatic_of_choose_le--erdos-szekeres",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
     "ramsey_finite": {
       "kind": "theorem",
       "parent": "introduction",
@@ -125,7 +136,7 @@
       "decl": "ProbMethodCombinatorics.exists_ramseyProperty",
       "doc": "introduction.md#ramsey_finite--exists_ramseyproperty",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "ramsey_property"
       ],
@@ -591,7 +602,7 @@
       "decl": "ProbMethodCombinatorics.lovasz_local_lemma_symmetric",
       "doc": "local-lemma.md#lovasz_local_lemma_symmetric",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "is_dependency_graph"
       ],

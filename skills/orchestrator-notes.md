@@ -87,3 +87,16 @@ Only the target *file* matters — a stale pin is harmless if nothing merged int
 
 When you rebase, **re-check any `choir-reduction` block**: obligations that have since been
 proved must be dropped from `children`, or the block claims something untrue.
+
+## 2026-09-13 — Use `lovasz_local_lemma`; do not re-derive it
+
+`lovasz_local_lemma` (the general form) and `measure_inter_biInter_compl_le` (its induction
+step) are **proved** as of PR #41.  The symmetric form in PR #44 re-derived the general form
+inline, which was correct at the time — that PR was opened 73 seconds before #41 merged, so
+calling it would have pulled in `sorryAx`.  It is no longer necessary.
+
+For `lovasz_local_lemma_of_sum_le` and anything else in this group: apply the general form
+with the weights your corollary needs (`x = fun _ => t` for a constant weight) rather than
+repeating the induction.  If you find yourself writing a second copy of an argument that
+already exists in the file, check whether the dependency has merged since your workspace was
+pinned.
