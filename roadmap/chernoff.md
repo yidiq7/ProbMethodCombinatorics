@@ -58,6 +58,14 @@ counterpart, and it is not needed by anything downstream.
 
 ## `nearly_equiangular` — `exists_nearly_equiangular`
 
+> **Corrected 2026-09-13: the statement now quantifies `∀ n ≥ n₀`.**  As first written it
+> claimed the bound for *every* `n` and was false at the bottom.  At `n = 0` there is no unit
+> vector in `EuclideanSpace ℝ (Fin 0)` while `2 ^ (c * 0) = 1` demands a non-empty `S`
+> (machine-checked counterexample); at `n = 1` the only unit vectors are `±1` with inner
+> product `-1`, so for small `ε` at most one qualifies while `2 ^ c > 1` demands two.  The
+> book says "for every `n`", which is loose for an asymptotic statement.  This is the second
+> statement in the project to be false at degenerate `n` — see the Chernoff bounds.
+
 Theorem 5.2.1: for every `α ∈ (0,1)` and `ε > 0` there is `c > 0` with at least `2^{cn}` unit
 vectors in `ℝⁿ` whose pairwise inner products lie in `[α - ε, α + ε]`.
 
