@@ -60,6 +60,18 @@ edge-count bound the book proves, so the edge-count bound stays a task.
 
 ## Log
 
+- **2026-09-13 — Chapter 1 §1.1 is closed and the local lemma is proved.**  PRs #41–#44
+  landed the general local lemma with its induction step, Ramsey's theorem with the
+  off-diagonal Erdős–Szekeres statement, `lt_ramseyNumber`, and the symmetric local lemma.
+  Every Ramsey node now has a real proof.
+  **Golf candidate:** `lovasz_local_lemma_symmetric` (PR #44) re-derives the general form
+  inline as a `have`, duplicating `lovasz_local_lemma`.  That was correct when written — #44
+  was opened 73 seconds before #41 merged, so calling the general form would have pulled in
+  `sorryAx` — but it should be rewritten to apply `lovasz_local_lemma` at the constant weight
+  `1/(d+2)`.  Publish the golf task once Chapter 6 is quiet, not while #27–#30 are in flight.
+  Note the weight `1/(d+2)` rather than the book's `1/(d+1)`: the latter is `1` at `d = 0` and
+  so inadmissible.  Keep that when golfing.
+
 - **2026-09-13 — open tasks were re-pinned to `f1497a65`, and must be kept current.**
   PR #42 was built at task #7's pin `dcaf5da`, which predates #32 and #33; its branch still
   held the placeholder versions of `RamseyProperty.mono` and
