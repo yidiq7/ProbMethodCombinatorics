@@ -60,6 +60,12 @@ edge-count bound the book proves, so the edge-count bound stays a task.
 
 ## Log
 
+- **2026-09-12 — overlay upgraded.** Protocol 8 → 8 (unchanged), Choir commit
+  `1c85185` → `6b40b47`; `gate/checks.py` and so `REQUIRED_PRESENT` were unchanged, and the
+  fingerprint guard passed, so no PR was at risk of the absent-check refusal.
+  `verify-pr.yml` was left untouched (it carries this project's Mathlib cache step).
+  Branch protection's required contexts were confirmed to match.
+
 - **2026-09-12 — project bootstrapped.** Toolchain pinned to `leanprover/lean4:v4.33.0`
   (Mathlib `v4.33.0`): the newest release the comparator tags, so the kernel statement
   gate runs on every PR.  Lean's own newest is `v4.33.1`, which the comparator does not
