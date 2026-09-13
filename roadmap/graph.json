@@ -213,7 +213,7 @@
       "decl": "ProbMethodCombinatorics.exists_tournament_card_hamiltonPaths",
       "doc": "expectation.md#szele--exists_tournament_card_hamiltonpaths",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "hamilton_paths"
       ],
