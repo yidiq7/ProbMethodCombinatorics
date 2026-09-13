@@ -1238,6 +1238,87 @@
       "proof_uses": [
         "janson_three"
       ]
+    },
+    "concentration": {
+      "kind": "group",
+      "doc": "concentration.md"
+    },
+    "hoeffding_lemma_upstream": {
+      "kind": "theorem",
+      "parent": "concentration",
+      "decl": "ProbabilityTheory.hasSubgaussianMGF_of_mem_Icc_of_integral_eq_zero",
+      "upstream": true
+    },
+    "hoeffding_sum_upstream": {
+      "kind": "theorem",
+      "parent": "concentration",
+      "decl": "ProbabilityTheory.measure_sum_ge_le_of_iIndepFun",
+      "upstream": true
+    },
+    "bounded_differences": {
+      "kind": "theorem",
+      "parent": "concentration",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.measure_sub_integral_ge_le",
+      "doc": "concentration.md#bounded_differences--measure_sub_integral_ge_le",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
+    },
+    "azuma": {
+      "kind": "theorem",
+      "parent": "concentration",
+      "doc": "concentration.md#planned-not-stated",
+      "statement": "planned",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
+    },
+    "shamir_spencer": {
+      "kind": "theorem",
+      "parent": "concentration",
+      "doc": "concentration.md#planned-not-stated",
+      "statement": "planned",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
+    },
+    "clique_number_bollobas": {
+      "kind": "theorem",
+      "parent": "concentration",
+      "doc": "concentration.md#planned-not-stated",
+      "statement": "planned",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
+    },
+    "isoperimetry": {
+      "kind": "theorem",
+      "parent": "concentration",
+      "doc": "concentration.md#planned-not-stated",
+      "statement": "planned",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
+    },
+    "talagrand": {
+      "kind": "theorem",
+      "parent": "concentration",
+      "doc": "concentration.md#planned-not-stated",
+      "statement": "planned",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
+    },
+    "euclidean_tsp": {
+      "kind": "theorem",
+      "parent": "concentration",
+      "doc": "concentration.md#planned-not-stated",
+      "statement": "planned",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
     }
   }
 }

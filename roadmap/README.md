@@ -27,7 +27,8 @@ Groups, in order:
 | [`local-lemma`](local-lemma.md) | 6 | stated, in progress |
 | [`correlation`](correlation.md) | 7 | stated, in progress |
 | [`janson`](janson.md) | 8 | stated, in progress |
-| [`later-chapters`](later-chapters.md) | 9–11 | planned, not yet stated |
+| [`concentration`](concentration.md) | 9 | one node stated; rest planned |
+| [`later-chapters`](later-chapters.md) | 10–11 | planned, not yet stated |
 
 **Everything in Chapter 1 §1.2 except Bollobás' two families theorem is already in
 Mathlib** — Sperner (`IsAntichain.sperner`), LYM
