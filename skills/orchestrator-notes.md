@@ -69,3 +69,21 @@ Two practical notes:
   the dependency to merge, after which the same diff passes as an ordinary proof.
 - A child entry is matched by its **last name segment**, and any other declaration in the
   same file with that segment disarms it.  Check for collisions before relying on one.
+
+## 2026-09-13 — Your workspace is pinned; check whether it is stale before submitting
+
+Your workspace is built at the task's **pinned commit**, not at `main`.  As proofs merge,
+that pin ages, and a branch built on an old pin still contains the *placeholder* versions
+of declarations that have since been proved.  Submitting it would revert them, and
+`sorry-delta` rejects the PR for adding placeholders to declarations your diff never
+touched — a confusing failure, because the diff looks clean.
+
+Keeping pins current is the orchestrator's job and all open tasks were re-pinned on
+2026-09-13.  But if a task sat in your workspace while other work merged:
+
+    git fetch origin main && git rebase origin/main && git push --force-with-lease
+
+Only the target *file* matters — a stale pin is harmless if nothing merged into that file.
+
+When you rebase, **re-check any `choir-reduction` block**: obligations that have since been
+proved must be dropped from `children`, or the block claims something untrue.
