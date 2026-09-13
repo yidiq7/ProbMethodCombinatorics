@@ -17,6 +17,8 @@ namespace ProbMethodCombinatorics
 
 open Finset
 
+section Orderings
+
 variable {α : Type*} [DecidableEq α]
 
 /-- An ordering of a ground set `S` with `S.card = n` is an embedding `{x // x ∈ S} ↪ Fin n`;
@@ -284,6 +286,8 @@ theorem disjoint_orderingsPrecede (S A₁ B₁ A₂ B₂ : Finset α) (n : ℕ) 
   rw [mem_orderingsPrecede] at hr₁ hr₂
   exact lt_asymm (hr₁ ⟨x, h₁ hx.1⟩ ⟨y, h₂ hy.1⟩ hx.1 hy.2)
     (hr₂ ⟨y, h₂ hy.1⟩ ⟨x, h₁ hx.1⟩ hy.1 hx.2)
+
+end Orderings
 
 /-- **Bollobás' two families theorem** (Zhao, Theorem 1.2.6): if `A i ∩ B i = ∅` for every `i` and
 `A i ∩ B j ≠ ∅` whenever `i ≠ j`, then `∑ i, (|A i| + |B i|).choose |A i| ⁻¹ ≤ 1`. -/
