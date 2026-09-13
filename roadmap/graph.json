@@ -669,7 +669,7 @@
       "decl": "ProbMethodCombinatorics.twoColorable_of_inter_card_le",
       "doc": "local-lemma.md#two_colorable_local--twocolorable_of_inter_card_le",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "two_colorable"
       ],
