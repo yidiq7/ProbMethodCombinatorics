@@ -291,6 +291,51 @@ theorem condEntropy_le_entropy (hp : ∀ ω, 0 ≤ p ω) (hp1 : ∑ ω, p ω = 1
   have h := entropy_pair_le_add hp hp1 X Y
   linarith
 
+/-- A constant random variable carries no entropy. -/
+theorem entropy_const (hp1 : ∑ ω, p ω = 1) (c : S) : entropy p (fun _ : Ω => c) = 0 := by
+  unfold entropy
+  refine Finset.sum_eq_zero fun s _ => ?_
+  rcases eq_or_ne c s with rfl | hcs
+  · have h : probOf p (fun _ : Ω => c) c = 1 := by simp [probOf, hp1]
+    rw [h]; simp
+  · have h : probOf p (fun _ : Ω => c) s = 0 := by simp [probOf, hcs]
+    rw [h]; simp
+
+/-- **Uniform distributions** : if `X` is injective on a nonempty finset `P`, then a uniform
+random element of `P` gives `X` entropy `log₂ |P|`.  This is the equality case of
+`entropy_le_logb_card`, and it is how every application in this chapter turns a count into an
+entropy. -/
+theorem entropy_uniformPMF_of_injOn [DecidableEq Ω] {P : Finset Ω} (hP : P.Nonempty)
+    {X : Ω → S} (hX : Set.InjOn X P) :
+    entropy (uniformPMF P) X = Real.logb 2 (P.card : ℝ) := by
+  have hcard : (P.card : ℝ) ≠ 0 := Nat.cast_ne_zero.mpr hP.card_ne_zero
+  have hprob : ∀ s : S, probOf (uniformPMF P) X s
+      = if s ∈ P.image X then ((P.card : ℝ))⁻¹ else 0 := by
+    intro s
+    have hfib : (univ.filter fun ω => X ω = s) ∩ P = P.filter fun ω => X ω = s := by
+      ext ω; simp [and_comm]
+    rw [probOf]
+    simp only [uniformPMF]
+    rw [Finset.sum_ite_mem, hfib, Finset.sum_const, nsmul_eq_mul]
+    by_cases hs : s ∈ P.image X
+    · obtain ⟨ω₀, hω₀, rfl⟩ := Finset.mem_image.mp hs
+      rw [if_pos hs, show (P.filter fun ω => X ω = X ω₀) = {ω₀} from Finset.eq_singleton_iff_unique_mem.mpr
+        ⟨Finset.mem_filter.mpr ⟨hω₀, rfl⟩, fun ω hω =>
+          hX (Finset.mem_filter.mp hω).1 hω₀ (Finset.mem_filter.mp hω).2⟩]
+      simp
+    · rw [if_neg hs, Finset.filter_eq_empty_iff.mpr fun ω hω h =>
+        hs (Finset.mem_image.mpr ⟨ω, hω, h⟩)]
+      simp
+  have hsum : entropy (uniformPMF P) X
+      = ∑ s : S, if s ∈ P.image X then
+          -((P.card : ℝ))⁻¹ * Real.logb 2 (((P.card : ℝ))⁻¹) else 0 := by
+    refine Finset.sum_congr rfl fun s _ => ?_
+    rw [hprob s]
+    split_ifs <;> simp
+  rw [hsum, Finset.sum_ite_mem, Finset.univ_inter, Finset.sum_const,
+    Finset.card_image_of_injOn hX, nsmul_eq_mul, Real.logb_inv]
+  field_simp
+
 end BasicProperties
 
 /-! ### Auxiliary results for Shearer's lemma
@@ -538,12 +583,10 @@ theorem probOf_pair_le_right (hp : ∀ ω, 0 ≤ p ω) (X : Ω → S) (Y : Ω �
 /-- A random variable with only one possible value carries no entropy. -/
 theorem entropy_eq_zero_of_subsingleton [Subsingleton S] (hp1 : ∑ ω, p ω = 1) (X : Ω → S) :
     entropy p X = 0 := by
-  have h : ∀ s : S, probOf p X s = 1 := by
-    intro s
-    have hf : (univ.filter fun ω => X ω = s) = univ := by
-      ext ω; simp [Subsingleton.elim (X ω) s]
-    rw [probOf, hf, hp1]
-  simp [entropy, h]
+  rcases isEmpty_or_nonempty S with h | h
+  · simp [entropy]
+  · obtain ⟨c⟩ := h
+    rw [show X = fun _ => c from funext fun _ => Subsingleton.elim _ _, entropy_const hp1]
 
 /-- Conditional entropy is nonnegative: each conditional probability lies in `[0, 1]`. -/
 theorem condEntropy_nonneg (hp : ∀ ω, 0 ≤ p ω) (X : Ω → S) (Y : Ω → T) :
@@ -761,37 +804,6 @@ section Subadditivity
 variable [Fintype Ω] {ι : Type*} [Fintype ι] [DecidableEq ι] {α : ι → Type*}
 variable [∀ i, Fintype (α i)] [∀ i, DecidableEq (α i)]
 
-private theorem entropy_const [Fintype S] [DecidableEq S] {p : Ω → ℝ} (hp1 : ∑ ω, p ω = 1)
-    (c : S) : entropy p (fun _ : Ω => c) = 0 := by
-  unfold entropy
-  refine Finset.sum_eq_zero fun s _ => ?_
-  rcases eq_or_ne c s with rfl | hcs
-  · have h : probOf p (fun _ : Ω => c) c = 1 := by simp [probOf, hp1]
-    rw [h]; simp
-  · have h : probOf p (fun _ : Ω => c) s = 0 := by simp [probOf, hcs]
-    rw [h]; simp
-
-private theorem entropy_eq_of_comp [Fintype S] [DecidableEq S] [Fintype T] [DecidableEq T]
-    (p : Ω → ℝ) {f : S → T} (hf : Function.Injective f) (X : Ω → S) (Z : Ω → T)
-    (hZ : ∀ ω, Z ω = f (X ω)) : entropy p Z = entropy p X := by
-  have hfun : Z = fun ω => f (X ω) := funext hZ
-  subst hfun
-  have hprob : ∀ s : S, probOf p (fun ω => f (X ω)) (f s) = probOf p X s := by
-    intro s
-    unfold probOf
-    exact Finset.sum_congr (Finset.filter_congr fun ω _ => by simp [hf.eq_iff]) fun _ _ => rfl
-  unfold entropy
-  rw [← Finset.sum_subset (Finset.subset_univ ((univ : Finset S).image f))]
-  · rw [Finset.sum_image fun x _ y _ h => hf h]
-    exact Finset.sum_congr rfl fun s _ => by rw [hprob s]
-  · intro t _ ht
-    have h0 : probOf p (fun ω => f (X ω)) t = 0 := by
-      unfold probOf
-      refine Finset.sum_eq_zero fun ω hω => ?_
-      exact absurd (Finset.mem_image.mpr
-        ⟨X ω, Finset.mem_univ _, (Finset.mem_filter.mp hω).2⟩) ht
-    rw [h0]; simp
-
 /-- **Subadditivity** in general (Lemma 10.1.8): `H(X₁, …, Xₙ) ≤ H(X₁) + ⋯ + H(Xₙ)`, obtained
 by iterating `entropy_pair_le_add`. -/
 theorem entropy_pi_le_sum (p : Ω → ℝ) (hp : ∀ ω, 0 ≤ p ω) (hp1 : ∑ ω, p ω = 1)
@@ -820,7 +832,7 @@ theorem entropy_pi_le_sum (p : Ω → ℝ) (hp : ∀ ω, 0 ≤ p ω) (hp1 : ∑ 
               congrFun (congrArg Prod.snd hgh) i
             rwa [Function.update_of_ne hi, Function.update_of_ne hi] at h2
         have h1 : entropy p (fun ω => (some (X a ω), Y s ω)) = entropy p (Y (insert a s)) := by
-          refine entropy_eq_of_comp p hinj (Y (insert a s)) _ fun ω => ?_
+          refine Eq.trans (congrArg (entropy p) (funext fun ω => ?_)) (entropy_comp_inj hinj _)
           refine Prod.ext ?_ ?_
           · simpa using (hY (insert a s) ω a).symm
           · funext i
@@ -834,7 +846,7 @@ theorem entropy_pi_le_sum (p : Ω → ℝ) (hp : ∀ ω, 0 ≤ p ω) (hp1 : ∑ 
               simp [hi]
         have h2 := entropy_pair_le_add hp hp1 (fun ω => some (X a ω)) (Y s)
         have h3 : entropy p (fun ω => some (X a ω)) = entropy p fun ω => X a ω :=
-          entropy_eq_of_comp p (Option.some_injective (α a)) _ _ fun _ => rfl
+          entropy_comp_inj (Option.some_injective (α a)) _
         rw [Finset.sum_insert ha, ← h1]
         calc entropy p (fun ω => (some (X a ω), Y s ω))
             ≤ entropy p (fun ω => some (X a ω)) + entropy p (Y s) := h2
@@ -846,7 +858,8 @@ theorem entropy_pi_le_sum (p : Ω → ℝ) (hp : ∀ ω, 0 ≤ p ω) (hp1 : ∑ 
     funext i
     exact Option.some_injective _ (congrFun hgh i)
   have hfin : entropy p (Y univ) = entropy p (fun ω i => X i ω) :=
-    entropy_eq_of_comp p hsome _ _ fun ω => by funext i; rw [hY]; simp
+    Eq.trans (congrArg (entropy p) (funext fun ω => by funext i; rw [hY]; simp))
+      (entropy_comp_inj hsome _)
   rw [← hfin]
   exact key univ
 
@@ -915,33 +928,7 @@ private theorem entropy_le_logb_card_image {Ω S : Type*} [Fintype Ω] [Fintype 
 private theorem entropy_uniformPMF_univ_of_injective {Ω S : Type*} [Fintype Ω] [DecidableEq Ω]
     [Nonempty Ω] [Fintype S] [DecidableEq S] {X : Ω → S} (hX : Function.Injective X) :
     entropy (uniformPMF (univ : Finset Ω)) X = Real.logb 2 (Fintype.card Ω : ℝ) := by
-  have hn : ((Fintype.card Ω : ℝ)) ≠ 0 := Nat.cast_ne_zero.mpr Fintype.card_ne_zero
-  have hval : ∀ ω : Ω, uniformPMF (univ : Finset Ω) ω = ((Fintype.card Ω : ℝ))⁻¹ := by
-    intro ω
-    simp [uniformPMF]
-  have hprob : ∀ s : S, probOf (uniformPMF (univ : Finset Ω)) X s
-      = if s ∈ (univ : Finset Ω).image X then ((Fintype.card Ω : ℝ))⁻¹ else 0 := by
-    intro s
-    by_cases hs : s ∈ (univ : Finset Ω).image X
-    · obtain ⟨ω, -, rfl⟩ := Finset.mem_image.mp hs
-      rw [if_pos hs]
-      show (∑ ω' ∈ univ.filter fun ω' => X ω' = X ω, uniformPMF (univ : Finset Ω) ω')
-        = ((Fintype.card Ω : ℝ))⁻¹
-      rw [show (univ.filter fun ω' => X ω' = X ω) = {ω} from by ext ω'; simp [hX.eq_iff]]
-      simp [hval]
-    · rw [if_neg hs]
-      exact probOf_eq_zero_of_notMem_image _ X s hs
-  have hsum : entropy (uniformPMF (univ : Finset Ω)) X
-      = ∑ s : S, if s ∈ (univ : Finset Ω).image X then
-          -((Fintype.card Ω : ℝ))⁻¹ * Real.logb 2 (((Fintype.card Ω : ℝ))⁻¹) else 0 := by
-    refine Finset.sum_congr rfl fun s _ => ?_
-    rw [hprob s]
-    split_ifs <;> simp
-  rw [hsum]
-  rw [Finset.sum_ite_mem, Finset.univ_inter, Finset.sum_const,
-    Finset.card_image_of_injective _ hX, Finset.card_univ, nsmul_eq_mul]
-  rw [Real.logb_inv]
-  field_simp
+  rw [entropy_uniformPMF_of_injOn Finset.univ_nonempty hX.injOn, Finset.card_univ]
 
 /-- The range of `ω ↦ g ω` over the subtype `↥A` is the image of `A` under `g`. -/
 private theorem card_image_univ_coe {σ τ : Type*} [DecidableEq σ] [DecidableEq τ]
@@ -1377,22 +1364,8 @@ theorem permanent_eq_card_permSupport {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ)
 equality case of `entropy_le_logb_card`, and it is how every application in this chapter turns a
 count into an entropy. -/
 theorem entropy_uniformPMF [Fintype Ω] [DecidableEq Ω] {P : Finset Ω} (hP : P.Nonempty) :
-    entropy (uniformPMF P) id = Real.logb 2 (P.card : ℝ) := by
-  have hcard : (P.card : ℝ) ≠ 0 := Nat.cast_ne_zero.mpr hP.card_ne_zero
-  have hprob : ∀ s : Ω, probOf (uniformPMF P) id s = uniformPMF P s := by
-    intro s
-    unfold probOf
-    simp [Finset.filter_eq']
-  have hterm : ∀ s : Ω, -uniformPMF P s * Real.logb 2 (uniformPMF P s)
-      = if s ∈ P then ((P.card : ℝ))⁻¹ * Real.logb 2 (P.card : ℝ) else 0 := by
-    intro s
-    unfold uniformPMF
-    split
-    · rw [Real.logb_inv]; ring
-    · simp
-  rw [entropy]
-  simp only [hprob, hterm, Finset.sum_ite_mem, Finset.univ_inter, Finset.sum_const, nsmul_eq_mul]
-  rw [← mul_assoc, mul_inv_cancel₀ hcard, one_mul]
+    entropy (uniformPMF P) id = Real.logb 2 (P.card : ℝ) :=
+  entropy_uniformPMF_of_injOn hP (Set.injOn_id _)
 
 /-- Row `i` of a `0/1` matrix has exactly `dᵢ` ones, in whatever order a permutation `π` lists
 the columns. -/
