@@ -610,94 +610,88 @@ theorem exists_bad_card_lt_and_shortCycleCover (l : ℕ) :
       exact ⟨a, (Set.Finite.mem_toFinset _).mpr ⟨a, w, hcyc, hlen, w.start_mem_support⟩,
         w.start_mem_support⟩
 
-/-- The ratio `(T - c).choose M / T.choose M` is at most `((T - M) / T) ^ c`, in division-free
-form.  This is the counting form of the estimate
-`ℙ(a uniform M-element subset of a T-element set misses c prescribed elements) ≤ (1 - M / T) ^ c`
-used in the union bound of Zhao, Theorem 3.4.1. -/
-theorem choose_sub_mul_pow_le_choose_mul_pow (T M : ℕ) : ∀ c ≤ T,
-    (T - c).choose M * T ^ c ≤ T.choose M * (T - M) ^ c := by
-  intro c
-  induction c with
-  | zero => simp
-  | succ c ih =>
-    intro hc
-    have hcT : c ≤ T := Nat.le_of_succ_le hc
-    have ih' := ih hcT
-    have key : (T - (c + 1)).choose M * (T - c) = (T - c).choose M * ((T - c) - M) := by
-      have h := Nat.choose_mul_succ_eq (T - (c + 1)) M
-      have he : T - (c + 1) + 1 = T - c := by omega
-      rwa [he] at h
-    have hmul : (T - c - M) * T ≤ (T - M) * (T - c) := by
-      rcases le_or_gt (T - c) M with h | h
-      · simp [Nat.sub_eq_zero_of_le h]
-      · obtain ⟨u, hu⟩ : ∃ u, u = T - c - M := ⟨_, rfl⟩
-        have h1 : T - c = u + M := by omega
-        have h2 : T - M = u + c := by omega
-        have h3 : T = u + M + c := by omega
-        rw [← hu, h1, h2, h3]
-        nlinarith
-    refine Nat.le_of_mul_le_mul_right ?_ (show 0 < T - c by omega)
-    calc (T - (c + 1)).choose M * T ^ (c + 1) * (T - c)
-        = ((T - (c + 1)).choose M * (T - c)) * T ^ (c + 1) := by ring
-      _ = ((T - c).choose M * ((T - c) - M)) * T ^ (c + 1) := by rw [key]
-      _ = ((T - c).choose M * T ^ c) * (((T - c) - M) * T) := by ring
-      _ ≤ (T.choose M * (T - M) ^ c) * (((T - c) - M) * T) := Nat.mul_le_mul_right _ ih'
-      _ ≤ (T.choose M * (T - M) ^ c) * ((T - M) * (T - c)) := Nat.mul_le_mul_left _ hmul
-      _ = T.choose M * (T - M) ^ (c + 1) * (T - c) := by ring
+/-- **The union bound** behind the third step of Zhao, Theorem 3.4.1.  A subfamily of the
+`T.choose M` sets of `M` unordered pairs that is covered by `k.choose x` pieces, one for each
+candidate independent set and each consisting of the `(T - c).choose M` sets avoiding `c`
+prescribed pairs, is less than half the family as soon as `c M > (k + 1) T`.
 
-/-- The exponential beats the union bound: if `c M > (k + 1) T` then
-`2 ^ (k + 1) (1 - M / T) ^ c < 1`, here in division-free form.  The two estimates are
-`1 - M / T ≤ exp (-M / T)` and `2 ≤ exp 1`. -/
-theorem two_pow_mul_pow_sub_lt_pow {T M c k : ℕ} (hMT : M ≤ T) (hTpos : 0 < T)
-    (hkey : ((k : ℝ) + 1) * (T : ℝ) < (c : ℝ) * (M : ℝ)) :
-    2 ^ (k + 1) * (T - M) ^ c < T ^ c := by
-  have hTposR : (0 : ℝ) < (T : ℝ) := by exact_mod_cast hTpos
-  have hMTR : (M : ℝ) ≤ (T : ℝ) := by exact_mod_cast hMT
-  have hR : (2 : ℝ) ^ (k + 1) * ((T : ℝ) - (M : ℝ)) ^ c < (T : ℝ) ^ c := by
-    have hr : (0 : ℝ) ≤ 1 - (M : ℝ) / (T : ℝ) := by
-      have := div_le_one_of_le₀ hMTR (le_of_lt hTposR)
-      linarith
-    have hexp1 : (1 - (M : ℝ) / (T : ℝ)) ^ c
-        ≤ Real.exp (-((c : ℝ) * ((M : ℝ) / (T : ℝ)))) := by
-      calc (1 - (M : ℝ) / (T : ℝ)) ^ c ≤ (Real.exp (-((M : ℝ) / (T : ℝ)))) ^ c := by
-            refine pow_le_pow_left₀ hr ?_ c
-            linarith [Real.add_one_le_exp (-((M : ℝ) / (T : ℝ)))]
-        _ = Real.exp (-((c : ℝ) * ((M : ℝ) / (T : ℝ)))) := by
-            rw [← Real.exp_nat_mul]; ring_nf
-    have h2e : (2 : ℝ) ^ (k + 1) ≤ Real.exp ((k : ℝ) + 1) := by
-      have h2 : (2 : ℝ) ≤ Real.exp 1 := by linarith [Real.add_one_le_exp (1 : ℝ)]
-      calc (2 : ℝ) ^ (k + 1) ≤ (Real.exp 1) ^ (k + 1) := pow_le_pow_left₀ (by norm_num) h2 _
-        _ = Real.exp ((k : ℝ) + 1) := by rw [← Real.exp_nat_mul]; push_cast; ring_nf
-    have hsplit : ((T : ℝ) - (M : ℝ)) ^ c = (T : ℝ) ^ c * (1 - (M : ℝ) / (T : ℝ)) ^ c := by
-      rw [← mul_pow]
-      congr 1
-      field_simp
-    calc (2 : ℝ) ^ (k + 1) * ((T : ℝ) - (M : ℝ)) ^ c
-        = (2 : ℝ) ^ (k + 1) * ((T : ℝ) ^ c * (1 - (M : ℝ) / (T : ℝ)) ^ c) := by rw [hsplit]
-      _ ≤ Real.exp ((k : ℝ) + 1)
-          * ((T : ℝ) ^ c * Real.exp (-((c : ℝ) * ((M : ℝ) / (T : ℝ))))) := by gcongr
-      _ = (T : ℝ) ^ c * Real.exp (((k : ℝ) + 1) + -((c : ℝ) * ((M : ℝ) / (T : ℝ)))) := by
-          rw [Real.exp_add ((k : ℝ) + 1) (-((c : ℝ) * ((M : ℝ) / (T : ℝ))))]; ring
-      _ < (T : ℝ) ^ c * 1 := by
-          refine mul_lt_mul_of_pos_left ?_ (pow_pos hTposR c)
-          refine Real.exp_lt_one_iff.mpr ?_
-          have hdiv : ((k : ℝ) + 1) < (c : ℝ) * ((M : ℝ) / (T : ℝ)) := by
-            rw [← mul_div_assoc, lt_div_iff₀ hTposR]
-            exact hkey
-          linarith
-      _ = (T : ℝ) ^ c := mul_one _
-  have hcast : (((2 : ℕ) ^ (k + 1) * (T - M) ^ c : ℕ) : ℝ) < ((T ^ c : ℕ) : ℝ) := by
-    push_cast [Nat.cast_sub hMT]
-    exact hR
-  exact_mod_cast hcast
-
-/-- The union bound: a set covered by `k.choose x` pieces of `(T - c).choose M` members each is
-less than half of `T.choose M`, as soon as the exponential estimate
-`two_pow_mul_pow_sub_lt_pow` holds. -/
+The three estimates are the division-free ratio bound
+`(T - c).choose M * T ^ c ≤ T.choose M * (T - M) ^ c`, the exponential bound
+`(1 - M / T) ^ c ≤ exp (-c M / T)` together with `2 ≤ exp 1`, and `k.choose x ≤ 2 ^ k`. -/
 theorem two_mul_lt_choose_of_le_mul_choose {T M c x k b : ℕ} (hcT : c ≤ T) (hMT : M ≤ T)
-    (hb : b ≤ k.choose x * ((T - c).choose M))
-    (hfin : 2 ^ (k + 1) * (T - M) ^ c < T ^ c) :
+    (hTpos : 0 < T) (hkey : ((k : ℝ) + 1) * (T : ℝ) < (c : ℝ) * (M : ℝ))
+    (hb : b ≤ k.choose x * ((T - c).choose M)) :
     2 * b < T.choose M := by
+  have hratio : ∀ j ≤ T, (T - j).choose M * T ^ j ≤ T.choose M * (T - M) ^ j := by
+    intro j
+    induction j with
+    | zero => simp
+    | succ j ih =>
+      intro hj
+      have hjT : j ≤ T := Nat.le_of_succ_le hj
+      have ih' := ih hjT
+      have key : (T - (j + 1)).choose M * (T - j) = (T - j).choose M * ((T - j) - M) := by
+        have h := Nat.choose_mul_succ_eq (T - (j + 1)) M
+        have he : T - (j + 1) + 1 = T - j := by omega
+        rwa [he] at h
+      have hmul : (T - j - M) * T ≤ (T - M) * (T - j) := by
+        rcases le_or_gt (T - j) M with h | h
+        · simp [Nat.sub_eq_zero_of_le h]
+        · obtain ⟨u, hu⟩ : ∃ u, u = T - j - M := ⟨_, rfl⟩
+          have h1 : T - j = u + M := by omega
+          have h2 : T - M = u + j := by omega
+          have h3 : T = u + M + j := by omega
+          rw [← hu, h1, h2, h3]
+          nlinarith
+      refine Nat.le_of_mul_le_mul_right ?_ (show 0 < T - j by omega)
+      calc (T - (j + 1)).choose M * T ^ (j + 1) * (T - j)
+          = ((T - (j + 1)).choose M * (T - j)) * T ^ (j + 1) := by ring
+        _ = ((T - j).choose M * ((T - j) - M)) * T ^ (j + 1) := by rw [key]
+        _ = ((T - j).choose M * T ^ j) * (((T - j) - M) * T) := by ring
+        _ ≤ (T.choose M * (T - M) ^ j) * (((T - j) - M) * T) := Nat.mul_le_mul_right _ ih'
+        _ ≤ (T.choose M * (T - M) ^ j) * ((T - M) * (T - j)) := Nat.mul_le_mul_left _ hmul
+        _ = T.choose M * (T - M) ^ (j + 1) * (T - j) := by ring
+  have hfin2 : 2 ^ (k + 1) * (T - M) ^ c < T ^ c := by
+    have hTposR : (0 : ℝ) < (T : ℝ) := by exact_mod_cast hTpos
+    have hMTR : (M : ℝ) ≤ (T : ℝ) := by exact_mod_cast hMT
+    have hR : (2 : ℝ) ^ (k + 1) * ((T : ℝ) - (M : ℝ)) ^ c < (T : ℝ) ^ c := by
+      have hr : (0 : ℝ) ≤ 1 - (M : ℝ) / (T : ℝ) := by
+        have := div_le_one_of_le₀ hMTR (le_of_lt hTposR)
+        linarith
+      have hexp1 : (1 - (M : ℝ) / (T : ℝ)) ^ c
+          ≤ Real.exp (-((c : ℝ) * ((M : ℝ) / (T : ℝ)))) := by
+        calc (1 - (M : ℝ) / (T : ℝ)) ^ c ≤ (Real.exp (-((M : ℝ) / (T : ℝ)))) ^ c := by
+              refine pow_le_pow_left₀ hr ?_ c
+              linarith [Real.add_one_le_exp (-((M : ℝ) / (T : ℝ)))]
+          _ = Real.exp (-((c : ℝ) * ((M : ℝ) / (T : ℝ)))) := by
+              rw [← Real.exp_nat_mul]; ring_nf
+      have h2e : (2 : ℝ) ^ (k + 1) ≤ Real.exp ((k : ℝ) + 1) := by
+        have h2 : (2 : ℝ) ≤ Real.exp 1 := by linarith [Real.add_one_le_exp (1 : ℝ)]
+        calc (2 : ℝ) ^ (k + 1) ≤ (Real.exp 1) ^ (k + 1) := pow_le_pow_left₀ (by norm_num) h2 _
+          _ = Real.exp ((k : ℝ) + 1) := by rw [← Real.exp_nat_mul]; push_cast; ring_nf
+      have hsplit : ((T : ℝ) - (M : ℝ)) ^ c = (T : ℝ) ^ c * (1 - (M : ℝ) / (T : ℝ)) ^ c := by
+        rw [← mul_pow]
+        congr 1
+        field_simp
+      calc (2 : ℝ) ^ (k + 1) * ((T : ℝ) - (M : ℝ)) ^ c
+          = (2 : ℝ) ^ (k + 1) * ((T : ℝ) ^ c * (1 - (M : ℝ) / (T : ℝ)) ^ c) := by rw [hsplit]
+        _ ≤ Real.exp ((k : ℝ) + 1)
+            * ((T : ℝ) ^ c * Real.exp (-((c : ℝ) * ((M : ℝ) / (T : ℝ))))) := by gcongr
+        _ = (T : ℝ) ^ c * Real.exp (((k : ℝ) + 1) + -((c : ℝ) * ((M : ℝ) / (T : ℝ)))) := by
+            rw [Real.exp_add ((k : ℝ) + 1) (-((c : ℝ) * ((M : ℝ) / (T : ℝ))))]; ring
+        _ < (T : ℝ) ^ c * 1 := by
+            refine mul_lt_mul_of_pos_left ?_ (pow_pos hTposR c)
+            refine Real.exp_lt_one_iff.mpr ?_
+            have hdiv : ((k : ℝ) + 1) < (c : ℝ) * ((M : ℝ) / (T : ℝ)) := by
+              rw [← mul_div_assoc, lt_div_iff₀ hTposR]
+              exact hkey
+            linarith
+        _ = (T : ℝ) ^ c := mul_one _
+    have hcast : (((2 : ℕ) ^ (k + 1) * (T - M) ^ c : ℕ) : ℝ) < ((T ^ c : ℕ) : ℝ) := by
+      push_cast [Nat.cast_sub hMT]
+      exact hR
+    exact_mod_cast hcast
+
   refine lt_of_mul_lt_mul_right ?_ (Nat.zero_le (T ^ c))
   have h1 : 2 * k.choose x ≤ 2 ^ (k + 1) := by
     have h := Nat.choose_le_two_pow k x
@@ -708,11 +702,11 @@ theorem two_mul_lt_choose_of_le_mul_choose {T M c x k b : ℕ} (hcT : c ≤ T) (
         Nat.mul_le_mul_right _ (Nat.mul_le_mul_left 2 hb)
     _ = (2 * k.choose x) * ((T - c).choose M * T ^ c) := by ring
     _ ≤ (2 * k.choose x) * (T.choose M * (T - M) ^ c) :=
-        Nat.mul_le_mul_left _ (choose_sub_mul_pow_le_choose_mul_pow T M c hcT)
+        Nat.mul_le_mul_left _ (hratio c hcT)
     _ = T.choose M * (2 * k.choose x * (T - M) ^ c) := by ring
     _ ≤ T.choose M * (2 ^ (k + 1) * (T - M) ^ c) :=
         Nat.mul_le_mul_left _ (Nat.mul_le_mul_right _ h1)
-    _ < T.choose M * T ^ c := mul_lt_mul_of_pos_left hfin (Nat.choose_pos hMT)
+    _ < T.choose M * T ^ c := mul_lt_mul_of_pos_left hfin2 (Nat.choose_pos hMT)
 
 /-- Sending an ordered pair of distinct elements to the unordered pair it spans is two-to-one, so
 a set of `x` elements spans at least `x (x - 1) / 2` unordered pairs of distinct elements. -/
@@ -866,8 +860,7 @@ theorem exists_bad_card_lt_and_indepNum_le {ε : ℝ} (hε : 0 < ε) :
       have hn3 : (0 : ℝ) < (n : ℝ) ^ 3 := by positivity
       linarith
     rw [hfam]
-    exact two_mul_lt_choose_of_le_mul_choose hcT hMT hBcard
-      (two_pow_mul_pow_sub_lt_pow hMT hTpos hkey)
+    exact two_mul_lt_choose_of_le_mul_choose hcT hMT hTpos hkey hBcard
   · -- outside the bad set no `x` vertices are independent
     intro E hE hEB
     have hEcard : E.card = M := by
