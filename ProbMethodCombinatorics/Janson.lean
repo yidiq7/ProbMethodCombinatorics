@@ -268,7 +268,7 @@ private theorem sum_powerset_weight_mul {α β : Type*} [DecidableEq α] [Fintyp
 omit [Fintype κ] in
 /-- Janson's first inequality applied to the sub-family indexed by a `Finset T`: the events
 outside `T` are simply dropped, which can only increase the probability of containing none. -/
-private theorem prob_none_le_subfamily [DecidableEq κ] (p : I) (S : κ → Set ι)
+private theorem prob_none_le_subfamily [Countable ι] [DecidableEq κ] (p : I) (S : κ → Set ι)
     (E : Finset (κ × κ)) (hE : ∀ i j, i ≠ j → (i, j) ∉ E → Disjoint (S i) (S j))
     (T : Finset κ) :
     (setBernoulli Set.univ p {R : Set ι | ∀ i, ¬ S i ⊆ R}).toReal
