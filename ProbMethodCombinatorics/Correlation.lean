@@ -981,4 +981,60 @@ theorem setBernoulli_inter_eq_mul_of_disjoint (p : I) (u v : Set ι) (huv : Disj
 
 end SetBernoulli
 
+/-! ### A non-uniform Bernoulli on subsets
+
+`setBernoulli u p` keeps every element of `u` with the *same* probability `p`.  Warnke's proof of
+the Janson lower tail (Chapter 8, Theorem 8.2.2) thins the index set by an independent Bernoulli
+`q`, so the thinned space carries independent inclusion probabilities that differ from one
+coordinate to the next — and neither Mathlib nor `setBernoulli` has that.  The contributor who
+proved `janson_lower_tail` identified the gap and stopped at it rather than inventing a primitive
+inside `Janson.lean`; this is that primitive, authored centrally.
+
+It is a strict generalisation, not a parallel notion: `setBernoulli_eq_setBernoulliPi` below
+recovers `setBernoulli` exactly, which is the check that the definition is the right one rather
+than merely well-typed. -/
+
+section BernoulliPi
+
+variable {ι : Type*}
+
+/-- The product of Bernoulli distributions with **per-coordinate** parameters: the measure on
+`Set ι` under which `i` is kept with probability `f i`, independently across `i`.
+
+`setBernoulli u p` is the special case `f = p` on `u` and `0` off it. -/
+noncomputable def setBernoulliPi (f : ι → I) : Measure (Set ι) :=
+  .comap (fun s i ↦ i ∈ s) <| Measure.infinitePi fun i : ι ↦
+    toNNReal (f i) • Measure.dirac True + toNNReal (σ (f i)) • Measure.dirac False
+
+/-- Registered eagerly: `Measure.infinitePi` is `if h : ∀ i, IsProbabilityMeasure (μ i) then … else
+0`, so without this instance in scope the definition above is silently the zero measure and no
+`infinitePi` lemma fires.  See the "junk values" note in `skills/conventions.md`. -/
+instance (f : ι → I) : IsProbabilityMeasure (setBernoulliPi f) :=
+  MeasurableEquiv.setOfPred.symm.measurableEmbedding.isProbabilityMeasure_comap <|
+    .of_forall fun P ↦ ⟨{i | P i}, rfl⟩
+
+lemma setBernoulliPi_apply' (f : ι → I) (S : Set (Set ι)) :
+    setBernoulliPi f S = (Measure.infinitePi fun i ↦
+        toNNReal (f i) • Measure.dirac True + toNNReal (σ (f i)) • Measure.dirac False)
+      ((fun p ↦ {i | p i}) ⁻¹' S) := MeasurableEquiv.setOfPred.symm.comap_apply ..
+
+/-- `setBernoulliPi` generalises `setBernoulli`.  Stated with hypotheses rather than
+`f = fun i ↦ if i ∈ u then p else 0`, since that spelling would need `Decidable (i ∈ u)` and the
+project adds no `Decidable` instances. -/
+lemma setBernoulli_eq_setBernoulliPi {u : Set ι} {p : I} {f : ι → I}
+    (hin : ∀ i ∈ u, f i = p) (hout : ∀ i ∉ u, f i = 0) :
+    setBernoulli u p = setBernoulliPi f := by
+  unfold setBernoulli setBernoulliPi
+  congr 2
+  funext i
+  have hsum : toNNReal p + toNNReal (σ p) = 1 := by
+    ext; push_cast [unitInterval.coe_symm_eq]
+    simp [*]
+  by_cases h : i ∈ u
+  · simp [hin i h, h]
+  · simp only [h, hout i h]
+    simp [← add_smul, hsum]
+
+end BernoulliPi
+
 end ProbMethodCombinatorics

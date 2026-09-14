@@ -664,37 +664,6 @@ theorem exists_bad_card_lt_and_shortCycleCover (l : ℕ) :
       exact ⟨a, (Set.Finite.mem_toFinset _).mpr ⟨a, w, hcyc, hlen, w.start_mem_support⟩,
         w.start_mem_support⟩
 
-/-- **The counting half of the no-large-independent-set step.**  Among the `M`-edge graphs on
-`n` vertices, at most `binom(n, x) · binom(N - binom(x,2), M)` have an independent set of size
-`x`, where `N` is the number of available pairs.
-
-A union bound over the `binom(n, x)` candidate sets `S`: for a fixed `S`, the graphs in which
-`S` is independent are exactly those whose `M` edges avoid the `binom(x, 2)` non-degenerate
-pairs inside `S`.  **No asymptotics and no analysis** — this is pure counting, and it is stated
-separately for that reason.
-
-Verified by brute force for all `n ≤ 4` and `M ≤ 4`. -/
-theorem card_filter_indepNum_le (n M x : ℕ) :
-    (((graphFamily n M).filter fun E : Finset (Sym2 (Fin n)) =>
-        x ≤ (SimpleGraph.fromEdgeSet (E : Set (Sym2 (Fin n)))).indepNum).card : ℝ)
-      ≤ (n.choose x : ℝ) * ((Fintype.card (Sym2 (Fin n)) - x.choose 2).choose M : ℝ) := by
-  sorry
-
-/-- **The asymptotic half of the no-large-independent-set step.**  With `M = girthEdgeCount n`
-edges the counting bound of `card_filter_indepNum_le` is eventually below half of
-`binom(N, M)`, for `x = ⌈ε n⌉`.
-
-**No graphs** — this is an estimate on binomial coefficients.  The ratio
-`binom(N - K, M) / binom(N, M)` is at most `(1 - K/N)^M`; with `N ∼ n²/2`, `K = binom(⌈εn⌉, 2) ∼
-ε²n²/2` and `M ∼ n (log n)²` that is `exp(-Ω_ε(n (log n)²))`, which beats `binom(n, ⌈εn⌉) ≤ 2^n`
-with room to spare.  Large `ε` is not a special case: once `⌈ε n⌉ > n` the left side is `0`. -/
-theorem two_mul_choose_mul_choose_lt_choose {ε : ℝ} (hε : 0 < ε) :
-    ∃ n₀ : ℕ, ∀ n ≥ n₀,
-      2 * (n.choose ⌈ε * n⌉₊ : ℝ)
-          * ((Fintype.card (Sym2 (Fin n)) - (⌈ε * n⌉₊).choose 2).choose (girthEdgeCount n) : ℝ)
-        < ((Fintype.card (Sym2 (Fin n))).choose (girthEdgeCount n) : ℝ) := by
-  sorry
-
 /-- **The union bound** behind the third step of Zhao, Theorem 3.4.1.  A subfamily of the
 `T.choose M` sets of `M` unordered pairs that is covered by `k.choose x` pieces, one for each
 candidate independent set and each consisting of the `(T - c).choose M` sets avoiding `c`
