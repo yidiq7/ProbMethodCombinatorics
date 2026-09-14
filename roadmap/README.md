@@ -340,3 +340,25 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   have made the lemmas unusable from `Janson.lean`.  My first draft had them; it type-checked in
   isolation and would have been useless.  **Check a new interface lemma by applying it from its
   intended call site, not by checking that it elaborates.**
+- **2026-09-14 — `illegal-axiom` on #122, and the rule that was misread.**  A target can be
+  *fully proved*, add no placeholder of its own, and still fail `comparator`: Janson II is proved
+  from Janson I, which is itself proved modulo `janson_prob_none_step_le`, so `sorryAx` is in the
+  closure either way.  The contributor removed their `choir-reduction` block on the theory that
+  "a placeholder on a declaration the base already had is disallowed" — which is not the rule.
+  `children` may name **any declaration already in the project that carries a placeholder**, and
+  `sorry-delta` Rule B only examines counts that *rose*, so citing a pre-existing obligation is
+  free.  `comparator` permits `sorryAx` exactly when a reduction is declared.  Their earlier red
+  run was almost certainly the stale pin they diagnose elsewhere in the same PR.
+  **Read `gate/verify/` when two checks appear to contradict each other** — the rules are in the
+  module docstrings, and deducing a general rule from one red run is how the fix gets deleted.
+  Recorded in `skills/conventions.md`.
+- **2026-09-14 — the published route for Janson II was wrong; the statement was not.**  It
+  prescribed `𝔼 Δ_T = q²Δ` under independent `q`-sampling, but `D` may contain diagonal pairs,
+  which survive with probability `q`.  The averaging breaks exactly in the `Λ ≫ μ` regime the
+  theorem covers.  Restricting to the off-diagonal `E` fixes it and removes the need for a case
+  split entirely.  Corrected argument in `janson.md`.  **Task prose is not checked by anything** —
+  statements get `statement-equiv` and numerical sanity checks, routes get nothing, and this is
+  the second time a prescribed route has been wrong where the statement was fine.
+- **2026-09-14 — `janson_prob_none_step_le` had a graph node but no task** since #103 merged,
+  published now as #123.  When accepting a reduction, the playbook's "publish a `prove` task per
+  node" is a separate step from adding the node and is easy to drop when several land at once.

@@ -97,3 +97,23 @@ landed. Stated multiplicatively over a `Finset`, so that no ordering, no conditi
 probability and no positivity side condition appear in the statement — which is what makes it a
 reusable node rather than a private step. Its inputs are `harris_setbernoulli` and
 `setbernoulli_block_indep` in `Correlation.lean`.
+
+## `janson_two` — the diagonal of `D`, and the route that works
+
+The route originally published for `janson_prob_none_le_of_mu_le` was wrong, and a contributor
+caught it. It prescribed independent `q`-sampling of the index set with `𝔼 Δ_T = q² Δ`. But `D`
+is an arbitrary `Finset (κ × κ)` and may contain diagonal pairs `(i, i)`, which survive sampling
+with probability `q`, not `q²`. So `𝔼 Δ_T = q² Λ + q δ`, and the averaging genuinely breaks
+rather than merely getting messier — with `δ = sμ` the required inequality fails once `Λ ≫ μ`,
+which is exactly the regime this theorem is for.
+
+**The statement was never wrong**: a larger `Δ` only weakens `exp(-μ²/(2Δ))`. Only the route was.
+
+The fix is to run the argument on `E := D.filter (fun z => z.1 ≠ z.2)` with `Λ := jansonDelta p S E`.
+Then `hD` transfers unchanged — for `i ≠ j`, `(i,j) ∈ E ↔ (i,j) ∈ D` — and `Λ ≤ Δ`. **No case
+split is needed**, which is the nice part: with `q = μ/Δ`,
+
+    −qμ + q²Λ/2 = −μ²/Δ + μ²Λ/(2Δ²) ≤ −μ²/(2Δ)   ⟺   Λ ≤ Δ,
+
+true by construction, so the hypothesis `Λ ≥ μ` that the naive route needs never arises. And
+`q = μ/Δ ≤ 1` is precisely this theorem's own hypothesis.

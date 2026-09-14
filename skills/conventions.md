@@ -65,6 +65,26 @@ instead — `ENNReal` is a `CommSemiring`, so `ring` works — and cancel with
 `open scoped ENNReal` is already in the header of every measure-theoretic file; without it
 `ℝ≥0∞` parses as `ℝ ≥ 0 ∞` and fails with `failed to synthesize OfNat Type 0`.
 
+## Reductions: two things that trip people up
+
+**A child may be a placeholder that was already there.** `children` in a `choir-reduction` block
+names *every* open obligation the proof leans on — both the lemmas you just stated and any
+declaration already in the project that still carries a placeholder. Naming a pre-existing one
+is free: `sorry-delta` only examines placeholder counts that *rose*, so citing an obligation
+that was already sorried at base, and leaving it exactly as sorried, cannot trip it
+(`gate/verify/sorry_delta.py`, Rule B).
+
+This matters because of the case that looks like it needs no block at all: **your target is
+fully proved, adds no placeholder of its own, but leans on something that is still open.** The
+`sorryAx` is in your closure regardless, `comparator` will return `illegal-axiom`, and the block
+is the only thing that permits it — `sorryAx` is added to the permitted set exactly when a
+reduction is declared (`gate/verify/comparator.py`). "I added no placeholder" is not a reason to
+omit the block.
+
+**When two checks seem to contradict each other, read `gate/verify/`.** The gate is in the Choir
+checkout and its rules are documented in the module docstrings. Deducing a general rule from one
+red run is how you end up removing the thing that would have fixed it.
+
 ## Docstrings and comments
 
 Write comments in final form.  A docstring says what the declaration says — it is not a
