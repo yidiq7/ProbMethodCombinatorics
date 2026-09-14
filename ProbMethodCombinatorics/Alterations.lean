@@ -669,15 +669,18 @@ theorem two_mul_lt_choose_of_le_mul_choose {T M c x k b : ℕ} (hcT : c ≤ T) (
         have h2 : (2 : ℝ) ≤ Real.exp 1 := by linarith [Real.add_one_le_exp (1 : ℝ)]
         calc (2 : ℝ) ^ (k + 1) ≤ (Real.exp 1) ^ (k + 1) := pow_le_pow_left₀ (by norm_num) h2 _
           _ = Real.exp ((k : ℝ) + 1) := by rw [← Real.exp_nat_mul]; push_cast; ring_nf
-      have hsplit : ((T : ℝ) - (M : ℝ)) ^ c = (T : ℝ) ^ c * (1 - (M : ℝ) / (T : ℝ)) ^ c := by
+      have hsplit : ((T : ℝ) - (M : ℝ)) ^ c
+          = (T : ℝ) ^ c * (1 - (M : ℝ) / (T : ℝ)) ^ c := by
         rw [← mul_pow]
         congr 1
         field_simp
       calc (2 : ℝ) ^ (k + 1) * ((T : ℝ) - (M : ℝ)) ^ c
-          = (2 : ℝ) ^ (k + 1) * ((T : ℝ) ^ c * (1 - (M : ℝ) / (T : ℝ)) ^ c) := by rw [hsplit]
+          = (2 : ℝ) ^ (k + 1) * ((T : ℝ) ^ c * (1 - (M : ℝ) / (T : ℝ)) ^ c) := by
+            rw [hsplit]
         _ ≤ Real.exp ((k : ℝ) + 1)
             * ((T : ℝ) ^ c * Real.exp (-((c : ℝ) * ((M : ℝ) / (T : ℝ))))) := by gcongr
-        _ = (T : ℝ) ^ c * Real.exp (((k : ℝ) + 1) + -((c : ℝ) * ((M : ℝ) / (T : ℝ)))) := by
+        _ = (T : ℝ) ^ c
+            * Real.exp (((k : ℝ) + 1) + -((c : ℝ) * ((M : ℝ) / (T : ℝ)))) := by
             rw [Real.exp_add ((k : ℝ) + 1) (-((c : ℝ) * ((M : ℝ) / (T : ℝ))))]; ring
         _ < (T : ℝ) ^ c * 1 := by
             refine mul_lt_mul_of_pos_left ?_ (pow_pos hTposR c)
@@ -853,7 +856,8 @@ theorem exists_bad_card_lt_and_indepNum_le {ε : ℝ} (hε : 0 < ε) :
       have hc4 : δ ^ 2 * (n : ℝ) ^ 2 ≤ 4 * (c : ℝ) := by
         nlinarith [mul_nonneg (sub_nonneg.mpr hx4) (by linarith : (0 : ℝ) ≤ (x : ℝ) + 2)]
       have hcM : 16 * (n : ℝ) ^ 3 ≤ (c : ℝ) * (M : ℝ) := by
-        have h1 : (δ ^ 2 * (n : ℝ) ^ 2) * (64 * (n : ℝ)) ≤ (4 * (c : ℝ)) * (δ ^ 2 * (M : ℝ)) :=
+        have h1 : (δ ^ 2 * (n : ℝ) ^ 2) * (64 * (n : ℝ))
+            ≤ (4 * (c : ℝ)) * (δ ^ 2 * (M : ℝ)) :=
           mul_le_mul hc4 hM64 (by positivity) (by positivity)
         nlinarith [sq_nonneg δ, mul_pos hδ hδ]
       have hT3 : ((n : ℝ) + 1) * (T : ℝ) ≤ 2 * (n : ℝ) ^ 3 := by nlinarith
