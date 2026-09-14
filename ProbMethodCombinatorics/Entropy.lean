@@ -1047,7 +1047,73 @@ theorem card_pow_le_prod_card_image_inter {ι κ : Type*} [DecidableEq ι]
     (J : Finset κ) (A : κ → Finset ι) (k : ℕ)
     (hk : ∀ i ∈ E, k ≤ (J.filter fun j => i ∈ A j).card) :
     ℱ.card ^ k ≤ ∏ j ∈ J, (ℱ.image fun F => F ∩ A j).card := by
-  sorry
+  obtain ⟨F₀, hF₀⟩ := id hℱ
+  have hne : Nonempty ↥ℱ := ⟨⟨F₀, hF₀⟩⟩
+  obtain ⟨e⟩ : Nonempty (Fin J.card ≃ ↥J) := ⟨J.equivFin.symm⟩
+  obtain ⟨B, hB⟩ : ∃ B : Fin J.card → Finset ↥E,
+      ∀ (m : Fin J.card) (i : ↥E), i ∈ B m ↔ i.1 ∈ A (e m).1 :=
+    ⟨fun m => univ.filter fun i : ↥E => i.1 ∈ A (e m).1, by intro m i; simp⟩
+  have hp : ∀ ω : ↥ℱ, 0 ≤ uniformPMF (univ : Finset ↥ℱ) ω := uniformPMF_nonneg _
+  have hp1 : ∑ ω : ↥ℱ, uniformPMF (univ : Finset ↥ℱ) ω = 1 := sum_uniformPMF Finset.univ_nonempty
+  have hk' : ∀ i : ↥E, k ≤ ((univ : Finset (Fin J.card)).filter fun m => i ∈ B m).card := by
+    intro i
+    refine (hk i.1 i.2).trans (le_of_eq ?_)
+    rw [Finset.card_filter, Finset.card_filter,
+      ← Finset.sum_coe_sort J fun j => if i.1 ∈ A j then 1 else 0]
+    exact (Fintype.sum_equiv e (fun m => if i ∈ B m then (1 : ℕ) else 0)
+      (fun j : ↥J => if i.1 ∈ A j.1 then (1 : ℕ) else 0)
+      fun m => if_congr (hB m i) rfl rfl).symm
+  have hinj : Function.Injective fun (ω : ↥ℱ) (i : ↥E) => decide (i.1 ∈ ω.1) := by
+    intro ω ω' h
+    refine Subtype.ext (Finset.ext fun x => ?_)
+    by_cases hx : x ∈ E
+    · simpa using congrFun h ⟨x, hx⟩
+    · exact ⟨fun hm => absurd (hE _ ω.2 hm) hx, fun hm => absurd (hE _ ω'.2 hm) hx⟩
+  have hL : entropy (uniformPMF (univ : Finset ↥ℱ))
+      (fun (ω : ↥ℱ) (i : ↥E) => decide (i.1 ∈ ω.1)) = Real.logb 2 (ℱ.card : ℝ) := by
+    rw [entropy_uniformPMF_univ_of_injective hinj, Fintype.card_coe]
+  have hterm : ∀ m : Fin J.card,
+      entropy (uniformPMF (univ : Finset ↥ℱ))
+          (fun (ω : ↥ℱ) (i : ↥(B m)) => decide (i.1.1 ∈ ω.1))
+        ≤ Real.logb 2 (((ℱ.image fun F => F ∩ A (e m).1).card : ℝ)) := by
+    intro m
+    refine (entropy_le_logb_card_image hp hp1 _).trans ?_
+    have hsub : ((univ : Finset ↥ℱ).image
+          fun (ω : ↥ℱ) (i : ↥(B m)) => decide (i.1.1 ∈ ω.1))
+        ⊆ (ℱ.image fun F => F ∩ A (e m).1).image
+          fun G => fun (i : ↥(B m)) => decide (i.1.1 ∈ G) := by
+      intro s hs
+      obtain ⟨ω, -, rfl⟩ := Finset.mem_image.mp hs
+      refine Finset.mem_image.mpr ⟨ω.1 ∩ A (e m).1,
+        Finset.mem_image_of_mem _ ω.2, funext fun i => ?_⟩
+      have hi : i.1.1 ∈ A (e m).1 := (hB m i.1).mp i.2
+      simp [Finset.mem_inter, hi]
+    have h0 : (0 : ℝ) < (((univ : Finset ↥ℱ).image
+        fun (ω : ↥ℱ) (i : ↥(B m)) => decide (i.1.1 ∈ ω.1)).card : ℝ) := by
+      exact_mod_cast Finset.card_pos.mpr (Finset.univ_nonempty.image _)
+    have h1 : (0 : ℝ) < (((ℱ.image fun F => F ∩ A (e m).1).card : ℕ) : ℝ) := by
+      exact_mod_cast Finset.card_pos.mpr (hℱ.image _)
+    refine (Real.logb_le_logb one_lt_two h0 h1).mpr ?_
+    exact_mod_cast (Finset.card_le_card hsub).trans Finset.card_image_le
+  have hs := shearer (uniformPMF (univ : Finset ↥ℱ)) hp hp1
+    (fun (i : ↥E) (ω : ↥ℱ) => decide (i.1 ∈ ω.1)) B k hk'
+  have hmain : (k : ℝ) * Real.logb 2 (ℱ.card : ℝ)
+      ≤ ∑ m : Fin J.card, Real.logb 2 (((ℱ.image fun F => F ∩ A (e m).1).card : ℝ)) := by
+    rw [← hL]
+    exact hs.trans (Finset.sum_le_sum fun m _ => hterm m)
+  have hsum : ∑ m : Fin J.card, Real.logb 2 (((ℱ.image fun F => F ∩ A (e m).1).card : ℝ))
+      = ∑ j ∈ J, Real.logb 2 (((ℱ.image fun F => F ∩ A j).card : ℝ)) := by
+    rw [← Finset.sum_coe_sort J fun j => Real.logb 2 (((ℱ.image fun F => F ∩ A j).card : ℝ))]
+    exact Fintype.sum_equiv e _ _ fun m => rfl
+  have hpos : ∀ j : κ, (0 : ℝ) < ((ℱ.image fun F => F ∩ A j).card : ℝ) := fun j => by
+    exact_mod_cast Finset.card_pos.mpr (hℱ.image _)
+  have hcpos : (0 : ℝ) < (ℱ.card : ℝ) := by exact_mod_cast Finset.card_pos.mpr hℱ
+  have hfin : ((ℱ.card : ℝ)) ^ k ≤ ∏ j ∈ J, ((ℱ.image fun F => F ∩ A j).card : ℝ) := by
+    refine (Real.logb_le_logb one_lt_two (by positivity)
+      (Finset.prod_pos fun j _ => hpos j)).mp ?_
+    rw [Real.logb_pow, Real.logb_prod J _ fun j _ => (hpos j).ne', ← hsum]
+    exact hmain
+  exact_mod_cast hfin
 
 /-- The three edges of the triangle on the vertices `a`, `b`, `c`, as unordered pairs. -/
 def triangleEdges {α : Type*} [DecidableEq α] (a b c : α) : Finset (Sym2 α) :=

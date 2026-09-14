@@ -76,8 +76,10 @@ remarks in the notes and are not stated.
   direct four-line proof does not wait on `shearer`, and because `loomis_whitney_discrete`
   consumes exactly this form.
 
-Corollary 10.4.7, the restriction form `|ℱ|^k ≤ ∏ |ℱ|_{A_j}|`, is **not yet stated**; it is the
-natural intermediate for `triangle_intersecting`, and that task is told to ask for it.
+- `shearer_family` — Corollary 10.4.7, the restriction form `|ℱ|^k ≤ ∏ |ℱ|_{A_j}|`. **This node
+  exists because the process worked**: it was named in the `triangle_intersecting` task as the
+  intermediate that should be asked for rather than buried, the contributor asked, and the
+  theorem landed as a declared reduction onto it.
 
 ## Applications
 
@@ -109,3 +111,18 @@ natural intermediate for `triangle_intersecting`, and that task is told to ask f
 - **Steiner triple systems** (§10.2) and the **Kahn–Zhao** bound `i(G) ≤ i(K_{d,d})^{n/2d}`
   (Theorem 10.4.12) and **Galvin–Tetali** (Theorem 10.4.14). All are real formalization
   projects on their own; they are the right place to expect reductions rather than single PRs.
+
+## Obligations left behind by reductions
+
+Three nodes exist only because a contributor stopped and named what they were missing instead of
+inlining it. All three are what stands between the project and unconditional proofs of theorems
+that have already merged.
+
+- `shearer_family` — Corollary 10.4.7. Discharges the last `sorryAx` in `triangle_intersecting`.
+- `bregman_chain_rule` — the chain rule telescoped along an arbitrary *reveal order*, stated for
+  any distribution on `Equiv.Perm (Fin n)` and independent of the matrix. Radhakrishnan's proof
+  reveals entries in a uniform random order, so the chain rule has to be available along an
+  arbitrary order rather than along `0, …, n-1`.
+- `bregman_greedy_bound` — the `≤ log₂ Nᵢ` step, and the one the notes gloss. The companion fact
+  (that for fixed `σ`, as `τ` varies, `Nᵢ` is uniform on `[dᵢ]`) is already proved in the file,
+  so this inequality is the whole remaining distance to an unconditional Brégman–Minc.
