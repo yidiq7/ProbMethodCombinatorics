@@ -262,4 +262,44 @@ theorem le_binomialRandom_cliqueFree_three {n : ℕ} (p : I) :
     ENNReal.ofReal_pow (by linarith), ENNReal.ofReal_sub _ (by positivity), ENNReal.ofReal_one,
     ENNReal.ofReal_pow hp0, hofReal]
 
+/-! ### The `setBernoulli` forms, for Chapter 8
+
+Janson's inequality lives on `setBernoulli` — a random *subset* of an index type — rather than on
+`binomialRandom`.  The two facts below are the shared interface `janson_prob_none_step_le`
+consumes, and they are stated here, next to the graph forms, rather than left for a task to
+invent.  `[Countable ι]` for the same reason as in `Janson.lean`: off it, the events in question
+are not measurable and `setBernoulli` quietly returns an outer measure. -/
+
+section SetBernoulli
+
+variable {ι : Type*} [Countable ι]
+
+/-- **Harris' inequality for a random subset, in the mixed form.**  An increasing event and a
+decreasing event are *negatively* correlated.  This is the shape Janson's inequality needs — the
+Boppana–Spencer conditioning step pairs "`R` contains `S i`" against "`R` contains none of the
+`S j` for `j` in a block" — and it is the `setBernoulli` analogue of
+`binomialRandom_mul_le_inter`, which is the same statement for `G(V, p)` with both events
+increasing. -/
+theorem setBernoulli_inter_le_mul (p : I) (A B : Set (Set ι))
+    (hA : IsUpperSet A) (hB : IsLowerSet B)
+    (hAm : MeasurableSet A) (hBm : MeasurableSet B) :
+    setBernoulli Set.univ p (A ∩ B) ≤ setBernoulli Set.univ p A * setBernoulli Set.univ p B := by
+  sorry
+
+/-- **Events on disjoint coordinate blocks are independent.**  If membership in `A` is determined
+by `R ∩ u` and membership in `B` by `R ∩ v` with `u` and `v` disjoint, the two events multiply.
+
+The hypotheses say "depends only on the block" in the form that is actually usable — invariance
+under any change outside the block — rather than by exhibiting a cylinder decomposition. -/
+theorem setBernoulli_inter_eq_mul_of_disjoint (p : I) (u v : Set ι) (huv : Disjoint u v)
+    (A B : Set (Set ι))
+    (hA : ∀ R R' : Set ι, R ∩ u = R' ∩ u → (R ∈ A ↔ R' ∈ A))
+    (hB : ∀ R R' : Set ι, R ∩ v = R' ∩ v → (R ∈ B ↔ R' ∈ B))
+    (hAm : MeasurableSet A) (hBm : MeasurableSet B) :
+    setBernoulli Set.univ p (A ∩ B)
+      = setBernoulli Set.univ p A * setBernoulli Set.univ p B := by
+  sorry
+
+end SetBernoulli
+
 end ProbMethodCombinatorics

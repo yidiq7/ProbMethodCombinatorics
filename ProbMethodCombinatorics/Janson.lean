@@ -17,6 +17,19 @@ set `D` is a parameter rather than something computed from `S`, exactly as in
 a larger `D` only weakens the bound.
 
 Nothing in this chapter is in Mathlib.
+
+**`[Countable ι]` is load-bearing on every theorem below, and is not boilerplate.**  The
+measurable space on `Set ι` is the product σ-algebra, in which a set is measurable only if it
+depends on countably many coordinates.  For uncountable `S i` the event `{R | S i ⊆ R}` is
+therefore not measurable and `setBernoulli` silently returns an *outer* measure.  At `p = 1`
+that breaks the inequality outright: with `ι` uncountable, `κ = Unit` and `S 0 = univ`, the
+event `{R | R ≠ univ}` has no measurable superset excluding `univ` — a measurable set depends on
+countably many coordinates `J`, so containing any `R ≠ univ` forces it to contain `univ` — hence
+its outer measure is `1`, while `μ = 1` and `Δ = 0` put the bound at `exp (-1)`.  Mathlib's own
+`SetBernoulli` API draws the same line: everything substantive in `SetBernoulli.lean` lives
+inside `section Countable`.  Under `[Countable ι]` every event here is a countable intersection
+of cylinders and the arguments are sound.  For `p < 1` the uncountable case is merely null
+rather than wrong, but the hypothesis is the honest fix.
 -/
 
 namespace ProbMethodCombinatorics
@@ -60,7 +73,7 @@ Equivalently, writing `A j` for the event `S j ⊆ R`,
 The indices of `T` outside `T₁` contribute nothing, `A i` being independent of them; the indices
 in `T₁` are handled by Harris' inequality, since `A i ∩ A j` is increasing while
 `⋂_{j ∈ T \ T₁} (A j)ᶜ` is decreasing. -/
-theorem janson_prob_none_step_le (p : I) (S : κ → Set ι) (i : κ) (T T₁ : Finset κ)
+theorem janson_prob_none_step_le [Countable ι] (p : I) (S : κ → Set ι) (i : κ) (T T₁ : Finset κ)
     (hiT : i ∉ T) (hsub : T₁ ⊆ T) (hindep : ∀ j ∈ T, j ∉ T₁ → Disjoint (S i) (S j)) :
     (setBernoulli Set.univ p {R : Set ι | ¬ S i ⊆ R ∧ ∀ j ∈ T, ¬ S j ⊆ R}).toReal
       ≤ (1 - (setBernoulli Set.univ p {R : Set ι | S i ⊆ R}).toReal
@@ -73,7 +86,7 @@ contains none of the `S i` is at most `exp (-μ + Δ/2)`.
 
 Most useful when `Δ = o(μ)`; Harris' inequality (Chapter 7) gives the matching lower bound
 `exp (-(1 + o(1)) μ)` in that regime, so the two together pin the probability down. -/
-theorem janson_prob_none_le (p : I) (S : κ → Set ι) (D : Finset (κ × κ))
+theorem janson_prob_none_le [Countable ι] (p : I) (S : κ → Set ι) (D : Finset (κ × κ))
     (hD : ∀ i j, i ≠ j → (i, j) ∉ D → Disjoint (S i) (S j)) :
     (setBernoulli Set.univ p {R : Set ι | ∀ i, ¬ S i ⊆ R}).toReal
       ≤ Real.exp (-jansonMu p S + jansonDelta p S D / 2) := by
@@ -207,7 +220,7 @@ inequality says nothing, the probability of containing none of the `S i` is at m
 `exp (-μ² / (2Δ))`.
 
 Proved from the first inequality by applying it to a random subsample of the events. -/
-theorem janson_prob_none_le_of_mu_le (p : I) (S : κ → Set ι) (D : Finset (κ × κ))
+theorem janson_prob_none_le_of_mu_le [Countable ι] (p : I) (S : κ → Set ι) (D : Finset (κ × κ))
     (hD : ∀ i j, i ≠ j → (i, j) ∉ D → Disjoint (S i) (S j))
     (hΔ : jansonMu p S ≤ jansonDelta p S D) (hΔ0 : 0 < jansonDelta p S D) :
     (setBernoulli Set.univ p {R : Set ι | ∀ i, ¬ S i ⊆ R}).toReal
@@ -223,7 +236,7 @@ Taking `t = μ` recovers the first two inequalities up to a constant in the expo
 the strongest of the three.  There is deliberately no companion for the *upper* tail: Example
 8.2.4 shows the analogous bound is false, since planting a clique forces an excess of triangles
 at far higher probability than any such bound would allow. -/
-theorem janson_lower_tail (p : I) (S : κ → Set ι) (D : Finset (κ × κ))
+theorem janson_lower_tail [Countable ι] (p : I) (S : κ → Set ι) (D : Finset (κ × κ))
     (hD : ∀ i j, i ≠ j → (i, j) ∉ D → Disjoint (S i) (S j))
     {t : ℝ} (ht0 : 0 ≤ t) (htμ : t ≤ jansonMu p S) :
     (setBernoulli Set.univ p
