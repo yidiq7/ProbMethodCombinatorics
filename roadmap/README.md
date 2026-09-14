@@ -305,3 +305,38 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   halfway in.  `IsTriangleFreeEdgeSet` is an `abbrev` rather than a `def` so that `Decidable`
   resolution sees through it; that keeps the no-`Decidable`-instances rule intact without
   making the statements uglier.
+- **2026-09-13 — re-pinning a *claimed* issue re-adds `choir/available`.** Editing an issue
+  body re-triggers the `issue-intake` workflow, which labels the task available; on a task
+  someone is actively holding, the result is both labels at once and a task two workers can
+  claim. Seen on #86 immediately after the batch re-pin to `a8b6e79`. **After re-pinning, list
+  the issues carrying both labels and strip `choir/available` from them** — `sync-leases` does
+  not fix this, because the lease comment is still valid and it sees nothing wrong.
+- **2026-09-13 — fifteen PRs merged in one batch; 11 unconditional, 4 reductions.**  Chapter 10
+  went from stated to almost entirely proved in a single round: `entropy_nonneg`,
+  `condEntropy_eq_sub`, `entropy_pair_le_add`, `condEntropy_le_entropy`, `entropy_pi_le_sum`,
+  **`shearer`**, `sum_choose_le_exp_binEntropy`, plus `le_card_triangleFreeGraphs`,
+  `measure_sub_integral_ge_le`, `le_binomialRandom_cliqueFree_three` and
+  `exists_conflictFree_of_union_bound_lt_one`.  `card_sq_le_prod_card_image`,
+  `card_lt_of_triangleIntersecting`, `permanent_le_prod_factorial` and `janson_prob_none_le`
+  landed as declared reductions.  `inventory scan`: **17 sorries, zero custom axioms.**
+  Ten of the fifteen touched `Entropy.lean`.  Before merging any of them I checked that every
+  diff was a single hunk deleting one `sorry` — no statement edits, no reverts — and that no two
+  PRs added a declaration of the same name, which the gate cannot see because each PR is checked
+  against its own base and not against its siblings.  **That cross-PR name check is the thing to
+  repeat on any future parallel batch**; `axiom-honesty` and `statement-immutability` are
+  per-PR by construction.
+- **2026-09-13 — the Janson statements were false without `[Countable ι]`.**  Found and reported
+  by the contributor proving `janson_prob_none_le`, who filed it on the issue rather than
+  working around it — the intended path, and the second author-side statement defect this week.
+  The measurable space on `Set ι` is the product σ-algebra, so `{R | S i ⊆ R}` is non-measurable
+  for uncountable `S i` and `setBernoulli` silently returns an outer measure; at `p = 1` that
+  makes the bound false outright.  Reproduced before acting.  **The generalisable tell: Mathlib
+  gated everything substantive in `SetBernoulli.lean` behind `section Countable`, and the
+  statement was built on the ungated part.  When upstream fences part of an API, a statement
+  resting on the unfenced remainder deserves a second look.**
+  The same report asked for two `setBernoulli` facts as shared interface.  Both are now stated
+  in `Correlation.lean` (#119, #120), deliberately **without** `MeasurableSpace ι` /
+  `MeasurableSingletonClass ι` binders — `setBernoulli` needs neither, and requiring them would
+  have made the lemmas unusable from `Janson.lean`.  My first draft had them; it type-checked in
+  isolation and would have been useless.  **Check a new interface lemma by applying it from its
+  intended call site, not by checking that it elaborates.**

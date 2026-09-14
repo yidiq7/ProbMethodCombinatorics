@@ -175,6 +175,131 @@ Chapter 8 proves a matching upper bound via Janson's inequality. -/
 theorem le_binomialRandom_cliqueFree_three {n : ℕ} (p : I) :
     ENNReal.ofReal ((1 - (p : ℝ) ^ 3) ^ (n.choose 3))
       ≤ binomialRandom (Fin n) p {G : SimpleGraph (Fin n) | G.CliqueFree 3} := by
+  have hp0 : (0 : ℝ) ≤ (p : ℝ) := p.2.1
+  have hcube : (p : ℝ) ^ 3 ≤ 1 := pow_le_one₀ hp0 p.2.2
+  have hofReal : ENNReal.ofReal (p : ℝ) = (toNNReal p : ℝ≥0∞) := by
+    rw [ENNReal.ofReal, Real.toNNReal_of_nonneg hp0]; rfl
+  -- A prescribed finite set of non-loop edges is present with probability `p ^ |E|`: under the
+  -- product of Bernoulli measures on `Sym2 (Fin n)` this event is a cylinder.
+  have hedges : ∀ E : Finset (Sym2 (Fin n)), (∀ e ∈ E, ¬ e.IsDiag) →
+      binomialRandom (Fin n) p {G : SimpleGraph (Fin n) | ∀ e ∈ E, e ∈ G.edgeSet}
+        = (toNNReal p : ℝ≥0∞) ^ E.card := by
+    intro E hE
+    have himg : edgeSet '' {G : SimpleGraph (Fin n) | ∀ e ∈ E, e ∈ G.edgeSet}
+        = {t ∈ ({t : Set (Sym2 (Fin n)) | ∀ e ∈ E, e ∈ t}) | t ⊆ Sym2.diagSetᶜ} := by
+      ext t
+      constructor
+      · rintro ⟨G, hG, rfl⟩
+        exact ⟨hG, G.edgeSet_subset_compl_diagSet⟩
+      · rintro ⟨h1, h2⟩
+        have hd : Disjoint t Sym2.diagSet := Set.subset_compl_iff_disjoint_right.mp h2
+        refine ⟨fromEdgeSet t, ?_, ?_⟩
+        · intro e he
+          rw [edgeSet_fromEdgeSet, sdiff_eq_left.mpr hd]
+          exact h1 e he
+        · rw [edgeSet_fromEdgeSet, sdiff_eq_left.mpr hd]
+    have hpre : (fun f : Sym2 (Fin n) → Prop ↦ {i | f i}) ⁻¹'
+        {t : Set (Sym2 (Fin n)) | ∀ e ∈ E, e ∈ t}
+        = Set.pi (↑E) (fun _ ↦ ({True} : Set Prop)) := by
+      ext f
+      simp [Set.mem_pi, eq_iff_iff]
+    rw [binomialRandom_apply', himg, ← setBernoulli_apply_eq_apply_subsets, setBernoulli_apply',
+      hpre, Measure.infinitePi_pi _ fun _ _ ↦ MeasurableSet.of_discrete,
+      Finset.prod_congr rfl (g := fun _ ↦ (toNNReal p : ℝ≥0∞)) ?_, Finset.prod_const]
+    intro e he
+    have hmem : e ∈ Sym2.diagSetᶜ := by simpa [Sym2.mem_diagSet] using hE e he
+    simp [Measure.dirac_apply', eq_true hmem]
+  -- For a triple of vertices, "this triple is not a triangle" is measurable of probability
+  -- `1 - p ^ 3`, since its complement asks for three distinct edges.
+  have hkey : ∀ s : ↥(Finset.powersetCard 3 (Finset.univ : Finset (Fin n))),
+      MeasurableSet {G : SimpleGraph (Fin n) | ¬ G.IsNClique 3 (s : Finset (Fin n))} ∧
+      binomialRandom (Fin n) p {G : SimpleGraph (Fin n) | ¬ G.IsNClique 3 (s : Finset (Fin n))}
+        = 1 - (toNNReal p : ℝ≥0∞) ^ 3 := by
+    rintro ⟨s, hs⟩
+    obtain ⟨a, b, c, hab, hac, hbc, rfl⟩ :=
+      Finset.card_eq_three.mp (Finset.mem_powersetCard_univ.mp hs)
+    set E : Finset (Sym2 (Fin n)) := {s(a, b), s(a, c), s(b, c)} with hEdef
+    have hEd : ∀ e ∈ E, ¬ e.IsDiag := by
+      intro e he
+      simp only [hEdef, Finset.mem_insert, Finset.mem_singleton] at he
+      rcases he with rfl | rfl | rfl <;> simp [Sym2.mk_isDiag_iff, hab, hac, hbc]
+    have hEcard : E.card = 3 := by
+      simp only [hEdef]
+      rw [Finset.card_insert_of_notMem (by simp [hab, hac, hbc]),
+        Finset.card_insert_of_notMem (by simp [hab, hac]), Finset.card_singleton]
+    have hcompl : {G : SimpleGraph (Fin n) | ¬ G.IsNClique 3 ({a, b, c} : Finset (Fin n))}
+        = {G : SimpleGraph (Fin n) | ∀ e ∈ E, e ∈ G.edgeSet}ᶜ := by
+      ext G
+      simp [hEdef, is3Clique_triple_iff, mem_edgeSet]
+    have hmeas : MeasurableSet {G : SimpleGraph (Fin n) | ∀ e ∈ E, e ∈ G.edgeSet} := by
+      have hsplit : {G : SimpleGraph (Fin n) | ∀ e ∈ E, e ∈ G.edgeSet}
+          = {G : SimpleGraph (Fin n) | G.Adj a b} ∩
+            ({G : SimpleGraph (Fin n) | G.Adj a c} ∩ {G : SimpleGraph (Fin n) | G.Adj b c}) := by
+        ext G
+        simp [hEdef, mem_edgeSet]
+      rw [hsplit]
+      refine MeasurableSet.inter ?_ (MeasurableSet.inter ?_ ?_) <;> measurability
+    refine ⟨hcompl ▸ hmeas.compl, ?_⟩
+    rw [hcompl, prob_compl_eq_one_sub hmeas, hedges E hEd, hEcard]
+  -- Harris' inequality over all `n.choose 3` triples.
+  have main := prod_le_binomialRandom_iInter (V := Fin n) p
+    (fun s : ↥(Finset.powersetCard 3 (Finset.univ : Finset (Fin n))) =>
+      {G : SimpleGraph (Fin n) | ¬ G.IsNClique 3 (s : Finset (Fin n))})
+    (fun _ _ _ hGH hG hcl => hG (hcl.mono hGH)) fun s => (hkey s).1
+  have hinter : (⋂ s : ↥(Finset.powersetCard 3 (Finset.univ : Finset (Fin n))),
+      {G : SimpleGraph (Fin n) | ¬ G.IsNClique 3 (s : Finset (Fin n))})
+      = {G : SimpleGraph (Fin n) | G.CliqueFree 3} := by
+    ext G
+    constructor
+    · intro hG t ht
+      exact Set.mem_iInter.mp hG ⟨t, Finset.mem_powersetCard_univ.mpr ht.card_eq⟩ ht
+    · intro hG
+      exact Set.mem_iInter.mpr fun _ => hG _
+  rw [hinter] at main
+  refine le_trans (le_of_eq ?_) main
+  rw [Finset.prod_congr rfl fun s _ => (hkey s).2, Finset.prod_const, Finset.card_univ,
+    Fintype.card_coe, Finset.card_powersetCard, Finset.card_univ, Fintype.card_fin,
+    ENNReal.ofReal_pow (by linarith), ENNReal.ofReal_sub _ (by positivity), ENNReal.ofReal_one,
+    ENNReal.ofReal_pow hp0, hofReal]
+
+/-! ### The `setBernoulli` forms, for Chapter 8
+
+Janson's inequality lives on `setBernoulli` — a random *subset* of an index type — rather than on
+`binomialRandom`.  The two facts below are the shared interface `janson_prob_none_step_le`
+consumes, and they are stated here, next to the graph forms, rather than left for a task to
+invent.  `[Countable ι]` for the same reason as in `Janson.lean`: off it, the events in question
+are not measurable and `setBernoulli` quietly returns an outer measure. -/
+
+section SetBernoulli
+
+variable {ι : Type*} [Countable ι]
+
+/-- **Harris' inequality for a random subset, in the mixed form.**  An increasing event and a
+decreasing event are *negatively* correlated.  This is the shape Janson's inequality needs — the
+Boppana–Spencer conditioning step pairs "`R` contains `S i`" against "`R` contains none of the
+`S j` for `j` in a block" — and it is the `setBernoulli` analogue of
+`binomialRandom_mul_le_inter`, which is the same statement for `G(V, p)` with both events
+increasing. -/
+theorem setBernoulli_inter_le_mul (p : I) (A B : Set (Set ι))
+    (hA : IsUpperSet A) (hB : IsLowerSet B)
+    (hAm : MeasurableSet A) (hBm : MeasurableSet B) :
+    setBernoulli Set.univ p (A ∩ B) ≤ setBernoulli Set.univ p A * setBernoulli Set.univ p B := by
   sorry
+
+/-- **Events on disjoint coordinate blocks are independent.**  If membership in `A` is determined
+by `R ∩ u` and membership in `B` by `R ∩ v` with `u` and `v` disjoint, the two events multiply.
+
+The hypotheses say "depends only on the block" in the form that is actually usable — invariance
+under any change outside the block — rather than by exhibiting a cylinder decomposition. -/
+theorem setBernoulli_inter_eq_mul_of_disjoint (p : I) (u v : Set ι) (huv : Disjoint u v)
+    (A B : Set (Set ι))
+    (hA : ∀ R R' : Set ι, R ∩ u = R' ∩ u → (R ∈ A ↔ R' ∈ A))
+    (hB : ∀ R R' : Set ι, R ∩ v = R' ∩ v → (R ∈ B ↔ R' ∈ B))
+    (hAm : MeasurableSet A) (hBm : MeasurableSet B) :
+    setBernoulli Set.univ p (A ∩ B)
+      = setBernoulli Set.univ p A * setBernoulli Set.univ p B := by
+  sorry
+
+end SetBernoulli
 
 end ProbMethodCombinatorics

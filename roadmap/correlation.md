@@ -70,3 +70,25 @@ book, so this waits until something needs it.
 **Theorem 7.2.5** (Riordan–Selby, `ℙ(maxdeg G(n,1/2) ≤ n/2) = (0.6102… + o(1))ⁿ`) and
 **Proposition 7.2.6** are not stated: the first is quoted without proof in the source, and the
 second needs Gaussian random variables and a Laplace-method estimate.
+
+## The `setBernoulli` forms, for Chapter 8
+
+Chapter 8 lives on `setBernoulli` — a random *subset* of an index type — not on
+`binomialRandom`, and it needs the **mixed** pairing rather than the increasing/increasing one.
+Both facts were requested by the contributor who proved `janson_prob_none_le`, after
+establishing that the step genuinely cannot be done by subadditivity: the union bound gives
+`ℙ(Aᵢ)ℙ(B) − ∑ ℙ(AᵢAⱼ)` where the argument needs `(ℙ(Aᵢ) − ∑) ℙ(B)`, and `ℙ(B) ≤ 1` points the
+wrong way. They are stated here rather than left to a task to invent, per the shared-layer rule.
+
+- `harris_setbernoulli` — `A` increasing and `B` decreasing are *negatively* correlated. The
+  `setBernoulli` analogue of `binomialRandom_mul_le_inter`, in the shape the Boppana–Spencer
+  conditioning step pairs them.
+- `setbernoulli_block_indep` — events determined by disjoint coordinate blocks multiply.
+  "Determined by the block" is stated as invariance under changes outside it, which is what a
+  caller can actually establish.
+
+**Neither takes `MeasurableSpace ι` or `MeasurableSingletonClass ι`.** `setBernoulli` needs
+neither, and requiring them would have made both lemmas unusable from `Janson.lean`, where `ι`
+carries no measurable structure. That was checked by applying them in that context before the
+tasks went out — a signature that type-checks in isolation is not the same as one that can be
+used.

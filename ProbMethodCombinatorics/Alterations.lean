@@ -2,6 +2,7 @@ import Mathlib.Analysis.Complex.ExponentialBounds
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Analysis.SpecialFunctions.Sqrt
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+import Mathlib.MeasureTheory.Constructions.Pi
 import Mathlib.Combinatorics.SimpleGraph.Girth
 import Mathlib.Combinatorics.SimpleGraph.Coloring.Vertex
 import Mathlib.Combinatorics.SimpleGraph.Finite
@@ -846,6 +847,182 @@ theorem twoColorable_of_no_conflictingPair {α : Type*} [Fintype α] [DecidableE
 
 section CherkashinKozik
 
+section UniformWeights
+
+open MeasureTheory
+
+/-- **Independent uniform vertex weights.**  Every vertex of `α` receives a weight drawn
+uniformly from `[0, 1]`, independently of the others: the product over `α` of Lebesgue measure
+restricted to the unit interval.
+
+This is the continuous counterpart of the uniform measure on two-colourings `α → Bool`. -/
+noncomputable def uniformWeights (α : Type*) [Fintype α] : Measure (α → ℝ) :=
+  Measure.pi fun _ : α => volume.restrict (Set.Icc (0 : ℝ) 1)
+
+instance (α : Type*) [Fintype α] : IsProbabilityMeasure (uniformWeights α) := by
+  have hone : IsProbabilityMeasure (volume.restrict (Set.Icc (0 : ℝ) 1)) :=
+    ⟨by rw [Measure.restrict_apply_univ, Real.volume_Icc]; norm_num⟩
+  rw [uniformWeights]
+  infer_instance
+
+/-- The weights are independent, so a box has the product of the lengths of its sides, each side
+measured inside `[0, 1]`. -/
+theorem uniformWeights_pi (α : Type*) [Fintype α] (s : α → Set ℝ) :
+    uniformWeights α (Set.univ.pi s) = ∏ i, volume (s i ∩ Set.Icc (0 : ℝ) 1) := by
+  rw [uniformWeights, Measure.pi_pi]
+  exact Finset.prod_congr rfl fun i _ => Measure.restrict_apply' measurableSet_Icc
+
+/-- The probability that every vertex of `e` is weighted inside `s` is the `#e`-th power of the
+length of `s ∩ [0, 1]`. -/
+theorem uniformWeights_forall_mem {α : Type*} [Fintype α] [DecidableEq α]
+    (e : Finset α) (s : Set ℝ) :
+    uniformWeights α {w : α → ℝ | ∀ u ∈ e, w u ∈ s}
+      = volume (s ∩ Set.Icc (0 : ℝ) 1) ^ e.card := by
+  have hset : {w : α → ℝ | ∀ u ∈ e, w u ∈ s}
+      = Set.univ.pi (fun i => if i ∈ e then s else Set.univ) := by
+    ext w
+    constructor
+    · intro h i _
+      show w i ∈ (if i ∈ e then s else Set.univ)
+      by_cases hi : i ∈ e
+      · rw [if_pos hi]; exact h i hi
+      · rw [if_neg hi]; exact Set.mem_univ _
+    · intro h u hu
+      have hwu : w u ∈ (if u ∈ e then s else Set.univ) := h u (Set.mem_univ u)
+      rw [if_pos hu] at hwu
+      exact hwu
+  rw [hset, uniformWeights_pi]
+  have hrew : ∀ i : α, volume ((if i ∈ e then s else Set.univ) ∩ Set.Icc (0 : ℝ) 1)
+      = if i ∈ e then volume (s ∩ Set.Icc (0 : ℝ) 1) else 1 := by
+    intro i
+    by_cases hi : i ∈ e
+    · rw [if_pos hi, if_pos hi]
+    · rw [if_neg hi, if_neg hi, Set.univ_inter, Real.volume_Icc]
+      norm_num
+  rw [Finset.prod_congr rfl (fun i _ => hrew i), Finset.prod_ite_mem, Finset.univ_inter,
+    Finset.prod_const]
+
+/-- The probability that `e` lies wholly in the left window `[0, a)` is `a ^ #e`. -/
+theorem uniformWeights_forall_lt {α : Type*} [Fintype α] [DecidableEq α]
+    (e : Finset α) {a : ℝ} (ha1 : a ≤ 1) :
+    uniformWeights α {w : α → ℝ | ∀ u ∈ e, w u < a} = ENNReal.ofReal a ^ e.card := by
+  have h := uniformWeights_forall_mem e (Set.Iio a)
+  have hs : Set.Iio a ∩ Set.Icc (0 : ℝ) 1 = Set.Ico 0 a := by
+    ext x
+    simp only [Set.mem_inter_iff, Set.mem_Iio, Set.mem_Icc, Set.mem_Ico]
+    constructor
+    · rintro ⟨h1, h2, -⟩
+      exact ⟨h2, h1⟩
+    · rintro ⟨h1, h2⟩
+      exact ⟨h2, h1, le_trans h2.le ha1⟩
+  rw [hs, Real.volume_Ico, sub_zero] at h
+  exact h
+
+/-- The probability that `e` lies wholly in the right window `(b, 1]` is `(1 - b) ^ #e`. -/
+theorem uniformWeights_forall_gt {α : Type*} [Fintype α] [DecidableEq α]
+    (e : Finset α) {b : ℝ} (hb0 : 0 ≤ b) :
+    uniformWeights α {w : α → ℝ | ∀ u ∈ e, b < w u} = ENNReal.ofReal (1 - b) ^ e.card := by
+  have h := uniformWeights_forall_mem e (Set.Ioi b)
+  have hs : Set.Ioi b ∩ Set.Icc (0 : ℝ) 1 = Set.Ioc b 1 := by
+    ext x
+    simp only [Set.mem_inter_iff, Set.mem_Ioi, Set.mem_Icc, Set.mem_Ioc]
+    constructor
+    · rintro ⟨h1, -, h3⟩
+      exact ⟨h1, h3⟩
+    · rintro ⟨h1, h2⟩
+      exact ⟨h1, le_trans hb0 h1.le, h2⟩
+  rw [hs, Real.volume_Ioc] at h
+  exact h
+
+
+/-- **Ties are null.**  Two distinct vertices receive equal weights with probability zero: this
+is where the continuity of the weight distribution is used, and it has no counterpart for
+two-colourings.
+
+For each `n` the tie event is covered by the `n` boxes on which both coordinates lie in the same
+window of length `1 / n`, together with the null event that the first coordinate escapes `[0, 1]`,
+so the tie event has measure at most `1 / n`. -/
+theorem uniformWeights_eq_null {α : Type*} [Fintype α] [DecidableEq α] {u v : α} (huv : u ≠ v) :
+    uniformWeights α {w : α → ℝ | w u = w v} = 0 := by
+  have hout : uniformWeights α {w : α → ℝ | w u ∉ Set.Icc (0 : ℝ) 1} = 0 := by
+    have hset : {w : α → ℝ | w u ∉ Set.Icc (0 : ℝ) 1}
+        = {w : α → ℝ | ∀ t ∈ ({u} : Finset α), w t ∈ (Set.Icc (0 : ℝ) 1)ᶜ} := by
+      ext w
+      constructor
+      · intro hw t ht
+        rw [Finset.mem_singleton] at ht
+        subst ht
+        exact hw
+      · intro hw
+        exact hw u (Finset.mem_singleton_self u)
+    rw [hset, uniformWeights_forall_mem, Set.compl_inter_self, measure_empty,
+      Finset.card_singleton, pow_one]
+  have hkey : ∀ n : ℕ, uniformWeights α {w : α → ℝ | w u = w v} ≤ (n : ENNReal)⁻¹ := by
+    intro n
+    rcases Nat.eq_zero_or_pos n with rfl | hn
+    · simp
+    have hn0 : (0 : ℝ) < n := by exact_mod_cast hn
+    have hcover : {w : α → ℝ | w u = w v} ⊆ {w : α → ℝ | w u ∉ Set.Icc (0 : ℝ) 1} ∪
+        ⋃ j ∈ Finset.range n, {w : α → ℝ | ∀ t ∈ ({u, v} : Finset α),
+          w t ∈ Set.Icc ((j : ℝ) / n) (((j : ℝ) + 1) / n)} := by
+      intro w hw
+      have hw' : w u = w v := hw
+      by_cases hmem : w u ∈ Set.Icc (0 : ℝ) 1
+      · refine Or.inr ?_
+        obtain ⟨hx0, hx1⟩ := hmem
+        set j : ℕ := min ⌊w u * n⌋₊ (n - 1) with hj
+        have hjn : j < n := lt_of_le_of_lt (min_le_right _ _) (by omega)
+        have hjle : (j : ℝ) ≤ w u * n := by
+          refine le_trans ?_ (Nat.floor_le (by positivity))
+          exact_mod_cast min_le_left ⌊w u * n⌋₊ (n - 1)
+        have hjlt : w u * n ≤ (j : ℝ) + 1 := by
+          by_cases hc : ⌊w u * n⌋₊ ≤ n - 1
+          · have hjeq : j = ⌊w u * n⌋₊ := by omega
+            rw [hjeq]
+            exact le_of_lt (Nat.lt_floor_add_one _)
+          · have hjeq : j = n - 1 := by omega
+            rw [hjeq]
+            have hcast : ((n - 1 : ℕ) : ℝ) + 1 = (n : ℝ) := by
+              have h1 : (1 : ℕ) ≤ n := hn
+              push_cast [Nat.cast_sub h1]
+              ring
+            rw [hcast]
+            nlinarith
+        refine Set.mem_biUnion (Finset.mem_range.mpr hjn) ?_
+        intro t ht
+        have hteq : w t = w u := by
+          simp only [Finset.mem_insert, Finset.mem_singleton] at ht
+          rcases ht with rfl | rfl
+          · rfl
+          · exact hw'.symm
+        rw [hteq]
+        exact ⟨(div_le_iff₀ hn0).mpr hjle, (le_div_iff₀ hn0).mpr hjlt⟩
+      · exact Or.inl hmem
+    refine le_trans (measure_mono hcover) ?_
+    refine le_trans (measure_union_le _ _) ?_
+    rw [hout, zero_add]
+    refine le_trans (measure_biUnion_finset_le _ _) ?_
+    have hbox : ∀ j ∈ Finset.range n, uniformWeights α {w : α → ℝ | ∀ t ∈ ({u, v} : Finset α),
+        w t ∈ Set.Icc ((j : ℝ) / n) (((j : ℝ) + 1) / n)} ≤ ((n : ENNReal)⁻¹) ^ 2 := by
+      intro j _
+      rw [uniformWeights_forall_mem, Finset.card_pair huv]
+      refine pow_le_pow_left₀ zero_le ?_ 2
+      refine le_trans (measure_mono Set.inter_subset_left) ?_
+      rw [Real.volume_Icc]
+      have hlen : ((j : ℝ) + 1) / n - (j : ℝ) / n = 1 / n := by
+        rw [div_sub_div_same]
+        norm_num
+      rw [hlen, one_div, ENNReal.ofReal_inv_of_pos hn0, ENNReal.ofReal_natCast]
+    refine le_trans (Finset.sum_le_sum hbox) ?_
+    rw [Finset.sum_const, Finset.card_range, nsmul_eq_mul, sq, ← mul_assoc,
+      ENNReal.mul_inv_cancel (by exact_mod_cast hn.ne') (ENNReal.natCast_ne_top n), one_mul]
+  by_contra hne
+  obtain ⟨n, hn⟩ := ENNReal.exists_inv_nat_lt hne
+  exact absurd (hkey n) (not_le.mpr hn)
+
+end UniformWeights
+
+
 /-- **The Beta-type integral estimate** at the heart of Cherkashin–Kozik.  Over the middle
 window `[(1 - p) / 2, (1 + p) / 2]` of `[0, 1]`, which has length `p`, the integrand
 `x ^ n * (1 - x) ^ n = (x * (1 - x)) ^ n` never exceeds `(1 / 4) ^ n`, so
@@ -874,6 +1051,429 @@ theorem integral_pow_mul_one_sub_pow_le (n : ℕ) {p : ℝ} (hp0 : 0 ≤ p) (hp1
   have h : (1 + p) / 2 - (1 - p) / 2 = p := by ring
   rw [h]
 
+/-- **The core Beta-type estimate for a single shared vertex.**  Under independent uniform
+weights, the probability that `v` is weighted in the middle window `[(1 - p) / 2, (1 + p) / 2]`
+while all of `e` sits below it and all of `f` sits above it is at most
+`∫ x in (1 - p) / 2..(1 + p) / 2, x ^ n * (1 - x) ^ n`, when `e` and `f` are disjoint `n`-element
+sets avoiding `v`.
+
+Cutting the middle window into `N` equal pieces `[t j, t (j + 1)]` bounds the event by `N` boxes:
+if `w v` lies in the `j`-th piece then all of `e` lies below `t (j + 1)` and all of `f` above
+`t j`, an event of probability `(t (j + 1) - t j) * t (j + 1) ^ n * (1 - t j) ^ n` because the
+`2 * n + 1` coordinates involved are independent.  Since `x ^ n * (1 - x) ^ n` moves by at most
+`n * (t (j + 1) - t j)` across a piece, the resulting sum exceeds the integral by at most
+`n * p ^ 2 / N`, and letting `N` grow gives the bound. -/
+theorem uniformWeights_heaviest_lightest_le {α : Type*} [Fintype α] [DecidableEq α]
+    {n : ℕ} {p : ℝ} (hp0 : 0 < p) (hp1 : p ≤ 1) {v : α} {e f : Finset α}
+    (hef : Disjoint e f) (hve : v ∉ e) (hvf : v ∉ f) (he : e.card = n) (hf : f.card = n) :
+    uniformWeights α {w : α → ℝ | (1 - p) / 2 ≤ w v ∧ w v ≤ (1 + p) / 2 ∧
+        (∀ u ∈ e, w u ≤ w v) ∧ (∀ u ∈ f, w v ≤ w u)}
+      ≤ ENNReal.ofReal (∫ x in (1 - p) / 2..(1 + p) / 2, x ^ n * (1 - x) ^ n) := by
+  have hpow : ∀ (m : ℕ) (x y : ℝ), 0 ≤ x → x ≤ y → y ≤ 1 → y ^ m - x ^ m ≤ m * (y - x) := by
+    intro m
+    induction m with
+    | zero => intro x y _ _ _; simp
+    | succ m ih =>
+      intro x y hx hxy hy
+      have h1 := ih x y hx hxy hy
+      have hy0 : (0:ℝ) ≤ y := le_trans hx hxy
+      have hxm0 : (0:ℝ) ≤ x ^ m := pow_nonneg hx m
+      have hxm1 : x ^ m ≤ 1 := pow_le_one₀ hx (le_trans hxy hy)
+      have hd : (0:ℝ) ≤ y - x := by linarith
+      have hym : (0:ℝ) ≤ y ^ m - x ^ m := by
+        have h := pow_le_pow_left₀ hx hxy m
+        linarith
+      have hid : y ^ (m + 1) - x ^ (m + 1) = y * (y ^ m - x ^ m) + (y - x) * x ^ m := by ring
+      have t1 : y * (y ^ m - x ^ m) ≤ y ^ m - x ^ m := by nlinarith
+      have t2 : (y - x) * x ^ m ≤ y - x := by nlinarith
+      push_cast
+      linarith
+  have hpoint : ∀ r s x : ℝ, 0 ≤ r → r ≤ x → x ≤ s → s ≤ 1 →
+      s ^ n * (1 - r) ^ n - n * (s - r) ≤ x ^ n * (1 - x) ^ n := by
+    intro r s x hr0 hrx hxs hs1
+    have hx0 : (0:ℝ) ≤ x := le_trans hr0 hrx
+    have hx1 : x ≤ (1:ℝ) := le_trans hxs hs1
+    have h1 : s ^ n - x ^ n ≤ n * (s - x) := hpow n x s hx0 hxs hs1
+    have h2 : (1 - r) ^ n - (1 - x) ^ n ≤ n * ((1 - r) - (1 - x)) :=
+      hpow n (1 - x) (1 - r) (by linarith) (by linarith) (by linarith)
+    have h3 : (1 - r) ^ n ≤ 1 := pow_le_one₀ (by linarith) (by linarith)
+    have h4 : x ^ n ≤ 1 := pow_le_one₀ hx0 hx1
+    have h5 : (0:ℝ) ≤ s ^ n - x ^ n := by
+      have h := pow_le_pow_left₀ hx0 hxs n
+      linarith
+    have h6 : (0:ℝ) ≤ (1 - r) ^ n - (1 - x) ^ n := by
+      have h := pow_le_pow_left₀ (show (0:ℝ) ≤ 1 - x by linarith) (show 1 - x ≤ 1 - r by linarith) n
+      linarith
+    have h7 : (0:ℝ) ≤ x ^ n := pow_nonneg hx0 n
+    have h8 : (0:ℝ) ≤ (1 - r) ^ n := pow_nonneg (by linarith) n
+    have hid : s ^ n * (1 - r) ^ n - x ^ n * (1 - x) ^ n
+        = (1 - r) ^ n * (s ^ n - x ^ n) + x ^ n * ((1 - r) ^ n - (1 - x) ^ n) := by ring
+    nlinarith [hid, h1, h2, h3, h4, h5, h6, h7, h8]
+  have hint : ∀ r s : ℝ, 0 ≤ r → r ≤ s → s ≤ 1 →
+      (s - r) * (s ^ n * (1 - r) ^ n)
+        ≤ (∫ x in r..s, x ^ n * (1 - x) ^ n) + n * (s - r) ^ 2 := by
+    intro r s hr0 hrs hs1
+    have hcont : Continuous fun x : ℝ => x ^ n * (1 - x) ^ n := by fun_prop
+    have hmono : (∫ _ in r..s, (s ^ n * (1 - r) ^ n - n * (s - r)))
+        ≤ ∫ x in r..s, x ^ n * (1 - x) ^ n :=
+      intervalIntegral.integral_mono_on hrs (continuous_const.intervalIntegrable _ _)
+        (hcont.intervalIntegrable _ _) fun x hx => hpoint r s x hr0 hx.1 hx.2 hs1
+    rw [intervalIntegral.integral_const, smul_eq_mul] at hmono
+    nlinarith [hmono]
+  have hbox : ∀ r s : ℝ, 0 ≤ r → r ≤ s → s ≤ 1 →
+      uniformWeights α {w : α → ℝ | (r ≤ w v ∧ w v ≤ s) ∧ (∀ u ∈ e, w u ≤ s) ∧
+          (∀ u ∈ f, r ≤ w u)}
+        = ENNReal.ofReal ((s - r) * (s ^ n * (1 - r) ^ n)) := by
+    intro r s hr0 hrs hs1
+    have hs0 : (0:ℝ) ≤ s := le_trans hr0 hrs
+    have hr1 : r ≤ (1:ℝ) := le_trans hrs hs1
+    have hconv : ENNReal.ofReal ((s - r) * (s ^ n * (1 - r) ^ n))
+        = ENNReal.ofReal (s - r) * ENNReal.ofReal s ^ n * ENNReal.ofReal (1 - r) ^ n := by
+      rw [ENNReal.ofReal_mul (by linarith : (0:ℝ) ≤ s - r),
+        ENNReal.ofReal_mul (pow_nonneg hs0 n), ENNReal.ofReal_pow hs0,
+        ENNReal.ofReal_pow (by linarith : (0:ℝ) ≤ 1 - r)]
+      ring
+    rw [hconv]
+    have hset : {w : α → ℝ | (r ≤ w v ∧ w v ≤ s) ∧ (∀ u ∈ e, w u ≤ s) ∧ (∀ u ∈ f, r ≤ w u)}
+        = Set.univ.pi (fun i => if i = v then Set.Icc r s else if i ∈ e then Set.Iic s
+            else if i ∈ f then Set.Ici r else Set.univ) := by
+      ext w
+      constructor
+      · rintro ⟨hv, hE, hF⟩ i _
+        show w i ∈ (if i = v then Set.Icc r s else if i ∈ e then Set.Iic s
+            else if i ∈ f then Set.Ici r else Set.univ)
+        by_cases h1 : i = v
+        · rw [if_pos h1, h1]
+          exact ⟨hv.1, hv.2⟩
+        · rw [if_neg h1]
+          by_cases h2 : i ∈ e
+          · rw [if_pos h2]
+            exact hE i h2
+          · rw [if_neg h2]
+            by_cases h3 : i ∈ f
+            · rw [if_pos h3]
+              exact hF i h3
+            · rw [if_neg h3]
+              exact Set.mem_univ _
+      · intro h
+        have hget : ∀ i : α, w i ∈ (if i = v then Set.Icc r s else if i ∈ e then Set.Iic s
+            else if i ∈ f then Set.Ici r else Set.univ) := fun i => h i (Set.mem_univ i)
+        refine ⟨?_, ?_, ?_⟩
+        · have hi := hget v
+          rw [if_pos rfl] at hi
+          exact ⟨hi.1, hi.2⟩
+        · intro u hu
+          have hi := hget u
+          rw [if_neg (fun hc : u = v => hve (hc ▸ hu)), if_pos hu] at hi
+          exact hi
+        · intro u hu
+          have hi := hget u
+          rw [if_neg (fun hc : u = v => hvf (hc ▸ hu)),
+            if_neg (Finset.disjoint_right.mp hef hu), if_pos hu] at hi
+          exact hi
+    rw [hset, uniformWeights_pi]
+    have hG : ∀ i : α, MeasureTheory.volume ((if i = v then Set.Icc r s else if i ∈ e then Set.Iic s
+        else if i ∈ f then Set.Ici r else Set.univ) ∩ Set.Icc (0:ℝ) 1)
+        = if i = v then ENNReal.ofReal (s - r) else if i ∈ e then ENNReal.ofReal s
+          else if i ∈ f then ENNReal.ofReal (1 - r) else 1 := by
+      intro i
+      by_cases h1 : i = v
+      · rw [if_pos h1, if_pos h1,
+          Set.inter_eq_self_of_subset_left (Set.Icc_subset_Icc hr0 hs1), Real.volume_Icc]
+      · rw [if_neg h1, if_neg h1]
+        by_cases h2 : i ∈ e
+        · rw [if_pos h2, if_pos h2, show Set.Iic s ∩ Set.Icc (0:ℝ) 1 = Set.Icc 0 s from ?_,
+            Real.volume_Icc, sub_zero]
+          ext x
+          simp only [Set.mem_inter_iff, Set.mem_Iic, Set.mem_Icc]
+          constructor
+          · rintro ⟨h1', h2', -⟩
+            exact ⟨h2', h1'⟩
+          · rintro ⟨h1', h2'⟩
+            exact ⟨h2', h1', le_trans h2' hs1⟩
+        · rw [if_neg h2, if_neg h2]
+          by_cases h3 : i ∈ f
+          · rw [if_pos h3, if_pos h3, show Set.Ici r ∩ Set.Icc (0:ℝ) 1 = Set.Icc r 1 from ?_,
+              Real.volume_Icc]
+            ext x
+            simp only [Set.mem_inter_iff, Set.mem_Ici, Set.mem_Icc]
+            constructor
+            · rintro ⟨h1', -, h3'⟩
+              exact ⟨h1', h3'⟩
+            · rintro ⟨h1', h2'⟩
+              exact ⟨h1', le_trans hr0 h1', h2'⟩
+          · rw [if_neg h3, if_neg h3, Set.univ_inter, Real.volume_Icc]
+            norm_num
+    rw [Finset.prod_congr rfl (fun i _ => hG i)]
+    have hsub : insert v (e ∪ f) ⊆ (Finset.univ : Finset α) := Finset.subset_univ _
+    rw [← Finset.prod_subset hsub (by
+      intro i _ hi
+      have h1 : i ≠ v := fun hc => hi (Finset.mem_insert.mpr (Or.inl hc))
+      have h2 : i ∉ e := fun hc => hi (Finset.mem_insert.mpr (Or.inr (Finset.mem_union_left _ hc)))
+      have h3 : i ∉ f := fun hc => hi (Finset.mem_insert.mpr (Or.inr (Finset.mem_union_right _ hc)))
+      rw [if_neg h1, if_neg h2, if_neg h3])]
+    rw [Finset.prod_insert (by
+      intro hc
+      rcases Finset.mem_union.mp hc with h | h
+      · exact hve h
+      · exact hvf h), Finset.prod_union hef]
+    have hev : ∀ i ∈ e, (if i = v then ENNReal.ofReal (s - r) else if i ∈ e then ENNReal.ofReal s
+        else if i ∈ f then ENNReal.ofReal (1 - r) else 1) = ENNReal.ofReal s := by
+      intro i hi
+      rw [if_neg (fun hc : i = v => hve (hc ▸ hi)), if_pos hi]
+    have hfv : ∀ i ∈ f, (if i = v then ENNReal.ofReal (s - r) else if i ∈ e then ENNReal.ofReal s
+        else if i ∈ f then ENNReal.ofReal (1 - r) else 1) = ENNReal.ofReal (1 - r) := by
+      intro i hi
+      rw [if_neg (fun hc : i = v => hvf (hc ▸ hi)), if_neg (Finset.disjoint_right.mp hef hi),
+        if_pos hi]
+    rw [Finset.prod_congr rfl hev, Finset.prod_congr rfl hfv, Finset.prod_const, Finset.prod_const,
+      he, hf, if_pos rfl, mul_assoc]
+
+  have hcont : Continuous fun x : ℝ => x ^ n * (1 - x) ^ n := by fun_prop
+  have hp2 : (0:ℝ) ≤ (1 - p) / 2 := by linarith
+  have hI0 : (0:ℝ) ≤ ∫ x in (1 - p) / 2..(1 + p) / 2, x ^ n * (1 - x) ^ n := by
+    refine intervalIntegral.integral_nonneg (by linarith) ?_
+    intro x hx
+    exact mul_nonneg (pow_nonneg (le_trans hp2 hx.1) _) (pow_nonneg (by linarith [hx.2]) _)
+  have hmain : ∀ N : ℕ, 0 < N →
+      uniformWeights α {w : α → ℝ | (1 - p) / 2 ≤ w v ∧ w v ≤ (1 + p) / 2 ∧
+          (∀ u ∈ e, w u ≤ w v) ∧ (∀ u ∈ f, w v ≤ w u)}
+        ≤ ENNReal.ofReal ((∫ x in (1 - p) / 2..(1 + p) / 2, x ^ n * (1 - x) ^ n)
+            + n * p ^ 2 / N) := by
+    intro N hN
+    have hNR : (0:ℝ) < N := by exact_mod_cast hN
+    have hpN : (0:ℝ) < p / N := by positivity
+    obtain ⟨t, ht⟩ : ∃ t : ℕ → ℝ, ∀ j : ℕ, t j = (1 - p) / 2 + j * (p / N) := ⟨_, fun _ => rfl⟩
+    have hstep : ∀ j : ℕ, t (j + 1) - t j = p / N := by
+      intro j
+      rw [ht, ht]
+      push_cast
+      ring
+    have ht0 : t 0 = (1 - p) / 2 := by rw [ht]; norm_num
+    have htN : t N = (1 + p) / 2 := by
+      rw [ht]
+      field_simp
+      ring
+    have hmono : ∀ i j : ℕ, i ≤ j → t i ≤ t j := by
+      intro i j hij
+      rw [ht, ht]
+      have hc : (i:ℝ) ≤ j := by exact_mod_cast hij
+      nlinarith
+    have hge0 : ∀ j : ℕ, 0 ≤ t j := by
+      intro j
+      have h := hmono 0 j (Nat.zero_le j)
+      rw [ht0] at h
+      linarith
+    have hle1 : ∀ j : ℕ, j ≤ N → t j ≤ 1 := by
+      intro j hj
+      have h := hmono j N hj
+      rw [htN] at h
+      linarith
+    have hcover : {w : α → ℝ | (1 - p) / 2 ≤ w v ∧ w v ≤ (1 + p) / 2 ∧
+        (∀ u ∈ e, w u ≤ w v) ∧ (∀ u ∈ f, w v ≤ w u)} ⊆
+        ⋃ j ∈ Finset.range N, {w : α → ℝ | (t j ≤ w v ∧ w v ≤ t (j + 1)) ∧
+          (∀ u ∈ e, w u ≤ t (j + 1)) ∧ (∀ u ∈ f, t j ≤ w u)} := by
+      rintro w ⟨hl, hr, hE, hF⟩
+      obtain ⟨j, hjN, hj1, hj2⟩ : ∃ j : ℕ, j < N ∧ t j ≤ w v ∧ w v ≤ t (j + 1) := by
+        obtain ⟨y, hy⟩ : ∃ y : ℝ, y = (w v - (1 - p) / 2) * N / p := ⟨_, rfl⟩
+        have hy0 : (0:ℝ) ≤ y := by
+          rw [hy]
+          exact div_nonneg (mul_nonneg (by linarith) hNR.le) hp0.le
+        have hyN : y ≤ N := by
+          rw [hy, div_le_iff₀ hp0]
+          nlinarith
+        have hkey : y * (p / N) = w v - (1 - p) / 2 := by
+          rw [hy]
+          field_simp
+        obtain ⟨j, hj⟩ : ∃ j : ℕ, j = min ⌊y⌋₊ (N - 1) := ⟨_, rfl⟩
+        have hjlt : j < N := by
+          rw [hj]
+          exact lt_of_le_of_lt (min_le_right _ _) (by omega)
+        have hjle : (j : ℝ) ≤ y := by
+          refine le_trans ?_ (Nat.floor_le hy0)
+          rw [hj]
+          exact_mod_cast min_le_left ⌊y⌋₊ (N - 1)
+        have hjge : y ≤ (j : ℝ) + 1 := by
+          by_cases hc : ⌊y⌋₊ ≤ N - 1
+          · have hje : j = ⌊y⌋₊ := by omega
+            rw [hje]
+            exact le_of_lt (Nat.lt_floor_add_one _)
+          · have hje : j = N - 1 := by omega
+            rw [hje]
+            have hcast : ((N - 1 : ℕ) : ℝ) + 1 = (N : ℝ) := by
+              have h1 : (1:ℕ) ≤ N := hN
+              push_cast [Nat.cast_sub h1]
+              ring
+            rw [hcast]
+            exact hyN
+        refine ⟨j, hjlt, ?_, ?_⟩
+        · rw [ht]
+          have h := mul_le_mul_of_nonneg_right hjle hpN.le
+          rw [hkey] at h
+          linarith
+        · rw [ht]
+          have h := mul_le_mul_of_nonneg_right hjge hpN.le
+          rw [hkey] at h
+          push_cast
+          linarith
+      exact Set.mem_biUnion (Finset.mem_range.mpr hjN)
+        ⟨⟨hj1, hj2⟩, fun u hu => le_trans (hE u hu) hj2, fun u hu => le_trans hj1 (hF u hu)⟩
+    refine le_trans (MeasureTheory.measure_mono hcover) ?_
+    refine le_trans (MeasureTheory.measure_biUnion_finset_le _ _) ?_
+    have hterm : ∀ j ∈ Finset.range N,
+        uniformWeights α {w : α → ℝ | (t j ≤ w v ∧ w v ≤ t (j + 1)) ∧
+          (∀ u ∈ e, w u ≤ t (j + 1)) ∧ (∀ u ∈ f, t j ≤ w u)}
+        = ENNReal.ofReal ((t (j + 1) - t j) * (t (j + 1) ^ n * (1 - t j) ^ n)) := by
+      intro j hj
+      rw [Finset.mem_range] at hj
+      exact hbox (t j) (t (j + 1)) (hge0 j) (hmono j (j + 1) (Nat.le_succ j))
+        (hle1 (j + 1) (by omega))
+    have hnn : ∀ j ∈ Finset.range N,
+        (0:ℝ) ≤ (t (j + 1) - t j) * (t (j + 1) ^ n * (1 - t j) ^ n) := by
+      intro j hj
+      rw [Finset.mem_range] at hj
+      have h1 : t j ≤ t (j + 1) := hmono j (j + 1) (Nat.le_succ j)
+      have h2 : t (j + 1) ≤ 1 := hle1 (j + 1) (by omega)
+      have h3 : (0:ℝ) ≤ t (j + 1) := hge0 (j + 1)
+      have h4 : t j ≤ 1 := le_trans h1 h2
+      exact mul_nonneg (by linarith)
+        (mul_nonneg (pow_nonneg h3 n) (pow_nonneg (by linarith) n))
+    rw [Finset.sum_congr rfl hterm, ← ENNReal.ofReal_sum_of_nonneg hnn]
+    refine ENNReal.ofReal_le_ofReal ?_
+    have hsum : ∀ j ∈ Finset.range N,
+        (t (j + 1) - t j) * (t (j + 1) ^ n * (1 - t j) ^ n)
+          ≤ (∫ x in t j..t (j + 1), x ^ n * (1 - x) ^ n) + n * (p / N) ^ 2 := by
+      intro j hj
+      rw [Finset.mem_range] at hj
+      have h := hint (t j) (t (j + 1)) (hge0 j) (hmono j (j + 1) (Nat.le_succ j))
+        (hle1 (j + 1) (by omega))
+      rw [← hstep j]
+      exact h
+    refine le_trans (Finset.sum_le_sum hsum) ?_
+    rw [Finset.sum_add_distrib, Finset.sum_const, Finset.card_range, nsmul_eq_mul,
+      intervalIntegral.sum_integral_adjacent_intervals
+        (fun k _ => (hcont.intervalIntegrable _ _)), ht0, htN]
+    have harith : (N : ℝ) * ((n : ℝ) * (p / N) ^ 2) = (n : ℝ) * p ^ 2 / N := by
+      field_simp
+    rw [harith]
+  -- pass to the limit
+  have hfin : uniformWeights α {w : α → ℝ | (1 - p) / 2 ≤ w v ∧ w v ≤ (1 + p) / 2 ∧
+      (∀ u ∈ e, w u ≤ w v) ∧ (∀ u ∈ f, w v ≤ w u)} ≠ ⊤ := MeasureTheory.measure_ne_top _ _
+  have hreal : (uniformWeights α {w : α → ℝ | (1 - p) / 2 ≤ w v ∧ w v ≤ (1 + p) / 2 ∧
+      (∀ u ∈ e, w u ≤ w v) ∧ (∀ u ∈ f, w v ≤ w u)}).toReal
+      ≤ ∫ x in (1 - p) / 2..(1 + p) / 2, x ^ n * (1 - x) ^ n := by
+    refine le_of_forall_pos_le_add ?_
+    intro ε hε
+    obtain ⟨N, hNgt⟩ := exists_nat_gt (max 1 ((n : ℝ) * p ^ 2 / ε))
+    have hN1 : 0 < N := by
+      have h : (1:ℝ) ≤ max 1 ((n : ℝ) * p ^ 2 / ε) := le_max_left _ _
+      have : (0:ℝ) < N := by linarith
+      exact_mod_cast this
+    have hNR : (0:ℝ) < N := by exact_mod_cast hN1
+    have h2 := ENNReal.toReal_le_of_le_ofReal (by positivity) (hmain N hN1)
+    have h3 : (n : ℝ) * p ^ 2 / N < ε := by
+      rw [div_lt_iff₀ hNR]
+      have h : (n : ℝ) * p ^ 2 / ε ≤ max 1 ((n : ℝ) * p ^ 2 / ε) := le_max_right _ _
+      have h4 : (n : ℝ) * p ^ 2 / ε < N := by linarith
+      rw [div_lt_iff₀ hε] at h4
+      linarith
+    linarith
+  calc uniformWeights α {w : α → ℝ | (1 - p) / 2 ≤ w v ∧ w v ≤ (1 + p) / 2 ∧
+        (∀ u ∈ e, w u ≤ w v) ∧ (∀ u ∈ f, w v ≤ w u)}
+      = ENNReal.ofReal ((uniformWeights α {w : α → ℝ | (1 - p) / 2 ≤ w v ∧ w v ≤ (1 + p) / 2 ∧
+        (∀ u ∈ e, w u ≤ w v) ∧ (∀ u ∈ f, w v ≤ w u)}).toReal) :=
+        (ENNReal.ofReal_toReal hfin).symm
+    _ ≤ _ := ENNReal.ofReal_le_ofReal hreal
+
+
+/-- **A fixed ordered pair of edges conflicts in the middle window with probability at most the
+Beta-type integral.**  Under independent uniform weights, if `e` and `f` are `k`-element edges
+then the chance that some vertex `v` is `w`-heaviest in `e`, `w`-lightest in `f`, and weighted in
+the middle window `[(1 - p) / 2, (1 + p) / 2]` is at most
+`∫ x in (1 - p) / 2..(1 + p) / 2, x ^ (k - 1) * (1 - x) ^ (k - 1)`.
+
+If `e` and `f` are disjoint there is no such `v` at all.  If they meet in two or more vertices a
+conflict at `v` forces a tie between two independent uniform weights, which is a null event.  If
+they meet in the single vertex `v`, then conditionally on `w v = x` the remaining `k - 1` vertices
+of `e` must all be weighted below `x` and the remaining `k - 1` vertices of `f` all above it;
+those `2 * (k - 1)` weights are independent, so the conditional probability is
+`x ^ (k - 1) * (1 - x) ^ (k - 1)`, and integrating over the middle window gives the bound. -/
+theorem uniformWeights_conflictingPair_mid_le {α : Type*} [Fintype α] [DecidableEq α]
+    {k : ℕ} {p : ℝ} (hp0 : 0 < p) (hp1 : p ≤ 1) {e f : Finset α}
+    (he : e.card = k) (hf : f.card = k) :
+    uniformWeights α {w : α → ℝ | ∃ v : α, ConflictingPair w e f v ∧
+        (1 - p) / 2 ≤ w v ∧ w v ≤ (1 + p) / 2}
+      ≤ ENNReal.ofReal (∫ x in (1 - p) / 2..(1 + p) / 2, x ^ (k - 1) * (1 - x) ^ (k - 1)) := by
+  rcases Finset.eq_empty_or_nonempty (e ∩ f) with hemp | ⟨v₀, hv₀⟩
+  · -- disjoint edges have no shared vertex, so they never conflict
+    have hset : {w : α → ℝ | ∃ v : α, ConflictingPair w e f v ∧
+        (1 - p) / 2 ≤ w v ∧ w v ≤ (1 + p) / 2} = (∅ : Set (α → ℝ)) := by
+      ext w
+      constructor
+      · rintro ⟨v, ⟨hve, hvf, -, -⟩, -, -⟩
+        exact absurd (Finset.mem_inter.mpr ⟨hve, hvf⟩)
+          (by rw [hemp]; exact Finset.notMem_empty v)
+      · exact fun h => absurd h (Set.notMem_empty w)
+    rw [hset, MeasureTheory.measure_empty]
+    exact zero_le
+  · by_cases hcard : (e ∩ f).card = 1
+    · -- the edges meet in the single vertex `v₀`
+      have hinter : e ∩ f = {v₀} := by
+        obtain ⟨x, hx⟩ := Finset.card_eq_one.mp hcard
+        rw [hx] at hv₀ ⊢
+        rw [Finset.mem_singleton.mp hv₀]
+      have hv₀e : v₀ ∈ e := (Finset.mem_inter.mp hv₀).1
+      have hv₀f : v₀ ∈ f := (Finset.mem_inter.mp hv₀).2
+      have hsub : {w : α → ℝ | ∃ v : α, ConflictingPair w e f v ∧
+          (1 - p) / 2 ≤ w v ∧ w v ≤ (1 + p) / 2} ⊆
+          {w : α → ℝ | (1 - p) / 2 ≤ w v₀ ∧ w v₀ ≤ (1 + p) / 2 ∧
+            (∀ u ∈ e.erase v₀, w u ≤ w v₀) ∧ (∀ u ∈ f.erase v₀, w v₀ ≤ w u)} := by
+        rintro w ⟨v, ⟨hve, hvf, hmax, hmin⟩, hl, hr⟩
+        have hvv : v = v₀ := by
+          have hv : v ∈ e ∩ f := Finset.mem_inter.mpr ⟨hve, hvf⟩
+          rw [hinter] at hv
+          exact Finset.mem_singleton.mp hv
+        subst hvv
+        exact ⟨hl, hr, fun u hu => hmax u (Finset.mem_of_mem_erase hu),
+          fun u hu => hmin u (Finset.mem_of_mem_erase hu)⟩
+      refine le_trans (MeasureTheory.measure_mono hsub) ?_
+      refine uniformWeights_heaviest_lightest_le hp0 hp1 ?_ (Finset.notMem_erase v₀ e)
+        (Finset.notMem_erase v₀ f) ?_ ?_
+      · rw [Finset.disjoint_left]
+        intro u hue huf
+        have hu : u ∈ e ∩ f := Finset.mem_inter.mpr
+          ⟨Finset.mem_of_mem_erase hue, Finset.mem_of_mem_erase huf⟩
+        rw [hinter, Finset.mem_singleton] at hu
+        exact (Finset.ne_of_mem_erase hue) hu
+      · rw [Finset.card_erase_of_mem hv₀e, he]
+      · rw [Finset.card_erase_of_mem hv₀f, hf]
+    · -- two or more shared vertices force a tie, which is a null event
+      have hge : 2 ≤ (e ∩ f).card := by
+        have h1 : 1 ≤ (e ∩ f).card := Finset.card_pos.mpr ⟨v₀, hv₀⟩
+        omega
+      have hsub : {w : α → ℝ | ∃ v : α, ConflictingPair w e f v ∧
+          (1 - p) / 2 ≤ w v ∧ w v ≤ (1 + p) / 2} ⊆
+          ⋃ v ∈ e ∩ f, ⋃ u ∈ (e ∩ f).erase v, {w : α → ℝ | w u = w v} := by
+        rintro w ⟨v, ⟨hve, hvf, hmax, hmin⟩, -, -⟩
+        have hvmem : v ∈ e ∩ f := Finset.mem_inter.mpr ⟨hve, hvf⟩
+        have hne : ((e ∩ f).erase v).Nonempty := by
+          rw [← Finset.card_pos, Finset.card_erase_of_mem hvmem]
+          omega
+        obtain ⟨u, hu⟩ := hne
+        refine Set.mem_biUnion hvmem (Set.mem_biUnion hu ?_)
+        have humem := Finset.mem_of_mem_erase hu
+        exact le_antisymm (hmax u (Finset.mem_inter.mp humem).1)
+          (hmin u (Finset.mem_inter.mp humem).2)
+      refine le_trans (MeasureTheory.measure_mono hsub) ?_
+      refine le_trans (MeasureTheory.measure_biUnion_finset_le _ _) ?_
+      refine le_trans
+        (Finset.sum_le_sum fun v _ => MeasureTheory.measure_biUnion_finset_le _ _) ?_
+      have hz : ∀ v ∈ e ∩ f, ∑ u ∈ (e ∩ f).erase v, uniformWeights α {w : α → ℝ | w u = w v}
+          = 0 := fun v _ =>
+        Finset.sum_eq_zero fun u hu => uniformWeights_eq_null (Finset.ne_of_mem_erase hu)
+      rw [Finset.sum_congr rfl hz, Finset.sum_const, smul_zero]
+      exact zero_le
+
 /-- **The union bound behind the Cherkashin–Kozik estimate.**  Give each vertex an independent
 uniform weight in `[0, 1]` and split `[0, 1]` into `L = [0, (1 - p) / 2)`, the middle window
 `M = [(1 - p) / 2, (1 + p) / 2]`, and `R = ((1 + p) / 2, 1]`.
@@ -894,7 +1494,88 @@ theorem exists_conflictFree_of_union_bound_lt_one {α : Type*} [Fintype α] [Dec
         + (H.card : ℝ) ^ 2 * ∫ x in (1 - p) / 2..(1 + p) / 2, x ^ (k - 1) * (1 - x) ^ (k - 1)
         < 1) :
     ∃ w : α → ℝ, ∀ e ∈ H, ∀ f ∈ H, ∀ v : α, ¬ ConflictingPair w e f v := by
-  sorry
+  have ha0 : (0 : ℝ) ≤ (1 - p) / 2 := by linarith
+  have ha1 : (1 - p) / 2 ≤ (1 : ℝ) := by linarith
+  have hab : (1 - p) / 2 ≤ (1 + p) / 2 := by linarith
+  have hb0 : (0 : ℝ) ≤ (1 + p) / 2 := by linarith
+  have hI0 : (0 : ℝ) ≤ ∫ x in (1 - p) / 2..(1 + p) / 2, x ^ (k - 1) * (1 - x) ^ (k - 1) := by
+    refine intervalIntegral.integral_nonneg hab ?_
+    intro x hx
+    exact mul_nonneg (pow_nonneg (le_trans ha0 hx.1) _) (pow_nonneg (by linarith [hx.2]) _)
+  by_contra hcon
+  -- every weighting carries a conflicting pair, so the three bad events cover everything
+  have hbad : ∀ w : α → ℝ, ∃ e ∈ H, ∃ f ∈ H, ∃ v : α, ConflictingPair w e f v := by
+    intro w
+    by_contra h
+    exact hcon ⟨w, fun e he f hf v hcp => h ⟨e, he, f, hf, v, hcp⟩⟩
+  have hcover : (Set.univ : Set (α → ℝ)) ⊆
+      ((⋃ e ∈ H, {w : α → ℝ | ∀ u ∈ e, w u < (1 - p) / 2}) ∪
+        (⋃ f ∈ H, {w : α → ℝ | ∀ u ∈ f, (1 + p) / 2 < w u})) ∪
+      (⋃ e ∈ H, ⋃ f ∈ H, {w : α → ℝ | ∃ v : α, ConflictingPair w e f v ∧
+        (1 - p) / 2 ≤ w v ∧ w v ≤ (1 + p) / 2}) := by
+    intro w _
+    obtain ⟨e, he, f, hf, v, hcp⟩ := hbad w
+    obtain ⟨hve, hvf, hmax, hmin⟩ := hcp
+    by_cases h1 : w v < (1 - p) / 2
+    · exact Or.inl (Or.inl (Set.mem_biUnion he fun u hu => lt_of_le_of_lt (hmax u hu) h1))
+    · by_cases h2 : (1 + p) / 2 < w v
+      · exact Or.inl (Or.inr (Set.mem_biUnion hf fun u hu => lt_of_lt_of_le h2 (hmin u hu)))
+      · exact Or.inr (Set.mem_biUnion he (Set.mem_biUnion hf
+          ⟨v, ⟨hve, hvf, hmax, hmin⟩, not_lt.mp h1, not_lt.mp h2⟩))
+  have h1 : uniformWeights α (⋃ e ∈ H, {w : α → ℝ | ∀ u ∈ e, w u < (1 - p) / 2})
+      ≤ ∑ _e ∈ H, ENNReal.ofReal ((1 - p) / 2) ^ k := by
+    refine le_trans (MeasureTheory.measure_biUnion_finset_le H _)
+      (Finset.sum_le_sum fun e he => ?_)
+    rw [uniformWeights_forall_lt e ha1, huniform e he]
+  have h2 : uniformWeights α (⋃ f ∈ H, {w : α → ℝ | ∀ u ∈ f, (1 + p) / 2 < w u})
+      ≤ ∑ _f ∈ H, ENNReal.ofReal ((1 - p) / 2) ^ k := by
+    refine le_trans (MeasureTheory.measure_biUnion_finset_le H _)
+      (Finset.sum_le_sum fun f hf => ?_)
+    rw [uniformWeights_forall_gt f hb0, huniform f hf,
+      show (1 : ℝ) - (1 + p) / 2 = (1 - p) / 2 by ring]
+  have h3 : uniformWeights α (⋃ e ∈ H, ⋃ f ∈ H, {w : α → ℝ | ∃ v : α, ConflictingPair w e f v ∧
+        (1 - p) / 2 ≤ w v ∧ w v ≤ (1 + p) / 2})
+      ≤ ∑ _e ∈ H, ∑ _f ∈ H,
+          ENNReal.ofReal (∫ x in (1 - p) / 2..(1 + p) / 2, x ^ (k - 1) * (1 - x) ^ (k - 1)) := by
+    refine le_trans (MeasureTheory.measure_biUnion_finset_le H _)
+      (Finset.sum_le_sum fun e he => ?_)
+    refine le_trans (MeasureTheory.measure_biUnion_finset_le H _)
+      (Finset.sum_le_sum fun f hf => ?_)
+    exact uniformWeights_conflictingPair_mid_le hp0 hp1 (huniform e he) (huniform f hf)
+  -- the total mass of the three events is at least `1`
+  have hchain : (1 : ENNReal) ≤ (H.card : ENNReal) * ENNReal.ofReal ((1 - p) / 2) ^ k
+      + (H.card : ENNReal) * ENNReal.ofReal ((1 - p) / 2) ^ k
+      + (H.card : ENNReal) ^ 2
+        * ENNReal.ofReal (∫ x in (1 - p) / 2..(1 + p) / 2, x ^ (k - 1) * (1 - x) ^ (k - 1)) := by
+    rw [show (1 : ENNReal) = uniformWeights α Set.univ from MeasureTheory.measure_univ.symm]
+    refine le_trans (MeasureTheory.measure_mono hcover) ?_
+    refine le_trans (MeasureTheory.measure_union_le _ _) ?_
+    refine le_trans (add_le_add (MeasureTheory.measure_union_le _ _) le_rfl) ?_
+    refine add_le_add (add_le_add (le_trans h1 ?_) (le_trans h2 ?_)) (le_trans h3 ?_)
+    · rw [Finset.sum_const, nsmul_eq_mul]
+    · rw [Finset.sum_const, nsmul_eq_mul]
+    · rw [Finset.sum_const, Finset.sum_const, nsmul_eq_mul, nsmul_eq_mul, ← mul_assoc, ← sq]
+  -- but the hypothesis says it is less than `1`
+  have hreal : (H.card : ℝ) * ((1 - p) / 2) ^ k + (H.card : ℝ) * ((1 - p) / 2) ^ k
+      + (H.card : ℝ) ^ 2 * ∫ x in (1 - p) / 2..(1 + p) / 2, x ^ (k - 1) * (1 - x) ^ (k - 1)
+      < 1 := by
+    have h : 2 * (H.card : ℝ) * ((1 - p) / 2) ^ k
+        = (H.card : ℝ) * ((1 - p) / 2) ^ k + (H.card : ℝ) * ((1 - p) / 2) ^ k := by ring
+    linarith
+  have hconv : ENNReal.ofReal ((H.card : ℝ) * ((1 - p) / 2) ^ k
+      + (H.card : ℝ) * ((1 - p) / 2) ^ k
+      + (H.card : ℝ) ^ 2 * ∫ x in (1 - p) / 2..(1 + p) / 2, x ^ (k - 1) * (1 - x) ^ (k - 1))
+      = (H.card : ENNReal) * ENNReal.ofReal ((1 - p) / 2) ^ k
+      + (H.card : ENNReal) * ENNReal.ofReal ((1 - p) / 2) ^ k
+      + (H.card : ENNReal) ^ 2
+        * ENNReal.ofReal (∫ x in (1 - p) / 2..(1 + p) / 2, x ^ (k - 1) * (1 - x) ^ (k - 1)) := by
+    have hpk : (0 : ℝ) ≤ ((1 - p) / 2) ^ k := pow_nonneg ha0 k
+    rw [ENNReal.ofReal_add (by positivity) (mul_nonneg (by positivity) hI0),
+      ENNReal.ofReal_add (by positivity) (by positivity),
+      ENNReal.ofReal_mul (Nat.cast_nonneg _), ENNReal.ofReal_mul (sq_nonneg ((H.card : ℝ))),
+      ENNReal.ofReal_pow ha0, ENNReal.ofReal_pow (Nat.cast_nonneg _), ENNReal.ofReal_natCast]
+  rw [← hconv] at hchain
+  exact absurd (ENNReal.ofReal_lt_one.mpr hreal) (not_lt.mpr hchain)
 
 end CherkashinKozik
 
