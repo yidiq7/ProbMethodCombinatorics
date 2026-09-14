@@ -1563,6 +1563,38 @@ theorem sum_logb_availCount {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ)
     exact_mod_cast hcnt
   rw [Finset.sum_congr rfl key, ← Finset.mul_sum, sum_logb_Icc_eq]
 
+/-- Reading off a permutation's values at every row is injective. -/
+private theorem perm_toPi_injective {n : ℕ} :
+    Function.Injective fun σ : Equiv.Perm (Fin n) =>
+      fun j : ↥(univ : Finset (Fin n)) => σ j.1 := by
+  intro σ σ' h
+  refine Equiv.ext fun x => ?_
+  exact congrFun h ⟨x, Finset.mem_univ x⟩
+
+/-- `revealedBefore τ i` is an injective relabelling of the tuple of entries in the rows that
+precede `i` in the order `τ`: padding those entries out to a function on all of `Fin n` with
+`none` outside loses nothing. -/
+private theorem exists_revealedBefore_comp {n : ℕ} (τ : Equiv.Perm (Fin n)) (i : Fin n) :
+    ∃ g : (↥((univ : Finset (Fin n)).filter fun x => ((τ x : ℕ)) < ((τ i : ℕ))) → Fin n) →
+        (Fin n → Option (Fin n)),
+      Function.Injective g ∧
+        ∀ π : Equiv.Perm (Fin n), g (fun j => π j.1) = revealedBefore τ i π := by
+  refine ⟨fun h j => if hj : ((τ j : Fin n) : ℕ) < ((τ i : Fin n) : ℕ) then
+      some (h ⟨j, Finset.mem_filter.mpr ⟨Finset.mem_univ j, hj⟩⟩) else none, ?_, ?_⟩
+  · intro h h' e
+    funext j
+    obtain ⟨x, hx⟩ := j
+    have hx' : ((τ x : Fin n) : ℕ) < ((τ i : Fin n) : ℕ) := (Finset.mem_filter.mp hx).2
+    have hval := congrFun e x
+    simp only [dif_pos hx'] at hval
+    exact Option.some_injective _ hval
+  · intro π
+    funext j
+    simp only [revealedBefore]
+    by_cases hj : ((τ j : Fin n) : ℕ) < ((τ i : Fin n) : ℕ)
+    · rw [dif_pos hj, if_pos (Fin.lt_def.mpr hj)]
+    · rw [dif_neg hj, if_neg fun hc => hj (Fin.lt_def.mp hc)]
+
 /-- **The chain rule along a reveal order.**  Reveal the values of a random permutation `π` in
 the order given by `τ` — row `j` before row `k` when `τ j < τ k`.  Then the entropy of `π` is the
 sum, over the rows `i`, of the entropy of `π i` conditioned on what was revealed before row `i`.
@@ -1573,7 +1605,34 @@ first `k` entries revealed, `H(P_{k+1}) = H(Pₖ) + H(π_{τ⁻¹ k} ∣ Pₖ)`,
 theorem entropy_eq_sum_condEntropy_revealedBefore {n : ℕ} (p : Equiv.Perm (Fin n) → ℝ)
     (hp : ∀ ω, 0 ≤ p ω) (hp1 : ∑ ω, p ω = 1) (τ : Equiv.Perm (Fin n)) :
     entropy p id = ∑ i, condEntropy p (fun π => π i) (revealedBefore τ i) := by
-  sorry
+  have hr : Function.Injective fun i : Fin n => ((τ i : Fin n) : ℕ) :=
+    fun a b h => τ.injective (Fin.val_injective h)
+  have hL : entropy p (fun (ω : Equiv.Perm (Fin n)) (j : ↥(univ : Finset (Fin n))) => ω j.1)
+      = entropy p id := entropy_comp_inj (p := p) perm_toPi_injective id
+  have key : entropy p (fun (ω : Equiv.Perm (Fin n)) (j : ↥(univ : Finset (Fin n))) => ω j.1)
+      = ∑ i ∈ (univ : Finset (Fin n)), condEntropy p (fun π : Equiv.Perm (Fin n) => π i)
+          (fun (ω : Equiv.Perm (Fin n))
+            (j : ↥((univ : Finset (Fin n)).filter fun x => ((τ x : ℕ)) < ((τ i : ℕ)))) =>
+              ω j.1) :=
+    entropy_pi_eq_sum_condEntropy (p := p) (α := fun _ : Fin n => Fin n) hp hp1
+      (fun i π => π i) hr univ
+  have hR : ∀ i : Fin n, condEntropy p (fun π : Equiv.Perm (Fin n) => π i)
+      (fun (ω : Equiv.Perm (Fin n))
+        (j : ↥((univ : Finset (Fin n)).filter fun x => ((τ x : ℕ)) < ((τ i : ℕ)))) => ω j.1)
+      = condEntropy p (fun π : Equiv.Perm (Fin n) => π i) (revealedBefore τ i) := by
+    intro i
+    obtain ⟨g, hginj, hgeq⟩ := exists_revealedBefore_comp τ i
+    have h1 : condEntropy p (fun π : Equiv.Perm (Fin n) => π i)
+        (fun ω : Equiv.Perm (Fin n) => g fun j => ω j.1)
+        = condEntropy p (fun π : Equiv.Perm (Fin n) => π i)
+          (fun (ω : Equiv.Perm (Fin n))
+            (j : ↥((univ : Finset (Fin n)).filter fun x => ((τ x : ℕ)) < ((τ i : ℕ)))) =>
+              ω j.1) := condEntropy_comp_inj hp hginj _ _
+    have h2 : (fun ω : Equiv.Perm (Fin n) => g fun j => ω j.1) = revealedBefore τ i :=
+      funext hgeq
+    rw [← h1, h2]
+  rw [← hL, key]
+  exact Finset.sum_congr rfl fun i _ => hR i
 
 /-- **The greedy bound on one conditional entropy** (the "`≤ log₂ Nᵢ`" step of Theorem 10.2.1).
 Condition a uniform matching `π` of the `0/1` matrix `A` on the entries revealed before row `i`.
