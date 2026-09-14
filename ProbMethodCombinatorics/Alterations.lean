@@ -49,6 +49,33 @@ variable {V : Type*} [Fintype V] [DecidableEq V]
 def IsDominating (G : SimpleGraph V) (U : Finset V) : Prop :=
   ∀ v : V, v ∈ U ∨ ∃ u ∈ U, G.Adj u v
 
+/-- **The averaging step of Theorem 3.1.1.**  For any `p ∈ [0, 1]` there is a dominating set of
+size at most `p n + (1 - p)^(δ+1) n`.
+
+This is the whole probabilistic content: keep each vertex independently with probability `p`,
+then repair by adding every vertex that is left undominated.  The first term is the expected
+size of the random part; the second bounds the repair, because a vertex survives undominated
+only if its closed neighbourhood — of size at least `δ + 1` — was missed entirely.  Averaging
+then produces one `U` at least as good as the mean.
+
+`δ` here is any lower bound on the degrees, not necessarily the minimum, and no `1 < δ` is
+needed: at `p = 0` the bound reads `n` and `U = univ` witnesses it. -/
+theorem exists_isDominating_card_le_of_mem_Icc (G : SimpleGraph V) [DecidableRel G.Adj]
+    {δ : ℕ} (hdeg : ∀ v : V, δ ≤ G.degree v) {p : ℝ} (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
+    ∃ U : Finset V, IsDominating G U ∧
+      (U.card : ℝ) ≤ p * Fintype.card V + (1 - p) ^ (δ + 1) * Fintype.card V := by
+  sorry
+
+/-- **The optimisation step of Theorem 3.1.1.**  At `p = log (δ+1) / (δ+1)` the bound produced by
+`exists_isDominating_card_le_of_mem_Icc` is at most `(log (δ+1) + 1) / (δ+1)`.
+
+Pure real analysis, no graphs: the only fact used is `1 - x ≤ exp (-x)`, which turns
+`(1 - p)^(δ+1)` into `exp (-log (δ+1)) = 1/(δ+1)`. -/
+theorem log_div_add_one_add_pow_le (δ : ℕ) (hδ : 1 < δ) :
+    Real.log (δ + 1) / (δ + 1) + (1 - Real.log (δ + 1) / (δ + 1)) ^ (δ + 1)
+      ≤ (Real.log (δ + 1) + 1) / (δ + 1) := by
+  sorry
+
 /-- **Zhao, Theorem 3.1.1**: a graph on `n` vertices with minimum degree `δ > 1` has a dominating
 set of size at most `((log (δ + 1) + 1) / (δ + 1)) * n`. -/
 theorem exists_isDominating_card_le (G : SimpleGraph V) [DecidableRel G.Adj]
@@ -609,6 +636,37 @@ theorem exists_bad_card_lt_and_shortCycleCover (l : ℕ) :
     · intro a w hcyc hlen
       exact ⟨a, (Set.Finite.mem_toFinset _).mpr ⟨a, w, hcyc, hlen, w.start_mem_support⟩,
         w.start_mem_support⟩
+
+/-- **The counting half of the no-large-independent-set step.**  Among the `M`-edge graphs on
+`n` vertices, at most `binom(n, x) · binom(N - binom(x,2), M)` have an independent set of size
+`x`, where `N` is the number of available pairs.
+
+A union bound over the `binom(n, x)` candidate sets `S`: for a fixed `S`, the graphs in which
+`S` is independent are exactly those whose `M` edges avoid the `binom(x, 2)` non-degenerate
+pairs inside `S`.  **No asymptotics and no analysis** — this is pure counting, and it is stated
+separately for that reason.
+
+Verified by brute force for all `n ≤ 4` and `M ≤ 4`. -/
+theorem card_filter_indepNum_le (n M x : ℕ) :
+    (((graphFamily n M).filter fun E : Finset (Sym2 (Fin n)) =>
+        x ≤ (SimpleGraph.fromEdgeSet (E : Set (Sym2 (Fin n)))).indepNum).card : ℝ)
+      ≤ (n.choose x : ℝ) * ((Fintype.card (Sym2 (Fin n)) - x.choose 2).choose M : ℝ) := by
+  sorry
+
+/-- **The asymptotic half of the no-large-independent-set step.**  With `M = girthEdgeCount n`
+edges the counting bound of `card_filter_indepNum_le` is eventually below half of
+`binom(N, M)`, for `x = ⌈ε n⌉`.
+
+**No graphs** — this is an estimate on binomial coefficients.  The ratio
+`binom(N - K, M) / binom(N, M)` is at most `(1 - K/N)^M`; with `N ∼ n²/2`, `K = binom(⌈εn⌉, 2) ∼
+ε²n²/2` and `M ∼ n (log n)²` that is `exp(-Ω_ε(n (log n)²))`, which beats `binom(n, ⌈εn⌉) ≤ 2^n`
+with room to spare.  Large `ε` is not a special case: once `⌈ε n⌉ > n` the left side is `0`. -/
+theorem two_mul_choose_mul_choose_lt_choose {ε : ℝ} (hε : 0 < ε) :
+    ∃ n₀ : ℕ, ∀ n ≥ n₀,
+      2 * (n.choose ⌈ε * n⌉₊ : ℝ)
+          * ((Fintype.card (Sym2 (Fin n)) - (⌈ε * n⌉₊).choose 2).choose (girthEdgeCount n) : ℝ)
+        < ((Fintype.card (Sym2 (Fin n))).choose (girthEdgeCount n) : ℝ) := by
+  sorry
 
 /-- **No large independent set** (third step of Zhao, Theorem 3.4.1).  For every `ε > 0` and all
 large `n`, fewer than half the graphs of `G(n, M)` with `M = girthEdgeCount n` have an independent

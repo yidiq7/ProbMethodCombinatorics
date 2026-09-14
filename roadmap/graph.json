@@ -286,7 +286,10 @@
       "uses": [
         "is_dominating"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "dominating_averaging",
+        "dominating_optimisation"
+      ]
     },
     "twice_area": {
       "kind": "definition",
@@ -406,7 +409,10 @@
         "graph_family",
         "girth_edge_count"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "indep_counting",
+        "indep_estimate"
+      ]
     },
     "girth_union_bound": {
       "kind": "theorem",
@@ -505,7 +511,7 @@
       "decl": "ProbMethodCombinatorics.exists_conflictFree_of_union_bound_lt_one",
       "doc": "alterations.md#property_b_sharp--exists_twocolorable_of_card_le",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "conflicting_pair"
       ],
@@ -1092,7 +1098,7 @@
       "decl": "ProbMethodCombinatorics.le_binomialRandom_cliqueFree_three",
       "doc": "correlation.md#triangle_free_lower--le_binomialrandom_cliquefree_three",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": [
         "harris_lower_family"
@@ -1160,13 +1166,14 @@
       "decl": "ProbMethodCombinatorics.janson_prob_none_le",
       "doc": "janson.md#janson_one--janson_prob_none_le",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "janson_mu",
         "janson_delta"
       ],
       "proof_uses": [
-        "harris_lower_family"
+        "harris_lower_family",
+        "janson_step"
       ]
     },
     "janson_two": {
@@ -1258,7 +1265,7 @@
       "decl": "ProbMethodCombinatorics.measure_sub_integral_ge_le",
       "doc": "concentration.md#bounded_differences--measure_sub_integral_ge_le",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": []
     },
@@ -1382,7 +1389,7 @@
       "decl": "ProbMethodCombinatorics.entropy_nonneg",
       "doc": "entropy.md#101-basic-properties",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "entropy_def"
       ],
@@ -1408,7 +1415,7 @@
       "decl": "ProbMethodCombinatorics.condEntropy_eq_sub",
       "doc": "entropy.md#101-basic-properties",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "entropy_def",
         "entropy_condEntropy"
@@ -1422,7 +1429,7 @@
       "decl": "ProbMethodCombinatorics.entropy_pair_le_add",
       "doc": "entropy.md#101-basic-properties",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "entropy_def"
       ],
@@ -1435,7 +1442,7 @@
       "decl": "ProbMethodCombinatorics.condEntropy_le_entropy",
       "doc": "entropy.md#101-basic-properties",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "entropy_def",
         "entropy_condEntropy"
@@ -1452,7 +1459,7 @@
       "decl": "ProbMethodCombinatorics.entropy_pi_le_sum",
       "doc": "entropy.md#101-basic-properties",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "entropy_def"
       ],
@@ -1468,7 +1475,7 @@
       "decl": "ProbMethodCombinatorics.shearer",
       "doc": "entropy.md#104-shearers-lemma",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "entropy_def"
       ],
@@ -1501,7 +1508,7 @@
       "decl": "ProbMethodCombinatorics.card_sq_le_prod_card_image",
       "doc": "entropy.md#applications",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": [
         "shearer_triple",
@@ -1516,13 +1523,14 @@
       "decl": "ProbMethodCombinatorics.card_lt_of_triangleIntersecting",
       "doc": "entropy.md#applications",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "entropy_triangleEdges"
       ],
       "proof_uses": [
+        "entropy_uniform_bound",
         "shearer",
-        "entropy_uniform_bound"
+        "shearer_family"
       ]
     },
     "bregman_minc": {
@@ -1532,9 +1540,11 @@
       "decl": "ProbMethodCombinatorics.permanent_le_prod_factorial",
       "doc": "entropy.md#applications",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": [
+        "bregman_chain_rule",
+        "bregman_greedy_bound",
         "entropy_chain_rule",
         "entropy_uniform_bound"
       ]
@@ -1546,7 +1556,7 @@
       "decl": "ProbMethodCombinatorics.sum_choose_le_exp_binEntropy",
       "doc": "entropy.md#applications",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": []
     },
@@ -1679,10 +1689,130 @@
       "decl": "ProbMethodCombinatorics.le_card_triangleFreeGraphs",
       "doc": "containers.md#111-containers-for-triangle-free-graphs",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "containers_triangleFreeGraphs"
       ],
+      "proof_uses": []
+    },
+    "shearer_family": {
+      "kind": "theorem",
+      "parent": "entropy",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.card_pow_le_prod_card_image_inter",
+      "doc": "entropy.md#104-shearers-lemma",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": [
+        "shearer",
+        "entropy_uniform_bound"
+      ]
+    },
+    "bregman_chain_rule": {
+      "kind": "theorem",
+      "parent": "entropy",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.entropy_eq_sum_condEntropy_revealedBefore",
+      "doc": "entropy.md#applications",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": [
+        "entropy_chain_rule"
+      ]
+    },
+    "bregman_greedy_bound": {
+      "kind": "theorem",
+      "parent": "entropy",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.condEntropy_le_expected_logb_availCount",
+      "doc": "entropy.md#applications",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": [
+        "entropy_uniform_bound"
+      ]
+    },
+    "harris_setbernoulli": {
+      "kind": "theorem",
+      "parent": "correlation",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.setBernoulli_inter_le_mul",
+      "doc": "correlation.md#the-setbernoulli-forms-for-chapter-8",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
+    },
+    "setbernoulli_block_indep": {
+      "kind": "theorem",
+      "parent": "correlation",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.setBernoulli_inter_eq_mul_of_disjoint",
+      "doc": "correlation.md#the-setbernoulli-forms-for-chapter-8",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
+    },
+    "janson_step": {
+      "kind": "theorem",
+      "parent": "janson",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.janson_prob_none_step_le",
+      "doc": "janson.md#janson_one--janson_prob_none_le",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": [
+        "harris_setbernoulli",
+        "setbernoulli_block_indep"
+      ]
+    },
+    "dominating_averaging": {
+      "kind": "theorem",
+      "parent": "alterations",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.exists_isDominating_card_le_of_mem_Icc",
+      "doc": "alterations.md#decompositions",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
+    },
+    "dominating_optimisation": {
+      "kind": "theorem",
+      "parent": "alterations",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.log_div_add_one_add_pow_le",
+      "doc": "alterations.md#decompositions",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
+    },
+    "indep_counting": {
+      "kind": "theorem",
+      "parent": "alterations",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.card_filter_indepNum_le",
+      "doc": "alterations.md#decompositions",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
+    },
+    "indep_estimate": {
+      "kind": "theorem",
+      "parent": "alterations",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.two_mul_choose_mul_choose_lt_choose",
+      "doc": "alterations.md#decompositions",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
       "proof_uses": []
     }
   }

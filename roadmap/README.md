@@ -311,3 +311,62 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   claim. Seen on #86 immediately after the batch re-pin to `a8b6e79`. **After re-pinning, list
   the issues carrying both labels and strip `choir/available` from them** — `sync-leases` does
   not fix this, because the lease comment is still valid and it sees nothing wrong.
+- **2026-09-13 — fifteen PRs merged in one batch; 11 unconditional, 4 reductions.**  Chapter 10
+  went from stated to almost entirely proved in a single round: `entropy_nonneg`,
+  `condEntropy_eq_sub`, `entropy_pair_le_add`, `condEntropy_le_entropy`, `entropy_pi_le_sum`,
+  **`shearer`**, `sum_choose_le_exp_binEntropy`, plus `le_card_triangleFreeGraphs`,
+  `measure_sub_integral_ge_le`, `le_binomialRandom_cliqueFree_three` and
+  `exists_conflictFree_of_union_bound_lt_one`.  `card_sq_le_prod_card_image`,
+  `card_lt_of_triangleIntersecting`, `permanent_le_prod_factorial` and `janson_prob_none_le`
+  landed as declared reductions.  `inventory scan`: **17 sorries, zero custom axioms.**
+  Ten of the fifteen touched `Entropy.lean`.  Before merging any of them I checked that every
+  diff was a single hunk deleting one `sorry` — no statement edits, no reverts — and that no two
+  PRs added a declaration of the same name, which the gate cannot see because each PR is checked
+  against its own base and not against its siblings.  **That cross-PR name check is the thing to
+  repeat on any future parallel batch**; `axiom-honesty` and `statement-immutability` are
+  per-PR by construction.
+- **2026-09-13 — the Janson statements were false without `[Countable ι]`.**  Found and reported
+  by the contributor proving `janson_prob_none_le`, who filed it on the issue rather than
+  working around it — the intended path, and the second author-side statement defect this week.
+  The measurable space on `Set ι` is the product σ-algebra, so `{R | S i ⊆ R}` is non-measurable
+  for uncountable `S i` and `setBernoulli` silently returns an outer measure; at `p = 1` that
+  makes the bound false outright.  Reproduced before acting.  **The generalisable tell: Mathlib
+  gated everything substantive in `SetBernoulli.lean` behind `section Countable`, and the
+  statement was built on the ungated part.  When upstream fences part of an API, a statement
+  resting on the unfenced remainder deserves a second look.**
+  The same report asked for two `setBernoulli` facts as shared interface.  Both are now stated
+  in `Correlation.lean` (#119, #120), deliberately **without** `MeasurableSpace ι` /
+  `MeasurableSingletonClass ι` binders — `setBernoulli` needs neither, and requiring them would
+  have made the lemmas unusable from `Janson.lean`.  My first draft had them; it type-checked in
+  isolation and would have been useless.  **Check a new interface lemma by applying it from its
+  intended call site, not by checking that it elaborates.**
+- **2026-09-14 — `illegal-axiom` on #122, and the rule that was misread.**  A target can be
+  *fully proved*, add no placeholder of its own, and still fail `comparator`: Janson II is proved
+  from Janson I, which is itself proved modulo `janson_prob_none_step_le`, so `sorryAx` is in the
+  closure either way.  The contributor removed their `choir-reduction` block on the theory that
+  "a placeholder on a declaration the base already had is disallowed" — which is not the rule.
+  `children` may name **any declaration already in the project that carries a placeholder**, and
+  `sorry-delta` Rule B only examines counts that *rose*, so citing a pre-existing obligation is
+  free.  `comparator` permits `sorryAx` exactly when a reduction is declared.  Their earlier red
+  run was almost certainly the stale pin they diagnose elsewhere in the same PR.
+  **Read `gate/verify/` when two checks appear to contradict each other** — the rules are in the
+  module docstrings, and deducing a general rule from one red run is how the fix gets deleted.
+  Recorded in `skills/conventions.md`.
+- **2026-09-14 — the published route for Janson II was wrong; the statement was not.**  It
+  prescribed `𝔼 Δ_T = q²Δ` under independent `q`-sampling, but `D` may contain diagonal pairs,
+  which survive with probability `q`.  The averaging breaks exactly in the `Λ ≫ μ` regime the
+  theorem covers.  Restricting to the off-diagonal `E` fixes it and removes the need for a case
+  split entirely.  Corrected argument in `janson.md`.  **Task prose is not checked by anything** —
+  statements get `statement-equiv` and numerical sanity checks, routes get nothing, and this is
+  the second time a prescribed route has been wrong where the statement was fine.
+- **2026-09-14 — `janson_prob_none_step_le` had a graph node but no task** since #103 merged,
+  published now as #123.  When accepting a reduction, the playbook's "publish a `prove` task per
+  node" is a separate step from adding the node and is easy to drop when several land at once.
+- **2026-09-14 — #15 and #60 decomposed after five abandoned claims between them.**  Both
+  statements check out, so this was a shape problem, not a soundness one: each bundled a
+  probabilistic/counting argument together with a piece of pure analysis.  Split along that
+  seam into #124/#125 and #126/#127, with the analytic child in each pair mentioning no graphs
+  at all and the counting child carrying no asymptotics.  `card_filter_indepNum_le` was
+  brute-forced over all `n ≤ 4`, `M ≤ 4` before publishing.  **Diagnostic order that works:
+  check the statement first — three author-side statements have been false — and only once it
+  survives, read repeated abandonment as a request to decompose.**
