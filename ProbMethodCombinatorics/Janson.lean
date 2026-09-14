@@ -145,7 +145,6 @@ private theorem prob_none_le_subfamily [DecidableEq κ] (p : I) (S : κ → Set 
   refine le_trans ?_ h2
   exact ENNReal.toReal_mono (measure_ne_top _ _) (measure_mono (fun R hR i => hR i.1))
 
-
 /-- **Janson's inequality II** (Zhao, Theorem 8.1.8): in the regime `Δ ≥ μ`, where the first
 inequality says nothing, the probability of containing none of the `S i` is at most
 `exp (-μ² / (2Δ))`.
@@ -156,7 +155,130 @@ theorem janson_prob_none_le_of_mu_le (p : I) (S : κ → Set ι) (D : Finset (κ
     (hΔ : jansonMu p S ≤ jansonDelta p S D) (hΔ0 : 0 < jansonDelta p S D) :
     (setBernoulli Set.univ p {R : Set ι | ∀ i, ¬ S i ⊆ R}).toReal
       ≤ Real.exp (-(jansonMu p S) ^ 2 / (2 * jansonDelta p S D)) := by
-  sorry
+  let _ : DecidableEq κ := (Fintype.equivFin κ).decidableEq
+  -- `q`, the sampling probability, and the off-diagonal part `E` of the dependency set.
+  obtain ⟨q, hq⟩ : ∃ q : ℝ, q = jansonMu p S / jansonDelta p S D := ⟨_, rfl⟩
+  obtain ⟨Lam, hLam⟩ : ∃ x : ℝ, x = ∑ z ∈ D.filter (fun z : κ × κ => z.1 ≠ z.2),
+      (setBernoulli Set.univ p {R : Set ι | S z.1 ∪ S z.2 ⊆ R}).toReal := ⟨_, rfl⟩
+  have hμ0 : 0 ≤ jansonMu p S := Finset.sum_nonneg fun _ _ => ENNReal.toReal_nonneg
+  have hq0 : 0 ≤ q := hq ▸ div_nonneg hμ0 hΔ0.le
+  have hq1 : q ≤ 1 := hq ▸ (div_le_one hΔ0).2 hΔ
+  have hE : ∀ i j, i ≠ j → (i, j) ∉ D.filter (fun z : κ × κ => z.1 ≠ z.2) →
+      Disjoint (S i) (S j) := fun i j hij hnot =>
+    hD i j hij fun hmem => hnot (Finset.mem_filter.2 ⟨hmem, hij⟩)
+  have hLamΔ : Lam ≤ jansonDelta p S D := hLam ▸
+    Finset.sum_le_sum_of_subset_of_nonneg (Finset.filter_subset _ _)
+      (fun _ _ _ => ENNReal.toReal_nonneg)
+  -- The binomial weights, and the exponent attached to the sub-family indexed by `T`.
+  obtain ⟨W, hW⟩ : ∃ W : Finset κ → ℝ,
+      ∀ T : Finset κ, W T = q ^ T.card * (1 - q) ^ ((Finset.univ : Finset κ) \ T).card :=
+    ⟨_, fun _ => rfl⟩
+  obtain ⟨F, hF⟩ : ∃ F : Finset κ → ℝ, ∀ T : Finset κ, F T =
+      -(∑ i ∈ T, (setBernoulli Set.univ p {R : Set ι | S i ⊆ R}).toReal)
+        + (∑ z ∈ (D.filter (fun z : κ × κ => z.1 ≠ z.2)).filter
+              (fun z : κ × κ => z.1 ∈ T ∧ z.2 ∈ T),
+            (setBernoulli Set.univ p {R : Set ι | S z.1 ∪ S z.2 ⊆ R}).toReal) / 2 :=
+    ⟨_, fun _ => rfl⟩
+  have hWnn : ∀ T : Finset κ, 0 ≤ W T := fun T => by
+    rw [hW]; exact mul_nonneg (pow_nonneg hq0 _) (pow_nonneg (by linarith) _)
+  have hWsum : ∑ T ∈ (Finset.univ : Finset κ).powerset, W T = 1 := by
+    have h := sum_powerset_weight_eq q (Finset.univ : Finset κ) ∅ (Finset.empty_subset _)
+    simp only [Finset.empty_subset, if_true, Finset.card_empty, pow_zero] at h
+    simpa only [hW] using h
+  have hWmu : ∑ T ∈ (Finset.univ : Finset κ).powerset,
+      W T * (∑ i ∈ T, (setBernoulli Set.univ p {R : Set ι | S i ⊆ R}).toReal)
+      = q * jansonMu p S := by
+    have h := sum_powerset_weight_mul (α := κ) q (Finset.univ : Finset κ)
+      (fun i : κ => ({i} : Finset κ))
+      (fun i : κ => (setBernoulli Set.univ p {R : Set ι | S i ⊆ R}).toReal)
+    have hfil : ∀ T : Finset κ,
+        (Finset.univ : Finset κ).filter (fun i : κ => ({i} : Finset κ) ⊆ T) = T := by
+      intro T; ext i; simp [Finset.singleton_subset_iff]
+    simp only [hfil] at h
+    rw [show (∑ T ∈ (Finset.univ : Finset κ).powerset,
+        W T * (∑ i ∈ T, (setBernoulli Set.univ p {R : Set ι | S i ⊆ R}).toReal)) =
+        ∑ T ∈ (Finset.univ : Finset κ).powerset,
+          (q ^ T.card * (1 - q) ^ ((Finset.univ : Finset κ) \ T).card) *
+            (∑ i ∈ T, (setBernoulli Set.univ p {R : Set ι | S i ⊆ R}).toReal) from
+      Finset.sum_congr rfl fun T _ => by rw [hW]]
+    rw [h, jansonMu, Finset.mul_sum]
+    exact Finset.sum_congr rfl fun i _ => by
+      rw [Finset.card_singleton, pow_one, mul_comm]
+  have hWdel : ∑ T ∈ (Finset.univ : Finset κ).powerset,
+      W T * (∑ z ∈ (D.filter (fun z : κ × κ => z.1 ≠ z.2)).filter
+              (fun z : κ × κ => z.1 ∈ T ∧ z.2 ∈ T),
+            (setBernoulli Set.univ p {R : Set ι | S z.1 ∪ S z.2 ⊆ R}).toReal)
+      = q ^ 2 * Lam := by
+    have h := sum_powerset_weight_mul (α := κ) q (D.filter (fun z : κ × κ => z.1 ≠ z.2))
+      (fun z : κ × κ => ({z.1, z.2} : Finset κ))
+      (fun z : κ × κ => (setBernoulli Set.univ p {R : Set ι | S z.1 ∪ S z.2 ⊆ R}).toReal)
+    have hfil : ∀ T : Finset κ,
+        (D.filter (fun z : κ × κ => z.1 ≠ z.2)).filter
+            (fun z : κ × κ => ({z.1, z.2} : Finset κ) ⊆ T)
+          = (D.filter (fun z : κ × κ => z.1 ≠ z.2)).filter
+            (fun z : κ × κ => z.1 ∈ T ∧ z.2 ∈ T) :=
+      fun T => Finset.filter_congr fun z _ => by simp [Finset.insert_subset_iff]
+    simp only [hfil] at h
+    rw [show (∑ T ∈ (Finset.univ : Finset κ).powerset,
+        W T * (∑ z ∈ (D.filter (fun z : κ × κ => z.1 ≠ z.2)).filter
+              (fun z : κ × κ => z.1 ∈ T ∧ z.2 ∈ T),
+            (setBernoulli Set.univ p {R : Set ι | S z.1 ∪ S z.2 ⊆ R}).toReal)) =
+        ∑ T ∈ (Finset.univ : Finset κ).powerset,
+          (q ^ T.card * (1 - q) ^ ((Finset.univ : Finset κ) \ T).card) *
+            (∑ z ∈ (D.filter (fun z : κ × κ => z.1 ≠ z.2)).filter
+              (fun z : κ × κ => z.1 ∈ T ∧ z.2 ∈ T),
+            (setBernoulli Set.univ p {R : Set ι | S z.1 ∪ S z.2 ⊆ R}).toReal) from
+      Finset.sum_congr rfl fun T _ => by rw [hW]]
+    rw [h, hLam, Finset.mul_sum]
+    exact Finset.sum_congr rfl fun z hz => by
+      rw [Finset.card_pair (Finset.mem_filter.1 hz).2, mul_comm]
+  -- The weighted average of the sub-family exponents.
+  have hFsum : ∑ T ∈ (Finset.univ : Finset κ).powerset, W T * F T
+      = -(q * jansonMu p S) + q ^ 2 * Lam / 2 := by
+    rw [Finset.sum_congr rfl (g := fun T =>
+      -(W T * (∑ i ∈ T, (setBernoulli Set.univ p {R : Set ι | S i ⊆ R}).toReal))
+        + W T * (∑ z ∈ (D.filter (fun z : κ × κ => z.1 ≠ z.2)).filter
+              (fun z : κ × κ => z.1 ∈ T ∧ z.2 ∈ T),
+            (setBernoulli Set.univ p {R : Set ι | S z.1 ∪ S z.2 ⊆ R}).toReal) / 2)
+      (fun T _ => by rw [hF]; ring)]
+    rw [Finset.sum_add_distrib, ← Finset.sum_div, Finset.sum_neg_distrib, hWmu, hWdel]
+  -- Some `T` does at least as well as the average.
+  obtain ⟨T, hTmem, hT⟩ : ∃ T ∈ (Finset.univ : Finset κ).powerset,
+      F T ≤ -(q * jansonMu p S) + q ^ 2 * Lam / 2 := by
+    by_contra hcon
+    have hlt : ∀ T ∈ (Finset.univ : Finset κ).powerset,
+        -(q * jansonMu p S) + q ^ 2 * Lam / 2 < F T := by
+      intro T hT
+      by_contra h2
+      exact hcon ⟨T, hT, not_lt.1 h2⟩
+    obtain ⟨T₀, hT₀mem, hT₀ne⟩ : ∃ T ∈ (Finset.univ : Finset κ).powerset, W T ≠ 0 :=
+      Finset.exists_ne_zero_of_sum_ne_zero (by rw [hWsum]; exact one_ne_zero)
+    have hlt2 : ∑ T ∈ (Finset.univ : Finset κ).powerset,
+        W T * (-(q * jansonMu p S) + q ^ 2 * Lam / 2)
+        < ∑ T ∈ (Finset.univ : Finset κ).powerset, W T * F T :=
+      Finset.sum_lt_sum (fun T hT => mul_le_mul_of_nonneg_left (hlt T hT).le (hWnn T))
+        ⟨T₀, hT₀mem, mul_lt_mul_of_pos_left (hlt T₀ hT₀mem)
+          (lt_of_le_of_ne (hWnn T₀) (Ne.symm hT₀ne))⟩
+    rw [← Finset.sum_mul, hWsum, one_mul, hFsum] at hlt2
+    exact lt_irrefl _ hlt2
+  -- Janson I for that sub-family, then the choice `q = μ / Δ`.
+  have hmain := prob_none_le_subfamily p S (D.filter (fun z : κ × κ => z.1 ≠ z.2)) hE T
+  rw [← hF T] at hmain
+  refine le_trans hmain (Real.exp_le_exp.2 (le_trans hT ?_))
+  rw [hq]
+  have hΔne : jansonDelta p S D ≠ 0 := ne_of_gt hΔ0
+  have h1 : jansonMu p S / jansonDelta p S D * jansonMu p S
+      = 2 * (jansonMu p S ^ 2 / (2 * jansonDelta p S D)) := by
+    field_simp
+  have h2 : (jansonMu p S / jansonDelta p S D) ^ 2 * jansonDelta p S D / 2
+      = jansonMu p S ^ 2 / (2 * jansonDelta p S D) := by
+    field_simp
+  have h3 : (jansonMu p S / jansonDelta p S D) ^ 2 * Lam / 2
+      ≤ (jansonMu p S / jansonDelta p S D) ^ 2 * jansonDelta p S D / 2 := by
+    gcongr
+  have h4 : -(jansonMu p S) ^ 2 / (2 * jansonDelta p S D)
+      = -(jansonMu p S ^ 2 / (2 * jansonDelta p S D)) := by ring
+  linarith
 
 /-- **Janson's inequality III** (Zhao, Theorem 8.2.2): the lower tail of the count.  For
 `0 ≤ t ≤ μ`,
