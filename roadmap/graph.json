@@ -286,7 +286,10 @@
       "uses": [
         "is_dominating"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "dominating_averaging",
+        "dominating_optimisation"
+      ]
     },
     "twice_area": {
       "kind": "definition",
@@ -406,7 +409,10 @@
         "graph_family",
         "girth_edge_count"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "indep_counting",
+        "indep_estimate"
+      ]
     },
     "girth_union_bound": {
       "kind": "theorem",
@@ -1764,6 +1770,50 @@
         "harris_setbernoulli",
         "setbernoulli_block_indep"
       ]
+    },
+    "dominating_averaging": {
+      "kind": "theorem",
+      "parent": "alterations",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.exists_isDominating_card_le_of_mem_Icc",
+      "doc": "alterations.md#decompositions",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
+    },
+    "dominating_optimisation": {
+      "kind": "theorem",
+      "parent": "alterations",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.log_div_add_one_add_pow_le",
+      "doc": "alterations.md#decompositions",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
+    },
+    "indep_counting": {
+      "kind": "theorem",
+      "parent": "alterations",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.card_filter_indepNum_le",
+      "doc": "alterations.md#decompositions",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
+    },
+    "indep_estimate": {
+      "kind": "theorem",
+      "parent": "alterations",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.two_mul_choose_mul_choose_lt_choose",
+      "doc": "alterations.md#decompositions",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
     }
   }
 }

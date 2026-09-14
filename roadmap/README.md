@@ -362,3 +362,11 @@ edge-count bound the book proves, so the edge-count bound stays a task.
 - **2026-09-14 — `janson_prob_none_step_le` had a graph node but no task** since #103 merged,
   published now as #123.  When accepting a reduction, the playbook's "publish a `prove` task per
   node" is a separate step from adding the node and is easy to drop when several land at once.
+- **2026-09-14 — #15 and #60 decomposed after five abandoned claims between them.**  Both
+  statements check out, so this was a shape problem, not a soundness one: each bundled a
+  probabilistic/counting argument together with a piece of pure analysis.  Split along that
+  seam into #124/#125 and #126/#127, with the analytic child in each pair mentioning no graphs
+  at all and the counting child carrying no asymptotics.  `card_filter_indepNum_le` was
+  brute-forced over all `n ≤ 4`, `M ≤ 4` before publishing.  **Diagnostic order that works:
+  check the statement first — three author-side statements have been false — and only once it
+  survives, read repeated abandonment as a request to decompose.**
