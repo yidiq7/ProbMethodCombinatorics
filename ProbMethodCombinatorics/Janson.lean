@@ -1,3 +1,4 @@
+import ProbMethodCombinatorics.Correlation
 import Mathlib.Probability.Distributions.SetBernoulli
 import Mathlib.Analysis.SpecialFunctions.Exp
 
@@ -79,7 +80,111 @@ theorem janson_prob_none_step_le [Countable ι] (p : I) (S : κ → Set ι) (i :
       ≤ (1 - (setBernoulli Set.univ p {R : Set ι | S i ⊆ R}).toReal
             + ∑ j ∈ T₁, (setBernoulli Set.univ p {R : Set ι | S i ∪ S j ⊆ R}).toReal)
         * (setBernoulli Set.univ p {R : Set ι | ∀ j ∈ T, ¬ S j ⊆ R}).toReal := by
-  sorry
+  classical
+  simp only [← measureReal_def]
+  set μ : Measure (Set ι) := setBernoulli Set.univ p with hμdef
+  have hμprob : IsProbabilityMeasure μ := by rw [hμdef]; infer_instance
+  have hmeasSub : ∀ s : Set ι, MeasurableSet {R : Set ι | s ⊆ R} := fun s =>
+    measurableSet_setOfPred.2 (Measurable.subset measurable_const measurable_id)
+  -- `U` indexes the sets disjoint from `S i`, and `v` is the block of coordinates they occupy.
+  set U : Set κ := {j | j ∈ T ∧ j ∉ T₁}
+  set v : Set ι := ⋃ j ∈ U, S j
+  set Ai : Set (Set ι) := {R : Set ι | S i ⊆ R} with hAidef
+  set B : Set (Set ι) := {R : Set ι | ∀ j ∈ T, ¬ S j ⊆ R} with hBdef
+  set B₀ : Set (Set ι) := {R : Set ι | ∀ j ∈ U, ¬ S j ⊆ R} with hB₀def
+  -- `B₀` is a measurable decreasing event containing `B`.
+  have hB₀m : MeasurableSet B₀ := by
+    have h : B₀ = ⋂ j ∈ U, {R : Set ι | S j ⊆ R}ᶜ := by rw [hB₀def]; ext R; simp
+    rw [h]
+    exact MeasurableSet.biInter (Set.to_countable U) fun j _ => (hmeasSub (S j)).compl
+  have hB₀low : IsLowerSet B₀ := by
+    rw [hB₀def]
+    intro R R' hle hR j hj hsj
+    exact hR j hj (hsj.trans hle)
+  have hBsub : B ⊆ B₀ := by
+    rw [hBdef, hB₀def]
+    exact fun R hR j hj => hR j hj.1
+  -- Whether `s ⊆ R` holds depends on `R` only through `R ∩ w`, as soon as `s ⊆ w`.
+  have hdep : ∀ w s : Set ι, s ⊆ w → ∀ R R' : Set ι, R ∩ w = R' ∩ w → (s ⊆ R ↔ s ⊆ R') := by
+    intro w s hsw
+    have key : ∀ X Y : Set ι, X ∩ w = Y ∩ w → s ⊆ X → s ⊆ Y := fun X Y h hX x hx =>
+      ((Set.ext_iff.1 h x).1 ⟨hX hx, hsw hx⟩).1
+    exact fun R R' h => ⟨key R R' h, key R' R h.symm⟩
+  have hSv : ∀ j ∈ U, S j ⊆ v := fun j hj x hx => Set.mem_biUnion hj hx
+  have hdisj : Disjoint (S i) v := by
+    refine Set.disjoint_left.2 fun x hxi hxv => ?_
+    obtain ⟨j, hj, hxj⟩ := Set.mem_iUnion₂.1 hxv
+    exact Set.disjoint_left.1 (hindep j hj.1 hj.2) hxi hxj
+  -- `A i` lives on the block `S i` and `B₀` on the disjoint block `v`, so the two are independent.
+  have hind : μ.real (Ai ∩ B₀) = μ.real Ai * μ.real B₀ := by
+    have hA : ∀ R R' : Set ι, R ∩ S i = R' ∩ S i → (R ∈ Ai ↔ R' ∈ Ai) := fun R R' h =>
+      hdep (S i) (S i) Set.Subset.rfl R R' h
+    have hB : ∀ R R' : Set ι, R ∩ v = R' ∩ v → (R ∈ B₀ ↔ R' ∈ B₀) := by
+      intro R R' h
+      rw [hB₀def]
+      exact ⟨fun hR j hj hsj => hR j hj ((hdep v (S j) (hSv j hj) R R' h).2 hsj),
+        fun hR j hj hsj => hR j hj ((hdep v (S j) (hSv j hj) R R' h).1 hsj)⟩
+    rw [measureReal_def, measureReal_def, measureReal_def,
+      setBernoulli_inter_eq_mul_of_disjoint p (S i) v hdisj Ai B₀ hA hB (hAidef ▸ hmeasSub (S i))
+        hB₀m, ENNReal.toReal_mul]
+  -- Harris, for the increasing event `A i ∩ A j` against the decreasing event `B₀`.
+  have harris : ∀ j : κ, μ.real ({R : Set ι | S i ∪ S j ⊆ R} ∩ B₀)
+      ≤ μ.real {R : Set ι | S i ∪ S j ⊆ R} * μ.real B₀ := by
+    intro j
+    have h := setBernoulli_inter_le_mul p {R : Set ι | S i ∪ S j ⊆ R} B₀
+      (isUpperSet_setOf_subset _) hB₀low (hmeasSub _) hB₀m
+    rw [measureReal_def, measureReal_def, measureReal_def, ← ENNReal.toReal_mul]
+    exact ENNReal.toReal_mono (by finiteness) h
+  -- Dropping from `B₀` to `B` costs at most one of the events `A j` with `j ∈ T₁`.
+  have hcover : Ai ∩ B₀ ⊆ (Ai ∩ B) ∪ ⋃ j ∈ T₁, ({R : Set ι | S i ∪ S j ⊆ R} ∩ B₀) := by
+    rintro R ⟨hRi, hRB₀⟩
+    by_cases hB₁ : ∀ j ∈ T₁, ¬ S j ⊆ R
+    · refine Or.inl ⟨hRi, ?_⟩
+      rw [hBdef]
+      intro j hjT
+      by_cases hj1 : j ∈ T₁
+      · exact hB₁ j hj1
+      · exact hRB₀ j ⟨hjT, hj1⟩
+    · refine Or.inr ?_
+      obtain ⟨j, hj, hsj⟩ : ∃ j ∈ T₁, S j ⊆ R := by
+        by_contra hcon
+        exact hB₁ fun j hj hsj => hcon ⟨j, hj, hsj⟩
+      exact Set.mem_biUnion hj ⟨Set.union_subset hRi hsj, hRB₀⟩
+  have hmain : μ.real Ai * μ.real B₀
+      ≤ μ.real (Ai ∩ B)
+        + (∑ j ∈ T₁, μ.real {R : Set ι | S i ∪ S j ⊆ R}) * μ.real B₀ := by
+    rw [Finset.sum_mul, ← hind]
+    calc μ.real (Ai ∩ B₀)
+        ≤ μ.real ((Ai ∩ B) ∪ ⋃ j ∈ T₁, ({R : Set ι | S i ∪ S j ⊆ R} ∩ B₀)) :=
+          measureReal_mono hcover
+      _ ≤ μ.real (Ai ∩ B) + μ.real (⋃ j ∈ T₁, ({R : Set ι | S i ∪ S j ⊆ R} ∩ B₀)) :=
+          measureReal_union_le _ _
+      _ ≤ μ.real (Ai ∩ B) + ∑ j ∈ T₁, μ.real ({R : Set ι | S i ∪ S j ⊆ R} ∩ B₀) := by
+          gcongr
+          exact measureReal_biUnion_finset_le _ _
+      _ ≤ μ.real (Ai ∩ B) + ∑ j ∈ T₁, μ.real {R : Set ι | S i ∪ S j ⊆ R} * μ.real B₀ := by
+          gcongr with j hj
+          exact harris j
+  have hLHS : {R : Set ι | ¬ S i ⊆ R ∧ ∀ j ∈ T, ¬ S j ⊆ R} = B \ Ai := by
+    rw [hBdef, hAidef]
+    ext R
+    simp only [Set.mem_ofPred_eq, Set.mem_sdiff, and_comm]
+  have hAim : MeasurableSet Ai := hAidef ▸ hmeasSub (S i)
+  have hdecomp : μ.real (B ∩ Ai) + μ.real (B \ Ai) = μ.real B :=
+    measureReal_inter_add_sdiff hAim
+  have hq : μ.real B ≤ μ.real B₀ := measureReal_mono hBsub
+  -- The bracket may be negative, in which case `B ⊆ B₀` is the wrong way round and unnecessary.
+  have hkey : (μ.real Ai - ∑ j ∈ T₁, μ.real {R : Set ι | S i ∪ S j ⊆ R}) * μ.real B
+      ≤ μ.real (B ∩ Ai) := by
+    rw [Set.inter_comm]
+    rcases le_or_gt 0 (μ.real Ai - ∑ j ∈ T₁, μ.real {R : Set ι | S i ∪ S j ⊆ R}) with hc | hc
+    · calc (μ.real Ai - ∑ j ∈ T₁, μ.real {R : Set ι | S i ∪ S j ⊆ R}) * μ.real B
+          ≤ (μ.real Ai - ∑ j ∈ T₁, μ.real {R : Set ι | S i ∪ S j ⊆ R}) * μ.real B₀ :=
+            mul_le_mul_of_nonneg_left hq hc
+        _ ≤ μ.real (Ai ∩ B) := by linarith [hmain]
+    · exact le_trans (mul_nonpos_of_nonpos_of_nonneg hc.le measureReal_nonneg) measureReal_nonneg
+  rw [hLHS]
+  linarith [hdecomp, hkey]
 
 /-- **Janson's inequality I** (Zhao, Theorem 8.1.2): the probability that the random subset
 contains none of the `S i` is at most `exp (-μ + Δ/2)`.
