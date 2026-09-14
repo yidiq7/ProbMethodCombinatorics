@@ -695,6 +695,126 @@ theorem two_mul_choose_mul_choose_lt_choose {ε : ℝ} (hε : 0 < ε) :
         < ((Fintype.card (Sym2 (Fin n))).choose (girthEdgeCount n) : ℝ) := by
   sorry
 
+/-- **The union bound** behind the third step of Zhao, Theorem 3.4.1.  A subfamily of the
+`T.choose M` sets of `M` unordered pairs that is covered by `k.choose x` pieces, one for each
+candidate independent set and each consisting of the `(T - c).choose M` sets avoiding `c`
+prescribed pairs, is less than half the family as soon as `c M > (k + 1) T`.
+
+The three estimates are the division-free ratio bound
+`(T - c).choose M * T ^ c ≤ T.choose M * (T - M) ^ c`, the exponential bound
+`(1 - M / T) ^ c ≤ exp (-c M / T)` together with `2 ≤ exp 1`, and `k.choose x ≤ 2 ^ k`. -/
+theorem two_mul_lt_choose_of_le_mul_choose {T M c x k b : ℕ} (hcT : c ≤ T) (hMT : M ≤ T)
+    (hTpos : 0 < T) (hkey : ((k : ℝ) + 1) * (T : ℝ) < (c : ℝ) * (M : ℝ))
+    (hb : b ≤ k.choose x * ((T - c).choose M)) :
+    2 * b < T.choose M := by
+  have hratio : ∀ j ≤ T, (T - j).choose M * T ^ j ≤ T.choose M * (T - M) ^ j := by
+    intro j
+    induction j with
+    | zero => simp
+    | succ j ih =>
+      intro hj
+      have hjT : j ≤ T := Nat.le_of_succ_le hj
+      have ih' := ih hjT
+      have key : (T - (j + 1)).choose M * (T - j) = (T - j).choose M * ((T - j) - M) := by
+        have h := Nat.choose_mul_succ_eq (T - (j + 1)) M
+        have he : T - (j + 1) + 1 = T - j := by omega
+        rwa [he] at h
+      have hmul : (T - j - M) * T ≤ (T - M) * (T - j) := by
+        rcases le_or_gt (T - j) M with h | h
+        · simp [Nat.sub_eq_zero_of_le h]
+        · obtain ⟨u, hu⟩ : ∃ u, u = T - j - M := ⟨_, rfl⟩
+          have h1 : T - j = u + M := by omega
+          have h2 : T - M = u + j := by omega
+          have h3 : T = u + M + j := by omega
+          rw [← hu, h1, h2, h3]
+          nlinarith
+      refine Nat.le_of_mul_le_mul_right ?_ (show 0 < T - j by omega)
+      calc (T - (j + 1)).choose M * T ^ (j + 1) * (T - j)
+          = ((T - (j + 1)).choose M * (T - j)) * T ^ (j + 1) := by ring
+        _ = ((T - j).choose M * ((T - j) - M)) * T ^ (j + 1) := by rw [key]
+        _ = ((T - j).choose M * T ^ j) * (((T - j) - M) * T) := by ring
+        _ ≤ (T.choose M * (T - M) ^ j) * (((T - j) - M) * T) := Nat.mul_le_mul_right _ ih'
+        _ ≤ (T.choose M * (T - M) ^ j) * ((T - M) * (T - j)) := Nat.mul_le_mul_left _ hmul
+        _ = T.choose M * (T - M) ^ (j + 1) * (T - j) := by ring
+  have hfin2 : 2 ^ (k + 1) * (T - M) ^ c < T ^ c := by
+    have hTposR : (0 : ℝ) < (T : ℝ) := by exact_mod_cast hTpos
+    have hMTR : (M : ℝ) ≤ (T : ℝ) := by exact_mod_cast hMT
+    have hR : (2 : ℝ) ^ (k + 1) * ((T : ℝ) - (M : ℝ)) ^ c < (T : ℝ) ^ c := by
+      have hr : (0 : ℝ) ≤ 1 - (M : ℝ) / (T : ℝ) := by
+        have := div_le_one_of_le₀ hMTR (le_of_lt hTposR)
+        linarith
+      have hexp1 : (1 - (M : ℝ) / (T : ℝ)) ^ c
+          ≤ Real.exp (-((c : ℝ) * ((M : ℝ) / (T : ℝ)))) := by
+        calc (1 - (M : ℝ) / (T : ℝ)) ^ c ≤ (Real.exp (-((M : ℝ) / (T : ℝ)))) ^ c := by
+              refine pow_le_pow_left₀ hr ?_ c
+              linarith [Real.add_one_le_exp (-((M : ℝ) / (T : ℝ)))]
+          _ = Real.exp (-((c : ℝ) * ((M : ℝ) / (T : ℝ)))) := by
+              rw [← Real.exp_nat_mul]; ring_nf
+      have h2e : (2 : ℝ) ^ (k + 1) ≤ Real.exp ((k : ℝ) + 1) := by
+        have h2 : (2 : ℝ) ≤ Real.exp 1 := by linarith [Real.add_one_le_exp (1 : ℝ)]
+        calc (2 : ℝ) ^ (k + 1) ≤ (Real.exp 1) ^ (k + 1) := pow_le_pow_left₀ (by norm_num) h2 _
+          _ = Real.exp ((k : ℝ) + 1) := by rw [← Real.exp_nat_mul]; push_cast; ring_nf
+      have hsplit : ((T : ℝ) - (M : ℝ)) ^ c
+          = (T : ℝ) ^ c * (1 - (M : ℝ) / (T : ℝ)) ^ c := by
+        rw [← mul_pow]
+        congr 1
+        field_simp
+      calc (2 : ℝ) ^ (k + 1) * ((T : ℝ) - (M : ℝ)) ^ c
+          = (2 : ℝ) ^ (k + 1) * ((T : ℝ) ^ c * (1 - (M : ℝ) / (T : ℝ)) ^ c) := by
+            rw [hsplit]
+        _ ≤ Real.exp ((k : ℝ) + 1)
+            * ((T : ℝ) ^ c * Real.exp (-((c : ℝ) * ((M : ℝ) / (T : ℝ))))) := by gcongr
+        _ = (T : ℝ) ^ c
+            * Real.exp (((k : ℝ) + 1) + -((c : ℝ) * ((M : ℝ) / (T : ℝ)))) := by
+            rw [Real.exp_add ((k : ℝ) + 1) (-((c : ℝ) * ((M : ℝ) / (T : ℝ))))]; ring
+        _ < (T : ℝ) ^ c * 1 := by
+            refine mul_lt_mul_of_pos_left ?_ (pow_pos hTposR c)
+            refine Real.exp_lt_one_iff.mpr ?_
+            have hdiv : ((k : ℝ) + 1) < (c : ℝ) * ((M : ℝ) / (T : ℝ)) := by
+              rw [← mul_div_assoc, lt_div_iff₀ hTposR]
+              exact hkey
+            linarith
+        _ = (T : ℝ) ^ c := mul_one _
+    have hcast : (((2 : ℕ) ^ (k + 1) * (T - M) ^ c : ℕ) : ℝ) < ((T ^ c : ℕ) : ℝ) := by
+      push_cast [Nat.cast_sub hMT]
+      exact hR
+    exact_mod_cast hcast
+
+  refine lt_of_mul_lt_mul_right ?_ (Nat.zero_le (T ^ c))
+  have h1 : 2 * k.choose x ≤ 2 ^ (k + 1) := by
+    have h := Nat.choose_le_two_pow k x
+    calc 2 * k.choose x ≤ 2 * 2 ^ k := Nat.mul_le_mul_left 2 h
+      _ = 2 ^ (k + 1) := by ring
+  calc 2 * b * T ^ c
+      ≤ 2 * (k.choose x * ((T - c).choose M)) * T ^ c :=
+        Nat.mul_le_mul_right _ (Nat.mul_le_mul_left 2 hb)
+    _ = (2 * k.choose x) * ((T - c).choose M * T ^ c) := by ring
+    _ ≤ (2 * k.choose x) * (T.choose M * (T - M) ^ c) :=
+        Nat.mul_le_mul_left _ (hratio c hcT)
+    _ = T.choose M * (2 * k.choose x * (T - M) ^ c) := by ring
+    _ ≤ T.choose M * (2 ^ (k + 1) * (T - M) ^ c) :=
+        Nat.mul_le_mul_left _ (Nat.mul_le_mul_right _ h1)
+    _ < T.choose M * T ^ c := mul_lt_mul_of_pos_left hfin2 (Nat.choose_pos hMT)
+
+/-- Sending an ordered pair of distinct elements to the unordered pair it spans is two-to-one, so
+a set of `x` elements spans at least `x (x - 1) / 2` unordered pairs of distinct elements. -/
+theorem card_offDiag_le_two_mul_card_image {α : Type*} [DecidableEq α] (S : Finset α) :
+    S.offDiag.card ≤ 2 * (S.offDiag.image (fun p : α × α => s(p.1, p.2))).card := by
+  refine Finset.card_le_mul_card_image _ 2 ?_
+  intro z hz
+  obtain ⟨p, hp, rfl⟩ := Finset.mem_image.mp hz
+  have hsub : {q ∈ S.offDiag | s(q.1, q.2) = s(p.1, p.2)}
+      ⊆ ({p, (p.2, p.1)} : Finset (α × α)) := by
+    intro q hq
+    have hq2 : s(q.1, q.2) = s(p.1, p.2) := (Finset.mem_filter.mp hq).2
+    rw [Sym2.eq_iff] at hq2
+    simp only [Finset.mem_insert, Finset.mem_singleton]
+    rcases hq2 with ⟨h1, h2⟩ | ⟨h1, h2⟩
+    · exact Or.inl (Prod.ext h1 h2)
+    · exact Or.inr (Prod.ext h1 h2)
+  exact le_trans (Finset.card_le_card hsub) (le_trans (Finset.card_insert_le _ _) (by simp))
+
+
 /-- **No large independent set** (third step of Zhao, Theorem 3.4.1).  For every `ε > 0` and all
 large `n`, fewer than half the graphs of `G(n, M)` with `M = girthEdgeCount n` have an independent
 set of size `ε n`.
@@ -706,7 +826,171 @@ theorem exists_bad_card_lt_and_indepNum_le {ε : ℝ} (hε : 0 < ε) :
       2 * B.card < (graphFamily n (girthEdgeCount n)).card ∧
       ∀ E ∈ graphFamily n (girthEdgeCount n), E ∉ B →
         ((SimpleGraph.fromEdgeSet (E : Set (Sym2 (Fin n)))).indepNum : ℝ) ≤ ε * n := by
-  sorry
+  suffices h : ∀ δ : ℝ, 0 < δ → δ ≤ 1 →
+      ∃ n₀ : ℕ, ∀ n ≥ n₀, ∃ B ⊆ graphFamily n (girthEdgeCount n),
+        2 * B.card < (graphFamily n (girthEdgeCount n)).card ∧
+        ∀ E ∈ graphFamily n (girthEdgeCount n), E ∉ B →
+          ((SimpleGraph.fromEdgeSet (E : Set (Sym2 (Fin n)))).indepNum : ℝ) ≤ δ * n by
+    obtain ⟨n₀, hn₀⟩ := h (min ε 1) (lt_min hε one_pos) (min_le_right _ _)
+    refine ⟨n₀, fun n hn => ?_⟩
+    obtain ⟨B, hBsub, hBcard, hB⟩ := hn₀ n hn
+    exact ⟨B, hBsub, hBcard, fun E hE hEB =>
+      le_trans (hB E hE hEB) (mul_le_mul_of_nonneg_right (min_le_left _ _) (Nat.cast_nonneg n))⟩
+  clear hε ε
+  intro δ hδ hδ1
+  obtain ⟨n₂, hn₂⟩ := exists_mul_pow_log_lt 4 2
+  refine ⟨max (max n₂ 4) (max ⌈Real.exp (8 / δ)⌉₊ ⌈4 / δ⌉₊), fun n hn => ?_⟩
+  have hgen2 : n₂ ≤ n := le_trans (le_trans (le_max_left _ _) (le_max_left _ _)) hn
+  have hn4 : 4 ≤ n := le_trans (le_trans (le_max_right _ _) (le_max_left _ _)) hn
+  have hgen3 : ⌈Real.exp (8 / δ)⌉₊ ≤ n :=
+    le_trans (le_trans (le_max_left _ _) (le_max_right _ _)) hn
+  have hgen4 : ⌈4 / δ⌉₊ ≤ n := le_trans (le_trans (le_max_right _ _) (le_max_right _ _)) hn
+  obtain ⟨M, hMdef⟩ : ∃ M, M = girthEdgeCount n := ⟨_, rfl⟩
+  obtain ⟨T, hTdef⟩ : ∃ T, T = Fintype.card (Sym2 (Fin n)) := ⟨_, rfl⟩
+  obtain ⟨L, hLdef⟩ : ∃ L, L = Real.log n := ⟨_, rfl⟩
+  rw [← hMdef]
+  -- estimates on the number of edges `M` and the number `T` of unordered pairs
+  have hn4R : (4 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn4
+  have hnR1 : (1 : ℝ) ≤ (n : ℝ) := by linarith
+  have hnpos : (0 : ℝ) < (n : ℝ) := by linarith
+  have hsmall : 4 * L ^ 2 < (n : ℝ) := by rw [hLdef]; exact hn₂ n hgen2
+  have hMub : (M : ℝ) < (n : ℝ) * L ^ 2 + 1 := by
+    rw [hMdef, girthEdgeCount, ← hLdef]; exact Nat.ceil_lt_add_one (by positivity)
+  have hMlb : (n : ℝ) * L ^ 2 ≤ (M : ℝ) := by
+    rw [hMdef, girthEdgeCount, ← hLdef]; exact Nat.le_ceil _
+  have hLlb : 8 / δ ≤ L := by
+    have h1 : Real.exp (8 / δ) ≤ (n : ℝ) := le_trans (Nat.le_ceil _) (by exact_mod_cast hgen3)
+    rw [hLdef]
+    exact (Real.le_log_iff_exp_le hnpos).mpr h1
+  have hδL : 8 ≤ δ * L := by rw [div_le_iff₀ hδ] at hLlb; linarith
+  have hδn : 4 ≤ δ * (n : ℝ) := by
+    have h1 : 4 / δ ≤ (n : ℝ) := le_trans (Nat.le_ceil _) (by exact_mod_cast hgen4)
+    rw [div_le_iff₀ hδ] at h1; linarith
+  have hT2 : 2 * T = n * (n + 1) := by
+    rw [hTdef, Sym2.card, Fintype.card_fin]
+    have h := Nat.add_one_mul_choose_eq n 1
+    rw [Nat.choose_one_right] at h
+    calc 2 * (n + 1).choose 2 = (n + 1).choose 2 * 2 := by ring
+      _ = (n + 1) * n := h.symm
+      _ = n * (n + 1) := by ring
+  have hT2R : 2 * (T : ℝ) = (n : ℝ) * ((n : ℝ) + 1) := by exact_mod_cast hT2
+  have hTpos : 0 < T := by
+    have h : 0 < n * (n + 1) := by positivity
+    omega
+  have hTposR : (0 : ℝ) < (T : ℝ) := by exact_mod_cast hTpos
+  have hMT : M ≤ T := by
+    have hc : (M : ℝ) ≤ (T : ℝ) := by nlinarith
+    exact_mod_cast hc
+  -- `x` is the size of the candidate independent sets, `c` a lower bound for the number of
+  -- unordered pairs of distinct vertices inside one of them
+  obtain ⟨x, hxdef⟩ : ∃ x, x = ⌈δ * (n : ℝ)⌉₊ := ⟨_, rfl⟩
+  have hxlb : δ * (n : ℝ) ≤ (x : ℝ) := by rw [hxdef]; exact Nat.le_ceil _
+  have hxub : (x : ℝ) < δ * (n : ℝ) + 1 := by
+    rw [hxdef]; exact Nat.ceil_lt_add_one (by positivity)
+  have hxn : x ≤ n := by
+    rw [hxdef]
+    exact Nat.ceil_le.mpr (by nlinarith)
+  have hx4 : (4 : ℝ) ≤ (x : ℝ) := le_trans hδn hxlb
+  obtain ⟨A, hA⟩ : ∃ A, A = x * x := ⟨_, rfl⟩
+  obtain ⟨P, hP⟩ : ∃ P, P = n * n := ⟨_, rfl⟩
+  obtain ⟨c, hcdef⟩ : ∃ c, c = (A - x) / 2 := ⟨_, rfl⟩
+  have hAP : A ≤ P := by rw [hA, hP]; exact Nat.mul_le_mul hxn hxn
+  have hT2' : 2 * T = P + n := by rw [hP, hT2]; ring
+  have hcT : c ≤ T := by omega
+  have hAc : A ≤ 2 * c + x + 1 := by omega
+  have hAcR : (x : ℝ) * (x : ℝ) ≤ 2 * (c : ℝ) + (x : ℝ) + 1 := by
+    have h : (A : ℝ) ≤ 2 * (c : ℝ) + (x : ℝ) + 1 := by exact_mod_cast hAc
+    rw [hA] at h; push_cast at h; linarith
+  -- `K S` is the set of unordered pairs of distinct vertices of `S`
+  obtain ⟨K, hK⟩ : ∃ K : Finset (Fin n) → Finset (Sym2 (Fin n)),
+      ∀ S : Finset (Fin n), K S = S.offDiag.image (fun p : Fin n × Fin n => s(p.1, p.2)) :=
+    ⟨_, fun _ => rfl⟩
+  have hcK : ∀ S : Finset (Fin n), S.card = x → c ≤ (K S).card := by
+    intro S hS
+    have h : S.card * S.card - S.card ≤ 2 * (K S).card := by
+      rw [hK, ← Finset.offDiag_card]
+      exact card_offDiag_le_two_mul_card_image S
+    rw [hS, ← hA] at h
+    omega
+  refine ⟨(Finset.univ.powersetCard x).biUnion
+    (fun S => Finset.powersetCard M (Finset.univ \ K S)), ?_, ?_, ?_⟩
+  · refine Finset.biUnion_subset.mpr fun S _ => ?_
+    rw [graphFamily]
+    exact Finset.powersetCard_mono Finset.sdiff_subset
+  · -- the union bound over the `n.choose x` candidate independent sets
+    have hfam : (graphFamily n M).card = T.choose M := by
+      rw [graphFamily, Finset.card_powersetCard, Finset.card_univ, hTdef]
+    have hBcard : ((Finset.univ.powersetCard x).biUnion
+        (fun S => Finset.powersetCard M (Finset.univ \ K S))).card
+        ≤ n.choose x * ((T - c).choose M) := by
+      refine le_trans Finset.card_biUnion_le ?_
+      have hterm : ∀ S ∈ Finset.univ.powersetCard x,
+          (Finset.powersetCard M (Finset.univ \ K S)).card ≤ (T - c).choose M := by
+        intro S hS
+        have hSc : S.card = x := (Finset.mem_powersetCard.mp hS).2
+        rw [Finset.card_powersetCard, Finset.card_sdiff_of_subset (Finset.subset_univ _),
+          Finset.card_univ, ← hTdef]
+        exact Nat.choose_le_choose _ (Nat.sub_le_sub_left (hcK S hSc) T)
+      refine le_trans (Finset.sum_le_card_nsmul _ _ _ hterm) ?_
+      rw [smul_eq_mul, Finset.card_powersetCard, Finset.card_univ, Fintype.card_fin]
+    -- `c M / T` exceeds `n + 1`: the exponent beats the union bound by a wide margin
+    have hkey : ((n : ℝ) + 1) * (T : ℝ) < (c : ℝ) * (M : ℝ) := by
+      have hM64 : 64 * (n : ℝ) ≤ δ ^ 2 * (M : ℝ) := by
+        have h1 : (64 : ℝ) ≤ (δ * L) ^ 2 := by nlinarith
+        have h3 : δ ^ 2 * ((n : ℝ) * L ^ 2) ≤ δ ^ 2 * (M : ℝ) := by nlinarith [sq_nonneg δ]
+        nlinarith
+      have hc4 : δ ^ 2 * (n : ℝ) ^ 2 ≤ 4 * (c : ℝ) := by
+        nlinarith [mul_nonneg (sub_nonneg.mpr hx4) (by linarith : (0 : ℝ) ≤ (x : ℝ) + 2)]
+      have hcM : 16 * (n : ℝ) ^ 3 ≤ (c : ℝ) * (M : ℝ) := by
+        have h1 : (δ ^ 2 * (n : ℝ) ^ 2) * (64 * (n : ℝ))
+            ≤ (4 * (c : ℝ)) * (δ ^ 2 * (M : ℝ)) :=
+          mul_le_mul hc4 hM64 (by positivity) (by positivity)
+        nlinarith [sq_nonneg δ, mul_pos hδ hδ]
+      have hT3 : ((n : ℝ) + 1) * (T : ℝ) ≤ 2 * (n : ℝ) ^ 3 := by nlinarith
+      have hn3 : (0 : ℝ) < (n : ℝ) ^ 3 := by positivity
+      linarith
+    rw [hfam]
+    exact two_mul_lt_choose_of_le_mul_choose hcT hMT hTpos hkey hBcard
+  · -- outside the bad set no `x` vertices are independent
+    intro E hE hEB
+    have hEcard : E.card = M := by
+      rw [graphFamily, Finset.mem_powersetCard] at hE
+      exact hE.2
+    have hmeet : ∀ S : Finset (Fin n), S.card = x → ∃ e ∈ E, e ∈ K S := by
+      intro S hS
+      have hSmem : S ∈ Finset.univ.powersetCard x :=
+        Finset.mem_powersetCard.mpr ⟨Finset.subset_univ _, hS⟩
+      have hnot : E ∉ Finset.powersetCard M (Finset.univ \ K S) := fun h =>
+        hEB (Finset.mem_biUnion.mpr ⟨S, hSmem, h⟩)
+      have hnsub : ¬ (E ⊆ Finset.univ \ K S) := fun h =>
+        hnot (Finset.mem_powersetCard.mpr ⟨h, hEcard⟩)
+      have hd : ¬ Disjoint E (K S) := fun h =>
+        hnsub (Finset.subset_sdiff.mpr ⟨Finset.subset_univ _, h⟩)
+      obtain ⟨e, heE, heK⟩ := Finset.not_disjoint_iff.mp hd
+      exact ⟨e, heE, heK⟩
+    have hlt : (SimpleGraph.fromEdgeSet (E : Set (Sym2 (Fin n)))).indepNum < x := by
+      rcases Nat.lt_or_ge (SimpleGraph.fromEdgeSet (E : Set (Sym2 (Fin n)))).indepNum x with h | h
+      · exact h
+      · exfalso
+        obtain ⟨t, ht⟩ :=
+          (SimpleGraph.fromEdgeSet (E : Set (Sym2 (Fin n)))).exists_isNIndepSet_indepNum
+        obtain ⟨u, hut, hucard⟩ :=
+          Finset.exists_subset_card_eq (show x ≤ t.card by rw [ht.card_eq]; exact h)
+        obtain ⟨e, heE, heK⟩ := hmeet u hucard
+        rw [hK, Finset.mem_image] at heK
+        obtain ⟨p, hp, hpe⟩ := heK
+        rw [Finset.mem_offDiag] at hp
+        have hadj : (SimpleGraph.fromEdgeSet (E : Set (Sym2 (Fin n)))).Adj p.1 p.2 := by
+          rw [SimpleGraph.fromEdgeSet_adj]
+          refine ⟨?_, hp.2.2⟩
+          have hmem : s(p.1, p.2) ∈ E := by rw [hpe]; exact heE
+          exact Finset.mem_coe.mpr hmem
+        exact ht.isIndepSet (Finset.mem_coe.mpr (hut hp.1)) (Finset.mem_coe.mpr (hut hp.2.1))
+          hp.2.2 hadj
+    have hltR : ((SimpleGraph.fromEdgeSet (E : Set (Sym2 (Fin n)))).indepNum : ℝ) + 1
+        ≤ (x : ℝ) := by exact_mod_cast hlt
+    linarith
+
 
 /-- The union bound combining the two halves of the random-graph step of Zhao, Theorem 3.4.1:
 there is a graph on `n > 0` vertices whose cycles of length at most `l` all meet some set `S` of
