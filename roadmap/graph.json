@@ -1702,7 +1702,7 @@
       "decl": "ProbMethodCombinatorics.card_pow_le_prod_card_image_inter",
       "doc": "entropy.md#104-shearers-lemma",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": [
         "shearer",

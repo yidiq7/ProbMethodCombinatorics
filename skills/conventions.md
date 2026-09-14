@@ -65,6 +65,32 @@ instead — `ENNReal` is a `CommSemiring`, so `ring` works — and cancel with
 `open scoped ENNReal` is already in the header of every measure-theoretic file; without it
 `ℝ≥0∞` parses as `ℝ ≥ 0 ∞` and fails with `failed to synthesize OfNat Type 0`.
 
+## Mathlib returns junk values instead of failing
+
+Three separate defects in this project have come from the same shape: a Mathlib definition that,
+when its side condition is unmet, **silently returns a default value rather than failing to
+elaborate**. Nothing warns you. The statement type-checks, the proof may even go through, and the
+result is wrong or vacuous.
+
+- **A measure applied to a non-measurable set** returns its *outer* measure, not an error. This
+  made the Chapter 8 statements false at `p = 1` for uncountable `ι`, because the product
+  σ-algebra on `Set ι` only contains sets depending on countably many coordinates.
+- **`∫` of a non-integrable function is `0`.** Combined with the above, that put the bounded
+  differences inequality's left-hand side at `1` against a right-hand side below `1`.
+- **`Measure.infinitePi` is `if h : ∀ i, IsProbabilityMeasure (μ i) then … else 0`.** Without the
+  instance in scope it is the zero measure, and no `infinitePi` lemma will fire — the symptom is
+  lemmas mysteriously not applying, not an error at the definition.
+
+**What to do.** When a statement rests on a definition with a side condition — measurability,
+integrability, a probability-measure instance, summability — check whether the definition
+*enforces* it or *defaults* when it fails. If it defaults, the hypothesis belongs in the
+statement, and if you are proving rather than stating, supply the instance as a local `have`
+before expecting the API to work.
+
+**The tell that generalises:** when Mathlib fences part of an API behind a hypothesis — a
+`section Countable`, a `[IsProbabilityMeasure]` argument — a statement built on the unfenced
+remainder deserves a second look. That is how the Chapter 8 defect was spotted.
+
 ## Reductions: two things that trip people up
 
 **A child may be a placeholder that was already there.** `children` in a `choir-reduction` block
