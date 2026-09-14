@@ -332,6 +332,40 @@ theorem janson_prob_none_le_of_mu_le [Countable ι] (p : I) (S : κ → Set ι) 
       ≤ Real.exp (-(jansonMu p S) ^ 2 / (2 * jansonDelta p S D)) := by
   sorry
 
+section LowerTail
+
+/-- The elementary bound `exp (-x) ≤ 1 - x + x ^ 2 / 2` for `x ≥ 0`.
+
+It follows from `1 + x + x ^ 2 / 2 ≤ exp x` because
+`(1 - x + x ^ 2 / 2) * (1 + x + x ^ 2 / 2) = 1 + x ^ 4 / 4 ≥ 1`. -/
+theorem exp_neg_le_one_sub_add_sq_div_two {x : ℝ} (hx : 0 ≤ x) :
+    Real.exp (-x) ≤ 1 - x + x ^ 2 / 2 := by
+  have hA : (0 : ℝ) < 1 + x + x ^ 2 / 2 := by nlinarith [sq_nonneg x]
+  have hexp : 1 + x + x ^ 2 / 2 ≤ Real.exp x := Real.quadratic_le_exp_of_nonneg hx
+  have h1 : Real.exp (-x) * (1 + x + x ^ 2 / 2) ≤ Real.exp (-x) * Real.exp x :=
+    mul_le_mul_of_nonneg_left hexp (Real.exp_pos _).le
+  have h2 : Real.exp (-x) * Real.exp x = 1 := by
+    rw [← Real.exp_add]; simp
+  nlinarith [sq_nonneg (x ^ 2), h1, h2, hA]
+
+/-- The Chernoff step of Warnke's proof of Janson's third inequality (Zhao, Theorem 8.2.2).
+
+Write `X` for `jansonCount S`, put `q = 1 - exp (-lam)` for `lam ≥ 0`, and thin the events of
+Setup 8.1.1 by keeping each index independently with probability `q`.  The thinned family again
+satisfies Setup 8.1.1 — over the pairs of `D` off the diagonal, whose contribution to `Δ` is at
+most `jansonDelta p S D` — with `μ` replaced by `q * μ` and `Δ` replaced by `q ^ 2 * Δ`, so
+Janson's first inequality bounds the probability that the thinned count vanishes by
+`exp (-q * μ + q ^ 2 * Δ / 2)`.  That probability is the moment generating function
+`𝔼 [exp (-lam * X)]`, and Markov's inequality applied to it gives the bound below. -/
+theorem janson_lower_tail_step_le [Countable ι] (p : I) (S : κ → Set ι) (D : Finset (κ × κ))
+    (hD : ∀ i j, i ≠ j → (i, j) ∉ D → Disjoint (S i) (S j)) {lam s : ℝ} (hlam : 0 ≤ lam) :
+    (setBernoulli Set.univ p {R : Set ι | jansonCount S R ≤ s}).toReal
+      ≤ Real.exp (lam * s - (1 - Real.exp (-lam)) * jansonMu p S
+          + (1 - Real.exp (-lam)) ^ 2 * jansonDelta p S D / 2) := by
+  sorry
+
+end LowerTail
+
 /-- **Janson's inequality III** (Zhao, Theorem 8.2.2): the lower tail of the count.  For
 `0 ≤ t ≤ μ`,
 
@@ -347,6 +381,37 @@ theorem janson_lower_tail [Countable ι] (p : I) (S : κ → Set ι) (D : Finset
     (setBernoulli Set.univ p
         {R : Set ι | jansonCount S R ≤ jansonMu p S - t}).toReal
       ≤ Real.exp (-t ^ 2 / (2 * (jansonMu p S + jansonDelta p S D))) := by
-  sorry
+  have hμ0 : 0 ≤ jansonMu p S := Finset.sum_nonneg fun _ _ => ENNReal.toReal_nonneg
+  have hΔ0 : 0 ≤ jansonDelta p S D := Finset.sum_nonneg fun _ _ => ENNReal.toReal_nonneg
+  rcases ht0.lt_or_eq with ht | ht
+  · have hc : 0 < jansonMu p S + jansonDelta p S D := by linarith
+    have hcne : jansonMu p S + jansonDelta p S D ≠ 0 := ne_of_gt hc
+    have hlam0 : 0 ≤ t / (jansonMu p S + jansonDelta p S D) := div_nonneg ht0 hc.le
+    refine (janson_lower_tail_step_le p S D hD
+      (lam := t / (jansonMu p S + jansonDelta p S D)) (s := jansonMu p S - t) hlam0).trans
+      (Real.exp_le_exp.2 ?_)
+    set lam := t / (jansonMu p S + jansonDelta p S D) with hlamdef
+    set q := 1 - Real.exp (-lam) with hqdef
+    have hq0 : 0 ≤ q := by
+      have h := Real.exp_le_one_iff.2 (neg_nonpos.2 hlam0)
+      rw [hqdef]; linarith
+    have hq1 : q ≤ lam := by
+      have h := Real.add_one_le_exp (-lam)
+      rw [hqdef]; linarith
+    have hq2 : lam - lam ^ 2 / 2 ≤ q := by
+      have h := exp_neg_le_one_sub_add_sq_div_two hlam0
+      rw [hqdef]; linarith
+    have hq3 : q ^ 2 ≤ lam ^ 2 := by nlinarith
+    have hfin : -t ^ 2 / (2 * (jansonMu p S + jansonDelta p S D))
+        = -lam * t + lam ^ 2 * (jansonMu p S + jansonDelta p S D) / 2 := by
+      rw [hlamdef]; field_simp; ring
+    rw [hfin]
+    nlinarith [mul_nonneg hμ0 (sub_nonneg.2 hq2), mul_nonneg hΔ0 (sub_nonneg.2 hq3)]
+  · have hprob : setBernoulli Set.univ p
+        {R : Set ι | jansonCount S R ≤ jansonMu p S - t} ≤ 1 := prob_le_one
+    have hone : Real.exp (-t ^ 2 / (2 * (jansonMu p S + jansonDelta p S D))) = 1 := by
+      rw [← ht]; norm_num
+    rw [hone]
+    simpa using ENNReal.toReal_mono ENNReal.one_ne_top hprob
 
 end ProbMethodCombinatorics
