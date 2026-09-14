@@ -370,3 +370,14 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   brute-forced over all `n ≤ 4`, `M ≤ 4` before publishing.  **Diagnostic order that works:
   check the statement first — three author-side statements have been false — and only once it
   survives, read repeated abandonment as a request to decompose.**
+- **2026-09-14 — Chapter 11's first two theorems were in the wrong order, and a contributor
+  caught it.**  `exists_containers` (11.2.1) is a counting corollary of
+  `exists_containers_fingerprint` (11.2.3), so publishing them in the book's order made the
+  corollary unprovable: Lean has no forward references.  The contributor proposed three fixes,
+  recommended the right one, released the claim and changed nothing — rather than adding a
+  near-duplicate of 11.2.3 above the target, which the reduction contract would have permitted.
+  File reordered, graph edge reversed.
+  **Generalisable: the source's presentation order can encode a dependency backwards.**  A
+  textbook may state a weaker result first and strengthen it later; a Lean file cannot.  §11.1
+  has the same shape (11.0.2 depends on 11.1.1) and already happens to be ordered correctly,
+  but this is worth checking whenever a chapter is stated from a linear reading.

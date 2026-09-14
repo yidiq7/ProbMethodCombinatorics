@@ -1622,7 +1622,9 @@
       "statement": "formalized",
       "proof": "planned",
       "uses": [],
-      "proof_uses": []
+      "proof_uses": [
+        "graph_container_fingerprint"
+      ]
     },
     "graph_container_fingerprint": {
       "kind": "theorem",
@@ -1633,9 +1635,7 @@
       "statement": "formalized",
       "proof": "planned",
       "uses": [],
-      "proof_uses": [
-        "graph_container"
-      ]
+      "proof_uses": []
     },
     "hypergraph_container": {
       "kind": "theorem",
