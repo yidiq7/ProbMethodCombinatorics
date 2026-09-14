@@ -287,11 +287,18 @@ theorem setBernoulli_inter_le_mul (p : I) (A B : Set (Set ι))
     setBernoulli Set.univ p (A ∩ B) ≤ setBernoulli Set.univ p A * setBernoulli Set.univ p B := by
   sorry
 
+omit [Countable ι] in
 /-- **Events on disjoint coordinate blocks are independent.**  If membership in `A` is determined
 by `R ∩ u` and membership in `B` by `R ∩ v` with `u` and `v` disjoint, the two events multiply.
 
 The hypotheses say "depends only on the block" in the form that is actually usable — invariance
-under any change outside the block — rather than by exhibiting a cylinder decomposition. -/
+under any change outside the block — rather than by exhibiting a cylinder decomposition.
+
+**No `[Countable ι]`**, unlike its neighbour: the proof goes through `indep_iSup_of_disjoint`,
+which takes `Set ι` rather than `Finset ι`, so countability never enters.  The contributor who
+proved it found this and reported it rather than silencing the linter, since removing the
+instance is a statement change.  Harris above does need it, so the asymmetry between the two is
+real. -/
 theorem setBernoulli_inter_eq_mul_of_disjoint (p : I) (u v : Set ι) (huv : Disjoint u v)
     (A B : Set (Set ι))
     (hA : ∀ R R' : Set ι, R ∩ u = R' ∩ u → (R ∈ A ↔ R' ∈ A))

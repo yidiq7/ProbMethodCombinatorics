@@ -381,3 +381,12 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   textbook may state a weaker result first and strengthen it later; a Lean file cannot.  §11.1
   has the same shape (11.0.2 depends on 11.1.1) and already happens to be ordered correctly,
   but this is worth checking whenever a chapter is stated from a linear reading.
+- **2026-09-14 — `setBernoulli_inter_eq_mul_of_disjoint` does not need `[Countable ι]`.**  Its
+  proof goes through `indep_iSup_of_disjoint`, which takes `Set ι` rather than `Finset ι`, so
+  countability never enters; the contributor found this via the `unusedSectionVars` linter and
+  **reported it instead of writing `omit`**, correctly treating a binder removal as a statement
+  change.  Binder dropped here, after their PR merged rather than before — removing it first
+  would have made their branch read as *adding* the instance and tripped
+  `statement-immutability` on a PR that changed nothing.  **Sequencing matters when acting on a
+  contributor's finding about the statement they are working against.**  `setBernoulli_inter_le_mul`
+  keeps the instance; Harris genuinely needs it, so the asymmetry is real.

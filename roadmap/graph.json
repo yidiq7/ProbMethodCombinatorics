@@ -1753,7 +1753,7 @@
       "decl": "ProbMethodCombinatorics.setBernoulli_inter_eq_mul_of_disjoint",
       "doc": "correlation.md#the-setbernoulli-forms-for-chapter-8",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": []
     },
