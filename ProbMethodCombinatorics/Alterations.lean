@@ -74,7 +74,34 @@ Pure real analysis, no graphs: the only fact used is `1 - x ≤ exp (-x)`, which
 theorem log_div_add_one_add_pow_le (δ : ℕ) (hδ : 1 < δ) :
     Real.log (δ + 1) / (δ + 1) + (1 - Real.log (δ + 1) / (δ + 1)) ^ (δ + 1)
       ≤ (Real.log (δ + 1) + 1) / (δ + 1) := by
-  sorry
+  have hn : (0 : ℝ) < (δ : ℝ) + 1 := by positivity
+  have hlog : Real.log ((δ : ℝ) + 1) ≤ ((δ : ℝ) + 1) - 1 :=
+    Real.log_le_sub_one_of_pos hn
+  have hp1 : Real.log ((δ : ℝ) + 1) / ((δ : ℝ) + 1) ≤ 1 := by
+    rw [div_le_one hn]; linarith
+  have h1p : 0 ≤ 1 - Real.log ((δ : ℝ) + 1) / ((δ : ℝ) + 1) := by linarith
+  have hexp : 1 - Real.log ((δ : ℝ) + 1) / ((δ : ℝ) + 1)
+      ≤ Real.exp (-(Real.log ((δ : ℝ) + 1) / ((δ : ℝ) + 1))) := by
+    have := Real.add_one_le_exp (-(Real.log ((δ : ℝ) + 1) / ((δ : ℝ) + 1)))
+    linarith
+  have hpow : (1 - Real.log ((δ : ℝ) + 1) / ((δ : ℝ) + 1)) ^ (δ + 1)
+      ≤ Real.exp (-(Real.log ((δ : ℝ) + 1) / ((δ : ℝ) + 1))) ^ (δ + 1) :=
+    pow_le_pow_left₀ h1p hexp _
+  have hrw : Real.exp (-(Real.log ((δ : ℝ) + 1) / ((δ : ℝ) + 1))) ^ (δ + 1)
+      = ((δ : ℝ) + 1)⁻¹ := by
+    rw [← Real.exp_nat_mul]
+    have hmul : (((δ + 1 : ℕ) : ℝ)) * (-(Real.log ((δ : ℝ) + 1) / ((δ : ℝ) + 1)))
+        = -Real.log ((δ : ℝ) + 1) := by
+      have : ((δ + 1 : ℕ) : ℝ) = (δ : ℝ) + 1 := by push_cast; ring
+      rw [this]
+      field_simp
+    rw [hmul, Real.exp_neg, Real.exp_log hn]
+  rw [hrw] at hpow
+  have hsum : Real.log ((δ : ℝ) + 1) / ((δ : ℝ) + 1) + ((δ : ℝ) + 1)⁻¹
+      = (Real.log ((δ : ℝ) + 1) + 1) / ((δ : ℝ) + 1) := by
+    field_simp
+  push_cast
+  linarith [hpow, hsum.ge, hsum.le]
 
 /-- **Zhao, Theorem 3.1.1**: a graph on `n` vertices with minimum degree `δ > 1` has a dominating
 set of size at most `((log (δ + 1) + 1) / (δ + 1)) * n`. -/
