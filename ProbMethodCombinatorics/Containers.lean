@@ -99,7 +99,39 @@ theorem exists_containers (c : ℝ) (hc : 0 < c) :
         (𝒞.card : ℝ) ≤ ∑ i ∈ range (⌊2 * δ * n / d⌋₊ + 1), (n.choose i : ℝ) ∧
         (∀ I : Finset (Fin n), G.IsIndepSet (I : Set (Fin n)) → ∃ C ∈ 𝒞, I ⊆ C) ∧
         (∀ C ∈ 𝒞, (C.card : ℝ) ≤ (1 - δ) * n) := by
-  sorry
+  obtain ⟨δ, hδ, hfp⟩ := exists_containers_fingerprint c hc
+  refine ⟨δ, hδ, fun n G _ d hd hsum hdeg => ?_⟩
+  obtain ⟨S, A, hSA⟩ := hfp n G d hd hsum hdeg
+  -- The fingerprints that are both small and have a small container.  The second condition is
+  -- needed because the fingerprint theorem says nothing about a `T` that is not some `S I`.
+  set F : Finset (Finset (Fin n)) :=
+    univ.powerset.filter fun T : Finset (Fin n) =>
+      (T.card : ℝ) ≤ 2 * δ * n / d ∧ ((T ∪ A T).card : ℝ) ≤ (1 - δ) * n with hF
+  refine ⟨F.image fun T => T ∪ A T, ?_, ?_, ?_⟩
+  · have hsub : F ⊆ (range (⌊2 * δ * n / d⌋₊ + 1)).biUnion
+        fun i => powersetCard i (univ : Finset (Fin n)) := by
+      intro T hT
+      rw [hF, mem_filter] at hT
+      exact mem_biUnion.mpr ⟨T.card, mem_range.mpr (Nat.lt_succ_of_le (Nat.le_floor hT.2.1)),
+        mem_powersetCard.mpr ⟨subset_univ _, rfl⟩⟩
+    have hcount : ((range (⌊2 * δ * n / d⌋₊ + 1)).biUnion
+        fun i => powersetCard i (univ : Finset (Fin n))).card
+        = ∑ i ∈ range (⌊2 * δ * n / d⌋₊ + 1), n.choose i := by
+      rw [card_biUnion ((pairwise_disjoint_powersetCard (univ : Finset (Fin n))).set_pairwise _)]
+      simp
+    have hnat : (F.image fun T => T ∪ A T).card
+        ≤ ∑ i ∈ range (⌊2 * δ * n / d⌋₊ + 1), n.choose i :=
+      card_image_le.trans (hcount ▸ card_le_card hsub)
+    calc ((F.image fun T => T ∪ A T).card : ℝ)
+        ≤ ((∑ i ∈ range (⌊2 * δ * n / d⌋₊ + 1), n.choose i : ℕ) : ℝ) := Nat.cast_le.mpr hnat
+      _ = ∑ i ∈ range (⌊2 * δ * n / d⌋₊ + 1), (n.choose i : ℝ) := by push_cast; ring
+  · intro I hI
+    obtain ⟨-, hcov, hsmall, hcont⟩ := hSA I hI
+    exact ⟨S I ∪ A (S I), mem_image_of_mem _
+      (mem_filter.mpr ⟨mem_powerset.mpr (subset_univ _), hsmall, hcont⟩), hcov⟩
+  · intro C hC
+    obtain ⟨T, hT, rfl⟩ := mem_image.mp hC
+    exact (mem_filter.mp hT).2.2
 
 /-! ### 11.3 The hypergraph container theorem -/
 
