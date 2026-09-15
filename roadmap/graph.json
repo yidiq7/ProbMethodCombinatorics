@@ -640,14 +640,13 @@
     "distinct_sums": {
       "kind": "theorem",
       "parent": "second_moment",
-      "doc": "second-moment.md#planned-not-stated",
-      "statement": "planned",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.le_card_of_distinctSubsetSums",
+      "doc": "second-moment.md#46-distinct-sums",
+      "statement": "formalized",
       "proof": "planned",
       "uses": [],
-      "proof_uses": [
-        "prob_zero_bound",
-        "variance_indicator_bound"
-      ]
+      "proof_uses": []
     },
     "chernoff": {
       "kind": "group",
@@ -1270,8 +1269,10 @@
     "azuma": {
       "kind": "theorem",
       "parent": "concentration",
-      "doc": "concentration.md#planned-not-stated",
-      "statement": "planned",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.measure_martingale_sub_ge_le",
+      "doc": "concentration.md#92-azumas-inequality",
+      "statement": "formalized",
       "proof": "planned",
       "uses": [],
       "proof_uses": []
@@ -1404,7 +1405,9 @@
       "uses": [
         "entropy_def"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "gibbs_inequality"
+      ]
     },
     "entropy_chain_rule": {
       "kind": "theorem",
@@ -1657,12 +1660,14 @@
       "decl": "ProbMethodCombinatorics.exists_containers_triangleFree",
       "doc": "containers.md#111-containers-for-triangle-free-graphs",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "containers_triangleFreeGraphs"
       ],
       "proof_uses": [
-        "hypergraph_container"
+        "container_shrink_step",
+        "hypergraph_container",
+        "triangle_supersaturation"
       ]
     },
     "ekr_upper": {
@@ -1823,6 +1828,87 @@
       "doc": "alterations.md#decompositions",
       "statement": "formalized",
       "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "triangle_supersaturation": {
+      "kind": "theorem",
+      "parent": "containers",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.exists_triangle_supersaturation",
+      "doc": "containers.md#111-containers-for-triangle-free-graphs",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "container_shrink_step": {
+      "kind": "theorem",
+      "parent": "containers",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.exists_shrunken_containers_of_many_triangles",
+      "doc": "containers.md#111-containers-for-triangle-free-graphs",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "hypergraph_container"
+      ]
+    },
+    "multiple_round_exposure": {
+      "kind": "theorem",
+      "parent": "correlation",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.prob_notMem_le_pow_of_isUpperSet",
+      "doc": "correlation.md#43-thresholds-multiple-round-exposure",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": [
+        "prob_mem_monotone"
+      ]
+    },
+    "prob_mem_monotone": {
+      "kind": "theorem",
+      "parent": "correlation",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.prob_mem_mono_of_isUpperSet",
+      "doc": "correlation.md#43-thresholds-multiple-round-exposure",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "gibbs_inequality": {
+      "kind": "theorem",
+      "parent": "entropy",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.sum_negMulLogb_le_logb_card",
+      "doc": "entropy.md#101-basic-properties",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "sampling_bound": {
+      "kind": "theorem",
+      "parent": "expectation",
+      "file": "ProbMethodCombinatorics/Expectation.lean",
+      "decl": "ProbMethodCombinatorics.card_le_of_tetrahedronFree",
+      "doc": "expectation.md#24-bounding-by-sampling",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
+    },
+    "unbalancing_lights": {
+      "kind": "theorem",
+      "parent": "expectation",
+      "file": "ProbMethodCombinatorics/Expectation.lean",
+      "decl": "ProbMethodCombinatorics.exists_signs_sum_ge",
+      "doc": "expectation.md#25-unbalancing-lights",
+      "statement": "formalized",
+      "proof": "planned",
       "uses": [],
       "proof_uses": []
     }

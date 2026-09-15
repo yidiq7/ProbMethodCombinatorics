@@ -95,8 +95,13 @@ and making the predicate reducible means it does not have to.
   `2^((1+o(1)) ex(n,H))`)**: both are quoted by the source rather than proved, and both need
   `ex(n, H)` as a definition, which the project does not have. Conjecture 11.1.4 is **open
   mathematics** and must not be stated as a theorem.
-- **Triangle supersaturation**, the missing input to `container_triangle_free`. The most useful
-  thing anyone could add to this group.
+- **Triangle supersaturation**, the missing input to `container_triangle_free` — **and it is
+  reachable from Mathlib**, contrary to what this file said until 2026-09-15. PR #146 found the
+  route: `SimpleGraph.CliqueFree.card_edgeFinset_le` at `r = 2` is Mantel, which makes an
+  over-dense graph `ε`-far from triangle-free via `SimpleGraph.farFromTriangleFree_iff`, and the
+  triangle removal lemma `SimpleGraph.FarFromTriangleFree.le_card_cliqueFinset` then supplies the
+  triangle count with `c = SimpleGraph.triangleRemovalBound ε`. So this is a transcription
+  exercise, not new mathematics.
 
 
 ## The `d ≤ 2δn` proviso — and how three statements came to be false

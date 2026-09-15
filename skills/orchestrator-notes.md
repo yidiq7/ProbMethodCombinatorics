@@ -165,3 +165,66 @@ Concretely, before closing an issue or deleting a declaration:
 The recovery that worked: restore the declaration byte-identical to the PR's base commit, so the
 contributor's branch merges through the normal flow instead of being cherry-picked or closed.
 Their work stays theirs, and the protocol does the merge.
+
+
+## 2026-09-15 — `statement-immutability` caught a branch silently reverting a statement repair
+
+Worth recording because it is the single most valuable red check the project has had, and because
+the failure mode is invisible in the PR's own diff view.
+
+`exists_containers` and `exists_containers_fingerprint` were repaired (the missing `d ≤ 2δn`
+proviso) at `1e4659a`. PR #146's *head* lacked the hypothesis while its *base* had it — so
+merging would have reinstated a statement already proved false. The contributor's workspace
+predated the repair even though GitHub computed the merge base as after it: a stale workspace
+whose older copy of the declaration wins the merge. Same shape as the stale-pin reverts on #42
+and #48, but on a **statement** rather than a proof, which is strictly worse.
+
+Two consequences for how to run the loop:
+
+- **After repairing a statement, expect in-flight branches to revert it.** Any PR against that
+  file opened before the repair landed will carry the old text. Re-pinning open *tasks* does not
+  help — a branch already exists. The check is the only backstop, so never override
+  `statement-immutability` on a file whose statements were recently changed.
+- **`sorry-delta` reads the PR body at the moment it runs.** #146's audit reported
+  `submission: proof` despite a well-formed `choir-reduction` block, because the body was edited
+  one second after the check fired. The tell is the `submission:` line in the audit output: if it
+  says `proof` on a PR that declares a reduction, the gate did not see the block, and a re-push
+  fixes it. Do not go looking for a defect in the block.
+
+## 2026-09-15 — Commit messages: always a quoted heredoc, never `-m` with backticks
+
+`git commit -m "... the [backtick]submission:[backtick] line ..."` runs the backticked text as a
+command substitution, and the phrase silently vanishes from the message. It happened once here,
+and the message could not be repaired: `main` is a protected branch, so `--force-with-lease` is
+rejected — correctly, and I would not want it otherwise.
+
+Use `git commit -F -` with a **quoted** heredoc (`<<'EOF'`), which suppresses all expansion. Every
+other commit this session used that form; the one that used `-m` is the one that broke. The
+mangled message stands, because rewriting shared history to fix prose is the wrong trade.
+
+
+## 2026-09-15 — Lease age is the idle-turn diagnostic, and how to read it correctly
+
+With every task claimed and no PRs open, the useful thing to check is **how long each claim has
+been held**. It is the only visible form of the claim-and-release signal — `metrics struggle`
+counts failed *PRs* and sees nothing here — and it distinguishes "needs help" from "needs
+patience", which nothing else does.
+
+    gh issue list --repo <repo> --state open --label choir/claimed --json number
+    # then, per issue, the most recent comment containing `choir-lease`
+
+**Read `createdAt` of the most recent lease comment.** Two traps, both checked:
+
+- Heartbeat comments say "this comment is edited in place", which suggests `createdAt` is stale
+  and `updatedAt` should be used instead. In practice they are equal, and the in-body
+  "Lease refreshed …" timestamps can be *older* than the newest comment's creation, because they
+  belong to earlier heartbeat comments. Taking the freshest of the three measures agrees with
+  `createdAt` of the newest lease comment.
+- `sync-leases` has its own staleness threshold and will not release a lease at 5 hours, so a
+  stale-looking claim is not necessarily reclaimable. Do not wait for the label to change.
+
+What to do with a long hold depends on the diagnostic order already recorded above —
+**statement, then route, then decomposition.** On 2026-09-15 that ordering produced: #84
+decomposed (statement and route already verified, so decomposition was what was left), and #90
+given a targeted hint instead (its route is three lines; splitting it would not have helped, and
+the real cost was an associativity transport with a precedent already in the file).

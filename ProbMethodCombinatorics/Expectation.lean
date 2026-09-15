@@ -307,4 +307,82 @@ theorem card_edgeFinset_le_of_cliqueFree (G : SimpleGraph V) [DecidableRel G.Adj
 
 end IndependentSets
 
+/-! ### §2.4 Bounding by sampling -/
+
+/-- **A cheap sampling bound** (Zhao, Proposition 2.4.2; `sources/mit18_226_f22_lec_full.pdf`,
+printed p. 22 = PDF p. 28).  A tetrahedron-free 3-uniform hypergraph on `n ≥ 4` vertices has at
+most `(3/4) binom(n,3)` edges — stated as `4 |H| ≤ 3 binom(n,3)` so that everything stays in `ℕ`.
+
+`K₄⁽³⁾`, the tetrahedron, is the complete 3-graph on four vertices, so "tetrahedron-free" says
+that no four vertices carry all four of their triples.  The hypothesis is phrased as "every
+4-set has a triple outside `H`", which is the same thing and is what the proof consumes.
+
+**Route — this is linearity of expectation over a sampled 4-set, and it is short.**  Sample
+`S` uniformly among the 4-subsets.  If `|H| = p · binom(n,3)` then the expected number of edges
+inside `S` is `4p`; tetrahedron-freeness bounds that count by `3` pointwise, so `4p ≤ 3`.
+
+Equivalently, and this is the form to use in Lean, **double count** the pairs `(S, e)` with
+`|S| = 4`, `e ⊆ S`, `e ∈ H`:
+
+* each `e ∈ H` extends to exactly `n - 3` such `S`, giving `|H| (n-3)` pairs;
+* each `S` contributes at most `3`, giving at most `3 binom(n,4)`.
+
+So `|H| (n-3) ≤ 3 binom(n,4)`, and `4 binom(n,4) = binom(n,3) (n-3)` — the standard identity —
+turns that into the claim.  `Nat.succ_mul_choose_eq` or `Nat.choose_mul_succ_eq` is the
+Mathlib-side lever; the identity was verified for `n ≤ 11` before publication.
+
+**The bound is tight at `n = 4`** (it gives `|H| ≤ 3`, and three of the four triples is
+achievable), which is worth knowing because it rules out any proof that throws away a constant.
+Brute force also confirms `n = 5` gives `|H| ≤ 7`, matching Zhao's Lemma 2.4.3 exactly — that
+lemma is **not** stated here, and improving this proposition by sampling five vertices instead of
+four is a separate and better node.
+
+Chapter 2 is finite averaging throughout, with no measure theory; see `skills/conventions.md`. -/
+theorem card_le_of_tetrahedronFree {n : ℕ} (hn : 4 ≤ n) (H : Finset (Finset (Fin n)))
+    (h3 : ∀ e ∈ H, e.card = 3)
+    (hfree : ∀ S : Finset (Fin n), S.card = 4 → ∃ e ⊆ S, e.card = 3 ∧ e ∉ H) :
+    4 * H.card ≤ 3 * n.choose 3 := by
+  sorry
+
+/-! ### §2.5 Unbalancing lights -/
+
+/-- **Unbalancing lights** (Zhao, Theorem 2.5.1; `sources/mit18_226_f22_lec_full.pdf`, printed
+p. 23 = PDF p. 29).  For any `±1` matrix there are sign vectors `x`, `y` with
+
+    ∑ᵢⱼ aᵢⱼ xᵢ yⱼ ≥ n² · binom(n-1, ⌊(n-1)/2⌋) / 2^(n-1).
+
+**Stated exactly, with no `o(1)` and no central limit theorem.**  The book's form is
+`(√(2/π) + o(1)) n^{3/2}`, proved by computing `𝔼|Sₙ|` for a sum of `n` iid uniform signs via
+the CLT — but Zhao notes in passing that `𝔼|Sₙ| = n 2^{1-n} binom(n-1, ⌊(n-1)/2⌋)` exactly, and
+that identity is what is stated here.  It is strictly more informative than the asymptotic form,
+which it implies since the right-hand side is `~ √(2/π) n^{3/2}`.
+
+Mathlib does have a central limit theorem (`Probability/CentralLimitTheorem.lean`), so the
+book's route is not blocked — the exact route is simply better, and avoids needing
+`𝔼|X|` for a standard Gaussian.
+
+**Route.**  The half-random argument: choose the `yⱼ` uniformly and independently, set
+`Rᵢ = ∑ⱼ aᵢⱼ yⱼ`, and take `xᵢ` to be the sign of `Rᵢ` (either sign when `Rᵢ = 0`).  Then
+`∑ᵢⱼ aᵢⱼ xᵢ yⱼ = ∑ᵢ |Rᵢ|`.  Each `Rᵢ` is distributed as `Sₙ` — a sum of `n` iid uniform signs,
+because the `aᵢⱼ` are `±1` — so `𝔼 ∑ᵢ |Rᵢ| = n · 𝔼|Sₙ|`, and averaging gives one choice of `y`
+at least that good.  **The `Rᵢ` are not independent of each other, and the proof does not need
+them to be**; only the marginal distribution of each is used.
+
+The exact expectation is a binomial identity: `∑ₖ |2k - n| binom(n,k) = n · 2 binom(n-1, ⌊(n-1)/2⌋)`,
+which telescopes.  Verified against the direct sum for `n ≤ 14` before publication.
+
+**Tight at `n = 1` and `n = 2`** — brute force over all sign matrices gives worst-case values of
+exactly `1` and `2`, matching the bound — so no proof that loses a constant factor will do.
+`n = 0` is fine and needs no hypothesis: `ℕ` subtraction makes the bound `0`, and the empty sum
+is `0`.
+
+Chapter 2 is finite averaging throughout; no measure theory is needed, and the "random `y`" is a
+sum over `Finset` sign vectors. -/
+theorem exists_signs_sum_ge {n : ℕ} (a : Fin n → Fin n → ℝ)
+    (ha : ∀ i j, a i j = 1 ∨ a i j = -1) :
+    ∃ x y : Fin n → ℝ, (∀ i, x i = 1 ∨ x i = -1) ∧ (∀ j, y j = 1 ∨ y j = -1) ∧
+      (n : ℝ) ^ 2 * ((n - 1).choose ((n - 1) / 2) : ℝ) / 2 ^ (n - 1)
+        ≤ ∑ i, ∑ j, a i j * x i * y j := by
+  sorry
+
 end ProbMethodCombinatorics

@@ -542,3 +542,182 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   Notable: it reached for `Real.log_le_sub_one_of_pos` rather than Mathlib's concavity API, which
   is the idiom added to `skills/conventions.md` after my own route prose had been sending people
   at `ConcaveOn`.  The conventions file is being read.
+- **2026-09-15 — `statement-immutability` caught a branch reverting the Chapter 11 statement
+  repair.**  PR #146's head lacked the `d ≤ 2δn` hypothesis its own base carried: a stale
+  workspace whose older copy of the declaration won the merge.  Merging would have silently
+  reinstated a statement already proved false.  **After repairing a statement, expect in-flight
+  branches to revert it** — re-pinning open tasks does not help, because the branch already
+  exists, so the check is the only backstop.  Never override `statement-immutability` on a file
+  whose statements were recently changed.
+  Its companion red, `sorry-delta`, was a false alarm: the audit reported `submission: proof`
+  despite a well-formed reduction block, because the body was edited **one second** after the
+  check fired.  The `submission:` line is the tell.
+- **2026-09-15 — triangle supersaturation is reachable from Mathlib after all.**  #146 points out
+  that `SimpleGraph.CliqueFree.card_edgeFinset_le` at `r = 2` gives Mantel,
+  `SimpleGraph.farFromTriangleFree_iff` converts it, and
+  `SimpleGraph.FarFromTriangleFree.le_card_cliqueFinset` — the triangle removal lemma — supplies
+  the count with `c = SimpleGraph.triangleRemovalBound ε`.  `containers.md` had it recorded as
+  **missing from Mathlib and the most useful thing anyone could add**; it is instead a
+  transcription away.  Correcting that entry.
+- **2026-09-15 — #147 merged: the project's first `golf` task to land.**  One line in, 135 out,
+  collapsing the duplicated averaging argument so that `exists_isDominating_card_le` calls
+  `exists_isDominating_card_le_of_mem_Icc` instead of inlining it.  The earlier golf attempt
+  (#136) was blocked by `statement-immutability`, correctly — I had mis-published it, asking for
+  a deletion and a visibility change, neither of which is a proof-body edit.  This one is the
+  genuine article, and the contrast is the clearest statement of what `golf` means:
+  **same pinned statement, shorter body, nothing else moved.**
+- **2026-09-15 — #146 merged: Theorem 11.1.1 reduced honestly, and the obligations are true.**
+  `exists_containers_triangleFree` is now proved modulo two new nodes, **#148** (triangle
+  supersaturation) and **#149** (one step of the Remark 11.2.2 iteration).  Unlike #143's
+  obligations, I checked these against the pair that killed that attempt and **both survive**:
+  `n ≤ 2` is vacuous, `n = 3` and `Kₙ` impose only *upper* bounds on `δ`, and a smaller `δ` is a
+  weaker claim — so there is no budget that can collapse below `1` and force an existential
+  empty.  **That collapse is the failure mode to test for in this chapter**, and a statement
+  whose constraints are all one-directional cannot exhibit it.
+  The iteration is the real one: `K` rounds with `(1-δ)^K ≤ 1/4` from the `n²` starting bound
+  lands under `(1/4+ε)n²`, with the count accumulating to `n^((K+1)C₀·n^{3/2})` — Remark 11.2.2
+  rather than a single application passed off as the iterated one.
+- **2026-09-15 — triangle supersaturation verified reachable from Mathlib**, correcting this
+  file's earlier claim that it was missing and "the most useful thing anyone could add".  All
+  four names checked against the pinned Mathlib: `CliqueFree.card_edgeFinset_le`
+  (`Extremal/Turan.lean:422`), `farFromTriangleFree_iff` (`Triangle/Basic.lean:192`),
+  `FarFromTriangleFree.le_card_cliqueFinset` (`Triangle/Removal.lean:137`) and
+  `triangleRemovalBound` (`Triangle/Removal.lean:41`) — with `triangleRemovalBound_pos` at line
+  44 supplying exactly the positivity the `∃ c > 0` needs.  **A "not in Mathlib" note in a
+  roadmap is a claim with a shelf life; this one was wrong.**
+- **2026-09-15 — Chapter 4's first application stated.**  With every open task claimed and no
+  PRs to review, the remaining orchestrator work is the material each group file lists under
+  "planned, not stated" — that is real book content, and stating it is my job rather than
+  something to wait on.  `le_card_of_distinctSubsetSums` (Theorem 4.6.3, task #151) is the most
+  tractable of Chapter 4's five: **no random graphs**, and an explicit constant, so it needs no
+  `o(1)` idiom.  Checked against the Conway–Guy minimal witnesses for `k ≤ 8` before publishing.
+  Erdős's Conjecture 4.6.2 is open mathematics and is deliberately not stated — the standing
+  rule that a conjecture in the source must never be transcribed as a theorem.
+- **2026-09-15 — Hardy–Ramanujan (§4.5) is blocked on Mertens, which Mathlib lacks.**  The
+  roadmap had recorded it as the most tractable of Chapter 4 because
+  `ArithmeticFunction.cardDistinctFactors` exists and the statement is expressible.  **That
+  inference was wrong: expressible is not tractable.**  Turán's proof needs
+  `∑_{p ≤ n} 1/p = log log n + O(1)` to compute the mean, and `Mathlib/NumberTheory/` has no
+  Mertens estimate in any form.  Corrected rather than published — handing out a task whose
+  analytic input does not exist would cost a contributor a day to discover.
+  This is the mirror of the supersaturation correction earlier today: one roadmap note was
+  **too pessimistic** about Mathlib (triangle removal was there all along), this one **too
+  optimistic**.  Both were written from a search for the *statement's* vocabulary rather than
+  for the *proof's* inputs.  Search for what the proof needs.
+- **2026-09-15 — #150 merged: triangle supersaturation is proved.**  Unconditional, via the
+  Mathlib route the contributor identified on #146 and I verified before publishing.  **The
+  normalisation trap I flagged did not bite**: Mathlib's `FarFromTriangleFree ε` is measured
+  against `ε · card²`, so `(1/4 + ε)n² − n²/4 = εn²` lines up with no rescaling.  The factor of
+  six between ordered triples and 3-cliques is handled by *not needing it* — a surjection from
+  triples onto cliques gives the lower bound the statement wants, and the overcount only helps.
+  `exists_containers_triangleFree` is now down to a single obligation, #149.
+- **2026-09-15 — Lemma 4.3.7 stated and published (#152).**  Reversed my earlier judgment that
+  the board did not need more tasks: that reasoning would leave the statement layer permanently
+  incomplete, and the statement layer is the orchestrator's responsibility regardless of queue
+  depth.  An unclaimed task costs nothing; an unstated theorem is never proved.
+  Stated with the general hypothesis `1 - (1-q)^m ≤ p` in place of the book's `q = p/m` — it is
+  what the argument needs, it is strictly more general, and it avoids producing `p/m` in
+  `unitInterval`.  **The direction was checked numerically before committing**, because it
+  inverts easily: the union of `m` copies of `Ω_q` has density *at most* `p`, not at least.
+  Placed in `Correlation.lean` rather than `SecondMoment.lean`.  **Roadmap chapter boundaries
+  need not match file boundaries** — this is a `setBernoulli`-and-upper-sets statement, which is
+  Chapter 7's subject, and forcing it into Chapter 4's file would have meant duplicating that
+  layer.
+- **2026-09-15 — Theorem 4.3.5 stated as #153, because #152's prose asked for it.**  That is the
+  "request the node, don't bury it" loop working for the fourth time (after triangle
+  supersaturation, the Janson conditioning step, and Corollary 10.4.7).  Stated **non-strictly**:
+  the book's 4.3.5 is strictly increasing and needs `F` non-trivial, but nothing downstream uses
+  strictness and dropping non-triviality makes it a side-condition-free shared-layer fact.  **A
+  strengthening nobody consumes is a liability, not a bonus** — it would have forced every caller
+  to discharge non-triviality.
+
+## The unstated remainder, audited (2026-09-15)
+
+Four chapters carry unstated book content.  Each item below was checked against **what its proof
+needs**, not what its statement mentions — the distinction that produced two wrong notes in this
+file earlier today, one in each direction.  Three categories, and they call for different
+responses:
+
+**(a) Everything present — state it.**  Done this session: §4.6 distinct sums (#151), §4.3
+multiple round exposure (#152), §4.3 monotonicity (#153).
+
+**(b) Blocked on Mathlib infrastructure that does not exist.**  Do not publish these; a task
+whose analytic input is absent costs a contributor a day to discover.
+- §4.5 Hardy–Ramanujan, §4.5 Erdős–Kac — **no Mertens theorem** (`∑_{p≤n} 1/p = log log n + O(1)`);
+  nothing in `Mathlib/NumberTheory/`.
+- §2.2 large sum-free subsets — **no `IsSumFree`** (`ThreeAPFree` is a different notion) *and*
+  **no primes in arithmetic progressions** (`PrimesCongruentOne` is `≡ 1 mod k` only; no
+  Dirichlet).
+- §2.5 unbalancing lights — needs a central limit estimate.
+- §2.6 crossing number — needs Euler's formula for planar graphs.
+- §10.3 Sidorenko — needs homomorphism counts and graphons; and its general case is **open
+  mathematics**, so only the proved special case could ever be stated.
+
+**(c) Real work on infrastructure that does exist.**  Statable whenever there is capacity; these
+are the honest growth path.
+- §9.2 Azuma — `Martingale`, `Filtration` and `condExp` are all present; Azuma itself is not.
+  Everything in §9.3–§9.6 is downstream of it.
+- §10.2 Kahn–Lovász — needs two orchestrator-authored definitions first (a count of perfect
+  matchings, and the bipartite double cover; note `boxProd` is the **Cartesian** product and
+  would silently build the wrong graph).
+- §4.3 Bollobás–Thomason, §4.1/§4.2 thresholds, §4.4 clique number — all need an `ε`–`N` or
+  `whp` idiom plus, for §4.2, a definition of `m(H)`.
+- §11.1.3 / §11.1.5 — need `ex(n, H)` and a `whp` idiom.
+- §2.4 hypergraph Turán sampling — not yet assessed; the most likely of Chapter 2's four to be
+  tractable.
+
+**The standing rule this audit enforces:** a "not in Mathlib" note has a shelf life, and a
+"Mathlib has the vocabulary" note is not evidence of tractability.  Re-check before publishing,
+and search for the proof's inputs.
+- **2026-09-15 — #84 decomposed after two silent releases; Gibbs' inequality is now #154.**
+  Lease ages made the case: #84 and #90 had each been held **5+ hours with no PR**, and #98 has
+  now been claimed **four times**.  For #84 the diagnostic order was already exhausted —
+  statement verified, route corrected — so decomposition was the remaining lever.
+  `sum_negMulLogb_le_logb_card` carries all the mathematics with **no `probOf`, no `entropy`, no
+  measure**: finitely many nonnegative reals summing to `1`.  Verified on 20000 random
+  weightings, and *tight* at the uniform weighting, so no shortcut exists.  What remains in #84
+  is `Finset.sum_subset` plus `sum_probOf` — a handful of lines.
+  **Checking lease age is the cheap diagnostic I should run every idle turn.**  It is the only
+  visible form of the claim-and-release signal, which `metrics struggle` cannot see, and it is
+  what told me which of the five claimed nodes needed help rather than patience.
+
+## Source page map (read the TOC once, 2026-09-15)
+
+**`PDF page = printed page + 6`.**  Recorded because locating a statement by trial-and-error
+cost four wasted PDF reads in one session; the table of contents is at PDF pp. 5–6 and settles it
+in one.
+
+| § | topic | printed | § | topic | printed |
+|---|---|---|---|---|---|
+| 1.1–1.4 | Ramsey, set systems, 2-colouring, list chromatic | 1, 7, 10, 12 | 7.1–7.2 | Harris–FKG, applications | 107, 110 |
+| 2.1–2.6 | Hamiltonian paths, sum-free, Turán, sampling, unbalancing lights, crossing number | 17, 18, 19, 21, 23, 25 | 8.1–8.3 | non-existence, lower tails, chromatic number | 115, 121, 124 |
+| 3.1–3.5 | dominating set, Heilbronn, Markov, girth+chromatic, greedy colouring | 29, 30, 31, 32, 33 | 9.1–9.6 | bounded differences, **martingales 130**, chromatic 135, isoperimetry 139, Talagrand 152, TSP 162 | 129 |
+| 4.1–4.7 | triangle 37, subgraph thresholds 42, thresholds 46, clique number 55, Hardy–Ramanujan 57, distinct sums 61, Weierstrass 63 | 37 | 10.1–10.4 | basics 173, permanent/Steiner 178, Sidorenko 185, Shearer 190 | 173 |
+| 5.1–5.3 | discrepancy, equiangular, Hajós | 71, 73, 75 | 11.1–11.3 | triangle-free containers 203, graph containers 206, hypergraph 208 | 201 |
+| 6.1–6.6 | LLL, colouring, transversals, cycles, lopsided, algorithmic | 79, 83, 89, 90, 92, 97 | | | |
+
+**Chapter starts (printed):** 1 · 17 · 29 · 37 · 69 · 79 · 107 · 115 · 129 · 173 · 201.
+- **2026-09-15 — #156 merged: Gibbs' inequality is proved, one hour after the decomposition.**
+  #84 had been claimed and released twice; splitting its mathematics into `gibbs_inequality`
+  (#154) produced a claim within minutes and a correct PR within the hour.  **That is the
+  decomposition diagnostic earning its keep** — the statement and route had already been
+  checked, so the shape of the task was the only remaining variable.
+  The proof used `Real.log_le_sub_one_of_pos` rather than Mathlib's `ConcaveOn` API, which is
+  the convention added after my original #84 prose pointed at `ConcaveOn` and named
+  `Finset.inner_le_nnorm_mul_nnorm` — Cauchy–Schwarz, not Jensen.  A convention written down
+  after a mistake was followed by the next contributor to touch the area.
+  **#84 is now `Finset.sum_subset` plus `sum_probOf` away from closing**, and with it Brégman–Minc
+  and the triangle-intersecting bound go unconditional.
+- **2026-09-15 — #158 merged: monotonicity of the satisfying probability.**  Landed within the
+  hour, via Zhao's **Proof 2** (two-round exposure) — the route the task prose flagged as likely
+  easier because it stays inside `setBernoulli` rather than needing a `[0,1]`-valued coupling
+  field.  It unblocks #152, whose step 2 is exactly this.
+  The contributor found **`setBernoulli_cylinder`**, which I did not know existed when writing
+  the task and which computes cylinder measures in one step.  Recorded in `correlation.md`;
+  this project has written that computation out longhand more than once.
+  Pattern worth noting across #150, #156 and #158, all merged within about an hour of
+  publication: each landed on a node whose prose had done real work — correcting a wrong route,
+  choosing between the source's two proofs, or separating mathematics from bookkeeping.  The
+  nodes that sat for five hours were the ones where I had given a bad route (#84) or bundled two
+  kinds of work (#15, #60).  **Prose quality tracks throughput about as closely as statement
+  quality does.**

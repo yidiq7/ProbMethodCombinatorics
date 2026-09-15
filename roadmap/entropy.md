@@ -107,7 +107,21 @@ remarks in the notes and are not stated.
   **open mathematics**, so any statement here must be the proved special case, not the
   conjecture.
 - **Corollary 10.2.2 (Kahn–Lovász)**, `pm(G) ≤ ∏ (d_v!)^(1/2d_v)`. Reduces to `bregman_minc`
-  via the bipartite double cover, but the notes leave the reduction as an exercise.
+  via the bipartite double cover, but the notes leave the reduction as an exercise — and,
+  checked 2026-09-15, **two of the three things it needs are missing from Mathlib**:
+
+  * **No count of perfect matchings.** `SimpleGraph.Subgraph.IsPerfectMatching` exists as a
+    *predicate* (`Matching.lean:236`), but there is no `Finset` of perfect matchings and no
+    cardinality function, so `pm(G)` has to be defined here.
+  * **No bipartite double cover — and `boxProd` is the wrong product.** Mathlib's `□`
+    (`Prod.lean:43`) is the *Cartesian* product: `(u,i) ~ (v,j)` iff `u = v ∧ i ~ j` or
+    `i = j ∧ u ~ v`. The double cover `G × K₂` is the *tensor* product, `u ~ v ∧ i ≠ j`.
+    **Reaching for `boxProd` would silently build the wrong graph**, and every theorem about it
+    would then be true and useless.
+
+  So this needs two orchestrator-authored definitions before it is publishable, and its only
+  consumer (`bregman_minc`) is itself still modulo `entropy_le_logb_card`. Deferred until
+  something actually needs it — the discipline `setBernoulliPi` failed.
 - **Steiner triple systems** (§10.2) and the **Kahn–Zhao** bound `i(G) ≤ i(K_{d,d})^{n/2d}`
   (Theorem 10.4.12) and **Galvin–Tetali** (Theorem 10.4.14). All are real formalization
   projects on their own; they are the right place to expect reductions rather than single PRs.

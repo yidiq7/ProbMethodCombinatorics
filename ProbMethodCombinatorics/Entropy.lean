@@ -113,6 +113,74 @@ theorem entropy_nonneg (hp : ∀ ω, 0 ≤ p ω) (hp1 : ∑ ω, p ω = 1) (X : �
   have hlog : Real.logb 2 (probOf p X s) ≤ 0 := Real.logb_nonpos one_lt_two h0 h1
   nlinarith
 
+/-- **Gibbs' inequality**, in the form the uniform bound needs: a probability weighting on a
+finite set `A` has Shannon entropy at most `log₂ |A|`.
+
+Split out of `entropy_le_logb_card` after that task was claimed and released twice with no PR.
+**This is all of its mathematical content**, stated over an arbitrary weight function so that no
+`probOf`, no `entropy` and no measure appears — it is a fact about finitely many nonnegative
+reals summing to `1`, and nothing else.
+
+**Route.** The elementary one, which is this project's house style for entropy sums and is
+shorter here than Mathlib's `ConcaveOn` API — see the conventions note. Write `m = A.card`. For
+each `s`, `Real.log_le_sub_one_of_pos` at `1 / (w s * m)` gives
+
+    w s * log (1 / (w s * m)) ≤ w s * (1 / (w s * m) - 1),
+
+and summing the right-hand side over `A` telescopes to `m * (1/m) - 1 = 0` using `hw1`.
+Rearranging gives `∑ -w s * log (w s) ≤ log m`, and dividing by `Real.log 2 > 0` converts to
+`Real.logb`. The `w s = 0` terms vanish on both sides, since `Real.logb 2 0 = 0`, so they need
+no separate case.
+
+`entropy_pair_le_add` in this file is the worked precedent for both the `log t ≤ t - 1` step and
+the closing `Real.logb`-to-`Real.log` rescaling.
+
+Verified on 20000 random weightings before publication; `A = ∅` is vacuous because `hw1` would
+read `0 = 1`, and `A` a singleton gives `0 ≤ 0`. -/
+theorem sum_negMulLogb_le_logb_card {S : Type*} (A : Finset S) (w : S → ℝ)
+    (hw0 : ∀ s ∈ A, 0 ≤ w s) (hw1 : ∑ s ∈ A, w s = 1) :
+    ∑ s ∈ A, -w s * Real.logb 2 (w s) ≤ Real.logb 2 (A.card : ℝ) := by
+  have hL : (0 : ℝ) < Real.log 2 := Real.log_pos (by norm_num)
+  have hne : A.Nonempty := by
+    rcases A.eq_empty_or_nonempty with rfl | h
+    · rw [Finset.sum_empty] at hw1
+      exact absurd hw1 (by norm_num)
+    · exact h
+  have hm : (0 : ℝ) < (A.card : ℝ) := by exact_mod_cast Finset.card_pos.mpr hne
+  have hmne : (A.card : ℝ) ≠ 0 := ne_of_gt hm
+  have key : ∀ x : ℝ, 0 ≤ x →
+      -x * Real.log x ≤ x * Real.log (A.card : ℝ) + (1 / (A.card : ℝ) - x) := by
+    intro x hx
+    rcases hx.eq_or_lt with rfl | hx0
+    · simp only [neg_zero, zero_mul, Real.log_zero, mul_zero, zero_add, sub_zero]
+      exact le_of_lt (one_div_pos.mpr hm)
+    · have hxm : (0 : ℝ) < x * (A.card : ℝ) := mul_pos hx0 hm
+      have h1 : Real.log (1 / (x * (A.card : ℝ))) ≤ 1 / (x * (A.card : ℝ)) - 1 :=
+        Real.log_le_sub_one_of_pos (one_div_pos.mpr hxm)
+      have h2 := mul_le_mul_of_nonneg_left h1 hx
+      rw [Real.log_div one_ne_zero (ne_of_gt hxm), Real.log_one,
+        Real.log_mul (ne_of_gt hx0) hmne] at h2
+      have h3 : x * (1 / (x * (A.card : ℝ)) - 1) = 1 / (A.card : ℝ) - x := by
+        field_simp
+      rw [h3] at h2
+      nlinarith [h2]
+  have hsum : ∑ s ∈ A, -w s * Real.log (w s) ≤ Real.log (A.card : ℝ) := by
+    have hle : ∑ s ∈ A, -w s * Real.log (w s)
+        ≤ ∑ s ∈ A, (w s * Real.log (A.card : ℝ) + (1 / (A.card : ℝ) - w s)) :=
+      Finset.sum_le_sum fun s hs => key (w s) (hw0 s hs)
+    have hrhs : ∑ s ∈ A, (w s * Real.log (A.card : ℝ) + (1 / (A.card : ℝ) - w s))
+        = Real.log (A.card : ℝ) := by
+      rw [Finset.sum_add_distrib, ← Finset.sum_mul, hw1, one_mul, Finset.sum_sub_distrib,
+        hw1, Finset.sum_const, nsmul_eq_mul, mul_one_div, div_self hmne, sub_self, add_zero]
+    exact hrhs ▸ hle
+  calc ∑ s ∈ A, -w s * Real.logb 2 (w s)
+      = (∑ s ∈ A, -w s * Real.log (w s)) * (Real.log 2)⁻¹ := by
+        rw [Finset.sum_mul]
+        exact Finset.sum_congr rfl fun s _ => by rw [Real.logb]; ring
+    _ ≤ Real.log (A.card : ℝ) * (Real.log 2)⁻¹ :=
+        mul_le_mul_of_nonneg_right hsum (le_of_lt (inv_pos.mpr hL))
+    _ = Real.logb 2 (A.card : ℝ) := by rw [Real.logb]; ring
+
 /-- **Uniform bound** (Lemma 10.1.4): `H(X) ≤ log₂ |support X|`.  The support is supplied as a
 finset `A` containing it, which avoids needing decidable equality on `ℝ`; taking `A` to be the
 support itself gives the statement in the book. -/

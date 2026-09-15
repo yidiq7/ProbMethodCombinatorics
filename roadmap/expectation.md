@@ -5,11 +5,26 @@ a statistic over a family of objects, then take an object at least as good as th
 No independence is needed anywhere in it, which is exactly why the finite-averaging
 formalization works.
 
-Two of the chapter's six sections are stated so far.  §2.2 (large sum-free subsets),
-§2.4 (sampling bounds for the hypergraph Turán problem), §2.5 (unbalancing lights) and
-§2.6 (the crossing number inequality) are planned but unstated; §2.5 and §2.6 need
-analytic input (a central limit estimate, Euler's formula) that the project does not yet
-have.
+Two of the chapter's six sections are stated so far.  The other four are unstated, and as of
+2026-09-15 each has a **named blocker** rather than merely being pending:
+
+- **§2.2 (large sum-free subsets)** — blocked twice over.  Mathlib has no `IsSumFree`
+  (`ThreeAPFree` is a different notion — three-term progressions, not sums), so the predicate
+  would have to be authored here; and Erdős's proof needs a prime `p ≡ 2 (mod 3)` above the
+  largest element, which needs primes in an arithmetic progression.  `PrimesCongruentOne.lean`
+  covers only `≡ 1 mod k`, and Mathlib has no Dirichlet theorem.
+- **§2.4 (sampling bounds for the hypergraph Turán problem)** — **assessed and stated
+  2026-09-15** as `card_le_of_tetrahedronFree` (Proposition 2.4.2).  Fully tractable: finite,
+  entirely in `ℕ`, a self-contained double count, no missing Mathlib input.  Tight at `n = 4`.
+  Lemma 2.4.3 and the five-vertex refinement are separate nodes, not yet stated; Question 2.4.1
+  itself is a **notorious open problem** and must never be stated.
+- **§2.5 (unbalancing lights)** — **stated 2026-09-15** as `exists_signs_sum_ge`.  My earlier
+  note here ("needs a central limit estimate") was wrong twice over: Mathlib *does* have a CLT
+  (`Probability/CentralLimitTheorem.lean`), and the book itself gives an **exact** binomial
+  identity for `𝔼|Sₙ|` that avoids the CLT entirely.  Stated exactly, therefore, with no `o(1)`
+  — strictly stronger than the book's `(√(2/π) + o(1)) n^{3/2}`.  Theorem 2.5.2 remains
+  unstated and is harder (a compactness argument for the parameters).
+- **§2.6 (the crossing number inequality)** — needs Euler's formula for planar graphs.
 
 ## `hamilton_paths` — `ProbMethodCombinatorics.hamiltonPaths`
 
@@ -55,3 +70,35 @@ of `x ↦ 1/(n - x)`.  Mathlib's `SimpleGraph.IsTuranMaximal` development proves
 stronger structural theorem (the extremal graph is the Turán graph) but never states this
 bound, so either route is open: derive it from `caro_wei` as the book does, or count the
 edges of `turanGraph n r` and quote Mathlib's extremal result.
+
+
+## §2.4 Bounding by sampling
+
+`sampling_bound` (Proposition 2.4.2) is stated: `4 |H| ≤ 3 binom(n,3)` for a tetrahedron-free
+3-graph on `n ≥ 4` vertices.  Kept entirely in `ℕ` rather than carrying the `3/4`.
+
+Done as a **double count** rather than as expectation over a sampled 4-set, which is the same
+argument and avoids introducing a probability space for a finite average — Chapter 2's standing
+convention.  The identity that closes it is `4 binom(n,4) = binom(n,3) (n-3)`.
+
+Verified tight at `n = 4`, and brute force at `n = 5` reproduces Zhao's Lemma 2.4.3 (maximum 7)
+exactly — a useful cross-check that the encoding of "tetrahedron-free" is the intended one.
+
+
+## §2.5 Unbalancing lights
+
+`unbalancing_lights` is stated **exactly**: `∑ᵢⱼ aᵢⱼ xᵢ yⱼ ≥ n² binom(n-1,⌊(n-1)/2⌋) / 2^{n-1}`.
+
+The section had been recorded as blocked on a central limit estimate.  That was wrong on both
+counts — Mathlib has a CLT, and the book notes an exact closed form for `𝔼|Sₙ|` which makes the
+CLT unnecessary.  **An exact statement is better than an asymptotic one whenever the source
+offers the identity**: it needs no `ε`–`N` idiom, it is strictly stronger, and it can be checked
+numerically.
+
+Verified before publication: the identity against the direct sum for `n ≤ 14`, and the claim by
+brute force over *all* `±1` matrices for `n ≤ 3`.  **Tight at `n = 1, 2`**, so no
+constant-losing proof will do.
+
+The interesting feature for a reader is that the `Rᵢ = ∑ⱼ aᵢⱼ yⱼ` are **not independent** of one
+another and the proof does not need them to be — only each marginal matters.  The task prose says
+so explicitly, because it is the natural thing to go looking for and it is false.

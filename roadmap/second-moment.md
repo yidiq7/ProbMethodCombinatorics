@@ -50,15 +50,76 @@ idempotent, so `Var X i ≤ 𝔼 X i`), and bound each remaining term by `ℙ(A 
 ## Planned, not stated
 
 - **`triangle_threshold`** — Proposition 4.1.2 and Theorem 4.1.11: `1/n` is the threshold
-  for `G(n,p)` to contain a triangle. Needs a triangle-count random variable over
-  `G(Fin n, p)` and its first two moments; that count and its expectation are the natural
-  next nodes once `variance_indicator_bound` lands.
+  for `G(n,p)` to contain a triangle.  **Assessed 2026-09-15: §4.1's non-asymptotic content is
+  already complete.**  Corollary 4.1.7 *is* the proved `prob_eq_zero_le_variance_div_sq`,
+  Chebyshev (4.1.5) is upstream as `meas_ge_le_variance_div_sq`, and Definition 4.1.3 is
+  Mathlib's `variance`.  Everything that remains in the section — 4.1.2, 4.1.8, 4.1.11 — is
+  **asymptotic**, and needs two things the project does not have: a triangle-count random
+  variable over `binomialRandom` (an orchestrator-authored definition) and a settled `whp`
+  idiom.  The natural first nodes are then the two finite moment computations,
+  `𝔼X = binom(n,3) p³` and the variance bound; those are publishable the moment the count
+  exists.
 - **`subgraph_threshold`** — Theorem 4.2.10 (Bollobás 1981): `n^{-1/m(H)}` is the
   threshold for containing a fixed `H`, where `m(H)` is the maximum edge-vertex ratio over
   subgraphs. Needs Definition 4.2.7 (`ρ`, `m`) as shared definitions first.
 - **`clique_number`** — §4.4, the clique number of a random graph.
-- **`hardy_ramanujan`** — §4.5. Mathlib has `ArithmeticFunction.cardDistinctFactors` (`ω`),
-  so the statement is expressible; Turán's second-moment proof is the route. This is the
-  one section of the chapter that needs no random graphs at all and may well be stated
-  before the others.
-- **`distinct_sums`** — §4.6, Erdős's distinct-sums problem.
+- **`hardy_ramanujan`** — §4.5. **Blocked on Mertens' theorem, which Mathlib does not have.**
+  The earlier note here said the statement is expressible — `ArithmeticFunction.cardDistinctFactors`
+  (`ω`) exists — and inferred that this section would therefore be the easiest of the chapter.
+  That inference was wrong, and it is the trap worth naming: **expressible is not tractable.**
+  Turán's second-moment proof needs `∑_{p ≤ n} 1/p = log log n + O(1)` to compute `𝔼X`, and a
+  search of `Mathlib/NumberTheory/` finds no Mertens estimate in any form — no sum of prime
+  reciprocals, no `log log` asymptotic. Supplying it is an analytic-number-theory project, not a
+  task, so §4.5 stays unstated until Mathlib grows one. Theorem 4.5.3 (Erdős–Kac) is further out
+  still, needing the method of moments on top.
+- ~~**`distinct_sums`**~~ — **stated 2026-09-15** as `le_card_of_distinctSubsetSums`, task #151.
+  See §4.6 below.
+
+
+## §4.6 Distinct sums
+
+`distinct_sums` (Theorem 4.6.3) is stated: `3 · 2^k ≤ 8 √k · n` whenever a `k`-element subset of
+`[n]` has all `2^k` subset sums distinct. It was the first of the chapter's applications to be
+stated because it is the only one needing **no random graphs at all** — the randomness is a
+uniform sign vector — and because it comes with an explicit constant, so no `o(1)` idiom is
+required.
+
+It is also the chapter's best advertisement for its own method: the pigeonhole bound
+`n ≥ 2^k/k` has to account for every subset sum, while the second moment lets you discard the
+outliers Chebyshev says are rare, buying a factor of `√k`.
+
+Verified against the known minimal witnesses for `k ≤ 8` — the Conway–Guy sequence
+`1, 2, 4, 7, 13, 24, 44, 84` — before publication. The bound is comfortably slack at small `k`
+(at `k = 3` it forces only `n ≥ 2` where the truth is `4`).
+
+`hk : 0 < k` is load-bearing: at `k = 0` the claim reads `3 ≤ 0`.
+
+**Deliberately not stated.** Conjecture 4.6.2 (`n ≳ 2^k`, Erdős's \$300 problem) is **open
+mathematics**. Theorem 4.6.6 (Dubroff–Fox–Xu) improves the constant via Harper's
+vertex-isoperimetric inequality and is a separate, harder node.
+
+
+## §4.3 Thresholds
+
+`multiple_round_exposure` (Lemma 4.3.7) is **stated**, as
+`prob_notMem_le_pow_of_isUpperSet`, task #152 — but it lives in `Correlation.lean`, not here.
+It is a statement about `setBernoulli` and upper sets, which is that file's subject, and this
+file has no random-subset machinery at all. Chapter boundaries in the roadmap do not have to
+match file boundaries, and forcing them to would mean duplicating the Chapter 7 layer.
+
+Stated with the general hypothesis `1 - (1-q)^m ≤ p` rather than the book's `q = p/m`: that is
+what the argument needs (it says the union of `m` copies of `Ω_q` is dominated by `Ω_p`), it
+avoids producing `p/m` as an element of `unitInterval`, and `q = p/m` is the special case by
+Bernoulli. The direction was checked numerically for `m ≤ 10` because it inverts easily —
+the union's density is **at most** `p`, not at least.
+
+Theorem 4.3.5 (monotonicity of `p ↦ ℙ(Ω_p ∈ F)`) is **also stated**, as
+`prob_mem_mono_of_isUpperSet`, task #153 — requested by #152's contributor exactly as that
+task's prose invited, rather than buried as a private `have`. It is stated **non-strictly**: the
+book says strictly increasing, which needs `F` non-trivial, but strictness is used nowhere
+downstream and dropping non-triviality makes it applicable with no side conditions. A strict
+version, if ever wanted, belongs in its own node.
+
+**Still unstated in §4.3:** Theorem 4.3.6 (Bollobás–Thomason) itself, which is asymptotic and
+needs the `ε`–`N` idiom, plus Examples 4.3.8/4.3.9 which are asymptotic statements about
+`G(n,p)`.
