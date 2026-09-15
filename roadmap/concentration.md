@@ -52,3 +52,27 @@ more versatile: the `cᵢ` there can be smaller than a worst-case Lipschitz boun
   a concentration function on the Hamming cube, Talagrand's convex distance, and a
   subadditive-Euclidean-functional framework respectively. They are listed so the plan is
   honest about the chapter's extent, not because they are close.
+
+
+## Mathlib audit for the unstated remainder (2026-09-15)
+
+Checked what each blocked item's *proof* needs, not just its statement's vocabulary — the
+distinction that has now produced two wrong roadmap notes elsewhere in this project.
+
+- **Azuma (9.2.7–9.2.9).** Mathlib **has** `Martingale` with `Filtration`
+  (`Probability/Martingale/Basic.lean:53`) and conditional expectation, and it **has** Hoeffding
+  for sums of *independent* sub-Gaussians (`measure_sum_ge_le_of_iIndepFun`,
+  `Moments/SubGaussian.lean:780`) — which is what this project's already-proved
+  `measure_sub_integral_ge_le` runs on. What it does **not** have is Azuma itself: the
+  martingale-difference version. So this is **real work on existing infrastructure**, not a
+  missing-infrastructure block like §4.5's Mertens. Statable whenever someone wants it.
+
+  *Search warning:* grepping Mathlib for "Azuma" returns `Mathlib/Algebra/Azumaya/*` — Azumaya
+  algebras, entirely unrelated. A name-substring hit is not evidence the result exists.
+
+- **9.3.1 Shamir–Spencer, §9.4 isoperimetry, §9.5 Talagrand, §9.6 Euclidean TSP.** All still
+  research-level, and all downstream of Azuma. No change.
+
+Note the project already has the chapter's headline result — the bounded differences inequality
+— proved via the *independent* route rather than through martingales, so nothing here blocks
+Chapter 9's existing content.
