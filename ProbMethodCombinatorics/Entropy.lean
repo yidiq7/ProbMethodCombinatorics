@@ -113,6 +113,35 @@ theorem entropy_nonneg (hp : ∀ ω, 0 ≤ p ω) (hp1 : ∑ ω, p ω = 1) (X : �
   have hlog : Real.logb 2 (probOf p X s) ≤ 0 := Real.logb_nonpos one_lt_two h0 h1
   nlinarith
 
+/-- **Gibbs' inequality**, in the form the uniform bound needs: a probability weighting on a
+finite set `A` has Shannon entropy at most `log₂ |A|`.
+
+Split out of `entropy_le_logb_card` after that task was claimed and released twice with no PR.
+**This is all of its mathematical content**, stated over an arbitrary weight function so that no
+`probOf`, no `entropy` and no measure appears — it is a fact about finitely many nonnegative
+reals summing to `1`, and nothing else.
+
+**Route.** The elementary one, which is this project's house style for entropy sums and is
+shorter here than Mathlib's `ConcaveOn` API — see the conventions note. Write `m = A.card`. For
+each `s`, `Real.log_le_sub_one_of_pos` at `1 / (w s * m)` gives
+
+    w s * log (1 / (w s * m)) ≤ w s * (1 / (w s * m) - 1),
+
+and summing the right-hand side over `A` telescopes to `m * (1/m) - 1 = 0` using `hw1`.
+Rearranging gives `∑ -w s * log (w s) ≤ log m`, and dividing by `Real.log 2 > 0` converts to
+`Real.logb`. The `w s = 0` terms vanish on both sides, since `Real.logb 2 0 = 0`, so they need
+no separate case.
+
+`entropy_pair_le_add` in this file is the worked precedent for both the `log t ≤ t - 1` step and
+the closing `Real.logb`-to-`Real.log` rescaling.
+
+Verified on 20000 random weightings before publication; `A = ∅` is vacuous because `hw1` would
+read `0 = 1`, and `A` a singleton gives `0 ≤ 0`. -/
+theorem sum_negMulLogb_le_logb_card {S : Type*} (A : Finset S) (w : S → ℝ)
+    (hw0 : ∀ s ∈ A, 0 ≤ w s) (hw1 : ∑ s ∈ A, w s = 1) :
+    ∑ s ∈ A, -w s * Real.logb 2 (w s) ≤ Real.logb 2 (A.card : ℝ) := by
+  sorry
+
 /-- **Uniform bound** (Lemma 10.1.4): `H(X) ≤ log₂ |support X|`.  The support is supplied as a
 finset `A` containing it, which avoids needing decidable equality on `ℝ`; taking `A` to be the
 support itself gives the statement in the book. -/
