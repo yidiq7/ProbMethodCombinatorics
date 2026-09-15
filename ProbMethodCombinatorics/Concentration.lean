@@ -515,6 +515,207 @@ theorem measure_martingale_sub_ge_le {Ω : Type*} {m0 : MeasurableSpace Ω} {μ 
     {lam : ℝ} (hlam : 0 < lam) (hsum : 0 < ∑ i ∈ Finset.Icc 1 n, c i ^ 2) :
     (μ {ω | lam ≤ Z n ω - Z 0 ω}).toReal
       ≤ Real.exp (-lam ^ 2 / (2 * ∑ i ∈ Finset.Icc 1 n, c i ^ 2)) := by
-  sorry
+  -- Hoeffding's lemma in its analytic form `cosh y ≤ exp (y² / 2)`.  It is Mathlib's
+  -- `hasSubgaussianMGF_of_mem_Icc_of_integral_eq_zero` read on the two-point space: the
+  -- moment generating function of a symmetric `±y` random variable is `cosh y`.
+  have hcosh : ∀ y : ℝ, Real.cosh y ≤ Real.exp (y ^ 2 / 2) := by
+    intro y
+    set ν : Measure Bool := ((2 : ℝ≥0∞)⁻¹) • (Measure.dirac true + Measure.dirac false) with hν
+    have hprob : IsProbabilityMeasure ν := by
+      refine ⟨?_⟩
+      rw [hν]
+      simp only [Measure.smul_apply, Measure.coe_add, Pi.add_apply, measure_univ, smul_eq_mul]
+      rw [one_add_one_eq_two, ENNReal.inv_mul_cancel (by norm_num) (by norm_num)]
+    set X : Bool → ℝ := fun b ↦ if b then y else -y with hX
+    have hmean : ∫ b, X b ∂ν = 0 := by
+      rw [hν, integral_smul_measure, integral_add_measure (by simp) (by simp)]
+      simp [hX]
+    have hmgf : mgf X ν 1 = Real.cosh y := by
+      rw [mgf, hν, integral_smul_measure, integral_add_measure (by simp) (by simp)]
+      simp [hX, Real.cosh_eq]
+      ring
+    have hicc : ∀ᵐ b ∂ν, X b ∈ Set.Icc (-|y|) |y| := by
+      filter_upwards with b
+      cases b <;> simp [hX, neg_abs_le, le_abs_self, neg_le_abs]
+    have hle := (hasSubgaussianMGF_of_mem_Icc_of_integral_eq_zero (μ := ν) (X := X)
+      measurable_from_top.aemeasurable hicc hmean).mgf_le 1
+    rw [hmgf] at hle
+    refine hle.trans_eq ?_
+    rw [Real.exp_eq_exp]
+    have hcast : (((‖|y| - -|y|‖₊ / 2) ^ 2 : NNReal) : ℝ) = y ^ 2 := by
+      push_cast
+      rw [Real.norm_eq_abs, abs_of_nonneg (by linarith [abs_nonneg y] : (0:ℝ) ≤ |y| - -|y|),
+        sub_neg_eq_add, ← two_mul, mul_div_cancel_left₀ _ (by norm_num : (2:ℝ) ≠ 0), sq_abs]
+    rw [hcast]
+    ring
+  -- The conditional form of Hoeffding's lemma: a `μ[· | m]`-centred variable bounded by `b`
+  -- has conditional moment generating function at most `exp (s² b² / 2)`.  Mathlib's
+  -- `HasCondSubgaussianMGF` says this, but only for `[StandardBorelSpace Ω]`, since it is
+  -- defined through `condExpKernel`; stated directly in terms of `condExp` it needs no such
+  -- hypothesis.  The proof is the usual one: bound `exp (s ·)` on `[-b, b]` by the chord
+  -- through its endpoints, whose conditional expectation is `cosh (s b)`.
+  have hcondHoeff : ∀ (m : MeasurableSpace Ω), m ≤ m0 → ∀ (D : Ω → ℝ) (b s : ℝ),
+      Integrable D μ → μ[D | m] =ᵐ[μ] 0 → (∀ᵐ ω ∂μ, |D ω| ≤ b) →
+      μ[fun ω ↦ Real.exp (s * D ω) | m] ≤ᵐ[μ] fun _ ↦ Real.exp (s ^ 2 * b ^ 2 / 2) := by
+    intro m hm D b s hD hD0 hb
+    have hmeas : AEStronglyMeasurable[m0] (fun ω ↦ Real.exp (s * D ω)) μ :=
+      Real.continuous_exp.comp_aestronglyMeasurable (hD.aestronglyMeasurable.const_mul s)
+    have hint1 : Integrable (fun ω ↦ Real.exp (s * D ω)) μ := by
+      refine Integrable.mono' (integrable_const (Real.exp (|s| * b))) hmeas ?_
+      filter_upwards [hb] with ω hω
+      rw [Real.norm_eq_abs, abs_of_pos (Real.exp_pos _)]
+      refine Real.exp_le_exp.mpr ?_
+      calc s * D ω ≤ |s * D ω| := le_abs_self _
+        _ = |s| * |D ω| := abs_mul _ _
+        _ ≤ |s| * b := by gcongr
+    rcases le_or_gt b 0 with hb0 | hb0
+    · have hD00 : ∀ᵐ ω ∂μ, D ω = 0 := by
+        filter_upwards [hb] with ω hω
+        exact abs_eq_zero.mp (le_antisymm (hω.trans hb0) (abs_nonneg (D ω)))
+      have heq : (fun ω ↦ Real.exp (s * D ω)) =ᵐ[μ] fun _ ↦ (1 : ℝ) := by
+        filter_upwards [hD00] with ω hω; simp [hω]
+      filter_upwards [(condExp_congr_ae heq).trans (by rw [condExp_const hm])] with ω hω
+      rw [hω]
+      exact Real.one_le_exp (by positivity)
+    · set A := Real.cosh (s * b) with hA
+      set B := Real.sinh (s * b) / b with hB
+      have hint2 : Integrable (fun ω ↦ A + B * D ω) μ := (integrable_const A).add (hD.const_mul B)
+      have hle : (fun ω ↦ Real.exp (s * D ω)) ≤ᵐ[μ] fun ω ↦ A + B * D ω := by
+        filter_upwards [hb] with ω hω
+        rw [abs_le] at hω
+        obtain ⟨hd1, hd2⟩ := hω
+        set d := D ω
+        have hp : (0:ℝ) ≤ (b - d) / (2 * b) := div_nonneg (by linarith) (by linarith)
+        have hq : (0:ℝ) ≤ (b + d) / (2 * b) := div_nonneg (by linarith) (by linarith)
+        have hpq : (b - d) / (2 * b) + (b + d) / (2 * b) = 1 := by field_simp; ring
+        have hcv := convexOn_exp.2 (Set.mem_univ (-(s * b))) (Set.mem_univ (s * b)) hp hq hpq
+        simp only [smul_eq_mul] at hcv
+        have he : (b - d) / (2 * b) * -(s * b) + (b + d) / (2 * b) * (s * b) = s * d := by
+          field_simp; ring
+        rw [he] at hcv
+        refine hcv.trans_eq ?_
+        rw [hA, hB, Real.cosh_eq, Real.sinh_eq]
+        field_simp
+        ring
+      have h1 := condExp_mono (m := m) hint1 hint2 hle
+      have h2 : μ[fun ω ↦ A + B * D ω | m] =ᵐ[μ] fun _ ↦ A := by
+        have hfun : (fun ω ↦ A + B * D ω) = (fun _ ↦ A) + B • D := by
+          funext ω; simp [Pi.add_apply, Pi.smul_apply]
+        rw [hfun]
+        refine (condExp_add (integrable_const A) (hD.smul B) m).trans ?_
+        filter_upwards [condExp_smul (𝕜 := ℝ) B D m, hD0] with ω hω hω0
+        simp [condExp_const hm A, hω, hω0]
+      filter_upwards [h1, h2] with ω hω hω2
+      rw [hω2] at hω
+      refine hω.trans ((hcosh (s * b)).trans_eq ?_)
+      rw [Real.exp_eq_exp]; ring
+  -- Setup.  `t` is the value of the Chernoff parameter that optimises the final bound.
+  set S := ∑ i ∈ Finset.Icc 1 n, c i ^ 2 with hSdef
+  set t := lam / S with htdef
+  have htpos : 0 < t := div_pos hlam hsum
+  have hZmeas : ∀ k, StronglyMeasurable[m0] (Z k) := fun k ↦ (hZ.1 k).mono (ℱ.le k)
+  have hZint : ∀ k, Integrable (Z k) μ := fun k ↦
+    integrable_condExp.congr (hZ.2 k (k + 1) (Nat.le_succ k))
+  have hincr : ∀ k, k + 1 ≤ n → ∀ᵐ ω ∂μ, |Z (k + 1) ω - Z k ω| ≤ c (k + 1) := by
+    intro k hk
+    simpa using hc (k + 1) (Finset.mem_Icc.mpr ⟨Nat.succ_le_succ (Nat.zero_le k), hk⟩)
+  -- `Zₖ - Z₀` is bounded, hence `exp (t (Zₖ - Z₀))` is integrable.
+  have hbd : ∀ k, k ≤ n → ∀ᵐ ω ∂μ, |Z k ω - Z 0 ω| ≤ ∑ i ∈ Finset.Icc 1 k, c i := by
+    intro k
+    induction k with
+    | zero => intro _; filter_upwards with ω; simp
+    | succ k ih =>
+      intro hk
+      filter_upwards [ih (Nat.le_of_succ_le hk), hincr k hk] with ω h1 h2
+      rw [Finset.sum_Icc_succ_top (Nat.succ_le_succ (Nat.zero_le k))]
+      calc |Z (k + 1) ω - Z 0 ω| = |(Z (k + 1) ω - Z k ω) + (Z k ω - Z 0 ω)| := by ring_nf
+        _ ≤ |Z (k + 1) ω - Z k ω| + |Z k ω - Z 0 ω| := abs_add_le _ _
+        _ ≤ c (k + 1) + ∑ i ∈ Finset.Icc 1 k, c i := add_le_add h2 h1
+        _ = (∑ i ∈ Finset.Icc 1 k, c i) + c (k + 1) := by ring
+  have hexpint : ∀ k, k ≤ n → Integrable (fun ω ↦ Real.exp (t * (Z k ω - Z 0 ω))) μ := by
+    intro k hk
+    refine Integrable.mono' (integrable_const (Real.exp (|t| * ∑ i ∈ Finset.Icc 1 k, c i)))
+      (Real.continuous_exp.comp_aestronglyMeasurable
+        ((((hZmeas k).sub (hZmeas 0)).aestronglyMeasurable).const_mul t)) ?_
+    filter_upwards [hbd k hk] with ω hω
+    rw [Real.norm_eq_abs, abs_of_pos (Real.exp_pos _)]
+    refine Real.exp_le_exp.mpr ?_
+    calc t * (Z k ω - Z 0 ω) ≤ |t * (Z k ω - Z 0 ω)| := le_abs_self _
+      _ = |t| * |Z k ω - Z 0 ω| := abs_mul _ _
+      _ ≤ |t| * ∑ i ∈ Finset.Icc 1 k, c i := by gcongr
+  -- The moment generating function bound, by induction on the tower property.
+  have key : ∀ k, k ≤ n → (∫ ω, Real.exp (t * (Z k ω - Z 0 ω)) ∂μ)
+      ≤ Real.exp (t ^ 2 * (∑ i ∈ Finset.Icc 1 k, c i ^ 2) / 2) := by
+    intro k
+    induction k with
+    | zero => intro _; simp
+    | succ k ih =>
+      intro hk
+      have hkn : k ≤ n := Nat.le_of_succ_le hk
+      set D := fun ω ↦ Z (k + 1) ω - Z k ω with hDdef
+      have hDint : Integrable D μ := (hZint (k + 1)).sub (hZint k)
+      have hD0 : μ[D | ℱ k] =ᵐ[μ] 0 := by
+        have h1 : D = Z (k + 1) - Z k := rfl
+        rw [h1]
+        have e3 : μ[Z k | ℱ k] = Z k :=
+          condExp_of_stronglyMeasurable (ℱ.le k) (hZ.1 k) (hZint k)
+        filter_upwards [condExp_sub (hZint (k + 1)) (hZint k) (ℱ k),
+          hZ.2 k (k + 1) (Nat.le_succ k)] with ω e1 e2
+        simp [e1, e2, e3, Pi.sub_apply]
+      have hcond := hcondHoeff (ℱ k) (ℱ.le k) D (c (k + 1)) t hDint hD0 (hincr k hk)
+      set F := fun ω ↦ Real.exp (t * (Z k ω - Z 0 ω)) with hFdef
+      set G := fun ω ↦ Real.exp (t * D ω) with hGdef
+      have hFG : F * G = fun ω ↦ Real.exp (t * (Z (k + 1) ω - Z 0 ω)) := by
+        funext ω
+        simp only [hFdef, hGdef, hDdef, Pi.mul_apply, ← Real.exp_add]
+        ring_nf
+      have hFmeas : StronglyMeasurable[ℱ k] F :=
+        Real.continuous_exp.comp_stronglyMeasurable
+          (((hZ.1 k).sub ((hZ.1 0).mono (ℱ.mono (Nat.zero_le k)))).const_mul t)
+      have hGint : Integrable G μ := by
+        refine Integrable.mono' (integrable_const (Real.exp (|t| * c (k + 1))))
+          (Real.continuous_exp.comp_aestronglyMeasurable
+            (hDint.aestronglyMeasurable.const_mul t)) ?_
+        filter_upwards [hincr k hk] with ω hω
+        rw [Real.norm_eq_abs, abs_of_pos (Real.exp_pos _)]
+        refine Real.exp_le_exp.mpr ?_
+        calc t * D ω ≤ |t * D ω| := le_abs_self _
+          _ = |t| * |D ω| := abs_mul _ _
+          _ ≤ |t| * c (k + 1) := by gcongr
+      have hFGint : Integrable (F * G) μ := by rw [hFG]; exact hexpint (k + 1) hk
+      have hstep : (∫ ω, (F * G) ω ∂μ)
+          ≤ (∫ ω, F ω ∂μ) * Real.exp (t ^ 2 * c (k + 1) ^ 2 / 2) := by
+        rw [← integral_condExp (ℱ.le k) (f := F * G)]
+        have hmono : ∀ᵐ ω ∂μ,
+            (μ[F * G | ℱ k]) ω ≤ F ω * Real.exp (t ^ 2 * c (k + 1) ^ 2 / 2) := by
+          filter_upwards [condExp_mul_of_stronglyMeasurable_left hFmeas hFGint hGint, hcond]
+            with ω e1 e2
+          rw [e1]
+          exact mul_le_mul_of_nonneg_left e2 (Real.exp_pos _).le
+        calc (∫ ω, (μ[F * G | ℱ k]) ω ∂μ)
+            ≤ ∫ ω, F ω * Real.exp (t ^ 2 * c (k + 1) ^ 2 / 2) ∂μ :=
+              integral_mono_ae integrable_condExp ((hexpint k hkn).mul_const _) hmono
+          _ = (∫ ω, F ω ∂μ) * Real.exp (t ^ 2 * c (k + 1) ^ 2 / 2) := integral_mul_const _ _
+      rw [hFG] at hstep
+      refine hstep.trans ?_
+      calc (∫ ω, F ω ∂μ) * Real.exp (t ^ 2 * c (k + 1) ^ 2 / 2)
+          ≤ Real.exp (t ^ 2 * (∑ i ∈ Finset.Icc 1 k, c i ^ 2) / 2)
+              * Real.exp (t ^ 2 * c (k + 1) ^ 2 / 2) :=
+            mul_le_mul_of_nonneg_right (ih hkn) (Real.exp_pos _).le
+        _ = Real.exp (t ^ 2 * (∑ i ∈ Finset.Icc 1 (k + 1), c i ^ 2) / 2) := by
+            rw [← Real.exp_add, Finset.sum_Icc_succ_top (Nat.succ_le_succ (Nat.zero_le k))]
+            ring_nf
+  -- Chernoff's bound at `t = lam / S`.
+  have hmark := measure_ge_le_exp_mul_mgf (μ := μ) (X := fun ω ↦ Z n ω - Z 0 ω) (t := t)
+    lam htpos.le (hexpint n le_rfl)
+  rw [Measure.real] at hmark
+  refine hmark.trans ?_
+  calc Real.exp (-t * lam) * mgf (fun ω ↦ Z n ω - Z 0 ω) μ t
+      ≤ Real.exp (-t * lam) * Real.exp (t ^ 2 * S / 2) :=
+        mul_le_mul_of_nonneg_left (by rw [mgf]; exact key n le_rfl) (Real.exp_pos _).le
+    _ = Real.exp (-lam ^ 2 / (2 * S)) := by
+        rw [← Real.exp_add, Real.exp_eq_exp, htdef]
+        field_simp
+        ring
 
 end ProbMethodCombinatorics
