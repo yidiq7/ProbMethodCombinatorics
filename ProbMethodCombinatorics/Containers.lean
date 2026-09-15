@@ -95,9 +95,9 @@ its predecessors and `t` for the number of vertices retired, every vertex of `A`
 
     d * n - 4 * c * d * (δ * n) ≤ ∑ u ∈ A, degree_{G[A]} u ≤ t * (c * d) + n * t,
 
-and `d ≤ δ * n` with `δ ≤ 1 / (100 * c)` turns this into `t ≥ 0.9 * d`.  It is the hypothesis
-`d ≤ δ * n` that makes `c * d` negligible against `n`; Zhao's `d / 2` is what the same count
-gives without it. -/
+and `d ≤ δ * n` with `δ ≤ 1 / (100 * c)` turns this into `t ≥ (1 - 4 * c * δ) / (1 + c * δ) * d`,
+comfortably above `3 * d / 4`.  It is the hypothesis `d ≤ δ * n` that makes `c * d` negligible
+against `n`; Zhao's `d / 2` is what the same count gives without it. -/
 theorem exists_greedy_rule (c d δ : ℝ) (hc : 0 < c) (hδ : 0 < δ) (hδc : δ ≤ 1 / (100 * c))
     (n : ℕ) (G : SimpleGraph (Fin n)) [DecidableRel G.Adj] (hd : 0 < d) (hdn : d ≤ δ * n)
     (hsum : (∑ v, (G.degree v : ℝ)) = d * n) (hdeg : ∀ v, (G.degree v : ℝ) ≤ c * d) :
@@ -153,8 +153,11 @@ Selecting from `I` the vertex `v` of largest degree (ties by index) and taking
 
 forces `|{u | u ≺ v} ∪ N(v)| ≥ δ * n`, which it does for `d ≥ δ * n * (1 + 2 * c * δ)`.  Between
 `δ * n` and that, the count is short of `δ * n` by a second-order amount and the corner needs its
-own argument; `d ≤ 2 * δ * n` is what keeps the budget at least `1`, so that a one-vertex
-fingerprint is permitted at all. -/
+own argument.  Keeping the two vertex sets `{u | u ≺ v}` and `N(v)` separate sharpens the count to
+`d * n ≤ t * (c * d + n - t)` and moves the threshold down to `d ≥ δ * n * (1 - δ) / (1 - c * δ)`,
+so what is left open is a window of relative width `(c - 1) * δ` above `δ * n`; it is empty for
+`c = 1`.  `d ≤ 2 * δ * n` is what keeps the budget at least `1`, so that a one-vertex fingerprint
+is permitted at all. -/
 theorem exists_dense_fingerprint (c d δ : ℝ) (hc : 0 < c) (hδ : 0 < δ) (hδc : δ ≤ 1 / (100 * c))
     (n : ℕ) (G : SimpleGraph (Fin n)) [DecidableRel G.Adj] (hd : 0 < d) (hlo : δ * n < d)
     (hhi : d ≤ 2 * δ * n) (hsum : (∑ v, (G.degree v : ℝ)) = d * n)
