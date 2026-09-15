@@ -107,6 +107,13 @@ avoids producing `p/m` as an element of `unitInterval`, and `q = p/m` is the spe
 Bernoulli. The direction was checked numerically for `m ≤ 10` because it inverts easily —
 the union's density is **at most** `p`, not at least.
 
-**Still unstated in §4.3:** Theorem 4.3.5 (monotonicity of `p ↦ ℙ(Ω_p ∈ F)`), which #152's
-step 2 needs, and Theorem 4.3.6 (Bollobás–Thomason) itself, which is asymptotic. #152's prose
-asks the contributor to request 4.3.5 as a node rather than prove it privately.
+Theorem 4.3.5 (monotonicity of `p ↦ ℙ(Ω_p ∈ F)`) is **also stated**, as
+`prob_mem_mono_of_isUpperSet`, task #153 — requested by #152's contributor exactly as that
+task's prose invited, rather than buried as a private `have`. It is stated **non-strictly**: the
+book says strictly increasing, which needs `F` non-trivial, but strictness is used nowhere
+downstream and dropping non-triviality makes it applicable with no side conditions. A strict
+version, if ever wanted, belongs in its own node.
+
+**Still unstated in §4.3:** Theorem 4.3.6 (Bollobás–Thomason) itself, which is asymptotic and
+needs the `ε`–`N` idiom, plus Examples 4.3.8/4.3.9 which are asymptotic statements about
+`G(n,p)`.

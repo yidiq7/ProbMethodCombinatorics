@@ -623,3 +623,10 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   need not match file boundaries** — this is a `setBernoulli`-and-upper-sets statement, which is
   Chapter 7's subject, and forcing it into Chapter 4's file would have meant duplicating that
   layer.
+- **2026-09-15 — Theorem 4.3.5 stated as #153, because #152's prose asked for it.**  That is the
+  "request the node, don't bury it" loop working for the fourth time (after triangle
+  supersaturation, the Janson conditioning step, and Corollary 10.4.7).  Stated **non-strictly**:
+  the book's 4.3.5 is strictly increasing and needs `F` non-trivial, but nothing downstream uses
+  strictness and dropping non-triviality makes it a side-condition-free shared-layer fact.  **A
+  strengthening nobody consumes is a liability, not a bonus** — it would have forced every caller
+  to discharge non-triviality.
