@@ -173,6 +173,43 @@ theorem exists_containers_three_uniform (c : ℝ) (hc : 0 < c) :
 
 /-! ### 11.1 Containers for triangle-free graphs -/
 
+/-- **Triangle supersaturation**, the input the iteration of Remark 11.2.2 needs.  A graph on
+`n` vertices with at least `(1/4 + ε) n²` edges — just past Mantel's bound — does not merely
+contain a triangle: it contains at least `c n³` of them, for a `c` depending only on `ε`.
+
+Triangles are counted as ordered triples of distinct vertices, so the count is six times the
+number of triangles and that factor is absorbed into `c`.  The hypothesis that no pair of `F` is
+diagonal says `F` really is the edge set of a simple graph, and it is what makes the statement
+hold at every `n` rather than only for `n` large: a diagonal-free set of pairs on at most two
+vertices cannot reach `(1/4 + ε) n²` at all, so the small cases are vacuous instead of false. -/
+theorem exists_triangle_supersaturation (ε : ℝ) (hε : 0 < ε) :
+    ∃ c > 0, ∀ (n : ℕ) (F : Finset (Sym2 (Fin n))), (∀ e ∈ F, ¬ e.IsDiag) →
+      (1 / 4 + ε) * (n : ℝ) ^ 2 ≤ (F.card : ℝ) →
+      c * (n : ℝ) ^ 3 ≤ ((univ.filter fun t : Fin n × Fin n × Fin n =>
+        t.1 ≠ t.2.1 ∧ t.1 ≠ t.2.2 ∧ t.2.1 ≠ t.2.2 ∧
+          triangleEdges t.1 t.2.1 t.2.2 ⊆ F).card : ℝ) := by
+  sorry
+
+/-- **One step of the container iteration for triangle-free graphs.**  A set `F` of pairs from
+`[n]` spanning at least `c n³` ordered triangles admits a small family of subsets of `F`, each a
+definite fraction smaller than `F`, covering between them every triangle-free graph inside `F`.
+
+This is `exists_containers_three_uniform` applied to the 3-uniform hypergraph whose vertices are
+the pairs in `F` and whose edges are the triangles spanned by `F`; its independent sets are
+exactly the triangle-free graphs contained in `F`.  The triangle count is what supplies the
+average degree `d`, of order `n` once the count is of order `n³`, and the codegree hypotheses
+hold because one pair lies in at most `n` triangles and two distinct pairs in at most one. -/
+theorem exists_shrunken_containers_of_many_triangles (c : ℝ) (hc : 0 < c) :
+    ∃ δ C : ℝ, 0 < δ ∧ δ < 1 ∧ 0 < C ∧ ∀ (n : ℕ) (F : Finset (Sym2 (Fin n))),
+      c * (n : ℝ) ^ 3 ≤ ((univ.filter fun t : Fin n × Fin n × Fin n =>
+        t.1 ≠ t.2.1 ∧ t.1 ≠ t.2.2 ∧ t.2.1 ≠ t.2.2 ∧
+          triangleEdges t.1 t.2.1 t.2.2 ⊆ F).card : ℝ) →
+      ∃ 𝒟 : Finset (Finset (Sym2 (Fin n))),
+        (𝒟.card : ℝ) ≤ (n : ℝ) ^ (C * (n : ℝ) ^ ((3 : ℝ) / 2)) ∧
+        (∀ D ∈ 𝒟, D ⊆ F ∧ (D.card : ℝ) ≤ (1 - δ) * (F.card : ℝ)) ∧
+        (∀ G : Finset (Sym2 (Fin n)), IsTriangleFreeEdgeSet G → G ⊆ F → ∃ D ∈ 𝒟, G ⊆ D) := by
+  sorry
+
 /-- **Containers for triangle-free graphs** (Zhao, Theorem 11.1.1).  Every triangle-free graph on
 `n` vertices sits inside one of at most `n ^ (C n^{3/2})` graphs, each with at most
 `(1/4 + ε) n²` edges — Mantel's bound, up to `ε`.
@@ -186,7 +223,112 @@ theorem exists_containers_triangleFree (ε : ℝ) (hε : 0 < ε) :
       (𝒞.card : ℝ) ≤ (n : ℝ) ^ (C * (n : ℝ) ^ ((3 : ℝ) / 2)) ∧
       (∀ F ∈ 𝒞, (F.card : ℝ) ≤ (1 / 4 + ε) * (n : ℝ) ^ 2) ∧
       (∀ G ∈ triangleFreeGraphs n, ∃ F ∈ 𝒞, G ⊆ F) := by
-  sorry
+  obtain ⟨c, hc, hsat⟩ := exists_triangle_supersaturation ε hε
+  obtain ⟨δ, C₀, hδ0, hδ1, hC₀, hshrink⟩ := exists_shrunken_containers_of_many_triangles c hc
+  obtain ⟨K, hK⟩ : ∃ K : ℕ, (1 - δ) ^ K ≤ 1 / 4 :=
+    (exists_pow_lt_of_lt_one (by norm_num) (by linarith)).imp fun _ h => h.le
+  refine ⟨((K : ℝ) + 1) * C₀, mul_pos (by positivity) hC₀, fun n => ?_⟩
+  have hn : (0 : ℝ) ≤ (n : ℝ) := Nat.cast_nonneg n
+  have hmem : ∀ G : Finset (Sym2 (Fin n)), G ∈ triangleFreeGraphs n →
+      IsTriangleFreeEdgeSet G := by
+    intro G hG
+    simpa [triangleFreeGraphs] using hG
+  -- Raising `n` to a larger multiple of `n ^ (3/2)` only increases the bound, `n = 0` included.
+  have hrpow : ∀ a b : ℝ, a ≤ b →
+      (n : ℝ) ^ (a * (n : ℝ) ^ ((3 : ℝ) / 2)) ≤ (n : ℝ) ^ (b * (n : ℝ) ^ ((3 : ℝ) / 2)) := by
+    intro a b hab
+    rcases eq_or_lt_of_le hn with h0 | hpos
+    · rw [← h0, Real.zero_rpow (by norm_num : (3 : ℝ) / 2 ≠ 0), mul_zero, mul_zero]
+    · have hn1 : 1 ≤ n := Nat.cast_pos.mp hpos
+      exact Real.rpow_le_rpow_of_exponent_le (by exact_mod_cast hn1)
+        (mul_le_mul_of_nonneg_right hab (Real.rpow_nonneg hn _))
+  set Q : ℝ := (n : ℝ) ^ (C₀ * (n : ℝ) ^ ((3 : ℝ) / 2)) with hQdef
+  have hQ1 : (1 : ℝ) ≤ Q := by
+    have h := hrpow 0 C₀ hC₀.le
+    rwa [zero_mul, Real.rpow_zero] at h
+  have hQ0 : (0 : ℝ) ≤ Q := le_trans zero_le_one hQ1
+  have htot : (((univ : Finset (Sym2 (Fin n)))).card : ℝ) ≤ (n : ℝ) ^ 2 := by
+    have h := Fintype.card_le_of_surjective (Function.uncurry (Sym2.mk (α := Fin n)))
+      Sym2.mk_surjective
+    simp only [Fintype.card_prod, Fintype.card_fin] at h
+    rw [Finset.card_univ]
+    calc (Fintype.card (Sym2 (Fin n)) : ℝ) ≤ ((n * n : ℕ) : ℝ) := by exact_mod_cast h
+      _ = (n : ℝ) ^ 2 := by push_cast; ring
+  -- After `k` rounds of the iteration: at most `Q ^ k` containers, none of them carrying a
+  -- diagonal pair, and each either already past Mantel's bound or shrunk by `(1 - δ) ^ k`.
+  have key : ∀ k : ℕ, ∃ 𝒞 : Finset (Finset (Sym2 (Fin n))),
+      (𝒞.card : ℝ) ≤ Q ^ k ∧
+      (∀ F ∈ 𝒞, (∀ e ∈ F, ¬ e.IsDiag) ∧
+        (F.card : ℝ) ≤ max ((1 / 4 + ε) * (n : ℝ) ^ 2) ((1 - δ) ^ k * (n : ℝ) ^ 2)) ∧
+      (∀ G ∈ triangleFreeGraphs n, ∃ F ∈ 𝒞, G ⊆ F) := by
+    intro k
+    induction k with
+    | zero =>
+      refine ⟨{univ.filter fun e : Sym2 (Fin n) => ¬ e.IsDiag}, by simp, ?_, ?_⟩
+      · intro F hF
+        rw [mem_singleton] at hF
+        subst hF
+        refine ⟨fun e he => (mem_filter.mp he).2, le_trans ?_ (le_max_right _ _)⟩
+        rw [pow_zero, one_mul]
+        exact le_trans (by exact_mod_cast card_filter_le _ _) htot
+      · intro G hG
+        refine ⟨_, mem_singleton_self _, fun e he => mem_filter.mpr ⟨mem_univ _, ?_⟩⟩
+        exact (hmem G hG).1 e he
+    | succ k ih =>
+      obtain ⟨𝒞, hcard, hprop, hcov⟩ := ih
+      have hex : ∀ F : Finset (Sym2 (Fin n)), ∃ 𝒟 : Finset (Finset (Sym2 (Fin n))), F ∈ 𝒞 →
+          ((𝒟.card : ℝ) ≤ Q ∧
+            (∀ D ∈ 𝒟, (∀ e ∈ D, ¬ e.IsDiag) ∧ (D.card : ℝ) ≤
+              max ((1 / 4 + ε) * (n : ℝ) ^ 2) ((1 - δ) ^ (k + 1) * (n : ℝ) ^ 2)) ∧
+            (∀ G : Finset (Sym2 (Fin n)), IsTriangleFreeEdgeSet G → G ⊆ F →
+              ∃ D ∈ 𝒟, G ⊆ D)) := by
+        intro F
+        by_cases hF : F ∈ 𝒞
+        · obtain ⟨hdiag, hFcard⟩ := hprop F hF
+          by_cases hsmall : (F.card : ℝ) ≤ (1 / 4 + ε) * (n : ℝ) ^ 2
+          · exact ⟨{F}, fun _ => ⟨by simpa using hQ1, fun D hD => by
+              rw [mem_singleton] at hD
+              subst hD
+              exact ⟨hdiag, le_trans hsmall (le_max_left _ _)⟩,
+              fun G _ hGF => ⟨F, mem_singleton_self F, hGF⟩⟩⟩
+          · rw [not_le] at hsmall
+            have hFk : (F.card : ℝ) ≤ (1 - δ) ^ k * (n : ℝ) ^ 2 :=
+              (le_max_iff.mp hFcard).resolve_left (not_le.mpr hsmall)
+            obtain ⟨𝒟, hDcard, hDsub, hDcov⟩ := hshrink n F (hsat n F hdiag hsmall.le)
+            refine ⟨𝒟, fun _ => ⟨hDcard, fun D hD => ?_, hDcov⟩⟩
+            obtain ⟨hsub, hle⟩ := hDsub D hD
+            refine ⟨fun e he => hdiag e (hsub he), le_trans hle (le_trans ?_ (le_max_right _ _))⟩
+            calc (1 - δ) * (F.card : ℝ)
+                ≤ (1 - δ) * ((1 - δ) ^ k * (n : ℝ) ^ 2) :=
+                  mul_le_mul_of_nonneg_left hFk (by linarith)
+              _ = (1 - δ) ^ (k + 1) * (n : ℝ) ^ 2 := by ring
+        · exact ⟨∅, fun h => absurd h hF⟩
+      choose 𝒟 h𝒟 using hex
+      refine ⟨𝒞.biUnion 𝒟, ?_, ?_, ?_⟩
+      · calc ((𝒞.biUnion 𝒟).card : ℝ) ≤ ((∑ F ∈ 𝒞, (𝒟 F).card : ℕ) : ℝ) := by
+              exact_mod_cast card_biUnion_le
+          _ = ∑ F ∈ 𝒞, ((𝒟 F).card : ℝ) := by push_cast; ring
+          _ ≤ ∑ F ∈ 𝒞, Q := Finset.sum_le_sum fun F hF => (h𝒟 F hF).1
+          _ = (𝒞.card : ℝ) * Q := by rw [Finset.sum_const, nsmul_eq_mul]
+          _ ≤ Q ^ k * Q := mul_le_mul_of_nonneg_right hcard hQ0
+          _ = Q ^ (k + 1) := by ring
+      · intro D hD
+        obtain ⟨F, hF, hDF⟩ := mem_biUnion.mp hD
+        exact (h𝒟 F hF).2.1 D hDF
+      · intro G hG
+        obtain ⟨F, hF, hGF⟩ := hcov G hG
+        obtain ⟨D, hD, hGD⟩ := (h𝒟 F hF).2.2 G (hmem G hG) hGF
+        exact ⟨D, mem_biUnion.mpr ⟨F, hF, hD⟩, hGD⟩
+  obtain ⟨𝒞, hcard, hprop, hcov⟩ := key K
+  refine ⟨𝒞, ?_, fun F hF => ?_, hcov⟩
+  · refine hcard.trans ?_
+    rw [hQdef, ← Real.rpow_natCast ((n : ℝ) ^ (C₀ * (n : ℝ) ^ ((3 : ℝ) / 2))) K,
+      ← Real.rpow_mul hn, mul_comm C₀ ((n : ℝ) ^ ((3 : ℝ) / 2)), mul_assoc,
+      mul_comm ((n : ℝ) ^ ((3 : ℝ) / 2)) (C₀ * (K : ℝ))]
+    exact hrpow (C₀ * (K : ℝ)) (((K : ℝ) + 1) * C₀) (by nlinarith)
+  · refine le_trans (hprop F hF).2 (max_le le_rfl ?_)
+    have hsq : (0 : ℝ) ≤ (n : ℝ) ^ 2 := by positivity
+    nlinarith
 
 /-- **Erdős–Kleitman–Rothschild** (Zhao, Theorem 11.0.2), upper bound: there are at most
 `2 ^ ((1/4 + ε) n²)` triangle-free graphs on `n` vertices, for every `ε > 0` and `n` large.
