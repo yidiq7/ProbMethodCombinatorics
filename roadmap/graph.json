@@ -282,12 +282,11 @@
       "decl": "ProbMethodCombinatorics.exists_isDominating_card_le",
       "doc": "alterations.md#is_dominating-dominating_set_bound--isdominating-exists_isdominating_card_le",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "is_dominating"
       ],
       "proof_uses": [
-        "dominating_averaging",
         "dominating_optimisation"
       ]
     },
@@ -1180,7 +1179,7 @@
       "decl": "ProbMethodCombinatorics.janson_prob_none_le_of_mu_le",
       "doc": "janson.md#janson_two--janson_prob_none_le_of_mu_le",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "janson_mu",
         "janson_delta"
@@ -1768,17 +1767,6 @@
         "harris_setbernoulli",
         "setbernoulli_block_indep"
       ]
-    },
-    "dominating_averaging": {
-      "kind": "theorem",
-      "parent": "alterations",
-      "file": "ProbMethodCombinatorics/Alterations.lean",
-      "decl": "ProbMethodCombinatorics.exists_isDominating_card_le_of_mem_Icc",
-      "doc": "alterations.md#decompositions",
-      "statement": "formalized",
-      "proof": "planned",
-      "uses": [],
-      "proof_uses": []
     },
     "dominating_optimisation": {
       "kind": "theorem",

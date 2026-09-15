@@ -113,3 +113,55 @@ worth a comment on the issue rather than more attempts.**  Releasing the lease s
 everyone: `metrics struggle` counts only failed *PRs*, so an abandoned claim is invisible and
 the defect can sit for hours.  A one-line "this looks false at `n = 0` because …" gets it fixed
 quickly and is never held against you.
+
+## 2026-09-15 — Never run `git add -A` while a review subagent is live
+
+**Orchestrator-side incident, recorded so it is not repeated.** Stage-two review is delegated to
+a subagent (per Choir's `ORCHESTRATOR.md`). The reviewer applied the PR patch to the *shared*
+project checkout to build and check axioms — reasonable, and it restored the tree afterwards —
+while the orchestrator concurrently ran `git add -A && git commit` for unrelated roadmap work.
+
+Result: commits `07a2f6b` and `726e414` each swept up 147 lines of PR #140's proof (the first
+adding it, the second removing it again). Both were pushed before anyone noticed. The tip was
+correct and the PR's diff was unaffected, but two commits on `main` carry changes that contradict
+their messages.
+
+**History was not rewritten.** `main` is shared: open tasks pin `project_ref.commit`, and
+contributors branch from it. Force-pushing to repair cosmetic history would have broken live
+pins — a strictly worse outcome than two odd commits. The fix is procedural:
+
+- **Stage explicit paths, never `git add -A`**, whenever any background agent may be running.
+  `git add roadmap/ skills/` is as easy to type and cannot capture someone else's work.
+- **Tell review subagents not to mutate the working tree.** Reading a patch (`gh pr diff`),
+  `git show`-ing base blobs, and reasoning from those needs no checkout mutation. If a reviewer
+  genuinely must build the patched tree, it belongs in a separate clone or `git worktree`, not in
+  the checkout the orchestrator is committing from.
+- **Re-pin open tasks off any contaminated commit**, so nobody builds from a tree that
+  misrepresents what is proved.
+
+The general form: **an orchestrator that delegates work into its own working directory has to
+treat that directory as shared state.** The subagent did nothing wrong; the concurrency was mine.
+
+
+## 2026-09-15 — Re-check the lease *at the moment you retire a node*, not when you decide to
+
+I closed #124 and deleted its declaration while it was **actively claimed with an open PR**.
+Timeline: claimed 05:23, PR #141 opened 05:27, retired by me 05:32. I had checked lease activity
+during an earlier review — when the node genuinely had no claim — and treated that check as still
+valid several minutes and one PR later.
+
+The roadmap already said "check lease activity before retiring a node". The check happened; it
+was just stale by the time it was acted on. **A liveness check is only valid at the instant of
+the destructive action**, and retiring a node is destructive to whoever holds it.
+
+Concretely, before closing an issue or deleting a declaration:
+
+- re-run `sync-leases` and re-read the issue's labels *in the same step* as the close;
+- check for an open PR naming the issue (`gh pr list --search "closes #N"`), because a PR can
+  exist before the label state settles;
+- prefer reverting over arguing when you get it wrong — the contributor's branch is the thing
+  with the work in it.
+
+The recovery that worked: restore the declaration byte-identical to the PR's base commit, so the
+contributor's branch merges through the normal flow instead of being cherry-picked or closed.
+Their work stays theirs, and the protocol does the merge.

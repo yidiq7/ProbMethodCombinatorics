@@ -17,19 +17,27 @@ machinery this project needs — finite averaging, union bounds, alteration — 
 
 Groups, in order:
 
-| Group | Chapter | State |
-|---|---|---|
-| [`introduction`](introduction.md) | 1 | stated, in progress |
-| [`expectation`](expectation.md) | 2 | partly stated, in progress |
-| [`alterations`](alterations.md) | 3 | stated, in progress |
-| [`second-moment`](second-moment.md) | 4 | engine stated; asymptotics planned |
-| [`chernoff`](chernoff.md) | 5 | stated, in progress |
-| [`local-lemma`](local-lemma.md) | 6 | stated, in progress |
-| [`correlation`](correlation.md) | 7 | stated, in progress |
-| [`janson`](janson.md) | 8 | stated, in progress |
-| [`concentration`](concentration.md) | 9 | one node stated; rest planned |
-| [`entropy`](entropy.md) | 10 | stated, in progress |
-| [`containers`](containers.md) | 11 | stated, in progress |
+**"Proved" below means every *stated* declaration in the group is `sorry`-free.**  It does not
+mean the chapter is exhausted — several groups deliberately leave material unstated, and each
+group file has a "planned, not stated" section saying which and why.
+
+| Group | Chapter | Stated declarations | Unstated remainder |
+|---|---|---|---|
+| [`introduction`](introduction.md) | 1 | **all proved** | — |
+| [`expectation`](expectation.md) | 2 | **all proved** | some of §2 |
+| [`alterations`](alterations.md) | 3 | **all proved** | — |
+| [`second-moment`](second-moment.md) | 4 | **all proved** | asymptotics |
+| [`chernoff`](chernoff.md) | 5 | **all proved** | — |
+| [`local-lemma`](local-lemma.md) | 6 | **all proved** | — |
+| [`correlation`](correlation.md) | 7 | **all proved** | — |
+| [`janson`](janson.md) | 8 | **all proved** | — |
+| [`concentration`](concentration.md) | 9 | **all proved** | martingales, Talagrand, TSP |
+| [`entropy`](entropy.md) | 10 | 3 open | Sidorenko, Kahn–Zhao, Steiner |
+| [`containers`](containers.md) | 11 | 4 open | 11.1.3, 11.1.5, supersaturation |
+
+**Nine of the eleven groups have every stated declaration proved.**  The open work is
+concentrated in Chapters 10 and 11, and `entropy_le_logb_card` alone is the sole obligation
+beneath five otherwise-complete Chapter 10 theorems.
 
 **Everything in Chapter 1 §1.2 except Bollobás' two families theorem is already in
 Mathlib** — Sperner (`IsAntichain.sperner`), LYM
@@ -447,3 +455,44 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   The remaining shape issue — Janson I is stated at `univ`, so a sub-family needs subtype
   gymnastics — is **recorded and not built**, because nothing needs it yet.  That is the
   discipline `setBernoulliPi` failed.
+- **2026-09-15 — two of the project's abandonments trace to my route prose, not to difficulty.**
+  `entropy_le_logb_card` (#84) had been claimed and released twice with no note.  The statement is
+  sound; the prose pointed at Mathlib's `ConcaveOn` Jensen API and named
+  `Finset.inner_le_nnorm_mul_nnorm`, **which is Cauchy–Schwarz, not Jensen** — a wrong pointer I
+  wrote.  Meanwhile `entropy_pair_le_add`, proved in the same file, does the job with
+  `Real.log_le_sub_one_of_pos` in a few lines.  Corrected on the issue and generalised into
+  `skills/conventions.md`.
+  **Task prose is checked by nothing.**  Statements get `statement-equiv`, numerical sanity checks
+  and now a stage-two reading; routes get no scrutiny at all, and this is the third time a
+  published route has been wrong where the statement was fine.  When a task is abandoned with no
+  note, **re-read the route before concluding the task is hard** — the diagnostic order is
+  statement, then route, then decomposition.
+- **2026-09-15 — Chapter 3 is complete.**  `exists_isDominating_card_le` (#140) proved Theorem
+  3.1.1 directly, and `Alterations.lean` is at zero `sorry`s.  **7 sorries project-wide, zero
+  custom axioms**, all in Chapters 10 and 11.
+  #124 retired as superseded — the same pattern as #126/#127, and for the same reason.  Its
+  content was reproved inline as a `have`, in full generality, by the PR that proved the parent.
+  **The decisive check before retiring is lease activity**: no claim, no lease comments, so no
+  work was lost.  The declaration was removed rather than left as a `sorry` nothing uses, since
+  leaving a published node open while its proof sits unreachable inside another theorem would
+  have guaranteed the next claimant redid 131 lines.
+- **2026-09-15 — I corrupted two commits by running `git add -A` while a review subagent held a
+  patch in the shared checkout.**  `07a2f6b` and `726e414` each carry 147 lines of PR #140's
+  proof, added then removed, contradicting their own commit messages.  The tip was correct and
+  the PR diff unaffected.  **History was deliberately not rewritten** — `main` is shared, open
+  tasks pin commits on it, and breaking live pins to tidy cosmetic history is the worse trade.
+  Procedure fixed in `skills/orchestrator-notes.md`: stage explicit paths, and review subagents
+  must not mutate the working tree.  **Delegating work into your own working directory makes that
+  directory shared state.**
+- **2026-09-15 — I retired a node that was actively claimed, with an open PR.**  #124 was closed
+  and its declaration deleted at 05:32; it had been claimed at 05:23 and PR #141 opened at 05:27.
+  The lease check that justified retiring it was run during an earlier review and was **stale by
+  the time I acted on it** — a liveness check is only valid at the instant of the destructive
+  action.  Reverted: the declaration is restored byte-identical to the PR's base so #141 merges
+  through the normal flow, and #124 is reopened.
+  **The contributor's version is also the better architecture.**  #140 proved the parent by
+  reproducing this lemma inline as an anonymous `have`, ~131 lines unreachable from any other
+  file; with it named and top-level, the parent becomes a short derivation and the duplication
+  goes away.  So the retirement was wrong on the merits too, not just on process — which is what
+  the rule about not re-routing finished work was trying to protect in the first place, applied
+  in the wrong direction.
