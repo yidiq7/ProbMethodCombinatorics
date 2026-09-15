@@ -1,6 +1,8 @@
 import ProbMethodCombinatorics.Entropy
 import Mathlib.Combinatorics.SimpleGraph.Finite
 import Mathlib.Combinatorics.SimpleGraph.Clique
+import Mathlib.Combinatorics.SimpleGraph.Extremal.Turan
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 
 /-!
@@ -188,7 +190,67 @@ theorem exists_triangle_supersaturation (ε : ℝ) (hε : 0 < ε) :
       c * (n : ℝ) ^ 3 ≤ ((univ.filter fun t : Fin n × Fin n × Fin n =>
         t.1 ≠ t.2.1 ∧ t.1 ≠ t.2.2 ∧ t.2.1 ≠ t.2.2 ∧
           triangleEdges t.1 t.2.1 t.2.2 ⊆ F).card : ℝ) := by
-  sorry
+  refine ⟨SimpleGraph.triangleRemovalBound ε, SimpleGraph.triangleRemovalBound_pos hε, ?_⟩
+  intro n F hdiag hcard
+  let instAdj : DecidableRel (SimpleGraph.fromEdgeSet (F : Set (Sym2 (Fin n)))).Adj :=
+    fun x y => decidable_of_iff (s(x, y) ∈ F ∧ x ≠ y) (by simp [SimpleGraph.fromEdgeSet_adj])
+  have hadj : ∀ x y : Fin n,
+      (SimpleGraph.fromEdgeSet (F : Set (Sym2 (Fin n)))).Adj x y ↔ s(x, y) ∈ F ∧ x ≠ y := by
+    intro x y; simp [SimpleGraph.fromEdgeSet_adj]
+  have hEF : ∀ inst : Fintype (SimpleGraph.fromEdgeSet (F : Set (Sym2 (Fin n)))).edgeSet,
+      @SimpleGraph.edgeFinset _ _ inst = F := by
+    intro inst
+    ext e
+    rw [SimpleGraph.mem_edgeFinset, SimpleGraph.edgeSet_fromEdgeSet]
+    simp only [Set.mem_sdiff, Finset.mem_coe, Sym2.mem_diagSet]
+    exact ⟨fun h => h.1, fun h => ⟨h, hdiag e h⟩⟩
+  have hfar : (SimpleGraph.fromEdgeSet (F : Set (Sym2 (Fin n)))).FarFromTriangleFree ε := by
+    rw [SimpleGraph.farFromTriangleFree_iff]
+    intro H _ _ hH3
+    have hm : H.edgeFinset.card ≤
+        ((Fintype.card (Fin n)) ^ 2 - ((Fintype.card (Fin n)) % 2) ^ 2) * (2 - 1) / (2 * 2)
+          + ((Fintype.card (Fin n)) % 2).choose 2 :=
+      SimpleGraph.CliqueFree.card_edgeFinset_le (r := 2) hH3
+    have hchoose : ((Fintype.card (Fin n)) % 2).choose 2 = 0 :=
+      Nat.choose_eq_zero_of_lt (Nat.mod_lt _ (by norm_num))
+    have hle : ((Fintype.card (Fin n)) % 2) ^ 2 ≤ (Fintype.card (Fin n)) ^ 2 :=
+      Nat.pow_le_pow_left (Nat.mod_le _ _) 2
+    rw [hchoose] at hm
+    have hm4 : 4 * H.edgeFinset.card ≤ (Fintype.card (Fin n)) ^ 2 := by omega
+    rw [hEF]
+    have hH : (H.edgeFinset.card : ℝ) ≤ (n : ℝ) ^ 2 / 4 := by
+      have h4 := (Nat.cast_le (α := ℝ)).2 hm4
+      simp only [Fintype.card_fin, Nat.cast_mul, Nat.cast_pow, Nat.cast_ofNat] at h4
+      linarith
+    have hcard2 : Fintype.card (Fin n) ^ 2 = n ^ 2 := by simp
+    rw [hcard2]
+    push_cast
+    linarith
+  have hrem := hfar.le_card_cliqueFinset
+  have hsurj : ((SimpleGraph.fromEdgeSet (F : Set (Sym2 (Fin n)))).cliqueFinset 3).card ≤
+      (univ.filter fun t : Fin n × Fin n × Fin n =>
+        t.1 ≠ t.2.1 ∧ t.1 ≠ t.2.2 ∧ t.2.1 ≠ t.2.2 ∧
+          triangleEdges t.1 t.2.1 t.2.2 ⊆ F).card := by
+    refine Finset.card_le_card_of_surjOn
+      (fun t : Fin n × Fin n × Fin n => ({t.1, t.2.1, t.2.2} : Finset (Fin n))) ?_
+    intro s hs
+    rw [Finset.mem_coe, SimpleGraph.mem_cliqueFinset_iff, SimpleGraph.is3Clique_iff] at hs
+    obtain ⟨a, b, c, hab, hac, hbc, rfl⟩ := hs
+    rw [hadj] at hab hac hbc
+    refine ⟨(a, b, c), ?_, rfl⟩
+    simp only [Finset.coe_filter, Set.mem_ofPred_eq, Finset.mem_univ, true_and]
+    refine ⟨hab.2, hac.2, hbc.2, ?_⟩
+    intro e he
+    simp only [triangleEdges, Finset.mem_insert, Finset.mem_singleton] at he
+    rcases he with rfl | rfl | rfl
+    · exact hab.1
+    · exact hac.1
+    · exact hbc.1
+  calc SimpleGraph.triangleRemovalBound ε * (n : ℝ) ^ 3
+      = SimpleGraph.triangleRemovalBound ε * (Fintype.card (Fin n) : ℝ) ^ 3 := by
+        simp
+    _ ≤ (((SimpleGraph.fromEdgeSet (F : Set (Sym2 (Fin n)))).cliqueFinset 3).card : ℝ) := hrem
+    _ ≤ _ := by exact_mod_cast hsurj
 
 /-- **One step of the container iteration for triangle-free graphs.**  A set `F` of pairs from
 `[n]` spanning at least `c n³` ordered triangles admits a small family of subsets of `F`, each a
