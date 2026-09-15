@@ -593,3 +593,14 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   `o(1)` idiom.  Checked against the Conway–Guy minimal witnesses for `k ≤ 8` before publishing.
   Erdős's Conjecture 4.6.2 is open mathematics and is deliberately not stated — the standing
   rule that a conjecture in the source must never be transcribed as a theorem.
+- **2026-09-15 — Hardy–Ramanujan (§4.5) is blocked on Mertens, which Mathlib lacks.**  The
+  roadmap had recorded it as the most tractable of Chapter 4 because
+  `ArithmeticFunction.cardDistinctFactors` exists and the statement is expressible.  **That
+  inference was wrong: expressible is not tractable.**  Turán's proof needs
+  `∑_{p ≤ n} 1/p = log log n + O(1)` to compute the mean, and `Mathlib/NumberTheory/` has no
+  Mertens estimate in any form.  Corrected rather than published — handing out a task whose
+  analytic input does not exist would cost a contributor a day to discover.
+  This is the mirror of the supersaturation correction earlier today: one roadmap note was
+  **too pessimistic** about Mathlib (triangle removal was there all along), this one **too
+  optimistic**.  Both were written from a search for the *statement's* vocabulary rather than
+  for the *proof's* inputs.  Search for what the proof needs.

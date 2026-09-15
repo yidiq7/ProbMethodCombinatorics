@@ -57,10 +57,15 @@ idempotent, so `Var X i ≤ 𝔼 X i`), and bound each remaining term by `ℙ(A 
   threshold for containing a fixed `H`, where `m(H)` is the maximum edge-vertex ratio over
   subgraphs. Needs Definition 4.2.7 (`ρ`, `m`) as shared definitions first.
 - **`clique_number`** — §4.4, the clique number of a random graph.
-- **`hardy_ramanujan`** — §4.5. Mathlib has `ArithmeticFunction.cardDistinctFactors` (`ω`),
-  so the statement is expressible; Turán's second-moment proof is the route. This is the
-  one section of the chapter that needs no random graphs at all and may well be stated
-  before the others.
+- **`hardy_ramanujan`** — §4.5. **Blocked on Mertens' theorem, which Mathlib does not have.**
+  The earlier note here said the statement is expressible — `ArithmeticFunction.cardDistinctFactors`
+  (`ω`) exists — and inferred that this section would therefore be the easiest of the chapter.
+  That inference was wrong, and it is the trap worth naming: **expressible is not tractable.**
+  Turán's second-moment proof needs `∑_{p ≤ n} 1/p = log log n + O(1)` to compute `𝔼X`, and a
+  search of `Mathlib/NumberTheory/` finds no Mertens estimate in any form — no sum of prime
+  reciprocals, no `log log` asymptotic. Supplying it is an analytic-number-theory project, not a
+  task, so §4.5 stays unstated until Mathlib grows one. Theorem 4.5.3 (Erdős–Kac) is further out
+  still, needing the method of moments on top.
 - ~~**`distinct_sums`**~~ — **stated 2026-09-15** as `le_card_of_distinctSubsetSums`, task #151.
   See §4.6 below.
 
