@@ -106,6 +106,18 @@ before expecting the API to work.
 `section Countable`, a `[IsProbabilityMeasure]` argument — a statement built on the unfenced
 remainder deserves a second look. That is how the Chapter 8 defect was spotted.
 
+## Check the file before trusting the task's route
+
+A task's `TASK.md` route is a snapshot from the day it was published, and this project's shared
+layer grows fast — lemmas that make a task much easier routinely land *after* its prose was
+written. Two tasks here were each abandoned twice for exactly this reason.
+
+**Before starting, read the target's file for what now exists**, especially anything added by a
+recently merged sibling task. If the route in the prose looks longer than it needs to be, it
+probably is; say so on the issue rather than following it.
+
+Nothing checks task prose. Statements are machine-checked and reviewed; routes are not.
+
 ## Entropy sums: reach for `log t ≤ t - 1`, not Mathlib's Jensen API
 
 Every inequality between entropy sums proved in this project so far has come out shorter through
