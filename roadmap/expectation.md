@@ -18,7 +18,12 @@ Two of the chapter's six sections are stated so far.  The other four are unstate
   entirely in `ℕ`, a self-contained double count, no missing Mathlib input.  Tight at `n = 4`.
   Lemma 2.4.3 and the five-vertex refinement are separate nodes, not yet stated; Question 2.4.1
   itself is a **notorious open problem** and must never be stated.
-- **§2.5 (unbalancing lights)** — needs a central limit estimate.
+- **§2.5 (unbalancing lights)** — **stated 2026-09-15** as `exists_signs_sum_ge`.  My earlier
+  note here ("needs a central limit estimate") was wrong twice over: Mathlib *does* have a CLT
+  (`Probability/CentralLimitTheorem.lean`), and the book itself gives an **exact** binomial
+  identity for `𝔼|Sₙ|` that avoids the CLT entirely.  Stated exactly, therefore, with no `o(1)`
+  — strictly stronger than the book's `(√(2/π) + o(1)) n^{3/2}`.  Theorem 2.5.2 remains
+  unstated and is harder (a compactness argument for the parameters).
 - **§2.6 (the crossing number inequality)** — needs Euler's formula for planar graphs.
 
 ## `hamilton_paths` — `ProbMethodCombinatorics.hamiltonPaths`
@@ -78,3 +83,22 @@ convention.  The identity that closes it is `4 binom(n,4) = binom(n,3) (n-3)`.
 
 Verified tight at `n = 4`, and brute force at `n = 5` reproduces Zhao's Lemma 2.4.3 (maximum 7)
 exactly — a useful cross-check that the encoding of "tetrahedron-free" is the intended one.
+
+
+## §2.5 Unbalancing lights
+
+`unbalancing_lights` is stated **exactly**: `∑ᵢⱼ aᵢⱼ xᵢ yⱼ ≥ n² binom(n-1,⌊(n-1)/2⌋) / 2^{n-1}`.
+
+The section had been recorded as blocked on a central limit estimate.  That was wrong on both
+counts — Mathlib has a CLT, and the book notes an exact closed form for `𝔼|Sₙ|` which makes the
+CLT unnecessary.  **An exact statement is better than an asymptotic one whenever the source
+offers the identity**: it needs no `ε`–`N` idiom, it is strictly stronger, and it can be checked
+numerically.
+
+Verified before publication: the identity against the direct sum for `n ≤ 14`, and the claim by
+brute force over *all* `±1` matrices for `n ≤ 3`.  **Tight at `n = 1, 2`**, so no
+constant-losing proof will do.
+
+The interesting feature for a reader is that the `Rᵢ = ∑ⱼ aᵢⱼ yⱼ` are **not independent** of one
+another and the proof does not need them to be — only each marginal matters.  The task prose says
+so explicitly, because it is the natural thing to go looking for and it is false.

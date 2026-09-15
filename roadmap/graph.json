@@ -1900,6 +1900,17 @@
       "proof": "planned",
       "uses": [],
       "proof_uses": []
+    },
+    "unbalancing_lights": {
+      "kind": "theorem",
+      "parent": "expectation",
+      "file": "ProbMethodCombinatorics/Expectation.lean",
+      "decl": "ProbMethodCombinatorics.exists_signs_sum_ge",
+      "doc": "expectation.md#25-unbalancing-lights",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
     }
   }
 }
