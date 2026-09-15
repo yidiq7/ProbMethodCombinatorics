@@ -309,6 +309,46 @@ end IndependentSets
 
 /-! ### §2.4 Bounding by sampling -/
 
+/-- Every 3-element `e` lies in at least `n - 3` of the 4-element subsets of `Fin n`:
+adjoining any vertex outside `e` gives one, and distinct vertices give distinct sets. -/
+private theorem card_le_card_filter_superset {n : ℕ} {e : Finset (Fin n)} (he : e.card = 3) :
+    n - 3 ≤ ((Finset.univ.powersetCard 4).filter (fun S => e ⊆ S)).card := by
+  have hcard : (Finset.univ \ e).card = n - 3 := by
+    rw [Finset.card_sdiff, Finset.inter_univ, he, Finset.card_univ, Fintype.card_fin]
+  rw [← hcard]
+  refine Finset.card_le_card_of_injOn (fun v => insert v e) ?_ ?_
+  · intro v hv
+    simp only [Finset.mem_coe, Finset.mem_sdiff, Finset.mem_univ, true_and] at hv
+    simp only [Finset.mem_coe, Finset.mem_filter, Finset.mem_powersetCard]
+    refine ⟨⟨Finset.subset_univ _, ?_⟩, Finset.subset_insert _ _⟩
+    rw [Finset.card_insert_of_notMem hv, he]
+  · intro v hv w hw hvw
+    simp only [Finset.mem_coe, Finset.mem_sdiff, Finset.mem_univ, true_and] at hv hw
+    have hvw' : insert v e = insert w e := hvw
+    have hmem : v ∈ insert w e := hvw' ▸ Finset.mem_insert_self v e
+    rcases Finset.mem_insert.1 hmem with h | h
+    · exact h
+    · exact absurd h hv
+
+/-- A 4-element `S` carries exactly four triples, and tetrahedron-freeness keeps one of them
+out of `H`, so at most three edges of `H` sit inside `S`. -/
+private theorem card_filter_subset_le_three {n : ℕ} {H : Finset (Finset (Fin n))}
+    (h3 : ∀ e ∈ H, e.card = 3)
+    (hfree : ∀ S : Finset (Fin n), S.card = 4 → ∃ e ⊆ S, e.card = 3 ∧ e ∉ H)
+    {S : Finset (Fin n)} (hS : S.card = 4) :
+    (H.filter (fun e => e ⊆ S)).card ≤ 3 := by
+  obtain ⟨e₀, he₀S, he₀card, he₀H⟩ := hfree S hS
+  have hmem : e₀ ∈ S.powersetCard 3 := Finset.mem_powersetCard.2 ⟨he₀S, he₀card⟩
+  have hsub : H.filter (fun e => e ⊆ S) ⊆ (S.powersetCard 3).erase e₀ := by
+    intro e he
+    rw [Finset.mem_filter] at he
+    refine Finset.mem_erase.2 ⟨?_, Finset.mem_powersetCard.2 ⟨he.2, h3 e he.1⟩⟩
+    intro h
+    exact he₀H (h ▸ he.1)
+  have hle := Finset.card_le_card hsub
+  rw [Finset.card_erase_of_mem hmem, Finset.card_powersetCard, hS] at hle
+  simpa using hle
+
 /-- **A cheap sampling bound** (Zhao, Proposition 2.4.2; `sources/mit18_226_f22_lec_full.pdf`,
 printed p. 22 = PDF p. 28).  A tetrahedron-free 3-uniform hypergraph on `n ≥ 4` vertices has at
 most `(3/4) binom(n,3)` edges — stated as `4 |H| ≤ 3 binom(n,3)` so that everything stays in `ℕ`.
@@ -342,7 +382,38 @@ theorem card_le_of_tetrahedronFree {n : ℕ} (hn : 4 ≤ n) (H : Finset (Finset 
     (h3 : ∀ e ∈ H, e.card = 3)
     (hfree : ∀ S : Finset (Fin n), S.card = 4 → ∃ e ⊆ S, e.card = 3 ∧ e ∉ H) :
     4 * H.card ≤ 3 * n.choose 3 := by
-  sorry
+  have hPcard : (Finset.univ.powersetCard 4 : Finset (Finset (Fin n))).card = n.choose 4 := by
+    rw [Finset.card_powersetCard, Finset.card_univ, Fintype.card_fin]
+  -- Double count the pairs `(S, e)` with `|S| = 4`, `e ⊆ S`, `e ∈ H`.
+  have hswap : ∑ e ∈ H, ((Finset.univ.powersetCard 4).filter (fun S => e ⊆ S)).card
+      = ∑ S ∈ (Finset.univ.powersetCard 4 : Finset (Finset (Fin n))),
+          (H.filter (fun e => e ⊆ S)).card := by
+    simp only [Finset.card_filter]
+    exact Finset.sum_comm
+  have hlow : H.card * (n - 3)
+      ≤ ∑ e ∈ H, ((Finset.univ.powersetCard 4).filter (fun S => e ⊆ S)).card := by
+    have := Finset.card_nsmul_le_sum H
+      (fun e => ((Finset.univ.powersetCard 4).filter (fun S => e ⊆ S)).card) (n - 3)
+      (fun e he => card_le_card_filter_superset (h3 e he))
+    simpa [smul_eq_mul] using this
+  have hhigh : ∑ S ∈ (Finset.univ.powersetCard 4 : Finset (Finset (Fin n))),
+      (H.filter (fun e => e ⊆ S)).card ≤ 3 * n.choose 4 := by
+    have := Finset.sum_le_card_nsmul (Finset.univ.powersetCard 4 : Finset (Finset (Fin n)))
+      (fun S => (H.filter (fun e => e ⊆ S)).card) 3
+      (fun S hS => card_filter_subset_le_three h3 hfree (Finset.mem_powersetCard.1 hS).2)
+    rw [hPcard, smul_eq_mul] at this
+    omega
+  have hkey : H.card * (n - 3) ≤ 3 * n.choose 4 := by
+    rw [hswap] at hlow
+    exact hlow.trans hhigh
+  -- `4 binom(n,4) = binom(n,3) (n-3)`, and `n - 3 ≥ 1` cancels.
+  have hid : n.choose 4 * 4 = n.choose 3 * (n - 3) := Nat.choose_succ_right_eq n 3
+  refine Nat.le_of_mul_le_mul_right ?_ (by omega : 0 < n - 3)
+  calc 4 * H.card * (n - 3) = 4 * (H.card * (n - 3)) := by ring
+    _ ≤ 4 * (3 * n.choose 4) := Nat.mul_le_mul le_rfl hkey
+    _ = 3 * (n.choose 4 * 4) := by ring
+    _ = 3 * (n.choose 3 * (n - 3)) := by rw [hid]
+    _ = 3 * n.choose 3 * (n - 3) := by ring
 
 /-! ### §2.5 Unbalancing lights -/
 
