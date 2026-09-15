@@ -357,7 +357,7 @@ private theorem signVec_eq_one_or_neg_one {n : ℕ} (S : Finset (Fin n)) (j : Fi
 /-- The coordinate sum of a `±1` membership vector counts `S` against its complement. -/
 private theorem sum_signVec {n : ℕ} (S : Finset (Fin n)) :
     ∑ j, signVec S j = 2 * (S.card : ℝ) - n := by
-  have h : ∀ j : Fin n, signVec S j = 2 * (if j ∈ S then (1:ℝ) else 0) - 1 := by
+  have h : ∀ j : Fin n, signVec S j = 2 * (if j ∈ S then (1 : ℝ) else 0) - 1 := by
     intro j; unfold signVec; split <;> norm_num
   rw [Finset.sum_congr rfl (fun j _ => h j)]
   rw [Finset.sum_sub_distrib, ← Finset.mul_sum, Finset.sum_boole]
@@ -370,7 +370,7 @@ private theorem signVec_mul_signVec {n : ℕ} (s S : Finset (Fin n)) (j : Fin n)
   by_cases h1 : j ∈ s <;> by_cases h2 : j ∈ S <;>
     simp [Finset.mem_symmDiff, h1, h2]
 
-/-- Telescoping partial sums of the signed binomial weights. -/
+/-- The signed binomial weights telescope: their prefix sums are single coefficients. -/
 private theorem sum_range_sub_two_mul_choose {n : ℕ} (j : ℕ) :
     ∑ k ∈ Finset.range (j + 1), ((n : ℝ) - 2 * k) * (n.choose k : ℝ)
       = (j + 1) * (n.choose (j + 1) : ℝ) := by
