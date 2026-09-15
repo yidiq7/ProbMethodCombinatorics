@@ -537,6 +537,36 @@ theorem exists_signs_sum_ge {n : ℕ} (a : Fin n → Fin n → ℝ)
     ∃ x y : Fin n → ℝ, (∀ i, x i = 1 ∨ x i = -1) ∧ (∀ j, y j = 1 ∨ y j = -1) ∧
       (n : ℝ) ^ 2 * ((n - 1).choose ((n - 1) / 2) : ℝ) / 2 ^ (n - 1)
         ≤ ∑ i, ∑ j, a i j * x i * y j := by
-  sorry
+  rcases Nat.eq_zero_or_pos n with hn | hn
+  · subst hn
+    exact ⟨fun _ => 1, fun _ => 1, fun i => i.elim0, fun j => j.elim0, by simp⟩
+  have hcard : (Finset.univ : Finset (Finset (Fin n))).card = 2 ^ n := by simp
+  have htot : ∑ S : Finset (Fin n), ∑ i, |∑ j, a i j * signVec S j|
+      = (n : ℝ) * (2 * (n : ℝ) * ((n - 1).choose ((n - 1) / 2) : ℝ)) := by
+    rw [Finset.sum_comm, Finset.sum_congr rfl fun i (_ : i ∈ Finset.univ) =>
+      (sum_abs_row_eq_sum_abs (a i) (ha i)).trans (sum_abs_sum_signVec n),
+      Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
+  have hle : ∑ _S : Finset (Fin n),
+        ((n : ℝ) ^ 2 * ((n - 1).choose ((n - 1) / 2) : ℝ) / 2 ^ (n - 1))
+      ≤ ∑ S : Finset (Fin n), ∑ i, |∑ j, a i j * signVec S j| := by
+    rw [htot, Finset.sum_const, hcard, nsmul_eq_mul]
+    have h2 : (2 : ℝ) ^ n = 2 * 2 ^ (n - 1) := by
+      rw [← pow_succ']; congr 1; omega
+    apply le_of_eq
+    push_cast
+    rw [h2]
+    field_simp
+  obtain ⟨S, -, hS⟩ := Finset.exists_le_of_sum_le ⟨∅, Finset.mem_univ _⟩ hle
+  refine ⟨fun i => if 0 ≤ ∑ j, a i j * signVec S j then (1 : ℝ) else -1, signVec S,
+    fun i => by dsimp only; split <;> simp, signVec_eq_one_or_neg_one S, ?_⟩
+  refine hS.trans (le_of_eq (Finset.sum_congr rfl fun i _ => ?_))
+  have hpull : ∑ j, a i j * (if 0 ≤ ∑ k, a i k * signVec S k then (1 : ℝ) else -1) * signVec S j
+      = (if 0 ≤ ∑ k, a i k * signVec S k then (1 : ℝ) else -1) * ∑ j, a i j * signVec S j := by
+    rw [Finset.mul_sum]
+    exact Finset.sum_congr rfl fun j _ => by ring
+  rw [hpull]
+  split
+  · rw [abs_of_nonneg ‹(0 : ℝ) ≤ ∑ k, a i k * signVec S k›]; ring
+  · rw [abs_of_neg (not_le.1 ‹¬(0 : ℝ) ≤ ∑ k, a i k * signVec S k›)]; ring
 
 end ProbMethodCombinatorics
