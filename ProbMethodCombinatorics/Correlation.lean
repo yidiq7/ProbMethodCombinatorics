@@ -1069,7 +1069,90 @@ coercion would only add noise. -/
 theorem prob_mem_mono_of_isUpperSet {ι : Type*} [Countable ι] (F : Set (Set ι))
     (hF : IsUpperSet F) (hFm : MeasurableSet F) {p q : I} (hpq : (p : ℝ) ≤ (q : ℝ)) :
     setBernoulli Set.univ p F ≤ setBernoulli Set.univ q F := by
-  sorry
+  classical
+  have hp1 : (p : ℝ) ≤ 1 := p.2.2
+  have hq1 : (q : ℝ) ≤ 1 := q.2.2
+  -- The second round's probability, chosen so that `(1 - p) * (1 - p') = 1 - q`.
+  obtain ⟨p', hmul⟩ : ∃ p' : I, (1 - (p : ℝ)) * (1 - (p' : ℝ)) = 1 - (q : ℝ) := by
+    rcases eq_or_lt_of_le hp1 with h | h
+    · refine ⟨⟨0, le_rfl, zero_le_one⟩, ?_⟩
+      have hq : (q : ℝ) = 1 := le_antisymm hq1 (by linarith)
+      show (1 - (p : ℝ)) * (1 - 0) = 1 - (q : ℝ)
+      rw [hq, h]; ring
+    · have hne : (1 : ℝ) - p ≠ 0 := by linarith
+      refine ⟨⟨((q : ℝ) - p) / (1 - p), div_nonneg (by linarith) (by linarith),
+        by rw [div_le_one (by linarith)]; linarith⟩, ?_⟩
+      show (1 - (p : ℝ)) * (1 - ((q : ℝ) - p) / (1 - p)) = 1 - (q : ℝ)
+      field_simp
+      ring
+  have hsigma : toNNReal (σ q) = toNNReal (σ p) * toNNReal (σ p') := by
+    refine NNReal.coe_injective ?_
+    rw [NNReal.coe_mul, unitInterval.coe_toNNReal, unitInterval.coe_toNNReal,
+      unitInterval.coe_toNNReal, unitInterval.coe_symm_eq, unitInterval.coe_symm_eq,
+      unitInterval.coe_symm_eq]
+    exact hmul.symm
+  -- Missing every element of a finite set has probability `(1 - p) ^ #J`.
+  have havoid : ∀ (s : I) (J : Finset ι),
+      setBernoulli Set.univ s {R : Set ι | ∀ i ∈ J, i ∉ R}
+        = (toNNReal (σ s) : ℝ≥0∞) ^ J.card := by
+    intro s J
+    simpa using setBernoulli_cylinder s ∅ J (by simp)
+  have hCmeas : ∀ E ∈ {E : Set (Set ι) | ∃ J : Finset ι, E = {R : Set ι | ∀ i ∈ J, i ∉ R}},
+      MeasurableSet E := by
+    rintro E ⟨J, rfl⟩
+    have h : {R : Set ι | ∀ i ∈ J, i ∉ R} = ⋂ i ∈ J, {R : Set ι | i ∉ R} := by
+      ext R; simp
+    rw [h]
+    exact J.measurableSet_biInter fun i _ ↦ measurableSet_notMem i
+  -- Avoidance events generate the σ-algebra, being complements of the coordinate events.
+  have hgen : (inferInstance : MeasurableSpace (Set ι))
+      = MeasurableSpace.generateFrom
+          {E : Set (Set ι) | ∃ J : Finset ι, E = {R : Set ι | ∀ i ∈ J, i ∉ R}} := by
+    refine le_antisymm (fun E hE ↦ ?_) (MeasurableSpace.generateFrom_le hCmeas)
+    have hid : @Measurable (Set ι) (Set ι)
+        (MeasurableSpace.generateFrom
+          {E : Set (Set ι) | ∃ J : Finset ι, E = {R : Set ι | ∀ i ∈ J, i ∉ R}})
+        inferInstance id := by
+      refine (@measurable_set_iff ι (Set ι) (MeasurableSpace.generateFrom
+        {E : Set (Set ι) | ∃ J : Finset ι, E = {R : Set ι | ∀ i ∈ J, i ∉ R}}) id).2 fun a ↦ ?_
+      refine (@measurableSet_setOfPred (Set ι) (MeasurableSpace.generateFrom
+        {E : Set (Set ι) | ∃ J : Finset ι, E = {R : Set ι | ∀ i ∈ J, i ∉ R}})
+        (fun R : Set ι ↦ a ∈ R)).1 ?_
+      have h1 : MeasurableSet[MeasurableSpace.generateFrom
+          {E : Set (Set ι) | ∃ J : Finset ι, E = {R : Set ι | ∀ i ∈ J, i ∉ R}}]
+          {R : Set ι | ∀ i ∈ ({a} : Finset ι), i ∉ R} :=
+        MeasurableSpace.measurableSet_generateFrom ⟨{a}, rfl⟩
+      have h2 : {R : Set ι | ∀ i ∈ ({a} : Finset ι), i ∉ R} = {R : Set ι | a ∈ R}ᶜ := by
+        ext R; simp
+      rw [h2] at h1
+      simpa using h1.compl
+    exact hid hE
+  have hunion : Measurable fun z : Set ι × Set ι ↦ z.1 ∪ z.2 :=
+    measurable_set_iff.2 fun a ↦
+      ((measurable_set_mem a).comp measurable_fst).or ((measurable_set_mem a).comp measurable_snd)
+  -- The union of independent `p`- and `p'`-random subsets is a `q`-random subset.
+  have key : Measure.map (fun z : Set ι × Set ι ↦ z.1 ∪ z.2)
+      ((setBernoulli Set.univ p).prod (setBernoulli Set.univ p'))
+      = setBernoulli Set.univ q := by
+    refine MeasureTheory.ext_of_generate_finite _ hgen ?_ ?_
+      (by rw [Measure.map_apply hunion MeasurableSet.univ]; simp)
+    · rintro E ⟨J, rfl⟩ E' ⟨K, rfl⟩ -
+      exact ⟨J ∪ K, by ext R; simp [or_imp, forall_and]⟩
+    · rintro E ⟨J, rfl⟩
+      rw [Measure.map_apply hunion (hCmeas _ ⟨J, rfl⟩)]
+      have hpre : (fun z : Set ι × Set ι ↦ z.1 ∪ z.2) ⁻¹' {R : Set ι | ∀ i ∈ J, i ∉ R}
+          = {R : Set ι | ∀ i ∈ J, i ∉ R} ×ˢ {R : Set ι | ∀ i ∈ J, i ∉ R} := by
+        ext z; simp [not_or, forall_and]
+      rw [hpre, Measure.prod_prod, havoid p J, havoid p' J, havoid q J, hsigma,
+        ENNReal.coe_mul, mul_pow]
+  -- `A ⊆ A ∪ B` pointwise, and `F` is an upper set.
+  calc setBernoulli Set.univ p F
+      = ((setBernoulli Set.univ p).prod (setBernoulli Set.univ p')) (F ×ˢ Set.univ) := by
+        rw [Measure.prod_prod, measure_univ, mul_one]
+    _ ≤ ((setBernoulli Set.univ p).prod (setBernoulli Set.univ p'))
+          ((fun z : Set ι × Set ι ↦ z.1 ∪ z.2) ⁻¹' F) :=
+        measure_mono fun z hz ↦ hF Set.subset_union_left hz.1
+    _ = setBernoulli Set.univ q F := by rw [← key, Measure.map_apply hunion hFm]
 
 /-- **Multiple round exposure** (Zhao, Lemma 4.3.7).  If a monotone property `F` is missed by
 `Ω_p`, then it is missed by each of `m` independent copies of `Ω_q`, so
