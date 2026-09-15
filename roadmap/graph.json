@@ -1714,7 +1714,7 @@
       "decl": "ProbMethodCombinatorics.entropy_eq_sum_condEntropy_revealedBefore",
       "doc": "entropy.md#applications",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": [
         "entropy_chain_rule"
