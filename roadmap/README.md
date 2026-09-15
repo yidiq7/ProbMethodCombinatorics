@@ -484,3 +484,15 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   Procedure fixed in `skills/orchestrator-notes.md`: stage explicit paths, and review subagents
   must not mutate the working tree.  **Delegating work into your own working directory makes that
   directory shared state.**
+- **2026-09-15 — I retired a node that was actively claimed, with an open PR.**  #124 was closed
+  and its declaration deleted at 05:32; it had been claimed at 05:23 and PR #141 opened at 05:27.
+  The lease check that justified retiring it was run during an earlier review and was **stale by
+  the time I acted on it** — a liveness check is only valid at the instant of the destructive
+  action.  Reverted: the declaration is restored byte-identical to the PR's base so #141 merges
+  through the normal flow, and #124 is reopened.
+  **The contributor's version is also the better architecture.**  #140 proved the parent by
+  reproducing this lemma inline as an anonymous `have`, ~131 lines unreachable from any other
+  file; with it named and top-level, the parent becomes a short derivation and the duplication
+  goes away.  So the retirement was wrong on the merits too, not just on process — which is what
+  the rule about not re-routing finished work was trying to protect in the first place, applied
+  in the wrong direction.
