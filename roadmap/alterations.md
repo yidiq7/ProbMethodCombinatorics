@@ -134,3 +134,58 @@ colour greedily blue-unless-forced, and split `[0,1] = L ∪ M ∪ R` to bound t
 conflicting pair. The `∫ x^{k-1}(1-x)^{k-1} dx ≤ p 4^{-k+1}` estimate is the analytic
 heart and has no Mathlib counterpart. Very hard; stated so the chapter's true frontier is
 visible, not because it is expected to close soon.
+
+## Decompositions
+
+Two tasks in this group were claimed and released repeatedly with no PR — `exists_isDominating_card_le`
+twice, `exists_bad_card_lt_and_indepNum_le` four times. **Both statements are true**; the
+statements were checked before difficulty was assumed, which is the right order given that three
+author-side statements in this project have turned out to be false. What was wrong was the shape
+of the tasks: each bundled two unrelated kinds of work into one PR.
+
+Both are now split along the same seam — **the content that needs the combinatorial model, and
+the content that is pure analysis** — and in each case the analytic half mentions no graphs at
+all:
+
+- `dominating_averaging` / `dominating_optimisation` for Theorem 3.1.1. The first keeps each
+  vertex with probability `p` and repairs; the second optimises at `p = log(δ+1)/(δ+1)` using
+  only `1 - x ≤ exp (-x)`. The averaging child is stated with *weaker* hypotheses than its
+  parent — `δ` any degree lower bound, no `1 < δ` — because it does not need them.
+- `indep_counting` / `indep_estimate` for the third step of Theorem 3.4.1. The first is an exact
+  union bound over candidate independent sets, brute-forced for `n ≤ 4`, `M ≤ 4` before
+  publishing; the second is an inequality between binomial coefficients.
+
+**The signal to watch is a lease claimed and released with no PR**, and it does not appear in
+`metrics struggle`. It has now caught three false statements and two badly-shaped tasks. The
+diagnostic order that works: check the statement first, and only once it survives, treat repeated
+abandonment as a decomposition request.
+
+## Erdős 1959 is complete
+
+`exists_girth_gt_and_chromaticNumber_gt` — for every `k` there are graphs of girth `> k` and
+chromatic number `> k` — is **free of `sorryAx`**, verified with `#print axioms` rather than
+inferred from a green merge. It is the deepest result in Chapter 3 and the one this group was
+built around; the chain runs back through `exists_girth_gt_and_mul_indepNum_lt` and
+`exists_shortCycleCover_and_indepNum_le` to PR #57.
+
+Two ideas from the final step (`exists_bad_card_lt_and_indepNum_le`, PR #130) that generalise:
+
+- **Use a complement set, not a filter.** Writing the per-candidate family as
+  `Finset.powersetCard M (univ \ K S)` rather than filtering `graphFamily` makes the count
+  *definitionally* a `powersetCard`, so `Finset.card_powersetCard` gives an **equality** and no
+  decidability question arises anywhere. The filtered form needs a `DecidablePred` for
+  independence and yields only an inequality.
+- **`WLOG ε ≤ 1` via `suffices` at `δ = min ε 1`.** This makes `x ≤ n` unconditional, so the
+  ratio induction never meets the degenerate `T − c = 0`. The published task prose claimed large
+  `ε` "needs no branch" — true of the *statement*, but not of the proof, and the distinction is
+  worth remembering when writing route prose.
+
+## The decomposition that was superseded
+
+`card_filter_indepNum_le` and `two_mul_choose_mul_choose_lt_choose` were published to split this
+step after it had been abandoned four times. A contributor proved the step **directly** while
+that split was being published, flagged the overlap themselves, and offered to restructure
+through the new nodes. That offer was declined and both nodes were retired: a direct proof that
+exists beats a two-part proof that does not, and re-routing finished green work through
+orchestrator scaffolding would protect the plan at the contributor's expense. Neither node had
+been claimed, so nothing was lost — **which is the thing to check before retiring a node.**

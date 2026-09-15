@@ -340,3 +340,91 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   have made the lemmas unusable from `Janson.lean`.  My first draft had them; it type-checked in
   isolation and would have been useless.  **Check a new interface lemma by applying it from its
   intended call site, not by checking that it elaborates.**
+- **2026-09-14 — `illegal-axiom` on #122, and the rule that was misread.**  A target can be
+  *fully proved*, add no placeholder of its own, and still fail `comparator`: Janson II is proved
+  from Janson I, which is itself proved modulo `janson_prob_none_step_le`, so `sorryAx` is in the
+  closure either way.  The contributor removed their `choir-reduction` block on the theory that
+  "a placeholder on a declaration the base already had is disallowed" — which is not the rule.
+  `children` may name **any declaration already in the project that carries a placeholder**, and
+  `sorry-delta` Rule B only examines counts that *rose*, so citing a pre-existing obligation is
+  free.  `comparator` permits `sorryAx` exactly when a reduction is declared.  Their earlier red
+  run was almost certainly the stale pin they diagnose elsewhere in the same PR.
+  **Read `gate/verify/` when two checks appear to contradict each other** — the rules are in the
+  module docstrings, and deducing a general rule from one red run is how the fix gets deleted.
+  Recorded in `skills/conventions.md`.
+- **2026-09-14 — the published route for Janson II was wrong; the statement was not.**  It
+  prescribed `𝔼 Δ_T = q²Δ` under independent `q`-sampling, but `D` may contain diagonal pairs,
+  which survive with probability `q`.  The averaging breaks exactly in the `Λ ≫ μ` regime the
+  theorem covers.  Restricting to the off-diagonal `E` fixes it and removes the need for a case
+  split entirely.  Corrected argument in `janson.md`.  **Task prose is not checked by anything** —
+  statements get `statement-equiv` and numerical sanity checks, routes get nothing, and this is
+  the second time a prescribed route has been wrong where the statement was fine.
+- **2026-09-14 — `janson_prob_none_step_le` had a graph node but no task** since #103 merged,
+  published now as #123.  When accepting a reduction, the playbook's "publish a `prove` task per
+  node" is a separate step from adding the node and is easy to drop when several land at once.
+- **2026-09-14 — #15 and #60 decomposed after five abandoned claims between them.**  Both
+  statements check out, so this was a shape problem, not a soundness one: each bundled a
+  probabilistic/counting argument together with a piece of pure analysis.  Split along that
+  seam into #124/#125 and #126/#127, with the analytic child in each pair mentioning no graphs
+  at all and the counting child carrying no asymptotics.  `card_filter_indepNum_le` was
+  brute-forced over all `n ≤ 4`, `M ≤ 4` before publishing.  **Diagnostic order that works:
+  check the statement first — three author-side statements have been false — and only once it
+  survives, read repeated abandonment as a request to decompose.**
+- **2026-09-14 — Chapter 11's first two theorems were in the wrong order, and a contributor
+  caught it.**  `exists_containers` (11.2.1) is a counting corollary of
+  `exists_containers_fingerprint` (11.2.3), so publishing them in the book's order made the
+  corollary unprovable: Lean has no forward references.  The contributor proposed three fixes,
+  recommended the right one, released the claim and changed nothing — rather than adding a
+  near-duplicate of 11.2.3 above the target, which the reduction contract would have permitted.
+  File reordered, graph edge reversed.
+  **Generalisable: the source's presentation order can encode a dependency backwards.**  A
+  textbook may state a weaker result first and strengthen it later; a Lean file cannot.  §11.1
+  has the same shape (11.0.2 depends on 11.1.1) and already happens to be ordered correctly,
+  but this is worth checking whenever a chapter is stated from a linear reading.
+- **2026-09-14 — `setBernoulli_inter_eq_mul_of_disjoint` does not need `[Countable ι]`.**  Its
+  proof goes through `indep_iSup_of_disjoint`, which takes `Set ι` rather than `Finset ι`, so
+  countability never enters; the contributor found this via the `unusedSectionVars` linter and
+  **reported it instead of writing `omit`**, correctly treating a binder removal as a statement
+  change.  Binder dropped here, after their PR merged rather than before — removing it first
+  would have made their branch read as *adding* the instance and tripped
+  `statement-immutability` on a PR that changed nothing.  **Sequencing matters when acting on a
+  contributor's finding about the statement they are working against.**  `setBernoulli_inter_le_mul`
+  keeps the instance; Harris genuinely needs it, so the asymmetry is real.
+- **2026-09-14 — six PRs merged; Erdős 1959 and Janson I are both unconditional.**
+  `exists_girth_gt_and_chromaticNumber_gt` (Theorem 3.4.1) and `janson_prob_none_le` with its
+  conditioning step are now free of `sorryAx`, checked with `#print axioms` rather than inferred
+  from green merges.  `Correlation.lean` reached zero `sorry`.  **12 sorries, zero custom
+  axioms**, down from 26 two batches ago.
+  The cross-PR name-collision check ran again on the two file-sharing pairs and found nothing —
+  worth keeping as a habit, since the gate checks each PR against its own base and never against
+  its siblings.
+- **2026-09-14 — a decomposition I published was superseded while it was being published.**
+  #60 had been abandoned four times, so it was split into #126/#127; a contributor was
+  simultaneously proving it directly, landed that as #130, **flagged the overlap themselves**,
+  and offered to re-route their finished proof through my two nodes.  Declined and both nodes
+  retired.  A direct proof that exists beats a two-part proof that does not, and asking someone
+  to restructure green work through orchestrator scaffolding protects the plan at their expense.
+  **Check for lease activity before retiring a node** — both were unclaimed, so nothing was lost.
+- **2026-09-14 — `setBernoulli` is uniform-`p` only, and Janson's lower tail is not.**  Warnke's
+  proof thins the index set by an independent Bernoulli `q`, leaving per-coordinate inclusion
+  probabilities that `setBernoulli` cannot express.  The contributor found this and **stopped at
+  the boundary** instead of inventing a primitive inside `Janson.lean`.  `setBernoulliPi` is now
+  in `Correlation.lean`, with `setBernoulli_eq_setBernoulliPi` proving it a faithful
+  generalisation — **that specialisation lemma is the point; a definition that merely elaborates
+  demonstrates nothing.**  A non-uniform Janson I is deliberately *not* stated: it would mean
+  generalising `jansonMu`/`jansonDelta` in place, under three already-proved theorems, and that
+  call is better made by whoever holds the proof.  The task asks for a proposal rather than
+  handing down an interface.
+- **2026-09-14 — I published an impossible task, and the gate caught it.**  #121 was filed as a
+  `golf` task but asked for a deletion and a `private` → public promotion.  The golf spec is
+  explicit that a golfed declaration's statement must stay **token-identical to base** and only
+  the proof body may change, so no correct implementation could have passed
+  `statement-immutability`, and PR #136 was blocked for doing exactly what the task asked.
+  **`merge-override` was considered and rejected**: the check was not misfiring, it was enforcing
+  the rule it exists for, and overriding a correct check to cover an orchestrator
+  mis-specification is how a gate becomes decorative.  The contributor's commit was cherry-picked
+  onto `main` unchanged (`6c32d17`), the PR closed **without deleting its branch**, and the
+  declaration-level claims verified rather than taken from the PR's table.
+  **Rule now in `conventions.md`: consolidation that deletes, renames, changes visibility, or
+  relocates is orchestrator work, never a task.**  `golf` means "same statement, shorter proof"
+  and nothing else.

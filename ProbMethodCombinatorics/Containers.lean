@@ -58,27 +58,18 @@ noncomputable def triangleFreeGraphs (n : ℕ) : Finset (Finset (Sym2 (Fin n))) 
 
 /-! ### 11.2 Graph containers -/
 
-/-- **The graph container theorem** (Zhao, Theorem 11.2.1).  In a graph whose maximum degree is
-within a constant factor of its average degree `d`, the independent sets are covered by a family
-of containers indexed by "fingerprints" of size `≤ 2δ|V|/d`, each container missing at least a
-`δ` fraction of the vertices.
-
-The bound on `|𝒞|` is the book's `binom(|V|, ≤ 2δ|V|/d)`, written as the partial sum of binomial
-coefficients it abbreviates. -/
-theorem exists_containers (c : ℝ) (hc : 0 < c) :
-    ∃ δ > 0, ∀ (n : ℕ) (G : SimpleGraph (Fin n)) [DecidableRel G.Adj] (d : ℝ), 0 < d →
-      (∑ v, (G.degree v : ℝ)) = d * n → (∀ v, (G.degree v : ℝ) ≤ c * d) →
-      ∃ 𝒞 : Finset (Finset (Fin n)),
-        (𝒞.card : ℝ) ≤ ∑ i ∈ range (⌊2 * δ * n / d⌋₊ + 1), (n.choose i : ℝ) ∧
-        (∀ I : Finset (Fin n), G.IsIndepSet (I : Set (Fin n)) → ∃ C ∈ 𝒞, I ⊆ C) ∧
-        (∀ C ∈ 𝒞, (C.card : ℝ) ≤ (1 - δ) * n) := by
-  sorry
-
 /-- **The graph container theorem, with fingerprints** (Zhao, Theorem 11.2.3).  The refinement of
-`exists_containers` that the applications actually need: the container assigned to an independent
+Theorem 11.2.1 that the applications actually need, and — despite the numbering — **the
+statement the container algorithm actually produces.**  The container assigned to an independent
 set `I` is not merely *some* member of a small family, but `S I ∪ A (S I)`, a function of a
 fingerprint `S I ⊆ I`.  That `A` depends only on `S I` — and not otherwise on `I` — is the whole
-content; it is what lets a union bound range over fingerprints. -/
+content; it is what lets a union bound range over fingerprints.
+
+It is stated **before** `exists_containers` because that is the direction the dependency runs:
+11.2.1 is a counting corollary of this, obtained by taking `𝒞` to be the image of `A ∘ S` over
+the small fingerprints.  The file originally had them in the book's order, which made the
+corollary unprovable without a forward reference; a contributor working 11.2.1 found that and
+reported it rather than duplicating the statement. -/
 theorem exists_containers_fingerprint (c : ℝ) (hc : 0 < c) :
     ∃ δ > 0, ∀ (n : ℕ) (G : SimpleGraph (Fin n)) [DecidableRel G.Adj] (d : ℝ), 0 < d →
       (∑ v, (G.degree v : ℝ)) = d * n → (∀ v, (G.degree v : ℝ) ≤ c * d) →
@@ -88,6 +79,59 @@ theorem exists_containers_fingerprint (c : ℝ) (hc : 0 < c) :
           ((S I).card : ℝ) ≤ 2 * δ * n / d ∧
           ((S I ∪ A (S I)).card : ℝ) ≤ (1 - δ) * n := by
   sorry
+
+/-- **The graph container theorem** (Zhao, Theorem 11.2.1).  In a graph whose maximum degree is
+within a constant factor of its average degree `d`, the independent sets are covered by a family
+of containers indexed by "fingerprints" of size `≤ 2δ|V|/d`, each container missing at least a
+`δ` fraction of the vertices.
+
+The bound on `|𝒞|` is the book's `binom(|V|, ≤ 2δ|V|/d)`, written as the partial sum of binomial
+coefficients it abbreviates.
+
+**A corollary of `exists_containers_fingerprint` above**, not an independent theorem: take `𝒞`
+to be the image of `T ↦ T ∪ A T` over the fingerprints `T` small enough and with `T ∪ A T` small
+enough.  The second condition is load-bearing — without it the fingerprint theorem says nothing
+about a `T` that is not some `S I`. -/
+theorem exists_containers (c : ℝ) (hc : 0 < c) :
+    ∃ δ > 0, ∀ (n : ℕ) (G : SimpleGraph (Fin n)) [DecidableRel G.Adj] (d : ℝ), 0 < d →
+      (∑ v, (G.degree v : ℝ)) = d * n → (∀ v, (G.degree v : ℝ) ≤ c * d) →
+      ∃ 𝒞 : Finset (Finset (Fin n)),
+        (𝒞.card : ℝ) ≤ ∑ i ∈ range (⌊2 * δ * n / d⌋₊ + 1), (n.choose i : ℝ) ∧
+        (∀ I : Finset (Fin n), G.IsIndepSet (I : Set (Fin n)) → ∃ C ∈ 𝒞, I ⊆ C) ∧
+        (∀ C ∈ 𝒞, (C.card : ℝ) ≤ (1 - δ) * n) := by
+  obtain ⟨δ, hδ, hfp⟩ := exists_containers_fingerprint c hc
+  refine ⟨δ, hδ, fun n G _ d hd hsum hdeg => ?_⟩
+  obtain ⟨S, A, hSA⟩ := hfp n G d hd hsum hdeg
+  -- The fingerprints that are both small and have a small container.  The second condition is
+  -- needed because the fingerprint theorem says nothing about a `T` that is not some `S I`.
+  set F : Finset (Finset (Fin n)) :=
+    univ.powerset.filter fun T : Finset (Fin n) =>
+      (T.card : ℝ) ≤ 2 * δ * n / d ∧ ((T ∪ A T).card : ℝ) ≤ (1 - δ) * n with hF
+  refine ⟨F.image fun T => T ∪ A T, ?_, ?_, ?_⟩
+  · have hsub : F ⊆ (range (⌊2 * δ * n / d⌋₊ + 1)).biUnion
+        fun i => powersetCard i (univ : Finset (Fin n)) := by
+      intro T hT
+      rw [hF, mem_filter] at hT
+      exact mem_biUnion.mpr ⟨T.card, mem_range.mpr (Nat.lt_succ_of_le (Nat.le_floor hT.2.1)),
+        mem_powersetCard.mpr ⟨subset_univ _, rfl⟩⟩
+    have hcount : ((range (⌊2 * δ * n / d⌋₊ + 1)).biUnion
+        fun i => powersetCard i (univ : Finset (Fin n))).card
+        = ∑ i ∈ range (⌊2 * δ * n / d⌋₊ + 1), n.choose i := by
+      rw [card_biUnion ((pairwise_disjoint_powersetCard (univ : Finset (Fin n))).set_pairwise _)]
+      simp
+    have hnat : (F.image fun T => T ∪ A T).card
+        ≤ ∑ i ∈ range (⌊2 * δ * n / d⌋₊ + 1), n.choose i :=
+      card_image_le.trans (hcount ▸ card_le_card hsub)
+    calc ((F.image fun T => T ∪ A T).card : ℝ)
+        ≤ ((∑ i ∈ range (⌊2 * δ * n / d⌋₊ + 1), n.choose i : ℕ) : ℝ) := Nat.cast_le.mpr hnat
+      _ = ∑ i ∈ range (⌊2 * δ * n / d⌋₊ + 1), (n.choose i : ℝ) := by push_cast; ring
+  · intro I hI
+    obtain ⟨-, hcov, hsmall, hcont⟩ := hSA I hI
+    exact ⟨S I ∪ A (S I), mem_image_of_mem _
+      (mem_filter.mpr ⟨mem_powerset.mpr (subset_univ _), hsmall, hcont⟩), hcov⟩
+  · intro C hC
+    obtain ⟨T, hT, rfl⟩ := mem_image.mp hC
+    exact (mem_filter.mp hT).2.2
 
 /-! ### 11.3 The hypergraph container theorem -/
 

@@ -41,10 +41,19 @@ and making the predicate reducible means it does not have to.
   `S I`**. That is what lets a union bound range over fingerprints, and it is what would push
   Theorem 11.1.5 from `p ≫ n^{-1/2} log n` down to `p ≫ n^{-1/2}`.
 
-  **The dependency between these two may want flipping.** The container algorithm produces the
-  fingerprint directly, so 11.2.3 is arguably closer to what is proved, and 11.2.1 follows from
-  it by taking `𝒞` to be the image of `A ∘ S`. Both tasks are told to say so on the issue rather
-  than silently prove the other one inline; if a contributor confirms it, reverse the edge here.
+  **The dependency has been flipped, and the file reordered to match.** It was published in the
+  book's order with 11.2.1 first, and a contributor working that task found the consequence:
+  11.2.1 is a counting corollary of 11.2.3, so under the book's order it cannot be proved
+  without a forward reference, which Lean does not have. They reported it and released the claim
+  rather than duplicating 11.2.3's statement above the target — the right call, and the reason
+  this was a five-minute fix instead of a near-duplicate in the file.
+
+  `exists_containers_fingerprint` now precedes `exists_containers`, and `graph_container`
+  depends on `graph_container_fingerprint` in the graph. **The lesson is general: publishing a
+  chapter in the source's presentation order can encode a dependency backwards**, because a
+  textbook is free to state a weaker result first and strengthen it later, and a Lean file is
+  not. §11.1 has the same shape — 11.0.2 leans on 11.1.1 — and happens to be ordered correctly,
+  but it is worth checking whenever a chapter is stated from a linear reading.
 
 ## §11.3 The hypergraph container theorem
 

@@ -97,3 +97,43 @@ landed. Stated multiplicatively over a `Finset`, so that no ordering, no conditi
 probability and no positivity side condition appear in the statement — which is what makes it a
 reusable node rather than a private step. Its inputs are `harris_setbernoulli` and
 `setbernoulli_block_indep` in `Correlation.lean`.
+
+## `janson_two` — the diagonal of `D`, and the route that works
+
+The route originally published for `janson_prob_none_le_of_mu_le` was wrong, and a contributor
+caught it. It prescribed independent `q`-sampling of the index set with `𝔼 Δ_T = q² Δ`. But `D`
+is an arbitrary `Finset (κ × κ)` and may contain diagonal pairs `(i, i)`, which survive sampling
+with probability `q`, not `q²`. So `𝔼 Δ_T = q² Λ + q δ`, and the averaging genuinely breaks
+rather than merely getting messier — with `δ = sμ` the required inequality fails once `Λ ≫ μ`,
+which is exactly the regime this theorem is for.
+
+**The statement was never wrong**: a larger `Δ` only weakens `exp(-μ²/(2Δ))`. Only the route was.
+
+The fix is to run the argument on `E := D.filter (fun z => z.1 ≠ z.2)` with `Λ := jansonDelta p S E`.
+Then `hD` transfers unchanged — for `i ≠ j`, `(i,j) ∈ E ↔ (i,j) ∈ D` — and `Λ ≤ Δ`. **No case
+split is needed**, which is the nice part: with `q = μ/Δ`,
+
+    −qμ + q²Λ/2 = −μ²/Δ + μ²Λ/(2Δ²) ≤ −μ²/(2Δ)   ⟺   Λ ≤ Δ,
+
+true by construction, so the hypothesis `Λ ≥ μ` that the naive route needs never arises. And
+`q = μ/Δ ≤ 1` is precisely this theorem's own hypothesis.
+
+## `janson_three` — and the one primitive it still needs
+
+`janson_lower_tail` is proved modulo `janson_lower_tail_step_le`, the Chernoff/thinning step of
+Warnke's argument. `exp_neg_le_one_sub_add_sq_div_two` — `exp (-x) ≤ 1 - x + x²/2` for `x ≥ 0`,
+proved **without calculus** from `Real.quadratic_le_exp_of_nonneg` — is the analytic input and is
+already closed.
+
+The obstacle in the remaining step is structural rather than analytic. Thinning by an independent
+Bernoulli `q` leaves the index set carrying **per-coordinate** inclusion probabilities (`p` on
+`ι`, `q` on `κ`), and `setBernoulli` is uniform-`p` only, so `janson_prob_none_le` cannot be
+applied literally even though Janson I is true for arbitrary independent probabilities.
+`setBernoulliPi` in `Correlation.lean` now supplies the missing measure.
+
+**What is deliberately still unstated** is a non-uniform Janson I. Stating it means choosing
+whether `jansonMu`/`jansonDelta` are generalised in place — they are consumed by three
+already-proved theorems whose proofs must not break — or whether a parallel pair is better. That
+choice is better made by someone holding the proof, so the task asks for a proposal instead of
+handing down an interface. If the thinning turns out to route through a *product* of two uniform
+`setBernoulli`s, no non-uniform Janson I is needed at all.
