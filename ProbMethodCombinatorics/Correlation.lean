@@ -1045,6 +1045,32 @@ has a threshold).  It lives in this file rather than in `SecondMoment.lean` beca
 statement about `setBernoulli` and upper sets, which is this file's subject; Chapter 4's own file
 is measure-theoretic but has no random-subset machinery. -/
 
+/-- **Monotonicity of the satisfying probability** (Zhao, Theorem 4.3.5).  For a monotone
+property `F`, the probability that `Ω_p` satisfies it is non-decreasing in `p`.
+
+This is what `prob_notMem_le_pow_of_isUpperSet` below consumes, and it is the reason a
+"threshold" is a meaningful notion at all: without monotonicity in `p` there would be nothing
+for a critical probability to be critical *about*.
+
+**The non-strict form is stated, deliberately.**  The book's Theorem 4.3.5 says *strictly*
+increasing, which needs `F` non-trivial — neither empty nor everything.  Strictness is not used
+anywhere downstream: Lemma 4.3.7 and the threshold argument both need only `≤`, and dropping
+non-triviality makes this usable without side conditions.  If the strict version is ever wanted
+it should be a separate node with the non-triviality hypothesis, not a strengthening of this one.
+
+**Route.**  The standard coupling: draw one uniform `t x ∈ [0,1]` per element and read off
+`A = {x | t x ≤ p}` and `B = {x | t x ≤ q}`.  Then `A` is distributed as `Ω_p`, `B` as `Ω_q`, and
+`p ≤ q` gives `A ⊆ B` pointwise, so `A ∈ F → B ∈ F` because `F` is an upper set.  Mathlib's
+`fkg`/`holley` neighbourhood is not what is wanted here; this is a monotone-coupling argument, not
+a correlation inequality.
+
+Stated in `ℝ≥0∞` rather than through `.toReal`, since no subtraction is involved and the
+coercion would only add noise. -/
+theorem prob_mem_mono_of_isUpperSet {ι : Type*} [Countable ι] (F : Set (Set ι))
+    (hF : IsUpperSet F) (hFm : MeasurableSet F) {p q : I} (hpq : (p : ℝ) ≤ (q : ℝ)) :
+    setBernoulli Set.univ p F ≤ setBernoulli Set.univ q F := by
+  sorry
+
 /-- **Multiple round exposure** (Zhao, Lemma 4.3.7).  If a monotone property `F` is missed by
 `Ω_p`, then it is missed by each of `m` independent copies of `Ω_q`, so
 `ℙ(Ω_p ∉ F) ≤ ℙ(Ω_q ∉ F) ^ m`.
