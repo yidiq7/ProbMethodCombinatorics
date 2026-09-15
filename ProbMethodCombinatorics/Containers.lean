@@ -60,6 +60,116 @@ noncomputable def triangleFreeGraphs (n : ℕ) : Finset (Finset (Sym2 (Fin n))) 
 
 /-! ### 11.2 Graph containers -/
 
+/-- The interface the greedy step of the container algorithm is asked to satisfy on a graph `G`
+of average degree `d`, with shrinking parameter `δ`.
+
+`pick A T` is the vertex selected out of a candidate set `T` while `A` is the set of still-alive
+vertices, and `kill A v` is the set of vertices retired from `A` when `v` is selected.
+
+* `pick A T ∈ T` for nonempty `T`, and `pick A` is **stable**: shrinking `T` to a subset that still
+  contains the selected vertex does not change the selection.  This is what lets the run be
+  replayed from the fingerprint alone, because the fingerprint records exactly the vertices that
+  are still to be selected.
+* `kill A v ⊆ A` and `v ∉ kill A v`, so the selected vertex is retired separately from the
+  vertices its selection retires.
+* As long as fewer than `2 * δ * n` vertices have been retired, selecting from an independent set
+  `I` retires at least `3 * d / 4` vertices, none of them in `I`. -/
+private def IsGreedyRule {n : ℕ} (G : SimpleGraph (Fin n)) (d δ : ℝ)
+    (pick : Finset (Fin n) → Finset (Fin n) → Fin n)
+    (kill : Finset (Fin n) → Fin n → Finset (Fin n)) : Prop :=
+  (∀ A T : Finset (Fin n), T.Nonempty → pick A T ∈ T) ∧
+  (∀ A T T' : Finset (Fin n), T' ⊆ T → pick A T ∈ T' → pick A T' = pick A T) ∧
+  (∀ (A : Finset (Fin n)) (v : Fin n), kill A v ⊆ A ∧ v ∉ kill A v) ∧
+  (∀ A : Finset (Fin n), ((Aᶜ).card : ℝ) ≤ 2 * δ * n →
+    ∀ I : Finset (Fin n), G.IsIndepSet (I : Set (Fin n)) → (I ∩ A).Nonempty →
+      Disjoint (kill A (pick A (I ∩ A))) I ∧
+      3 * d / 4 ≤ ((kill A (pick A (I ∩ A))).card : ℝ))
+
+/-- **The greedy step of the container algorithm** (Zhao, the algorithm on printed p. 206).  On a
+graph whose average degree `d` is small compared with `δ * n`, selecting from the alive set `A`
+the vertex of `I ∩ A` that comes first in the order of decreasing degree in `G[A]` retires at
+least `3 * d / 4` vertices of `A` outside `I`: its predecessors in that order, which cannot lie
+in `I`, together with its neighbours, which cannot lie in `I` either.
+
+The count is the degree count of the proof idea.  Writing `v` for the selected vertex, `P` for
+its predecessors and `t` for the number of vertices retired, every vertex of `A` outside
+`P ∪ {v}` has degree in `G[A]` at most that of `v`, so
+
+    d * n - 4 * c * d * (δ * n) ≤ ∑ u ∈ A, degree_{G[A]} u ≤ t * (c * d) + n * t,
+
+and `d ≤ δ * n` with `δ ≤ 1 / (100 * c)` turns this into `t ≥ (1 - 4 * c * δ) / (1 + c * δ) * d`,
+comfortably above `3 * d / 4`.  It is the hypothesis `d ≤ δ * n` that makes `c * d` negligible
+against `n`; Zhao's `d / 2` is what the same count gives without it. -/
+theorem exists_greedy_rule (c d δ : ℝ) (hc : 0 < c) (hδ : 0 < δ) (hδc : δ ≤ 1 / (100 * c))
+    (n : ℕ) (G : SimpleGraph (Fin n)) [DecidableRel G.Adj] (hd : 0 < d) (hdn : d ≤ δ * n)
+    (hsum : (∑ v, (G.degree v : ℝ)) = d * n) (hdeg : ∀ v, (G.degree v : ℝ) ≤ c * d) :
+    ∃ (pick : Finset (Fin n) → Finset (Fin n) → Fin n)
+      (kill : Finset (Fin n) → Fin n → Finset (Fin n)), IsGreedyRule G d δ pick kill := by
+  sorry
+
+/-- **The container algorithm assembled from its greedy step.**  Running a greedy rule from the
+alive set `Finset.univ` and the empty fingerprint produces the fingerprint function `S` and the
+container function `A` of Theorem 11.2.3 in the regime `d ≤ δ * n`.
+
+The run selects vertices `v₁, …, v_m` out of `I`, retiring `kill` sets into a set `X` of retired
+vertices, and stops when either `δ * n` vertices have been retired or nothing of `I` is left
+alive.  Three facts make it work.
+
+* `X` never meets `I`, so `I ⊆ S ∪ A` with `S = {v₁, …, v_m}` the vertices selected and `A` the
+  alive set at the halt: the selected vertex is first in `I ∩ A`, so its predecessors miss `I`,
+  and its neighbours miss `I` by independence.
+* **`A` is recovered from `S` alone.**  Replaying the run with `I` replaced by the *set* `S`
+  selects the same vertices, because at step `k` the fingerprint restricted to the alive set is
+  `{v_{k+1}, …, v_m} ⊆ I ∩ A_k` and still contains `v_{k+1}`, so stability of `pick` gives the
+  same selection.  Halting for want of alive vertices is also visible from `S`, and there `I` is
+  forced to equal `S`, which is what makes `A := ∅` consistent on that branch.
+* The budget.  Each of the first `m - 1` steps retires at least `3 * d / 4` vertices while fewer
+  than `δ * n` are retired, so `m - 1 < 4 * δ * n / (3 * d) = (2 / 3) * (2 * δ * n / d)`, and
+  `d ≤ δ * n` makes `2 * δ * n / d ≥ 2`, which is exactly enough for the integer `m` to satisfy
+  `m ≤ 2 * δ * n / d`.  On the branch that halts for want of alive vertices the container is `S`
+  itself, and `∑ v, degree v = d * n` with `degree ≤ c * d` bounds every independent set by
+  `(1 - 1 / (2 * c)) * n ≤ (1 - δ) * n`. -/
+theorem exists_fingerprint_of_greedy_rule (c d δ : ℝ) (hc : 0 < c) (hδ : 0 < δ)
+    (hδc : δ ≤ 1 / (100 * c)) (n : ℕ) (G : SimpleGraph (Fin n)) [DecidableRel G.Adj]
+    (hd : 0 < d) (hdn : d ≤ δ * n) (hsum : (∑ v, (G.degree v : ℝ)) = d * n)
+    (hdeg : ∀ v, (G.degree v : ℝ) ≤ c * d)
+    (pick : Finset (Fin n) → Finset (Fin n) → Fin n)
+    (kill : Finset (Fin n) → Fin n → Finset (Fin n)) (hrule : IsGreedyRule G d δ pick kill) :
+    ∃ S A : Finset (Fin n) → Finset (Fin n),
+      ∀ I : Finset (Fin n), G.IsIndepSet (I : Set (Fin n)) →
+        S I ⊆ I ∧ I ⊆ S I ∪ A (S I) ∧
+        ((S I).card : ℝ) ≤ 2 * δ * n / d ∧
+        ((S I ∪ A (S I)).card : ℝ) ≤ (1 - δ) * n := by
+  sorry
+
+/-- **Containers from a single-vertex fingerprint, in the dense corner `δ * n < d`.**  When the
+average degree exceeds `δ * n` the fingerprint budget `2 * δ * n / d` of Theorem 11.2.3 is below
+`2`, so a fingerprint may hold at most one vertex, and the conclusion takes the form: a selection
+`s I ∈ I` and a set `K v` depending only on the selected vertex, with `I ⊆ insert (s I) (K (s I))`
+and that container missing at least `δ * n` vertices.
+
+Selecting from `I` the vertex `v` of largest degree (ties by index) and taking
+`K v = (V \ ({u | v ≺ u} ∪ N(v)))` works whenever the count
+
+    d * n ≤ |{u | u ≺ v}| * (c * d) + n * (G.degree v)
+
+forces `|{u | u ≺ v} ∪ N(v)| ≥ δ * n`, which it does for `d ≥ δ * n * (1 + 2 * c * δ)`.  Between
+`δ * n` and that, the count is short of `δ * n` by a second-order amount and the corner needs its
+own argument.  Keeping the two vertex sets `{u | u ≺ v}` and `N(v)` separate sharpens the count to
+`d * n ≤ t * (c * d + n - t)` and moves the threshold down to `d ≥ δ * n * (1 - δ) / (1 - c * δ)`,
+so what is left open is a window of relative width `(c - 1) * δ` above `δ * n`; it is empty for
+`c = 1`.  `d ≤ 2 * δ * n` is what keeps the budget at least `1`, so that a one-vertex fingerprint
+is permitted at all. -/
+theorem exists_dense_fingerprint (c d δ : ℝ) (hc : 0 < c) (hδ : 0 < δ) (hδc : δ ≤ 1 / (100 * c))
+    (n : ℕ) (G : SimpleGraph (Fin n)) [DecidableRel G.Adj] (hd : 0 < d) (hlo : δ * n < d)
+    (hhi : d ≤ 2 * δ * n) (hsum : (∑ v, (G.degree v : ℝ)) = d * n)
+    (hdeg : ∀ v, (G.degree v : ℝ) ≤ c * d) :
+    ∃ (s : Finset (Fin n) → Fin n) (K : Fin n → Finset (Fin n)),
+      ∀ I : Finset (Fin n), G.IsIndepSet (I : Set (Fin n)) → I.Nonempty →
+        s I ∈ I ∧ I ⊆ insert (s I) (K (s I)) ∧
+        ((insert (s I) (K (s I))).card : ℝ) ≤ (1 - δ) * n := by
+  sorry
+
 /-- **The graph container theorem, with fingerprints** (Zhao, Theorem 11.2.3).  The refinement of
 Theorem 11.2.1 that the applications actually need, and — despite the numbering — **the
 statement the container algorithm actually produces.**  The container assigned to an independent
@@ -96,7 +206,36 @@ theorem exists_containers_fingerprint (c : ℝ) (hc : 0 < c) :
           S I ⊆ I ∧ I ⊆ S I ∪ A (S I) ∧
           ((S I).card : ℝ) ≤ 2 * δ * n / d ∧
           ((S I ∪ A (S I)).card : ℝ) ≤ (1 - δ) * n := by
-  sorry
+  have hm1 : (1 : ℝ) ≤ max c 1 := le_max_right _ _
+  have hmc : c ≤ max c 1 := le_max_left _ _
+  have hmpos : (0 : ℝ) < 100 * max c 1 := by linarith
+  refine ⟨1 / (100 * max c 1), by positivity, fun n G _ d hd hdn hsum hdeg => ?_⟩
+  set δ : ℝ := 1 / (100 * max c 1) with hδdef
+  have hδ : (0 : ℝ) < δ := by rw [hδdef]; positivity
+  have hδc : δ ≤ 1 / (100 * c) := by
+    rw [hδdef]
+    exact one_div_le_one_div_of_le (by linarith) (by linarith)
+  have hδ1 : δ ≤ 1 / 100 := by
+    rw [hδdef]
+    exact one_div_le_one_div_of_le (by norm_num) (by linarith)
+  by_cases hcase : d ≤ δ * n
+  · obtain ⟨pick, kill, hrule⟩ := exists_greedy_rule c d δ hc hδ hδc n G hd hcase hsum hdeg
+    exact exists_fingerprint_of_greedy_rule c d δ hc hδ hδc n G hd hcase hsum hdeg pick kill hrule
+  · obtain ⟨s, K, hsK⟩ :=
+      exists_dense_fingerprint c d δ hc hδ hδc n G hd (lt_of_not_ge hcase) hdn hsum hdeg
+    refine ⟨fun I => if I = ∅ then ∅ else {s I}, fun T => T.biUnion K, fun I hI => ?_⟩
+    by_cases hIe : I = ∅
+    · subst hIe
+      have hn : (0 : ℝ) ≤ (n : ℕ) := Nat.cast_nonneg n
+      simp only [reduceIte, Finset.biUnion_empty, Finset.union_empty, Finset.card_empty,
+        Nat.cast_zero, Finset.Subset.refl, true_and]
+      exact ⟨by positivity, mul_nonneg (by linarith) hn⟩
+    · have hne : I.Nonempty := Finset.nonempty_iff_ne_empty.mpr hIe
+      obtain ⟨hsI, hcov, hcard⟩ := hsK I hI hne
+      simp only [if_neg hIe, Finset.singleton_biUnion, Finset.singleton_union]
+      refine ⟨Finset.singleton_subset_iff.mpr hsI, hcov, ?_, hcard⟩
+      rw [Finset.card_singleton, Nat.cast_one, le_div_iff₀ hd]
+      linarith
 
 /-- **The graph container theorem** (Zhao, Theorem 11.2.1).  In a graph whose maximum degree is
 within a constant factor of its average degree `d`, the independent sets are covered by a family
