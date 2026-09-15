@@ -201,3 +201,30 @@ rejected — correctly, and I would not want it otherwise.
 Use `git commit -F -` with a **quoted** heredoc (`<<'EOF'`), which suppresses all expansion. Every
 other commit this session used that form; the one that used `-m` is the one that broke. The
 mangled message stands, because rewriting shared history to fix prose is the wrong trade.
+
+
+## 2026-09-15 — Lease age is the idle-turn diagnostic, and how to read it correctly
+
+With every task claimed and no PRs open, the useful thing to check is **how long each claim has
+been held**. It is the only visible form of the claim-and-release signal — `metrics struggle`
+counts failed *PRs* and sees nothing here — and it distinguishes "needs help" from "needs
+patience", which nothing else does.
+
+    gh issue list --repo <repo> --state open --label choir/claimed --json number
+    # then, per issue, the most recent comment containing `choir-lease`
+
+**Read `createdAt` of the most recent lease comment.** Two traps, both checked:
+
+- Heartbeat comments say "this comment is edited in place", which suggests `createdAt` is stale
+  and `updatedAt` should be used instead. In practice they are equal, and the in-body
+  "Lease refreshed …" timestamps can be *older* than the newest comment's creation, because they
+  belong to earlier heartbeat comments. Taking the freshest of the three measures agrees with
+  `createdAt` of the newest lease comment.
+- `sync-leases` has its own staleness threshold and will not release a lease at 5 hours, so a
+  stale-looking claim is not necessarily reclaimable. Do not wait for the label to change.
+
+What to do with a long hold depends on the diagnostic order already recorded above —
+**statement, then route, then decomposition.** On 2026-09-15 that ordering produced: #84
+decomposed (statement and route already verified, so decomposition was what was left), and #90
+given a targeted hint instead (its route is three lines; splitting it would not have helped, and
+the real cost was an associativity transport with a precedent already in the file).
