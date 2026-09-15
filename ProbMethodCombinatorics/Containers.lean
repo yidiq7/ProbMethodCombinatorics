@@ -252,6 +252,7 @@ theorem exists_triangle_supersaturation (ε : ℝ) (hε : 0 < ε) :
     _ ≤ (((SimpleGraph.fromEdgeSet (F : Set (Sym2 (Fin n)))).cliqueFinset 3).card : ℝ) := hrem
     _ ≤ _ := by exact_mod_cast hsurj
 
+set_option maxHeartbeats 1200000 in
 /-- **One step of the container iteration for triangle-free graphs.**  A set `F` of pairs from
 `[n]` spanning at least `c n³` ordered triangles admits a small family of subsets of `F`, each a
 definite fraction smaller than `F`, covering between them every triangle-free graph inside `F`.
@@ -270,7 +271,592 @@ theorem exists_shrunken_containers_of_many_triangles (c : ℝ) (hc : 0 < c) :
         (𝒟.card : ℝ) ≤ (n : ℝ) ^ (C * (n : ℝ) ^ ((3 : ℝ) / 2)) ∧
         (∀ D ∈ 𝒟, D ⊆ F ∧ (D.card : ℝ) ≤ (1 - δ) * (F.card : ℝ)) ∧
         (∀ G : Finset (Sym2 (Fin n)), IsTriangleFreeEdgeSet G → G ⊆ F → ∃ D ∈ 𝒟, G ⊆ D) := by
-  sorry
+  have hsc : 0 < Real.sqrt c := Real.sqrt_pos.mpr hc
+  have hc3 : (0:ℝ) < c / 3 := by linarith
+  have hsc3 : 0 < Real.sqrt (c / 3) := Real.sqrt_pos.mpr hc3
+  have h108 : (0:ℝ) < 108 / c := div_pos (by norm_num) hc
+  have h64 : (0:ℝ) < 64 / Real.sqrt (c / 3) := div_pos (by norm_num) hsc3
+  -- The degree constant handed to Theorem 11.3.1.  Once the triangle count forces the average
+  -- degree `d ≥ c n / 9`, the two codegree bounds `Δ₁ ≤ 12 n` and `Δ₂ ≤ 64` proved below read
+  -- `Δ₁ ≤ (108 / c) d` and `Δ₂ ≤ (64 / √(c/3)) √d`.
+  obtain ⟨δ₀, hδ₀, hcont⟩ :=
+    exists_containers_three_uniform (108 / c + 64 / Real.sqrt (c / 3) + 1) (by linarith)
+  -- Above `n₀` the average degree clears both `δ₀⁻¹` and `1`, so Theorem 11.3.1 applies; below it
+  -- the theorem is met by hand, and `δ` is cut down far enough for the crude family to qualify.
+  set n₀ : ℕ := max 3 (max ⌈9 / (c * δ₀)⌉₊ ⌈9 / c⌉₊) with hn₀def
+  have hn₀3 : 3 ≤ n₀ := le_max_left _ _
+  have hn₀a : (9 / (c * δ₀) : ℝ) ≤ (n₀ : ℝ) := by
+    refine (Nat.le_ceil _).trans ?_
+    exact_mod_cast (le_max_left _ _).trans (le_max_right 3 _)
+  have hn₀b : (9 / c : ℝ) ≤ (n₀ : ℝ) := by
+    refine (Nat.le_ceil _).trans ?_
+    exact_mod_cast (le_max_right _ _).trans (le_max_right 3 _)
+  have hn₀pos : (0:ℝ) < (n₀ : ℝ) := by positivity
+  clear_value n₀
+  have hsmallpos : (0:ℝ) < 1 / ((n₀ : ℝ) ^ 2 + 1) := by positivity
+  refine ⟨min δ₀ (1 / ((n₀ : ℝ) ^ 2 + 1)), 6 / Real.sqrt c + 3 + (n₀ : ℝ),
+    lt_min hδ₀ hsmallpos, ?_, by positivity, ?_⟩
+  · refine lt_of_le_of_lt (min_le_right _ _) ?_
+    rw [div_lt_one (by positivity)]
+    nlinarith [hn₀3, hn₀pos]
+  intro n F hT
+  set δ : ℝ := min δ₀ (1 / ((n₀ : ℝ) ^ 2 + 1)) with hδdef
+  have hδpos : 0 < δ := lt_min hδ₀ hsmallpos
+  have hδδ₀ : δ ≤ δ₀ := min_le_left _ _
+  set C : ℝ := 6 / Real.sqrt c + 3 + (n₀ : ℝ) with hCdef
+  set Tset : Finset (Fin n × Fin n × Fin n) :=
+    univ.filter (fun t : Fin n × Fin n × Fin n =>
+      t.1 ≠ t.2.1 ∧ t.1 ≠ t.2.2 ∧ t.2.1 ≠ t.2.2 ∧
+        triangleEdges t.1 t.2.1 t.2.2 ⊆ F) with hTsetdef
+  have hTcard : c * (n : ℝ) ^ 3 ≤ (Tset.card : ℝ) := hT
+  have hTmem : ∀ t ∈ Tset, t.1 ≠ t.2.1 ∧ t.1 ≠ t.2.2 ∧ t.2.1 ≠ t.2.2 ∧
+      triangleEdges t.1 t.2.1 t.2.2 ⊆ F := by
+    intro t ht
+    rw [hTsetdef, mem_filter] at ht
+    exact ht.2
+  clear_value Tset
+  -- `n = 0` is not excluded by the hypothesis, since `c * 0 ^ 3 ≤ 0` holds; `{∅}` witnesses it,
+  -- `(0 : ℝ) ^ (C * 0 ^ (3 / 2))` being `0 ^ (0 : ℝ) = 1`.
+  rcases Nat.eq_zero_or_pos n with rfl | hn1
+  · have hFe : ∀ e : Sym2 (Fin 0), False := fun e => Sym2.ind (fun a _ => a.elim0) e
+    have hF : F = ∅ := Finset.eq_empty_iff_forall_notMem.mpr fun e _ => hFe e
+    refine ⟨{∅}, ?_, ?_, ?_⟩
+    · simp [Real.zero_rpow]
+    · intro D hD
+      rw [mem_singleton] at hD
+      subst hD
+      simp [hF]
+    · intro G _ hGF
+      refine ⟨∅, mem_singleton_self _, ?_⟩
+      rw [hF] at hGF
+      exact hGF
+  have hnR : (1:ℝ) ≤ (n:ℝ) := by exact_mod_cast hn1
+  have hTpos : 0 < Tset.card := by
+    have hnpos : (0:ℝ) < (n:ℝ) := by linarith
+    have h1 : (0:ℝ) < c * (n:ℝ)^3 := mul_pos hc (pow_pos hnpos 3)
+    have : (0:ℝ) < (Tset.card : ℝ) := lt_of_lt_of_le h1 hTcard
+    exact_mod_cast this
+  -- For `n ≥ 1` the count is positive, so `F` really does span a triangle: hence `3 ≤ n` and
+  -- `3 ≤ |F|`, and `n ∈ {1, 2}` is vacuous.
+  obtain ⟨t₀, ht₀⟩ : Tset.Nonempty := Finset.card_pos.mp hTpos
+  obtain ⟨hab, haz, hbz, hsub0⟩ := hTmem t₀ ht₀
+  have hcard3 : ∀ x y z : Fin n, x ≠ y → x ≠ z → y ≠ z →
+      (triangleEdges x y z).card = 3 := by
+    intro x y z hxy hxz hyz
+    rw [triangleEdges, card_insert_of_notMem (by simp; tauto),
+      card_insert_of_notMem (by simp; tauto), card_singleton]
+  have hn3 : 3 ≤ n := by
+    have hv : ({t₀.1, t₀.2.1, t₀.2.2} : Finset (Fin n)).card = 3 := by
+      rw [card_insert_of_notMem (by simp [hab, haz]),
+        card_insert_of_notMem (by simp [hbz]), card_singleton]
+    have := Finset.card_le_univ ({t₀.1, t₀.2.1, t₀.2.2} : Finset (Fin n))
+    simpa [hv] using this
+  have hN3 : 3 ≤ F.card := by
+    have := Finset.card_le_card hsub0
+    rwa [hcard3 _ _ _ hab haz hbz] at this
+  have htri : ∀ (e : Sym2 (Fin n)) (p q r : Fin n),
+      e ∈ triangleEdges p q r ↔ (e = s(p, q) ∨ e = s(p, r) ∨ e = s(q, r)) := by
+    intro e p q r
+    rw [triangleEdges]
+    simp only [mem_insert, mem_singleton]
+  have hpair : ∀ x y u v : Fin n, s(x, y) = s(u, v) → (x = u ∨ x = v) ∧ (y = u ∨ y = v) := by
+    intro x y u v h
+    rcases Sym2.eq_iff.mp h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
+    · exact ⟨Or.inl rfl, Or.inr rfl⟩
+    · exact ⟨Or.inr rfl, Or.inl rfl⟩
+  have hend : ∀ x y p q r : Fin n, s(x, y) ∈ triangleEdges p q r →
+      (x = p ∨ x = q ∨ x = r) ∧ (y = p ∨ y = q ∨ y = r) := by
+    intro x y p q r h
+    rcases (htri _ _ _ _).mp h with h' | h' | h' <;>
+      [exact (fun h => ⟨by tauto, by tauto⟩) (hpair x y p q h');
+       exact (fun h => ⟨by tauto, by tauto⟩) (hpair x y p r h');
+       exact (fun h => ⟨by tauto, by tauto⟩) (hpair x y q r h')]
+  have hSym2 : ∀ z : Sym2 (Fin n), ∃ x y : Fin n, z = s(x, y) :=
+    fun z => Sym2.ind (fun x y => ⟨x, y, rfl⟩) z
+  have hle3 : ∀ x y z : Fin n, ({x, y, z} : Finset (Fin n)).card ≤ 3 := by
+    intro x y z
+    calc ({x, y, z} : Finset (Fin n)).card ≤ ({y, z} : Finset (Fin n)).card + 1 :=
+          card_insert_le _ _
+      _ ≤ (({z} : Finset (Fin n)).card + 1) + 1 := by gcongr; exact card_insert_le _ _
+      _ = 3 := by simp
+  have hle4 : ∀ w x y z : Fin n, ({w, x, y, z} : Finset (Fin n)).card ≤ 4 := by
+    intro w x y z
+    calc ({w, x, y, z} : Finset (Fin n)).card ≤ ({x, y, z} : Finset (Fin n)).card + 1 :=
+          card_insert_le _ _
+      _ ≤ 3 + 1 := by gcongr; exact hle3 x y z
+      _ = 4 := by norm_num
+  have hδsmall : δ ≤ 1 / ((n₀:ℝ)^2 + 1) := by rw [hδdef]; exact min_le_right _ _
+  have hn2 : (2:ℝ) ≤ (n:ℝ) := by exact_mod_cast le_trans (by norm_num) hn3
+  have hnpos : (0:ℝ) < (n:ℝ) := by linarith
+  have hFn2 : (F.card : ℝ) ≤ (n:ℝ) * (n:ℝ) := by
+    have h0 : F.card ≤ n * n := by
+      refine le_trans (Finset.card_le_univ F) ?_
+      have h := Fintype.card_le_of_surjective
+        (Function.uncurry (Sym2.mk (α := Fin n))) Sym2.mk_surjective
+      simpa [Fintype.card_prod] using h
+    exact_mod_cast h0
+  have h6c : (0:ℝ) < 6 / Real.sqrt c := by positivity
+  by_cases hbig : n₀ ≤ n
+  · set N : ℕ := F.card with hNdef
+    have hNpos : 0 < N := by omega
+    -- Theorem 11.3.1 is stated for hypergraphs on `Fin N`, so the pairs of `F` are transported
+    -- there by an arbitrary bijection: `ψ` enumerates `F`, `push` carries a subset of `F` to its
+    -- index set and `pull` carries it back, and the two are mutually inverse on subsets of `F`.
+    obtain ⟨ψ, hψF, hψinj, hψsurj⟩ : ∃ ψ : Fin N → Sym2 (Fin n),
+        (∀ i, ψ i ∈ F) ∧ Function.Injective ψ ∧ ∀ p ∈ F, ∃ i, ψ i = p := by
+      refine ⟨fun i => ((F.equivFin.symm i : {x // x ∈ F}) : Sym2 (Fin n)),
+        fun i => (F.equivFin.symm i).2, ?_, ?_⟩
+      · intro i j h
+        exact F.equivFin.symm.injective (Subtype.coe_injective h)
+      · intro p hp
+        refine ⟨F.equivFin ⟨p, hp⟩, ?_⟩
+        show ((F.equivFin.symm (F.equivFin ⟨p, hp⟩) : {x // x ∈ F}) : Sym2 (Fin n)) = p
+        rw [Equiv.symm_apply_apply]
+    clear_value N
+    set pull : Finset (Fin N) → Finset (Sym2 (Fin n)) := fun A => A.image ψ with hpulldef
+    set push : Finset (Sym2 (Fin n)) → Finset (Fin N) :=
+      fun D => univ.filter (fun i => ψ i ∈ D) with hpushdef
+    have hmempush : ∀ (D : Finset (Sym2 (Fin n))) (i : Fin N), i ∈ push D ↔ ψ i ∈ D := by
+      intro D i; rw [hpushdef]; simp
+    have hmempull : ∀ (A : Finset (Fin N)) (p : Sym2 (Fin n)),
+        p ∈ pull A ↔ ∃ i ∈ A, ψ i = p := by
+      intro A p; rw [hpulldef]; simp
+    have hpullF : ∀ A : Finset (Fin N), pull A ⊆ F := by
+      intro A p hp
+      obtain ⟨i, -, rfl⟩ := (hmempull A p).mp hp
+      exact hψF i
+    have hpullpush : ∀ D : Finset (Sym2 (Fin n)), D ⊆ F → pull (push D) = D := by
+      intro D hD
+      ext p
+      rw [hmempull]
+      constructor
+      · rintro ⟨i, hi, rfl⟩
+        exact (hmempush D i).mp hi
+      · intro hp
+        obtain ⟨i, rfl⟩ := hψsurj p (hD hp)
+        exact ⟨i, (hmempush D i).mpr hp, rfl⟩
+    have hcardpull : ∀ A : Finset (Fin N), (pull A).card = A.card := by
+      intro A; rw [hpulldef]; exact card_image_of_injective A hψinj
+    have hcardpush : ∀ D : Finset (Sym2 (Fin n)), D ⊆ F → (push D).card = D.card := by
+      intro D hD
+      rw [← hcardpull (push D), hpullpush D hD]
+    have hpushmono : ∀ D E : Finset (Sym2 (Fin n)), D ⊆ E → push D ⊆ push E := by
+      intro D E hDE i hi
+      exact (hmempush E i).mpr (hDE ((hmempush D i).mp hi))
+    have hpullmono : ∀ A B : Finset (Fin N), A ⊆ B → pull A ⊆ pull B := by
+      intro A B hAB p hp
+      obtain ⟨i, hi, rfl⟩ := (hmempull A p).mp hp
+      exact (hmempull B _).mpr ⟨i, hAB hi, rfl⟩
+    clear_value pull push
+    set g : Fin n × Fin n × Fin n → Finset (Fin N) :=
+      fun t => push (triangleEdges t.1 t.2.1 t.2.2) with hgdef
+    set H : Finset (Finset (Fin N)) := Tset.image g with hHdef
+    have hgapp : ∀ t : Fin n × Fin n × Fin n, g t = push (triangleEdges t.1 t.2.1 t.2.2) :=
+      fun _ => rfl
+    clear_value g H
+    -- At most `27` ordered triples give the same hyperedge: an edge set determines the triangle's
+    -- three vertices, and each coordinate is one of them.  So the hypergraph has at least
+    -- `|Tset| / 27` edges, which is what turns `c n³` triangles into `d ≥ c n / 9`.
+    have hfiber : Tset.card ≤ 27 * H.card := by
+      rw [hHdef]
+      refine Finset.card_le_mul_card_image Tset 27 ?_
+      intro A hA
+      obtain ⟨t₁, ht₁, hgt₁⟩ := mem_image.mp hA
+      obtain ⟨-, -, -, h4⟩ := hTmem t₁ ht₁
+      have hsubset : (Tset.filter (fun t => g t = A)) ⊆
+          ({t₁.1, t₁.2.1, t₁.2.2} : Finset (Fin n)) ×ˢ
+            ((({t₁.1, t₁.2.1, t₁.2.2} : Finset (Fin n))) ×ˢ
+              (({t₁.1, t₁.2.1, t₁.2.2} : Finset (Fin n)))) := by
+        intro t ht
+        rw [mem_filter] at ht
+        obtain ⟨htT, htA⟩ := ht
+        obtain ⟨-, -, -, hsubt⟩ := hTmem t htT
+        have heq : triangleEdges t.1 t.2.1 t.2.2 = triangleEdges t₁.1 t₁.2.1 t₁.2.2 := by
+          rw [← hpullpush _ hsubt, ← hpullpush _ h4, ← hgapp, ← hgapp, htA, hgt₁]
+        have e1 : s(t.1, t.2.1) ∈ triangleEdges t₁.1 t₁.2.1 t₁.2.2 := by
+          rw [← heq, htri]; exact Or.inl rfl
+        have e2 : s(t.1, t.2.2) ∈ triangleEdges t₁.1 t₁.2.1 t₁.2.2 := by
+          rw [← heq, htri]; exact Or.inr (Or.inl rfl)
+        obtain ⟨ha, hb⟩ := hend _ _ _ _ _ e1
+        obtain ⟨-, hz⟩ := hend _ _ _ _ _ e2
+        simp only [mem_product, mem_insert, mem_singleton]
+        exact ⟨ha, hb, hz⟩
+      refine le_trans (Finset.card_le_card hsubset) ?_
+      rw [card_product, card_product]
+      have h3 := hle3 t₁.1 t₁.2.1 t₁.2.2
+      calc ({t₁.1, t₁.2.1, t₁.2.2} : Finset (Fin n)).card *
+            (({t₁.1, t₁.2.1, t₁.2.2} : Finset (Fin n)).card *
+              ({t₁.1, t₁.2.1, t₁.2.2} : Finset (Fin n)).card)
+          ≤ 3 * (3 * 3) := Nat.mul_le_mul h3 (Nat.mul_le_mul h3 h3)
+        _ = 27 := by norm_num
+    have hHpos : 0 < H.card := by
+      rcases Nat.eq_zero_or_pos H.card with h | h
+      · rw [h] at hfiber; omega
+      · exact h
+    have hNR : (0:ℝ) < (N:ℝ) := by exact_mod_cast hNpos
+    set d : ℝ := 3 * (H.card : ℝ) / (N : ℝ) with hddef
+    have hdeq : 3 * (H.card : ℝ) = d * (N:ℝ) := by
+      rw [hddef]; field_simp
+    have hdlb0 : c * (n:ℝ) / 9 ≤ d := by
+      rw [hddef, div_le_div_iff₀ (by norm_num) hNR]
+      have h1 : (Tset.card : ℝ) ≤ 27 * (H.card : ℝ) := by exact_mod_cast hfiber
+      have h2 : c * (n:ℝ) * (N:ℝ) ≤ c * (n:ℝ) * ((n:ℝ) * (n:ℝ)) :=
+        mul_le_mul_of_nonneg_left hFn2 (by positivity)
+      nlinarith [hTcard]
+    clear_value d
+    have hdlb : c * (n:ℝ) / 9 ≤ d := hdlb0
+    have hdpos : 0 < d := lt_of_lt_of_le (by positivity) hdlb
+    have hnn₀ : (n₀:ℝ) ≤ (n:ℝ) := by exact_mod_cast hbig
+    have hd1 : (1:ℝ) ≤ d := by
+      refine le_trans ?_ hdlb
+      have h9 : (9:ℝ) / c ≤ (n:ℝ) := le_trans hn₀b hnn₀
+      rw [div_le_iff₀ hc] at h9
+      rw [le_div_iff₀ (by norm_num : (0:ℝ) < 9)]
+      linarith
+    have hdinv : δ₀⁻¹ ≤ d := by
+      refine le_trans ?_ hdlb
+      have h9 : (9:ℝ) / (c * δ₀) ≤ (n:ℝ) := le_trans hn₀a hnn₀
+      rw [div_le_iff₀ (mul_pos hc hδ₀)] at h9
+      rw [inv_eq_one_div, div_le_div_iff₀ hδ₀ (by norm_num : (0:ℝ) < 9)]
+      nlinarith
+    have hH3 : ∀ e ∈ H, e.card = 3 := by
+      intro e he
+      rw [hHdef, mem_image] at he
+      obtain ⟨t, ht, rfl⟩ := he
+      obtain ⟨h1, h2, h3, h4⟩ := hTmem t ht
+      rw [hgapp, hcardpush _ h4, hcard3 _ _ _ h1 h2 h3]
+    have hS2 : ∀ x y : Fin n, ({x, y} : Finset (Fin n)).card ≤ 2 := by
+      intro x y
+      calc ({x, y} : Finset (Fin n)).card ≤ ({y} : Finset (Fin n)).card + 1 := card_insert_le _ _
+        _ = 2 := by simp
+    have hU : (univ : Finset (Fin n)).card = n := by simp
+    -- `Δ₁ ≤ 12 n`: an ordered triple spanning a given pair has two of its three coordinates
+    -- pinned to that pair's endpoints, leaving one free.
+    have hΔ1 : maxCodegree 1 H ≤ 12 * n := by
+      simp only [maxCodegree]
+      refine Finset.sup_le ?_
+      intro A hA
+      rw [mem_filter] at hA
+      obtain ⟨i, rfl⟩ := Finset.card_eq_one.mp hA.2
+      obtain ⟨x, y, hxy⟩ := hSym2 (ψ i)
+      have hsub : H.filter (fun e => {i} ⊆ e) ⊆
+          (Tset.filter (fun t => ψ i ∈ triangleEdges t.1 t.2.1 t.2.2)).image g := by
+        intro e he
+        rw [mem_filter, hHdef, mem_image] at he
+        obtain ⟨⟨t, ht, rfl⟩, hi⟩ := he
+        refine mem_image_of_mem g (mem_filter.mpr ⟨ht, ?_⟩)
+        have hig : i ∈ g t := hi (mem_singleton_self i)
+        rw [hgapp] at hig
+        exact (hmempush _ i).mp hig
+      refine le_trans (Finset.card_le_card hsub) (le_trans Finset.card_image_le ?_)
+      have hsub2 : Tset.filter (fun t => ψ i ∈ triangleEdges t.1 t.2.1 t.2.2) ⊆
+          (({x, y} : Finset (Fin n)) ×ˢ (({x, y} : Finset (Fin n)) ×ˢ (univ : Finset (Fin n)))) ∪
+          ((({x, y} : Finset (Fin n)) ×ˢ ((univ : Finset (Fin n)) ×ˢ ({x, y} : Finset (Fin n)))) ∪
+            ((univ : Finset (Fin n)) ×ˢ
+              (({x, y} : Finset (Fin n)) ×ˢ ({x, y} : Finset (Fin n))))) := by
+        intro t ht
+        rw [mem_filter] at ht
+        obtain ⟨-, hmem⟩ := ht
+        rw [hxy, htri] at hmem
+        have hVxy : ∀ w : Fin n, (w = x ∨ w = y) → w ∈ ({x, y} : Finset (Fin n)) := by
+          intro w hw
+          rcases hw with rfl | rfl <;> simp
+        rcases hmem with h | h | h
+        · obtain ⟨h1, h2⟩ := hpair t.1 t.2.1 x y h.symm
+          exact mem_union_left _
+            (mem_product.mpr ⟨hVxy _ h1, mem_product.mpr ⟨hVxy _ h2, mem_univ _⟩⟩)
+        · obtain ⟨h1, h2⟩ := hpair t.1 t.2.2 x y h.symm
+          exact mem_union_right _ (mem_union_left _
+            (mem_product.mpr ⟨hVxy _ h1, mem_product.mpr ⟨mem_univ _, hVxy _ h2⟩⟩))
+        · obtain ⟨h1, h2⟩ := hpair t.2.1 t.2.2 x y h.symm
+          exact mem_union_right _ (mem_union_right _
+            (mem_product.mpr ⟨mem_univ _, mem_product.mpr ⟨hVxy _ h1, hVxy _ h2⟩⟩))
+      refine le_trans (Finset.card_le_card hsub2) ?_
+      have hB1 : ((({x, y} : Finset (Fin n)) ×ˢ
+          (({x, y} : Finset (Fin n)) ×ˢ (univ : Finset (Fin n))))).card ≤ 4 * n := by
+        rw [card_product, card_product, hU]
+        calc ({x, y} : Finset (Fin n)).card * (({x, y} : Finset (Fin n)).card * n)
+            ≤ 2 * (2 * n) := Nat.mul_le_mul (hS2 x y) (Nat.mul_le_mul (hS2 x y) le_rfl)
+          _ = 4 * n := by ring
+      have hB2 : ((({x, y} : Finset (Fin n)) ×ˢ
+          ((univ : Finset (Fin n)) ×ˢ ({x, y} : Finset (Fin n))))).card ≤ 4 * n := by
+        rw [card_product, card_product, hU]
+        calc ({x, y} : Finset (Fin n)).card * (n * ({x, y} : Finset (Fin n)).card)
+            ≤ 2 * (n * 2) := Nat.mul_le_mul (hS2 x y) (Nat.mul_le_mul le_rfl (hS2 x y))
+          _ = 4 * n := by ring
+      have hB3 : (((univ : Finset (Fin n)) ×ˢ
+          (({x, y} : Finset (Fin n)) ×ˢ ({x, y} : Finset (Fin n))))).card ≤ 4 * n := by
+        rw [card_product, card_product, hU]
+        calc n * (({x, y} : Finset (Fin n)).card * ({x, y} : Finset (Fin n)).card)
+            ≤ n * (2 * 2) := Nat.mul_le_mul le_rfl (Nat.mul_le_mul (hS2 x y) (hS2 x y))
+          _ = 4 * n := by ring
+      have hu1 := Finset.card_union_le
+        (((({x, y} : Finset (Fin n)) ×ˢ
+          (({x, y} : Finset (Fin n)) ×ˢ (univ : Finset (Fin n))))))
+        (((({x, y} : Finset (Fin n)) ×ˢ
+          ((univ : Finset (Fin n)) ×ˢ ({x, y} : Finset (Fin n))))) ∪
+            (((univ : Finset (Fin n)) ×ˢ
+              (({x, y} : Finset (Fin n)) ×ˢ ({x, y} : Finset (Fin n))))))
+      have hu2 := Finset.card_union_le
+        (((({x, y} : Finset (Fin n)) ×ˢ
+          ((univ : Finset (Fin n)) ×ˢ ({x, y} : Finset (Fin n))))))
+        (((univ : Finset (Fin n)) ×ˢ
+          (({x, y} : Finset (Fin n)) ×ˢ ({x, y} : Finset (Fin n)))))
+      omega
+    -- `Δ₂ ≤ 64`: two *distinct* pairs of a triangle are two distinct edges of it, so between them
+    -- they cover all three vertices and every coordinate is one of their four endpoints.
+    have hΔ2 : maxCodegree 2 H ≤ 64 := by
+      simp only [maxCodegree]
+      refine Finset.sup_le ?_
+      intro A hA
+      rw [mem_filter] at hA
+      obtain ⟨i, j, hij, rfl⟩ := Finset.card_eq_two.mp hA.2
+      obtain ⟨x, y, hxy⟩ := hSym2 (ψ i)
+      obtain ⟨u, v, huv⟩ := hSym2 (ψ j)
+      have hxyuv : s(x, y) ≠ s(u, v) := by
+        rw [← hxy, ← huv]
+        exact fun h => hij (hψinj h)
+      have hsub : H.filter (fun e => {i, j} ⊆ e) ⊆
+          (Tset.filter (fun t => ψ i ∈ triangleEdges t.1 t.2.1 t.2.2 ∧
+            ψ j ∈ triangleEdges t.1 t.2.1 t.2.2)).image g := by
+        intro e he
+        rw [mem_filter, hHdef, mem_image] at he
+        obtain ⟨⟨t, ht, rfl⟩, hsubij⟩ := he
+        refine mem_image_of_mem g (mem_filter.mpr ⟨ht, ?_, ?_⟩)
+        · have hh : i ∈ g t := hsubij (mem_insert_self i {j})
+          rw [hgapp] at hh
+          exact (hmempush _ i).mp hh
+        · have hh : j ∈ g t := hsubij (mem_insert_of_mem (mem_singleton_self j))
+          rw [hgapp] at hh
+          exact (hmempush _ j).mp hh
+      refine le_trans (Finset.card_le_card hsub) (le_trans Finset.card_image_le ?_)
+      have hsub2 : Tset.filter (fun t => ψ i ∈ triangleEdges t.1 t.2.1 t.2.2 ∧
+            ψ j ∈ triangleEdges t.1 t.2.1 t.2.2) ⊆
+          ({x, y, u, v} : Finset (Fin n)) ×ˢ
+            (({x, y, u, v} : Finset (Fin n)) ×ˢ ({x, y, u, v} : Finset (Fin n))) := by
+        intro t ht
+        rw [mem_filter] at ht
+        obtain ⟨-, hi1, hj1⟩ := ht
+        rw [hxy, htri] at hi1
+        rw [huv, htri] at hj1
+        have hVxy : ∀ w : Fin n, (w = x ∨ w = y) → w ∈ ({x, y, u, v} : Finset (Fin n)) := by
+          intro w hw
+          rcases hw with rfl | rfl <;> simp
+        have hVuv : ∀ w : Fin n, (w = u ∨ w = v) → w ∈ ({x, y, u, v} : Finset (Fin n)) := by
+          intro w hw
+          rcases hw with rfl | rfl <;> simp
+        have hmk : t.1 ∈ ({x, y, u, v} : Finset (Fin n)) →
+            t.2.1 ∈ ({x, y, u, v} : Finset (Fin n)) → t.2.2 ∈ ({x, y, u, v} : Finset (Fin n)) →
+            t ∈ ({x, y, u, v} : Finset (Fin n)) ×ˢ
+              (({x, y, u, v} : Finset (Fin n)) ×ˢ ({x, y, u, v} : Finset (Fin n))) :=
+          fun h1 h2 h3 => mem_product.mpr ⟨h1, mem_product.mpr ⟨h2, h3⟩⟩
+        rcases hi1 with a | a | a
+        · obtain ⟨p1, p2⟩ := hpair t.1 t.2.1 x y a.symm
+          rcases hj1 with b | b | b
+          · exact absurd (a.trans b.symm) hxyuv
+          · exact hmk (hVxy _ p1) (hVxy _ p2) (hVuv _ (hpair t.1 t.2.2 u v b.symm).2)
+          · exact hmk (hVxy _ p1) (hVxy _ p2) (hVuv _ (hpair t.2.1 t.2.2 u v b.symm).2)
+        · obtain ⟨p1, p2⟩ := hpair t.1 t.2.2 x y a.symm
+          rcases hj1 with b | b | b
+          · exact hmk (hVxy _ p1) (hVuv _ (hpair t.1 t.2.1 u v b.symm).2) (hVxy _ p2)
+          · exact absurd (a.trans b.symm) hxyuv
+          · exact hmk (hVxy _ p1) (hVuv _ (hpair t.2.1 t.2.2 u v b.symm).1) (hVxy _ p2)
+        · obtain ⟨p1, p2⟩ := hpair t.2.1 t.2.2 x y a.symm
+          rcases hj1 with b | b | b
+          · exact hmk (hVuv _ (hpair t.1 t.2.1 u v b.symm).1) (hVxy _ p1) (hVxy _ p2)
+          · exact hmk (hVuv _ (hpair t.1 t.2.2 u v b.symm).1) (hVxy _ p1) (hVxy _ p2)
+          · exact absurd (a.trans b.symm) hxyuv
+      refine le_trans (Finset.card_le_card hsub2) ?_
+      rw [card_product, card_product]
+      have h4 := hle4 x y u v
+      calc ({x, y, u, v} : Finset (Fin n)).card *
+            (({x, y, u, v} : Finset (Fin n)).card * ({x, y, u, v} : Finset (Fin n)).card)
+          ≤ 4 * (4 * 4) := Nat.mul_le_mul h4 (Nat.mul_le_mul h4 h4)
+        _ = 64 := by norm_num
+    have hmax1 : (maxCodegree 1 H : ℝ) ≤ (108 / c + 64 / Real.sqrt (c / 3) + 1) * d := by
+      have h1 : (maxCodegree 1 H : ℝ) ≤ 12 * (n:ℝ) := by exact_mod_cast hΔ1
+      refine h1.trans ?_
+      calc 12 * (n:ℝ) = (108 / c) * (c * (n:ℝ) / 9) := by field_simp; ring
+        _ ≤ (108 / c) * d := mul_le_mul_of_nonneg_left hdlb h108.le
+        _ ≤ (108 / c + 64 / Real.sqrt (c / 3) + 1) * d := by
+            have hz : (0:ℝ) ≤ (64 / Real.sqrt (c / 3) + 1) * d :=
+              mul_nonneg (by linarith) hdpos.le
+            nlinarith
+    have hmax2 : (maxCodegree 2 H : ℝ)
+        ≤ (108 / c + 64 / Real.sqrt (c / 3) + 1) * Real.sqrt d := by
+      have h1 : (maxCodegree 2 H : ℝ) ≤ 64 := by exact_mod_cast hΔ2
+      refine h1.trans ?_
+      have hn3R : (3:ℝ) ≤ (n:ℝ) := by exact_mod_cast hn3
+      have hdc3 : c / 3 ≤ d := by
+        refine le_trans ?_ hdlb
+        nlinarith
+      have hs : Real.sqrt (c / 3) ≤ Real.sqrt d := Real.sqrt_le_sqrt hdc3
+      have hsdnn : (0:ℝ) ≤ Real.sqrt d := Real.sqrt_nonneg d
+      calc (64:ℝ) = (64 / Real.sqrt (c / 3)) * Real.sqrt (c / 3) := by field_simp
+        _ ≤ (64 / Real.sqrt (c / 3)) * Real.sqrt d := mul_le_mul_of_nonneg_left hs h64.le
+        _ ≤ (108 / c + 64 / Real.sqrt (c / 3) + 1) * Real.sqrt d := by
+            nlinarith [mul_nonneg (show (0:ℝ) ≤ 108 / c + 1 by linarith) hsdnn]
+    obtain ⟨𝒞, hcard𝒞, hcov𝒞, hsize𝒞⟩ := hcont N H d hH3 hdinv hdeq hmax1 hmax2
+    refine ⟨𝒞.image pull, ?_, ?_, ?_⟩
+    · have hcard1 : (((𝒞.image pull)).card : ℝ) ≤ (𝒞.card : ℝ) := by
+        exact_mod_cast Finset.card_image_le
+      refine hcard1.trans (hcard𝒞.trans ?_)
+      -- `∑_{i ≤ M} binom(N, i) ≤ (M + 1) N ^ M ≤ n ^ (2M + 3)`, and the fingerprint budget
+      -- `M = ⌊N / √d⌋₊` is at most `(3 / √c) n ^ (3/2)` because `N ≤ n²` and `d ≥ c n / 9`.
+      set M' : ℕ := ⌊(N:ℝ) / Real.sqrt d⌋₊ with hM'def
+      have hsdpos : (0:ℝ) < Real.sqrt d := Real.sqrt_pos.mpr hdpos
+      have hsd1 : (1:ℝ) ≤ Real.sqrt d := by
+        rw [show (1:ℝ) = Real.sqrt 1 by simp]
+        exact Real.sqrt_le_sqrt hd1
+      have hNn : N ≤ n * n := by exact_mod_cast hFn2
+      have hM'N : M' ≤ N := by
+        rw [hM'def]
+        have h1 : (N:ℝ) / Real.sqrt d ≤ (N:ℝ) := by
+          rw [div_le_iff₀ hsdpos]
+          nlinarith [hNR.le]
+        calc ⌊(N:ℝ) / Real.sqrt d⌋₊ ≤ ⌊((N:ℕ):ℝ)⌋₊ := Nat.floor_le_floor h1
+          _ = N := Nat.floor_natCast N
+      have hsum1 : ∑ i ∈ range (M' + 1), N.choose i ≤ (M' + 1) * N ^ M' := by
+        calc ∑ i ∈ range (M' + 1), N.choose i ≤ ∑ _i ∈ range (M' + 1), N ^ M' := by
+              refine Finset.sum_le_sum (fun i hi => ?_)
+              exact le_trans (Nat.choose_le_pow N i)
+                (Nat.pow_le_pow_right hNpos (by have := mem_range.mp hi; omega))
+          _ = (M' + 1) * N ^ M' := by
+              rw [Finset.sum_const, Finset.card_range, smul_eq_mul]
+      have hnat : (M' + 1) * N ^ M' ≤ n ^ (2 * M' + 3) := by
+        have h3 : 1 ≤ n := by omega
+        have hA : M' + 1 ≤ n ^ 3 := by
+          have h1 : M' ≤ n * n := le_trans hM'N hNn
+          have hm1 : 1 * 1 ≤ n * n := Nat.mul_le_mul h3 h3
+          have h5 : 3 * (n * n) ≤ n * (n * n) := Nat.mul_le_mul_right _ hn3
+          linarith
+        have hB : N ^ M' ≤ n ^ (2 * M') := by
+          calc N ^ M' ≤ (n * n) ^ M' := Nat.pow_le_pow_left hNn M'
+            _ = n ^ (2 * M') := by rw [pow_mul]; ring
+        calc (M' + 1) * N ^ M' ≤ n ^ 3 * n ^ (2 * M') := Nat.mul_le_mul hA hB
+          _ = n ^ (2 * M' + 3) := by ring
+      have hscne : Real.sqrt c ≠ 0 := ne_of_gt hsc
+      have hns : (n:ℝ) ^ ((3:ℝ)/2) * Real.sqrt (n:ℝ) = (n:ℝ) * (n:ℝ) := by
+        rw [Real.sqrt_eq_rpow, ← Real.rpow_add hnpos, show (3:ℝ)/2 + 1/2 = 2 by norm_num,
+          show (2:ℝ) = ((2:ℕ):ℝ) by norm_num, Real.rpow_natCast]
+        ring
+      have hsqd : Real.sqrt c * Real.sqrt (n:ℝ) / 3 ≤ Real.sqrt d := by
+        rw [show Real.sqrt c * Real.sqrt (n:ℝ) / 3 = Real.sqrt (c * (n:ℝ) / 9) by
+          rw [Real.sqrt_div (by positivity), Real.sqrt_mul hc.le,
+            show (9:ℝ) = 3 ^ 2 by norm_num, Real.sqrt_sq (by norm_num)]]
+        exact Real.sqrt_le_sqrt hdlb
+      have hn32pos : (0:ℝ) < (n:ℝ) ^ ((3:ℝ)/2) := Real.rpow_pos_of_pos hnpos _
+      have hn321 : (1:ℝ) ≤ (n:ℝ) ^ ((3:ℝ)/2) := by
+        have h := Real.rpow_le_rpow_of_exponent_le hnR (show (0:ℝ) ≤ 3/2 by norm_num)
+        rwa [Real.rpow_zero] at h
+      have hkey : (M':ℝ) ≤ 3 / Real.sqrt c * (n:ℝ) ^ ((3:ℝ)/2) := by
+        rw [hM'def]
+        refine le_trans (Nat.floor_le (by positivity)) ?_
+        rw [div_le_iff₀ hsdpos]
+        have hX : (0:ℝ) ≤ 3 / Real.sqrt c * (n:ℝ) ^ ((3:ℝ)/2) := by positivity
+        calc (N:ℝ) ≤ (n:ℝ) * (n:ℝ) := hFn2
+          _ = (n:ℝ) ^ ((3:ℝ)/2) * Real.sqrt (n:ℝ) := hns.symm
+          _ = 3 / Real.sqrt c * (n:ℝ) ^ ((3:ℝ)/2) * (Real.sqrt c * Real.sqrt (n:ℝ) / 3) := by
+              field_simp
+          _ ≤ 3 / Real.sqrt c * (n:ℝ) ^ ((3:ℝ)/2) * Real.sqrt d :=
+              mul_le_mul_of_nonneg_left hsqd hX
+      have hexp : ((2 * M' + 3 : ℕ) : ℝ) ≤ C * (n:ℝ) ^ ((3:ℝ)/2) := by
+        have hA : 2 * (M':ℝ) ≤ 6 / Real.sqrt c * (n:ℝ) ^ ((3:ℝ)/2) := by
+          calc 2 * (M':ℝ) ≤ 2 * (3 / Real.sqrt c * (n:ℝ) ^ ((3:ℝ)/2)) := by linarith
+            _ = 6 / Real.sqrt c * (n:ℝ) ^ ((3:ℝ)/2) := by ring
+        have hB : (3:ℝ) ≤ 3 * (n:ℝ) ^ ((3:ℝ)/2) := by linarith
+        have hC0 : (0:ℝ) ≤ (n₀:ℝ) * (n:ℝ) ^ ((3:ℝ)/2) := mul_nonneg hn₀pos.le hn32pos.le
+        have hD : C * (n:ℝ) ^ ((3:ℝ)/2)
+            = 6 / Real.sqrt c * (n:ℝ) ^ ((3:ℝ)/2) + 3 * (n:ℝ) ^ ((3:ℝ)/2)
+              + (n₀:ℝ) * (n:ℝ) ^ ((3:ℝ)/2) := by rw [hCdef]; ring
+        push_cast
+        rw [hD]
+        linarith
+      calc ∑ i ∈ range (M' + 1), (N.choose i : ℝ)
+          = ((∑ i ∈ range (M' + 1), N.choose i : ℕ) : ℝ) := by push_cast; ring
+        _ ≤ ((n ^ (2 * M' + 3) : ℕ) : ℝ) := by exact_mod_cast le_trans hsum1 hnat
+        _ = (n:ℝ) ^ (((2 * M' + 3 : ℕ)) : ℝ) := by rw [Real.rpow_natCast]; push_cast; ring
+        _ ≤ (n:ℝ) ^ (C * (n:ℝ) ^ ((3:ℝ)/2)) := Real.rpow_le_rpow_of_exponent_le hnR hexp
+    · intro D hD
+      obtain ⟨A, hA, rfl⟩ := mem_image.mp hD
+      refine ⟨hpullF A, ?_⟩
+      rw [hcardpull A]
+      have hAs := hsize𝒞 A hA
+      nlinarith [mul_nonneg (sub_nonneg.mpr hδδ₀) hNR.le]
+    · intro G hGtf hGF
+      have hindep : ∀ e ∈ H, ¬ e ⊆ push G := by
+        intro e he hsube
+        rw [hHdef, mem_image] at he
+        obtain ⟨t, ht, rfl⟩ := he
+        obtain ⟨-, -, -, h4⟩ := hTmem t ht
+        rw [hgapp] at hsube
+        have hGsub : triangleEdges t.1 t.2.1 t.2.2 ⊆ G := by
+          have h5 := hpullmono _ _ hsube
+          rwa [hpullpush _ h4, hpullpush _ hGF] at h5
+        exact hGtf.2 t.1 t.2.1 t.2.2 hGsub
+      obtain ⟨A, hA, hGA⟩ := hcov𝒞 (push G) hindep
+      refine ⟨pull A, mem_image_of_mem _ hA, ?_⟩
+      have h6 := hpullmono _ _ hGA
+      rwa [hpullpush _ hGF] at h6
+  · -- Below the threshold every triangle-free subgraph of `F` is taken as its own container.
+    -- `F` spans a triangle, so each of them misses an edge of `F`, and `δ ≤ 1 / (n₀² + 1)` is
+    -- small enough that `|F| - 1 ≤ (1 - δ) |F|`; the family has at most `2 ^ (n²)` members.
+    rw [not_le] at hbig
+    have hnn₀ : (n:ℝ) ≤ (n₀:ℝ) := by exact_mod_cast hbig.le
+    refine ⟨F.powerset.filter (fun D => IsTriangleFreeEdgeSet D), ?_, ?_, ?_⟩
+    · have h1 : ((F.powerset.filter (fun D => IsTriangleFreeEdgeSet D)).card : ℝ)
+          ≤ (2:ℝ) ^ ((F.card : ℝ)) := by
+        have h2 := Finset.card_filter_le F.powerset (fun D => IsTriangleFreeEdgeSet D)
+        rw [Finset.card_powerset] at h2
+        calc ((F.powerset.filter (fun D => IsTriangleFreeEdgeSet D)).card : ℝ)
+            ≤ ((2 ^ F.card : ℕ) : ℝ) := by exact_mod_cast h2
+          _ = (2:ℝ) ^ ((F.card : ℝ)) := by
+              rw [Real.rpow_natCast]; push_cast; ring
+      refine h1.trans ?_
+      have hsplit : (n:ℝ) * (n:ℝ) = (n:ℝ) ^ ((1:ℝ)/2) * (n:ℝ) ^ ((3:ℝ)/2) := by
+        rw [← Real.rpow_add hnpos, show (1:ℝ)/2 + 3/2 = 2 by norm_num,
+          show (2:ℝ) = ((2:ℕ):ℝ) by norm_num, Real.rpow_natCast]
+        ring
+      have hhalf : (n:ℝ) ^ ((1:ℝ)/2) ≤ (n:ℝ) := by
+        calc (n:ℝ) ^ ((1:ℝ)/2) ≤ (n:ℝ) ^ (1:ℝ) :=
+              Real.rpow_le_rpow_of_exponent_le (by linarith) (by norm_num)
+          _ = (n:ℝ) := Real.rpow_one _
+      have hexp : (F.card : ℝ) ≤ C * (n:ℝ) ^ ((3:ℝ)/2) := by
+        refine hFn2.trans ?_
+        rw [hsplit]
+        refine mul_le_mul_of_nonneg_right ?_ (Real.rpow_nonneg hnpos.le _)
+        rw [hCdef]
+        linarith
+      calc (2:ℝ) ^ ((F.card : ℝ)) ≤ (2:ℝ) ^ (C * (n:ℝ) ^ ((3:ℝ)/2)) :=
+            Real.rpow_le_rpow_of_exponent_le (by norm_num) hexp
+        _ ≤ (n:ℝ) ^ (C * (n:ℝ) ^ ((3:ℝ)/2)) := by
+            refine Real.rpow_le_rpow (by norm_num) hn2 ?_
+            have : (0:ℝ) ≤ (n:ℝ) ^ ((3:ℝ)/2) := Real.rpow_nonneg hnpos.le _
+            rw [hCdef]
+            nlinarith
+    · intro D hD
+      rw [mem_filter, mem_powerset] at hD
+      obtain ⟨hDF, hDtf⟩ := hD
+      refine ⟨hDF, ?_⟩
+      have hne : D ≠ F := by
+        rintro rfl
+        exact hDtf.2 t₀.1 t₀.2.1 t₀.2.2 hsub0
+      have hlt : D.card + 1 ≤ F.card := Finset.card_lt_card (lt_of_le_of_ne hDF hne)
+      have hltR : (D.card : ℝ) ≤ (F.card : ℝ) - 1 := by
+        have : ((D.card + 1 : ℕ) : ℝ) ≤ (F.card : ℝ) := by exact_mod_cast hlt
+        push_cast at this
+        linarith
+      have hFn₀ : (F.card : ℝ) ≤ (n₀:ℝ)^2 := by nlinarith
+      have hδF : δ * (F.card : ℝ) ≤ 1 := by
+        have h1 : δ * (F.card:ℝ) ≤ (1/((n₀:ℝ)^2+1)) * (n₀:ℝ)^2 :=
+          mul_le_mul hδsmall hFn₀ (by positivity) (by positivity)
+        have h2 : (1/((n₀:ℝ)^2+1)) * (n₀:ℝ)^2 ≤ 1 := by
+          rw [div_mul_eq_mul_div, div_le_one (by positivity)]
+          nlinarith
+        linarith
+      linarith
+    · intro G hGtf hGF
+      exact ⟨G, mem_filter.mpr ⟨mem_powerset.mpr hGF, hGtf⟩, subset_rfl⟩
 
 /-- **Containers for triangle-free graphs** (Zhao, Theorem 11.1.1).  Every triangle-free graph on
 `n` vertices sits inside one of at most `n ^ (C n^{3/2})` graphs, each with at most
