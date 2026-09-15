@@ -516,3 +516,20 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   bolded line earlier in the same body invited the opposite reading.  Harmless to the contract,
   but the graph node must not be marked closed on the strength of prose.  **Read the reduction
   block, not the summary.**
+- **2026-09-15 — two of my Chapter 11 statements were FALSE, one of them already merged.**
+  `exists_containers_fingerprint` (#98) and `exists_containers` were both false for every
+  `c ≥ 3/2`; `Kₙ` forces `δ ≥ 1/2` and a disjoint union of 3-vertex paths forces `δ ≤ 1/3`.  I
+  verified both numerically before touching anything.  The missing hypothesis is **Zhao's own
+  proviso**, `d ≤ 2δ|V|`, which the book states on printed p. 207 *inside the proof idea* and
+  omits from the theorem box.  **A textbook's theorem box is not always the whole hypothesis
+  list.**  Added to both at `1e4659a`, with the counterexamples in the docstrings.
+  `exists_containers` had merged as a declared reduction onto the false lemma, so it was
+  proved-modulo-a-false-statement, not unsound — the kernel was never deceived, and threading the
+  new hypothesis through cost one binder.
+  **Found by the stage-two review of PR #143**, which had inherited the defect into two new public
+  statements.  That PR was closed without deleting its branch: its assembly was genuine
+  machine-checked content, but the repair is not local, since the parent's own budget `⌊n/√d⌋₊` is
+  only guaranteed `≥ 1`.  **A PR that surfaces a false statement two levels upstream of itself is
+  worth more than one that merges** — and this is the fourth author-side false statement, all four
+  found by reading rather than by any gate check.
+  `Kₙ` and "disjoint union of stars" are now the standing test pair for Chapter 11 statements.
