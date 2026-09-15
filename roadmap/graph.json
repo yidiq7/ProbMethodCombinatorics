@@ -1886,7 +1886,7 @@
       "decl": "ProbMethodCombinatorics.sum_negMulLogb_le_logb_card",
       "doc": "entropy.md#101-basic-properties",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": []
     },

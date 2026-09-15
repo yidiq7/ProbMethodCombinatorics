@@ -697,3 +697,14 @@ in one.
 | 6.1–6.6 | LLL, colouring, transversals, cycles, lopsided, algorithmic | 79, 83, 89, 90, 92, 97 | | | |
 
 **Chapter starts (printed):** 1 · 17 · 29 · 37 · 69 · 79 · 107 · 115 · 129 · 173 · 201.
+- **2026-09-15 — #156 merged: Gibbs' inequality is proved, one hour after the decomposition.**
+  #84 had been claimed and released twice; splitting its mathematics into `gibbs_inequality`
+  (#154) produced a claim within minutes and a correct PR within the hour.  **That is the
+  decomposition diagnostic earning its keep** — the statement and route had already been
+  checked, so the shape of the task was the only remaining variable.
+  The proof used `Real.log_le_sub_one_of_pos` rather than Mathlib's `ConcaveOn` API, which is
+  the convention added after my original #84 prose pointed at `ConcaveOn` and named
+  `Finset.inner_le_nnorm_mul_nnorm` — Cauchy–Schwarz, not Jensen.  A convention written down
+  after a mistake was followed by the next contributor to touch the area.
+  **#84 is now `Finset.sum_subset` plus `sum_probOf` away from closing**, and with it Brégman–Minc
+  and the triangle-intersecting bound go unconditional.
