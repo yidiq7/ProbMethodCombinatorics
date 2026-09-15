@@ -59,7 +59,9 @@ more versatile: the `cᵢ` there can be smaller than a worst-case Lipschitz boun
 Checked what each blocked item's *proof* needs, not just its statement's vocabulary — the
 distinction that has now produced two wrong roadmap notes elsewhere in this project.
 
-- **Azuma (9.2.7–9.2.9).** Mathlib **has** `Martingale` with `Filtration`
+- **Azuma (9.2.7–9.2.9).** **Stated 2026-09-15** as `measure_martingale_sub_ge_le` (Theorem
+  9.2.8), task in the board.  9.2.7 is the `cᵢ = 1` case and is not stated separately.
+  Mathlib **has** `Martingale` with `Filtration`
   (`Probability/Martingale/Basic.lean:53`) and conditional expectation, and it **has** Hoeffding
   for sums of *independent* sub-Gaussians (`measure_sum_ge_le_of_iIndepFun`,
   `Moments/SubGaussian.lean:780`) — which is what this project's already-proved

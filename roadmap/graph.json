@@ -1269,8 +1269,10 @@
     "azuma": {
       "kind": "theorem",
       "parent": "concentration",
-      "doc": "concentration.md#planned-not-stated",
-      "statement": "planned",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.measure_martingale_sub_ge_le",
+      "doc": "concentration.md#92-azumas-inequality",
+      "statement": "formalized",
       "proof": "planned",
       "uses": [],
       "proof_uses": []
