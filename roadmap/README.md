@@ -496,3 +496,23 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   goes away.  So the retirement was wrong on the merits too, not just on process — which is what
   the rule about not re-routing finished work was trying to protect in the first place, applied
   in the wrong direction.
+- **2026-09-15 — #141 and #142 merged; 6 sorries left, zero custom axioms.**  Chapter 3 is
+  complete again (`Alterations.lean` at zero), and the remaining work is entirely Chapters 10 and
+  11: `entropy_le_logb_card`, `shearer_triple`, and the four Containers nodes.
+  **`entropy_le_logb_card` (#84) is now the sole open obligation beneath five merged theorems** —
+  `card_sq_le_prod_card_image`, `card_lt_of_triangleIntersecting`, `permanent_le_prod_factorial`,
+  `card_pow_le_prod_card_image_inter` and `condEntropy_le_expected_logb_availCount`. Proving it
+  makes Brégman–Minc and the triangle-intersecting bound unconditional at a stroke.
+- **2026-09-15 — two contributors independently produced the same 128-line proof.**  #140 inlined
+  the averaging argument of Theorem 3.1.1 as an anonymous `have`; #141 proved it as the top-level
+  lemma. Character-for-character identical bodies, committed five minutes apart, neither able to
+  see the other.  Nobody erred — this is the structural cost of pinning parallel tasks to one
+  base.  Collapsed via **golf task #145** rather than by hand: replacing an inline `have` with a
+  call to an identical lemma is a body-only change to a pinned declaration, which is exactly what
+  `golf` is for.  Contributors are now asked to check sibling *open* PRs against their target
+  file, not only merged work.
+- **2026-09-15 — a reduction body said "fully proved" when the closure still carried `sorryAx`.**
+  #142's `choir-reduction` block was accurate and declared `entropy_le_logb_card` correctly, but a
+  bolded line earlier in the same body invited the opposite reading.  Harmless to the contract,
+  but the graph node must not be marked closed on the strength of prose.  **Read the reduction
+  block, not the summary.**

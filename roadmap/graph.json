@@ -287,6 +287,7 @@
         "is_dominating"
       ],
       "proof_uses": [
+        "dominating_averaging",
         "dominating_optimisation"
       ]
     },
@@ -1726,7 +1727,7 @@
       "decl": "ProbMethodCombinatorics.condEntropy_le_expected_logb_availCount",
       "doc": "entropy.md#applications",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": [
         "entropy_uniform_bound"
@@ -1813,6 +1814,17 @@
       "proof_uses": [
         "setbernoulli_pi"
       ]
+    },
+    "dominating_averaging": {
+      "kind": "theorem",
+      "parent": "alterations",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.exists_isDominating_card_le_of_mem_Icc",
+      "doc": "alterations.md#decompositions",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
     }
   }
 }

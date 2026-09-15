@@ -106,6 +106,18 @@ before expecting the API to work.
 `section Countable`, a `[IsProbabilityMeasure]` argument — a statement built on the unfenced
 remainder deserves a second look. That is how the Chapter 8 defect was spotted.
 
+## Check sibling *open* PRs against your target file, not just merged work
+
+Two PRs landed the same 128-line argument in `Alterations.lean` within five minutes of each
+other — one as a top-level lemma, one inlined as a `have` inside the parent theorem. Both were
+correct, neither contributor did anything wrong, and neither could see the other because both
+were pinned to the same base.
+
+`gh pr list --repo <owner/repo> --state open` takes a second and tells you whether someone is
+already working the same file. If they are, **say so on your issue** — the orchestrator can
+sequence the two, and cannot if nobody mentions it. This is the open-PR companion to the rule
+below about lemmas that landed after your task was published.
+
 ## Check the file before trusting the task's route
 
 A task's `TASK.md` route is a snapshot from the day it was published, and this project's shared
