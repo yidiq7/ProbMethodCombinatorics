@@ -1820,7 +1820,7 @@
       "decl": "ProbMethodCombinatorics.janson_lower_tail_step_le",
       "doc": "janson.md#janson_three--janson_lower_tail",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": [
         "setbernoulli_pi"
