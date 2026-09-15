@@ -611,3 +611,15 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   six between ordered triples and 3-cliques is handled by *not needing it* — a surjection from
   triples onto cliques gives the lower bound the statement wants, and the overcount only helps.
   `exists_containers_triangleFree` is now down to a single obligation, #149.
+- **2026-09-15 — Lemma 4.3.7 stated and published (#152).**  Reversed my earlier judgment that
+  the board did not need more tasks: that reasoning would leave the statement layer permanently
+  incomplete, and the statement layer is the orchestrator's responsibility regardless of queue
+  depth.  An unclaimed task costs nothing; an unstated theorem is never proved.
+  Stated with the general hypothesis `1 - (1-q)^m ≤ p` in place of the book's `q = p/m` — it is
+  what the argument needs, it is strictly more general, and it avoids producing `p/m` in
+  `unitInterval`.  **The direction was checked numerically before committing**, because it
+  inverts easily: the union of `m` copies of `Ω_q` has density *at most* `p`, not at least.
+  Placed in `Correlation.lean` rather than `SecondMoment.lean`.  **Roadmap chapter boundaries
+  need not match file boundaries** — this is a `setBernoulli`-and-upper-sets statement, which is
+  Chapter 7's subject, and forcing it into Chapter 4's file would have meant duplicating that
+  layer.

@@ -91,3 +91,22 @@ Verified against the known minimal witnesses for `k ≤ 8` — the Conway–Guy 
 **Deliberately not stated.** Conjecture 4.6.2 (`n ≳ 2^k`, Erdős's \$300 problem) is **open
 mathematics**. Theorem 4.6.6 (Dubroff–Fox–Xu) improves the constant via Harper's
 vertex-isoperimetric inequality and is a separate, harder node.
+
+
+## §4.3 Thresholds
+
+`multiple_round_exposure` (Lemma 4.3.7) is **stated**, as
+`prob_notMem_le_pow_of_isUpperSet`, task #152 — but it lives in `Correlation.lean`, not here.
+It is a statement about `setBernoulli` and upper sets, which is that file's subject, and this
+file has no random-subset machinery at all. Chapter boundaries in the roadmap do not have to
+match file boundaries, and forcing them to would mean duplicating the Chapter 7 layer.
+
+Stated with the general hypothesis `1 - (1-q)^m ≤ p` rather than the book's `q = p/m`: that is
+what the argument needs (it says the union of `m` copies of `Ω_q` is dominated by `Ω_p`), it
+avoids producing `p/m` as an element of `unitInterval`, and `q = p/m` is the special case by
+Bernoulli. The direction was checked numerically for `m ≤ 10` because it inverts easily —
+the union's density is **at most** `p`, not at least.
+
+**Still unstated in §4.3:** Theorem 4.3.5 (monotonicity of `p ↦ ℙ(Ω_p ∈ F)`), which #152's
+step 2 needs, and Theorem 4.3.6 (Bollobás–Thomason) itself, which is asymptotic. #152's prose
+asks the contributor to request 4.3.5 as a node rather than prove it privately.

@@ -1850,6 +1850,17 @@
       "proof_uses": [
         "hypergraph_container"
       ]
+    },
+    "multiple_round_exposure": {
+      "kind": "theorem",
+      "parent": "correlation",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.prob_notMem_le_pow_of_isUpperSet",
+      "doc": "correlation.md#43-thresholds-multiple-round-exposure",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
     }
   }
 }
