@@ -346,6 +346,115 @@ theorem card_le_of_tetrahedronFree {n : ℕ} (hn : 4 ≤ n) (H : Finset (Finset 
 
 /-! ### §2.5 Unbalancing lights -/
 
+/-- The `±1` vector recording membership in `S`. -/
+private def signVec {n : ℕ} (S : Finset (Fin n)) (j : Fin n) : ℝ :=
+  if j ∈ S then 1 else -1
+
+private theorem signVec_eq_one_or_neg_one {n : ℕ} (S : Finset (Fin n)) (j : Fin n) :
+    signVec S j = 1 ∨ signVec S j = -1 := by
+  unfold signVec; split <;> simp
+
+/-- The coordinate sum of a `±1` membership vector counts `S` against its complement. -/
+private theorem sum_signVec {n : ℕ} (S : Finset (Fin n)) :
+    ∑ j, signVec S j = 2 * (S.card : ℝ) - n := by
+  have h : ∀ j : Fin n, signVec S j = 2 * (if j ∈ S then (1:ℝ) else 0) - 1 := by
+    intro j; unfold signVec; split <;> norm_num
+  rw [Finset.sum_congr rfl (fun j _ => h j)]
+  rw [Finset.sum_sub_distrib, ← Finset.mul_sum, Finset.sum_boole]
+  simp
+
+/-- Multiplying two `±1` membership vectors flips the sign on the symmetric difference. -/
+private theorem signVec_mul_signVec {n : ℕ} (s S : Finset (Fin n)) (j : Fin n) :
+    signVec s j * signVec S j = -signVec (symmDiff s S) j := by
+  unfold signVec
+  by_cases h1 : j ∈ s <;> by_cases h2 : j ∈ S <;>
+    simp [Finset.mem_symmDiff, h1, h2]
+
+/-- Telescoping partial sums of the signed binomial weights. -/
+private theorem sum_range_sub_two_mul_choose {n : ℕ} (j : ℕ) :
+    ∑ k ∈ Finset.range (j + 1), ((n : ℝ) - 2 * k) * (n.choose k : ℝ)
+      = (j + 1) * (n.choose (j + 1) : ℝ) := by
+  induction j with
+  | zero => simp [Nat.choose_one_right]
+  | succ j ih =>
+    rw [Finset.sum_range_succ, ih]
+    by_cases hj : j + 1 ≤ n
+    · have key : (n.choose (j + 2) : ℝ) * (j + 2) = (n.choose (j + 1) : ℝ) * ((n : ℝ) - (j + 1)) := by
+        have h := Nat.choose_succ_right_eq n (j + 1)
+        have hcast : ((n - (j + 1) : ℕ) : ℝ) = (n : ℝ) - (j + 1) := by
+          push_cast [Nat.cast_sub hj]; ring
+        calc (n.choose (j + 2) : ℝ) * (j + 2)
+            = ((n.choose (j + 1 + 1) * (j + 1 + 1) : ℕ) : ℝ) := by push_cast; ring
+          _ = ((n.choose (j + 1) * (n - (j + 1)) : ℕ) : ℝ) := by rw [h]
+          _ = (n.choose (j + 1) : ℝ) * ((n : ℝ) - (j + 1)) := by push_cast [hcast]; ring
+      have hs : (j + 1 + 1 : ℕ) = j + 2 := rfl
+      simp only [hs]
+      push_cast
+      linarith [key]
+    · have h1 : n.choose (j + 1) = 0 := Nat.choose_eq_zero_of_lt (by omega)
+      have h2 : n.choose (j + 1 + 1) = 0 := Nat.choose_eq_zero_of_lt (by omega)
+      simp [h1, h2]
+
+/-- `∑ₖ |n - 2k| binom(n,k)` collapses to twice one binomial coefficient. -/
+private theorem sum_range_abs_choose (n : ℕ) :
+    ∑ k ∈ Finset.range (n + 1), |(n : ℝ) - 2 * k| * (n.choose k : ℝ)
+      = 2 * (((n - 1) / 2 + 1 : ℕ) : ℝ) * (n.choose ((n - 1) / 2 + 1) : ℝ) := by
+  set m := (n - 1) / 2 with hmdef
+  have hmn : m + 1 ≤ n + 1 := by omega
+  have htotal : ∑ k ∈ Finset.range (n + 1), ((n : ℝ) - 2 * k) * (n.choose k : ℝ) = 0 := by
+    rw [sum_range_sub_two_mul_choose n]
+    simp [Nat.choose_succ_self]
+  have hlow : ∑ k ∈ Finset.range (m + 1), |(n : ℝ) - 2 * k| * (n.choose k : ℝ)
+      = (m + 1 : ℝ) * (n.choose (m + 1) : ℝ) := by
+    rw [← sum_range_sub_two_mul_choose (n := n) m]
+    refine Finset.sum_congr rfl fun k hk => ?_
+    have hk' : k ≤ m := by simpa [Nat.lt_succ_iff] using Finset.mem_range.1 hk
+    have : (0 : ℝ) ≤ (n : ℝ) - 2 * k := by
+      have : 2 * k ≤ n := by omega
+      have := (Nat.cast_le (α := ℝ)).2 this
+      push_cast at this; linarith
+    rw [abs_of_nonneg this]
+  have hhigh : ∑ k ∈ Finset.Ico (m + 1) (n + 1), |(n : ℝ) - 2 * k| * (n.choose k : ℝ)
+      = -∑ k ∈ Finset.Ico (m + 1) (n + 1), ((n : ℝ) - 2 * k) * (n.choose k : ℝ) := by
+    rw [← Finset.sum_neg_distrib]
+    refine Finset.sum_congr rfl fun k hk => ?_
+    have hk' : m + 1 ≤ k := (Finset.mem_Ico.1 hk).1
+    have h0 : (n : ℝ) - 2 * k ≤ 0 := by
+      have : n ≤ 2 * k := by omega
+      have := (Nat.cast_le (α := ℝ)).2 this
+      push_cast at this; linarith
+    rw [abs_of_nonpos h0]; ring
+  have hs := Finset.sum_Ico_consecutive
+    (fun k => |(n : ℝ) - 2 * k| * (n.choose k : ℝ)) (Nat.zero_le (m + 1)) hmn
+  have hs' := Finset.sum_Ico_consecutive
+    (fun k => ((n : ℝ) - 2 * k) * (n.choose k : ℝ)) (Nat.zero_le (m + 1)) hmn
+  have hA : ∑ k ∈ Finset.range (m + 1), ((n : ℝ) - 2 * k) * (n.choose k : ℝ)
+      = (m + 1 : ℝ) * (n.choose (m + 1) : ℝ) := sum_range_sub_two_mul_choose m
+  simp only [← Finset.range_eq_Ico] at hs hs'
+  rw [hA] at hs'
+  rw [← hs, hlow, hhigh]
+  push_cast
+  linarith [hs', htotal]
+
+/-- The absorption identity `(k+1) binom(n,k+1) = n binom(n-1,k)`. -/
+private theorem succ_mul_choose_succ (n k : ℕ) :
+    (k + 1) * n.choose (k + 1) = n * (n - 1).choose k := by
+  cases n with
+  | zero => simp
+  | succ N =>
+    have h1 := Nat.choose_succ_right_eq (N + 1) k
+    have h2 := Nat.choose_mul_succ_eq N k
+    simp only [Nat.add_sub_cancel]
+    rw [mul_comm (k + 1), h1, ← h2, mul_comm]
+
+/-- Summing a function of the cardinality over all subsets groups into binomial layers. -/
+private theorem sum_subsets_by_card {n : ℕ} (f : ℕ → ℝ) :
+    ∑ S : Finset (Fin n), f S.card
+      = ∑ k ∈ Finset.range (n + 1), (n.choose k : ℝ) * f k := by
+  have hcard : (Finset.univ : Finset (Fin n)).card = n := by simp
+  rw [← Finset.powerset_univ, Finset.sum_powerset_apply_card, hcard]
+  exact Finset.sum_congr rfl fun k _ => nsmul_eq_mul _ _
+
 /-- **Unbalancing lights** (Zhao, Theorem 2.5.1; `sources/mit18_226_f22_lec_full.pdf`, printed
 p. 23 = PDF p. 29).  For any `±1` matrix there are sign vectors `x`, `y` with
 
