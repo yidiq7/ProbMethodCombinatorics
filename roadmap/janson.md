@@ -137,3 +137,50 @@ already-proved theorems whose proofs must not break — or whether a parallel pa
 choice is better made by someone holding the proof, so the task asks for a proposal instead of
 handing down an interface. If the thinning turns out to route through a *product* of two uniform
 `setBernoulli`s, no non-uniform Janson I is needed at all.
+
+## `janson_three` is proved, and the thinning needed no new measure
+
+`janson_lower_tail` (Janson III) is **unconditional**. The interesting part is that the route I
+predicted was wrong, and in an instructive direction.
+
+I expected the Chernoff/thinning step to need a **non-uniform** Bernoulli, because Warnke's
+argument thins the index set by an independent Bernoulli `q` and `setBernoulli` is uniform-`p`
+only. I authored `setBernoulliPi` for it. **It turned out not to be needed at all**: `κ` is a
+`Fintype`, so a thinned family is a `Finset κ` and the `q`-average is a *finite sum* against
+weights `q^#T (1-q)^#(U\T)`, carried entirely inside the existing `p`-space. What would have been
+Fubini is finite additivity.
+
+Three things from that proof worth keeping:
+
+- **The finite-sum `Φ` really is the MGF**, and the check that it is not a weaker surrogate is
+  that *both* bounds meet: it is lower-bounded by `e^{-lam s} ℙ(X ≤ s)` and upper-bounded by
+  `exp(-qμ + q²Δ/2)`. A degenerate quantity could satisfy one, not both.
+- **The `q²` needs no FKG.** The increasing function is a single coordinate indicator, so pairing
+  `T` with `insert j T` reduces the correlation step to termwise `P (insert j T) ≤ P T`. This is
+  the one-coordinate case of Harris done by hand.
+- **Markov as a finite partition does not trip the outer-measure hazard.** `{X ≤ s} = ⋃ EV J` with
+  each `EV J` measurable and `measure_biUnion_finset` giving an equality. `[Countable ι]` is
+  load-bearing a second time here, because Mathlib's `Measurable.subset` sits under
+  `[Countable α]`.
+
+**The negative result, recorded so it is not re-derived:** routing the thinning through a
+*product* of two uniform `setBernoulli`s does not work. `janson_prob_none_le` requires its measure
+to be literally `setBernoulli Set.univ p'` on some `Set ι'`, and a product on `Set ι × Set κ` is
+not of that form; re-indexing does not fix it, because `lam` is universally quantified so
+`q = 1 - e^{-lam}` ranges over all of `[0,1)` independently of `p`.
+
+`setBernoulliPi` stays in `Correlation.lean`. It is correct, proved, and a faithful
+generalisation — it is simply not what this chapter needed. **Authoring a primitive on a
+predicted need rather than a demonstrated one is the mistake to avoid repeating.**
+
+## Outstanding: duplicated `Δ`-bookkeeping
+
+Roughly 75–80 lines inside `janson_lower_tail_step_le` duplicate `janson_prob_none_le`'s
+`E`-bookkeeping near-verbatim, plus ~18 more around the conditioning step. The contributor
+offered to extract it and was right not to: extraction means a new top-level declaration, which
+is orchestrator work under this project's own rule.
+
+**Deliberately sequenced after `janson_prob_none_le_of_mu_le` (Janson II) lands.** Janson II is a
+finished proof in PR #122 awaiting only a rebase, it will want the same lemma, and doing the
+surgery once across all three call sites is better than twice — and better than invalidating work
+in flight. If #122 stalls, do the extraction anyway and salvage it.

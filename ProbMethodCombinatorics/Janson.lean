@@ -351,12 +351,29 @@ theorem exp_neg_le_one_sub_add_sq_div_two {x : ℝ} (hx : 0 ≤ x) :
 /-- The Chernoff step of Warnke's proof of Janson's third inequality (Zhao, Theorem 8.2.2).
 
 Write `X` for `jansonCount S`, put `q = 1 - exp (-lam)` for `lam ≥ 0`, and thin the events of
-Setup 8.1.1 by keeping each index independently with probability `q`.  The thinned family again
-satisfies Setup 8.1.1 — over the pairs of `D` off the diagonal, whose contribution to `Δ` is at
-most `jansonDelta p S D` — with `μ` replaced by `q * μ` and `Δ` replaced by `q ^ 2 * Δ`, so
-Janson's first inequality bounds the probability that the thinned count vanishes by
-`exp (-q * μ + q ^ 2 * Δ / 2)`.  That probability is the moment generating function
-`𝔼 [exp (-lam * X)]`, and Markov's inequality applied to it gives the bound below. -/
+Setup 8.1.1 by keeping each index independently with probability `q`.  The probability that the
+thinned count vanishes is the moment generating function `𝔼 [exp (-lam * X)]`, which is bounded
+by `exp (-q * μ + q ^ 2 * Δ / 2)`; Markov's inequality applied to it gives the bound below.
+
+**The thinning is never a second measure.**  `κ` is a `Fintype`, so a thinned family is a
+`Finset κ` and the `q`-average over thinnings is a *finite sum* against the weights
+`q ^ #T * (1 - q) ^ #(U \ T)`, carried out entirely inside the existing `p`-space on `Set ι`.
+What would otherwise be Fubini is finite additivity.  Two consequences worth knowing before
+reading the proof:
+
+* the `q ^ 2` on `Δ` comes from a negative-correlation step that needs no FKG — the increasing
+  function is a single coordinate indicator, so pairing `T` with `insert j T` reduces it to the
+  termwise monotonicity `P (insert j T) ≤ P T`;
+* Markov is a finite disjoint partition `{X ≤ s} = ⋃ EV J` rather than an integral.  That set is
+  genuinely measurable — each `EV J` is, and `measure_biUnion_finset` gives an *equality* — so
+  the outer-measure hazard this file warns about is discharged, not sidestepped.  `[Countable ι]`
+  is load-bearing for it, since Mathlib's `Measurable.subset` lives under `[Countable α]`.
+
+An earlier draft of this docstring described a different route, in which the thinned family again
+satisfies Setup 8.1.1 over the off-diagonal pairs of `D` and Janson's first inequality is applied
+to it.  That is true as a remark but is not what the proof does, and it is not available as
+stated: `janson_prob_none_le` requires its measure to be literally `setBernoulli Set.univ p'`,
+which a product over two index types is not. -/
 theorem janson_lower_tail_step_le [Countable ι] (p : I) (S : κ → Set ι) (D : Finset (κ × κ))
     (hD : ∀ i j, i ≠ j → (i, j) ∉ D → Disjoint (S i) (S j)) {lam s : ℝ} (hlam : 0 ≤ lam) :
     (setBernoulli Set.univ p {R : Set ι | jansonCount S R ≤ s}).toReal
