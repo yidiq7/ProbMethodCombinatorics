@@ -25,7 +25,7 @@ group file has a "planned, not stated" section saying which and why.
 |---|---|---|---|
 | [`introduction`](introduction.md) | 1 | **all proved** | — |
 | [`expectation`](expectation.md) | 2 | **all proved** | some of §2 |
-| [`alterations`](alterations.md) | 3 | 2 open | — |
+| [`alterations`](alterations.md) | 3 | **all proved** | — |
 | [`second-moment`](second-moment.md) | 4 | **all proved** | asymptotics |
 | [`chernoff`](chernoff.md) | 5 | **all proved** | — |
 | [`local-lemma`](local-lemma.md) | 6 | **all proved** | — |
@@ -35,8 +35,8 @@ group file has a "planned, not stated" section saying which and why.
 | [`entropy`](entropy.md) | 10 | 3 open | Sidorenko, Kahn–Zhao, Steiner |
 | [`containers`](containers.md) | 11 | 4 open | 11.1.3, 11.1.5, supersaturation |
 
-**Eight of the eleven groups have every stated declaration proved.**  The open work is
-concentrated in Chapters 3, 10 and 11, and `entropy_le_logb_card` alone is the sole obligation
+**Nine of the eleven groups have every stated declaration proved.**  The open work is
+concentrated in Chapters 10 and 11, and `entropy_le_logb_card` alone is the sole obligation
 beneath five otherwise-complete Chapter 10 theorems.
 
 **Everything in Chapter 1 §1.2 except Bollobás' two families theorem is already in
@@ -467,3 +467,20 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   published route has been wrong where the statement was fine.  When a task is abandoned with no
   note, **re-read the route before concluding the task is hard** — the diagnostic order is
   statement, then route, then decomposition.
+- **2026-09-15 — Chapter 3 is complete.**  `exists_isDominating_card_le` (#140) proved Theorem
+  3.1.1 directly, and `Alterations.lean` is at zero `sorry`s.  **7 sorries project-wide, zero
+  custom axioms**, all in Chapters 10 and 11.
+  #124 retired as superseded — the same pattern as #126/#127, and for the same reason.  Its
+  content was reproved inline as a `have`, in full generality, by the PR that proved the parent.
+  **The decisive check before retiring is lease activity**: no claim, no lease comments, so no
+  work was lost.  The declaration was removed rather than left as a `sorry` nothing uses, since
+  leaving a published node open while its proof sits unreachable inside another theorem would
+  have guaranteed the next claimant redid 131 lines.
+- **2026-09-15 — I corrupted two commits by running `git add -A` while a review subagent held a
+  patch in the shared checkout.**  `07a2f6b` and `726e414` each carry 147 lines of PR #140's
+  proof, added then removed, contradicting their own commit messages.  The tip was correct and
+  the PR diff unaffected.  **History was deliberately not rewritten** — `main` is shared, open
+  tasks pin commits on it, and breaking live pins to tidy cosmetic history is the worse trade.
+  Procedure fixed in `skills/orchestrator-notes.md`: stage explicit paths, and review subagents
+  must not mutate the working tree.  **Delegating work into your own working directory makes that
+  directory shared state.**

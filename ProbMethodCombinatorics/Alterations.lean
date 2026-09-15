@@ -49,25 +49,8 @@ variable {V : Type*} [Fintype V] [DecidableEq V]
 def IsDominating (G : SimpleGraph V) (U : Finset V) : Prop :=
   ∀ v : V, v ∈ U ∨ ∃ u ∈ U, G.Adj u v
 
-/-- **The averaging step of Theorem 3.1.1.**  For any `p ∈ [0, 1]` there is a dominating set of
-size at most `p n + (1 - p)^(δ+1) n`.
-
-This is the whole probabilistic content: keep each vertex independently with probability `p`,
-then repair by adding every vertex that is left undominated.  The first term is the expected
-size of the random part; the second bounds the repair, because a vertex survives undominated
-only if its closed neighbourhood — of size at least `δ + 1` — was missed entirely.  Averaging
-then produces one `U` at least as good as the mean.
-
-`δ` here is any lower bound on the degrees, not necessarily the minimum, and no `1 < δ` is
-needed: at `p = 0` the bound reads `n` and `U = univ` witnesses it. -/
-theorem exists_isDominating_card_le_of_mem_Icc (G : SimpleGraph V) [DecidableRel G.Adj]
-    {δ : ℕ} (hdeg : ∀ v : V, δ ≤ G.degree v) {p : ℝ} (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
-    ∃ U : Finset V, IsDominating G U ∧
-      (U.card : ℝ) ≤ p * Fintype.card V + (1 - p) ^ (δ + 1) * Fintype.card V := by
-  sorry
-
-/-- **The optimisation step of Theorem 3.1.1.**  At `p = log (δ+1) / (δ+1)` the bound produced by
-`exists_isDominating_card_le_of_mem_Icc` is at most `(log (δ+1) + 1) / (δ+1)`.
+/-- **The optimisation step of Theorem 3.1.1.**  At `p = log (δ+1) / (δ+1)` the averaging bound
+`p + (1 - p)^(δ+1)` is at most `(log (δ+1) + 1) / (δ+1)`.
 
 Pure real analysis, no graphs: the only fact used is `1 - x ≤ exp (-x)`, which turns
 `(1 - p)^(δ+1)` into `exp (-log (δ+1)) = 1/(δ+1)`. -/
