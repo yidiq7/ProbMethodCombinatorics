@@ -428,3 +428,22 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   **Rule now in `conventions.md`: consolidation that deletes, renames, changes visibility, or
   relocates is orchestrator work, never a task.**  `golf` means "same statement, shorter proof"
   and nothing else.
+- **2026-09-15 — Chapter 8 is complete; all three Janson inequalities are unconditional.**
+  `janson_prob_none_le_of_mu_le` (#122) took `Janson.lean` to zero `sorry`s.  **9 sorries,
+  zero custom axioms** project-wide.
+  Both PRs this round went through the playbook's new **stage-two subagent review**, which earned
+  its keep twice: on #139 it verified that the finite-sum `Φ` really is the MGF (both bounds meet,
+  so it cannot be a degenerate surrogate) and that Markov-as-partition *discharges* the
+  outer-measure hazard rather than sidestepping it; on #122 it showed `hK : K ⊆ s` is load-bearing
+  by exhibiting a counterexample without it — a hypothesis that is necessary being the opposite of
+  a smuggled one.  Neither reading would have happened under batch load if it had stayed in my
+  context, which is precisely the argument the playbook makes.
+- **2026-09-15 — the duplicated `Δ`-bookkeeping is extracted** as `sum_filter_insert_le`, net
+  −40 lines.  Deliberately sequenced *after* Janson II landed: doing it earlier would have
+  invalidated a finished proof in flight, and doing it per-PR would have meant the same surgery
+  twice.  **Three contributors independently wrote the same binomial-weight identity** before a
+  top-level lemma existed — the recurring cost of parallel work against a pinned base, and
+  something only the orchestrator can fix.
+  The remaining shape issue — Janson I is stated at `univ`, so a sub-family needs subtype
+  gymnastics — is **recorded and not built**, because nothing needs it yet.  That is the
+  discipline `setBernoulliPi` failed.

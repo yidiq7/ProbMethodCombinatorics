@@ -173,14 +173,36 @@ not of that form; re-indexing does not fix it, because `lam` is universally quan
 generalisation — it is simply not what this chapter needed. **Authoring a primitive on a
 predicted need rather than a demonstrated one is the mistake to avoid repeating.**
 
-## Outstanding: duplicated `Δ`-bookkeeping
+## Chapter 8 is complete
+
+All three Janson inequalities are proved and `Janson.lean` has **zero `sorry`s**, verified with
+`#print axioms` on each rather than inferred from green merges.
+
+## Resolved: the duplicated `Δ`-bookkeeping
 
 Roughly 75–80 lines inside `janson_lower_tail_step_le` duplicate `janson_prob_none_le`'s
 `E`-bookkeeping near-verbatim, plus ~18 more around the conditioning step. The contributor
 offered to extract it and was right not to: extraction means a new top-level declaration, which
 is orchestrator work under this project's own rule.
 
-**Deliberately sequenced after `janson_prob_none_le_of_mu_le` (Janson II) lands.** Janson II is a
-finished proof in PR #122 awaiting only a rebase, it will want the same lemma, and doing the
-surgery once across all three call sites is better than twice — and better than invalidating work
-in flight. If #122 stalls, do the extraction anyway and salvage it.
+**Done**, once Janson II landed and the file had no open task against it — which was the point of
+waiting rather than doing the surgery twice or invalidating work in flight.
+
+`sum_filter_insert_le` now states the step over an explicit `b` and `D` rather than over the local
+`E` abbreviation each proof introduces. That is what makes one lemma serve all the call sites: `E`
+and `b` are introduced by `⟨_, fun _ => rfl⟩` definitional abbreviations, so a top-level lemma can
+talk about the underlying sums directly and each caller discharges with `rw [hE, hE]`. Both
+55-line blocks collapse to three lines each; net **−40 lines** across the file, with all three
+inequalities still axiom-clean.
+
+The `K = ∅` case of `sum_powerset_weight_eq` — contributed with Janson II — also subsumed a local
+`hbinom` inside the lower-tail proof, now rewritten as a one-liner. **Three separate contributors
+each wrote a copy of the same binomial-weight-over-powerset identity before anyone had a top-level
+lemma to reach for**; that is the recurring cost of statements landing in parallel against a
+pinned base, and the orchestrator is the only party positioned to fix it.
+
+Still open, recorded rather than acted on: `prob_none_le_subfamily` re-derives by subtype
+instantiation what the internal `key` of `janson_prob_none_le` already proves for every
+`Finset κ`. The right shape is for Janson I to expose a `Finset` companion instead of being
+stated only at `univ`. **Not built, because nothing currently needs it** — the same discipline
+`setBernoulliPi` violated.

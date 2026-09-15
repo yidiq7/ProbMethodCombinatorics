@@ -186,6 +186,73 @@ theorem janson_prob_none_step_le [Countable ι] (p : I) (S : κ → Set ι) (i :
   rw [hLHS]
   linarith [hdecomp, hkey]
 
+/-- The `Δ`-bookkeeping step shared by all three Janson inequalities: adding one index `i` to a
+sub-family adds its own `2 ∑_j b i j` over the neighbours of `i`, and the pairs so added are
+disjoint from those already counted.
+
+Stated over an explicit `b` and `D` rather than over the local `E` abbreviation that each proof
+introduces, so that all three call sites can use it. Extracted after the same block was written
+out three times; see `roadmap/janson.md`. -/
+private theorem sum_filter_insert_le {κ : Type*} [DecidableEq κ] (D : Finset (κ × κ))
+    (b : κ → κ → ℝ) (hb0 : ∀ i j, 0 ≤ b i j) (hbs : ∀ i j, b j i = b i j)
+    (i : κ) (T : Finset κ) (hiT : i ∉ T) :
+    (∑ z ∈ D.filter fun z => z.1 ∈ T ∧ z.2 ∈ T, b z.1 z.2)
+        + 2 * ∑ j ∈ T.filter (fun j => (i, j) ∈ D ∧ (j, i) ∈ D), b i j
+      ≤ ∑ z ∈ D.filter fun z => z.1 ∈ insert i T ∧ z.2 ∈ insert i T, b z.1 z.2 := by
+  have hU : ∑ z ∈ (T.filter fun j => (i, j) ∈ D ∧ (j, i) ∈ D).image
+        (fun j => ((i, j) : κ × κ)), b z.1 z.2
+      = ∑ j ∈ T.filter (fun j => (i, j) ∈ D ∧ (j, i) ∈ D), b i j :=
+    Finset.sum_image (fun x _ y _ h => by simpa using h)
+  have hV : ∑ z ∈ (T.filter fun j => (i, j) ∈ D ∧ (j, i) ∈ D).image
+        (fun j => ((j, i) : κ × κ)), b z.1 z.2
+      = ∑ j ∈ T.filter (fun j => (i, j) ∈ D ∧ (j, i) ∈ D), b i j := by
+    rw [Finset.sum_image (fun x _ y _ h => by simpa using h)]
+    exact Finset.sum_congr rfl fun j _ => hbs i j
+  have hd1 : Disjoint (D.filter fun z => z.1 ∈ T ∧ z.2 ∈ T)
+      ((T.filter fun j => (i, j) ∈ D ∧ (j, i) ∈ D).image fun j => ((i, j) : κ × κ)) := by
+    refine Finset.disjoint_left.2 ?_
+    rintro z hz hz'
+    obtain ⟨j, -, rfl⟩ := Finset.mem_image.1 hz'
+    exact hiT (Finset.mem_filter.1 hz).2.1
+  have hd2 : Disjoint ((D.filter fun z => z.1 ∈ T ∧ z.2 ∈ T) ∪
+        (T.filter fun j => (i, j) ∈ D ∧ (j, i) ∈ D).image fun j => ((i, j) : κ × κ))
+      ((T.filter fun j => (i, j) ∈ D ∧ (j, i) ∈ D).image fun j => ((j, i) : κ × κ)) := by
+    refine Finset.disjoint_left.2 ?_
+    rintro z hz hz'
+    obtain ⟨j, hj, rfl⟩ := Finset.mem_image.1 hz'
+    rcases Finset.mem_union.1 hz with h | h
+    · exact hiT (Finset.mem_filter.1 h).2.2
+    · obtain ⟨k, hk, hk'⟩ := Finset.mem_image.1 h
+      have : k = i := congrArg Prod.snd hk'
+      exact hiT (this ▸ (Finset.mem_filter.1 hk).1)
+  have hss : (D.filter fun z => z.1 ∈ T ∧ z.2 ∈ T) ∪
+        ((T.filter fun j => (i, j) ∈ D ∧ (j, i) ∈ D).image fun j => ((i, j) : κ × κ)) ∪
+        ((T.filter fun j => (i, j) ∈ D ∧ (j, i) ∈ D).image fun j => ((j, i) : κ × κ))
+      ⊆ D.filter fun z => z.1 ∈ insert i T ∧ z.2 ∈ insert i T := by
+    intro z hz
+    rcases Finset.mem_union.1 hz with hz | hz
+    · rcases Finset.mem_union.1 hz with hz | hz
+      · obtain ⟨hzD, h1, h2⟩ := Finset.mem_filter.1 hz
+        exact Finset.mem_filter.2
+          ⟨hzD, Finset.mem_insert_of_mem h1, Finset.mem_insert_of_mem h2⟩
+      · obtain ⟨j, hj, rfl⟩ := Finset.mem_image.1 hz
+        obtain ⟨hjT, hjD, -⟩ := Finset.mem_filter.1 hj
+        exact Finset.mem_filter.2
+          ⟨hjD, Finset.mem_insert_self _ _, Finset.mem_insert_of_mem hjT⟩
+    · obtain ⟨j, hj, rfl⟩ := Finset.mem_image.1 hz
+      obtain ⟨hjT, -, hjD⟩ := Finset.mem_filter.1 hj
+      exact Finset.mem_filter.2
+        ⟨hjD, Finset.mem_insert_of_mem hjT, Finset.mem_insert_self _ _⟩
+  calc (∑ z ∈ D.filter fun z => z.1 ∈ T ∧ z.2 ∈ T, b z.1 z.2)
+        + 2 * ∑ j ∈ T.filter (fun j => (i, j) ∈ D ∧ (j, i) ∈ D), b i j
+      = ∑ z ∈ (D.filter fun z => z.1 ∈ T ∧ z.2 ∈ T) ∪
+          ((T.filter fun j => (i, j) ∈ D ∧ (j, i) ∈ D).image fun j => ((i, j) : κ × κ)) ∪
+          ((T.filter fun j => (i, j) ∈ D ∧ (j, i) ∈ D).image fun j => ((j, i) : κ × κ)),
+          b z.1 z.2 := by
+        rw [Finset.sum_union hd2, Finset.sum_union hd1, hU, hV]; ring
+    _ ≤ ∑ z ∈ D.filter (fun z => z.1 ∈ insert i T ∧ z.2 ∈ insert i T), b z.1 z.2 :=
+        Finset.sum_le_sum_of_subset_of_nonneg hss fun z _ _ => hb0 _ _
+
 /-- **Janson's inequality I** (Zhao, Theorem 8.1.2): the probability that the random subset
 contains none of the `S i` is at most `exp (-μ + Δ/2)`.
 
@@ -240,59 +307,8 @@ theorem janson_prob_none_le [Countable ι] (p : I) (S : κ → Set ι) (D : Fins
         exact hstep
       have hEineq : E T + 2 * ∑ j ∈ T.filter (fun j => (i, j) ∈ D ∧ (j, i) ∈ D), b i j
           ≤ E (insert i T) := by
-        have hU : ∑ q ∈ (T.filter fun j => (i, j) ∈ D ∧ (j, i) ∈ D).image
-              (fun j => ((i, j) : κ × κ)), b q.1 q.2
-            = ∑ j ∈ T.filter (fun j => (i, j) ∈ D ∧ (j, i) ∈ D), b i j :=
-          Finset.sum_image (fun x _ y _ h => by simpa using h)
-        have hV : ∑ q ∈ (T.filter fun j => (i, j) ∈ D ∧ (j, i) ∈ D).image
-              (fun j => ((j, i) : κ × κ)), b q.1 q.2
-            = ∑ j ∈ T.filter (fun j => (i, j) ∈ D ∧ (j, i) ∈ D), b i j := by
-          rw [Finset.sum_image (fun x _ y _ h => by simpa using h)]
-          exact Finset.sum_congr rfl fun j _ => hbs i j
-        have hd1 : Disjoint (D.filter fun q => q.1 ∈ T ∧ q.2 ∈ T)
-            ((T.filter fun j => (i, j) ∈ D ∧ (j, i) ∈ D).image fun j => ((i, j) : κ × κ)) := by
-          refine Finset.disjoint_left.2 ?_
-          rintro q hq hq'
-          obtain ⟨j, -, rfl⟩ := Finset.mem_image.1 hq'
-          exact hiT (Finset.mem_filter.1 hq).2.1
-        have hd2 : Disjoint ((D.filter fun q => q.1 ∈ T ∧ q.2 ∈ T) ∪
-              (T.filter fun j => (i, j) ∈ D ∧ (j, i) ∈ D).image fun j => ((i, j) : κ × κ))
-            ((T.filter fun j => (i, j) ∈ D ∧ (j, i) ∈ D).image fun j => ((j, i) : κ × κ)) := by
-          refine Finset.disjoint_left.2 ?_
-          rintro q hq hq'
-          obtain ⟨j, hj, rfl⟩ := Finset.mem_image.1 hq'
-          rcases Finset.mem_union.1 hq with h | h
-          · exact hiT (Finset.mem_filter.1 h).2.2
-          · obtain ⟨k, hk, hk'⟩ := Finset.mem_image.1 h
-            have : k = i := congrArg Prod.snd hk'
-            exact hiT (this ▸ (Finset.mem_filter.1 hk).1)
-        have hss : (D.filter fun q => q.1 ∈ T ∧ q.2 ∈ T) ∪
-              ((T.filter fun j => (i, j) ∈ D ∧ (j, i) ∈ D).image fun j => ((i, j) : κ × κ)) ∪
-              ((T.filter fun j => (i, j) ∈ D ∧ (j, i) ∈ D).image fun j => ((j, i) : κ × κ))
-            ⊆ D.filter fun q => q.1 ∈ insert i T ∧ q.2 ∈ insert i T := by
-          intro q hq
-          rcases Finset.mem_union.1 hq with hq | hq
-          · rcases Finset.mem_union.1 hq with hq | hq
-            · obtain ⟨hqD, h1, h2⟩ := Finset.mem_filter.1 hq
-              exact Finset.mem_filter.2
-                ⟨hqD, Finset.mem_insert_of_mem h1, Finset.mem_insert_of_mem h2⟩
-            · obtain ⟨j, hj, rfl⟩ := Finset.mem_image.1 hq
-              obtain ⟨hjT, hjD, -⟩ := Finset.mem_filter.1 hj
-              exact Finset.mem_filter.2
-                ⟨hjD, Finset.mem_insert_self _ _, Finset.mem_insert_of_mem hjT⟩
-          · obtain ⟨j, hj, rfl⟩ := Finset.mem_image.1 hq
-            obtain ⟨hjT, -, hjD⟩ := Finset.mem_filter.1 hj
-            exact Finset.mem_filter.2
-              ⟨hjD, Finset.mem_insert_of_mem hjT, Finset.mem_insert_self _ _⟩
-        calc E T + 2 * ∑ j ∈ T.filter (fun j => (i, j) ∈ D ∧ (j, i) ∈ D), b i j
-            = ∑ q ∈ (D.filter fun q => q.1 ∈ T ∧ q.2 ∈ T) ∪
-                ((T.filter fun j => (i, j) ∈ D ∧ (j, i) ∈ D).image fun j => ((i, j) : κ × κ)) ∪
-                ((T.filter fun j => (i, j) ∈ D ∧ (j, i) ∈ D).image fun j => ((j, i) : κ × κ)),
-                b q.1 q.2 := by
-              rw [Finset.sum_union hd2, Finset.sum_union hd1, hU, hV, hE]; ring
-          _ ≤ ∑ q ∈ D.filter (fun q => q.1 ∈ insert i T ∧ q.2 ∈ insert i T), b q.1 q.2 :=
-              Finset.sum_le_sum_of_subset_of_nonneg hss fun q _ _ => hb0 _ _
-          _ = E (insert i T) := (hE _).symm
+        rw [hE, hE]
+        exact sum_filter_insert_le D b hb0 hbs i T hiT
       calc P (insert i T)
           ≤ (1 - a i + ∑ j ∈ T.filter (fun j => (i, j) ∈ D ∧ (j, i) ∈ D), b i j) * P T := hPins
         _ ≤ Real.exp (-(a i - ∑ j ∈ T.filter (fun j => (i, j) ∈ D ∧ (j, i) ∈ D), b i j))
@@ -802,60 +818,8 @@ theorem janson_lower_tail_step_le [Countable ι] (p : I) (S : κ → Set ι) (D 
               + q * ∑ j ∈ K, b i j * ∑ T ∈ U.powerset, W U T * (if j ∈ T then P T else 0) := hswap
           _ ≤ (1 - q * a i + q ^ 2 * ∑ j ∈ K, b i j) * Φ U := by nlinarith [h4]
       have hEineq : E U + 2 * ∑ j ∈ K, b i j ≤ E (insert i U) := by
-        rw [hK]
-        have hU : ∑ z ∈ (U.filter fun j => (i, j) ∈ D ∧ (j, i) ∈ D).image
-              (fun j => ((i, j) : κ × κ)), b z.1 z.2
-            = ∑ j ∈ U.filter (fun j => (i, j) ∈ D ∧ (j, i) ∈ D), b i j :=
-          Finset.sum_image (fun x _ y _ h => by simpa using h)
-        have hV : ∑ z ∈ (U.filter fun j => (i, j) ∈ D ∧ (j, i) ∈ D).image
-              (fun j => ((j, i) : κ × κ)), b z.1 z.2
-            = ∑ j ∈ U.filter (fun j => (i, j) ∈ D ∧ (j, i) ∈ D), b i j := by
-          rw [Finset.sum_image (fun x _ y _ h => by simpa using h)]
-          exact Finset.sum_congr rfl fun j _ => hbs i j
-        have hd1 : Disjoint (D.filter fun z => z.1 ∈ U ∧ z.2 ∈ U)
-            ((U.filter fun j => (i, j) ∈ D ∧ (j, i) ∈ D).image fun j => ((i, j) : κ × κ)) := by
-          refine Finset.disjoint_left.2 ?_
-          rintro z hz hz'
-          obtain ⟨j, -, rfl⟩ := Finset.mem_image.1 hz'
-          exact hiU (Finset.mem_filter.1 hz).2.1
-        have hd2 : Disjoint ((D.filter fun z => z.1 ∈ U ∧ z.2 ∈ U) ∪
-              (U.filter fun j => (i, j) ∈ D ∧ (j, i) ∈ D).image fun j => ((i, j) : κ × κ))
-            ((U.filter fun j => (i, j) ∈ D ∧ (j, i) ∈ D).image fun j => ((j, i) : κ × κ)) := by
-          refine Finset.disjoint_left.2 ?_
-          rintro z hz hz'
-          obtain ⟨j, hj, rfl⟩ := Finset.mem_image.1 hz'
-          rcases Finset.mem_union.1 hz with h | h
-          · exact hiU (Finset.mem_filter.1 h).2.2
-          · obtain ⟨k, hk, hk'⟩ := Finset.mem_image.1 h
-            have : k = i := congrArg Prod.snd hk'
-            exact hiU (this ▸ (Finset.mem_filter.1 hk).1)
-        have hss : (D.filter fun z => z.1 ∈ U ∧ z.2 ∈ U) ∪
-              ((U.filter fun j => (i, j) ∈ D ∧ (j, i) ∈ D).image fun j => ((i, j) : κ × κ)) ∪
-              ((U.filter fun j => (i, j) ∈ D ∧ (j, i) ∈ D).image fun j => ((j, i) : κ × κ))
-            ⊆ D.filter fun z => z.1 ∈ insert i U ∧ z.2 ∈ insert i U := by
-          intro z hz
-          rcases Finset.mem_union.1 hz with hz | hz
-          · rcases Finset.mem_union.1 hz with hz | hz
-            · obtain ⟨hzD, h1, h2⟩ := Finset.mem_filter.1 hz
-              exact Finset.mem_filter.2
-                ⟨hzD, Finset.mem_insert_of_mem h1, Finset.mem_insert_of_mem h2⟩
-            · obtain ⟨j, hj, rfl⟩ := Finset.mem_image.1 hz
-              obtain ⟨hjU, hjD, -⟩ := Finset.mem_filter.1 hj
-              exact Finset.mem_filter.2
-                ⟨hjD, Finset.mem_insert_self _ _, Finset.mem_insert_of_mem hjU⟩
-          · obtain ⟨j, hj, rfl⟩ := Finset.mem_image.1 hz
-            obtain ⟨hjU, -, hjD⟩ := Finset.mem_filter.1 hj
-            exact Finset.mem_filter.2
-              ⟨hjD, Finset.mem_insert_of_mem hjU, Finset.mem_insert_self _ _⟩
-        calc E U + 2 * ∑ j ∈ U.filter (fun j => (i, j) ∈ D ∧ (j, i) ∈ D), b i j
-            = ∑ z ∈ (D.filter fun z => z.1 ∈ U ∧ z.2 ∈ U) ∪
-                ((U.filter fun j => (i, j) ∈ D ∧ (j, i) ∈ D).image fun j => ((i, j) : κ × κ)) ∪
-                ((U.filter fun j => (i, j) ∈ D ∧ (j, i) ∈ D).image fun j => ((j, i) : κ × κ)),
-                b z.1 z.2 := by
-              rw [Finset.sum_union hd2, Finset.sum_union hd1, hU, hV, hE]; ring
-          _ ≤ ∑ z ∈ D.filter (fun z => z.1 ∈ insert i U ∧ z.2 ∈ insert i U), b z.1 z.2 :=
-              Finset.sum_le_sum_of_subset_of_nonneg hss fun z _ _ => hb0 _ _
-          _ = E (insert i U) := (hE _).symm
+        rw [hK, hE, hE]
+        exact sum_filter_insert_le D b hb0 hbs i U hiU
       calc Φ (insert i U)
           ≤ (1 - q * a i + q ^ 2 * ∑ j ∈ K, b i j) * Φ U := hbound
         _ ≤ Real.exp (-q * a i + q ^ 2 * ∑ j ∈ K, b i j) * Φ U := by
@@ -943,14 +907,10 @@ theorem janson_lower_tail_step_le [Countable ι] (p : I) (S : κ → Set ι) (D 
     rw [hEV] at hRJ
     intro j hj hSj
     exact Finset.disjoint_left.1 (Finset.mem_filter.1 hJ).2 ((hRJ j).1 hSj) hj
+  -- The `K = ∅` case of `sum_powerset_weight_eq`; `∅ ⊆ t` collapses the guard.
   have hbinom : ∀ u : Finset κ, ∑ t ∈ u.powerset, q ^ t.card * (1 - q) ^ (u \ t).card = 1 := by
     intro u
-    have h1 : ∏ _i ∈ u, ((q : ℝ) + (1 - q))
-        = ∑ t ∈ u.powerset, (∏ _i ∈ t, (q : ℝ)) * ∏ _i ∈ u \ t, (1 - q) :=
-      Finset.prod_add _ _ u
-    simp only [Finset.prod_const] at h1
-    rw [show (q : ℝ) + (1 - q) = 1 by ring, one_pow] at h1
-    exact h1.symm
+    simpa using sum_powerset_weight_eq q u ∅ (Finset.empty_subset u)
   have hWsum : ∀ J : Finset κ,
       ∑ T ∈ (Finset.univ : Finset κ).powerset, (if Disjoint J T then W Finset.univ T else 0)
         = (1 - q) ^ J.card := by
