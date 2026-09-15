@@ -1657,12 +1657,14 @@
       "decl": "ProbMethodCombinatorics.exists_containers_triangleFree",
       "doc": "containers.md#111-containers-for-triangle-free-graphs",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "containers_triangleFreeGraphs"
       ],
       "proof_uses": [
-        "hypergraph_container"
+        "container_shrink_step",
+        "hypergraph_container",
+        "triangle_supersaturation"
       ]
     },
     "ekr_upper": {
@@ -1825,6 +1827,30 @@
       "proof": "formalized",
       "uses": [],
       "proof_uses": []
+    },
+    "triangle_supersaturation": {
+      "kind": "theorem",
+      "parent": "containers",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.exists_triangle_supersaturation",
+      "doc": "containers.md#111-containers-for-triangle-free-graphs",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
+    },
+    "container_shrink_step": {
+      "kind": "theorem",
+      "parent": "containers",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.exists_shrunken_containers_of_many_triangles",
+      "doc": "containers.md#111-containers-for-triangle-free-graphs",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": [
+        "hypergraph_container"
+      ]
     }
   }
 }

@@ -566,3 +566,22 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   a deletion and a visibility change, neither of which is a proof-body edit.  This one is the
   genuine article, and the contrast is the clearest statement of what `golf` means:
   **same pinned statement, shorter body, nothing else moved.**
+- **2026-09-15 — #146 merged: Theorem 11.1.1 reduced honestly, and the obligations are true.**
+  `exists_containers_triangleFree` is now proved modulo two new nodes, **#148** (triangle
+  supersaturation) and **#149** (one step of the Remark 11.2.2 iteration).  Unlike #143's
+  obligations, I checked these against the pair that killed that attempt and **both survive**:
+  `n ≤ 2` is vacuous, `n = 3` and `Kₙ` impose only *upper* bounds on `δ`, and a smaller `δ` is a
+  weaker claim — so there is no budget that can collapse below `1` and force an existential
+  empty.  **That collapse is the failure mode to test for in this chapter**, and a statement
+  whose constraints are all one-directional cannot exhibit it.
+  The iteration is the real one: `K` rounds with `(1-δ)^K ≤ 1/4` from the `n²` starting bound
+  lands under `(1/4+ε)n²`, with the count accumulating to `n^((K+1)C₀·n^{3/2})` — Remark 11.2.2
+  rather than a single application passed off as the iterated one.
+- **2026-09-15 — triangle supersaturation verified reachable from Mathlib**, correcting this
+  file's earlier claim that it was missing and "the most useful thing anyone could add".  All
+  four names checked against the pinned Mathlib: `CliqueFree.card_edgeFinset_le`
+  (`Extremal/Turan.lean:422`), `farFromTriangleFree_iff` (`Triangle/Basic.lean:192`),
+  `FarFromTriangleFree.le_card_cliqueFinset` (`Triangle/Removal.lean:137`) and
+  `triangleRemovalBound` (`Triangle/Removal.lean:41`) — with `triangleRemovalBound_pos` at line
+  44 supplying exactly the positivity the `∃ c > 0` needs.  **A "not in Mathlib" note in a
+  roadmap is a claim with a shelf life; this one was wrong.**
