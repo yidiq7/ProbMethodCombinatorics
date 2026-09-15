@@ -17,19 +17,27 @@ machinery this project needs — finite averaging, union bounds, alteration — 
 
 Groups, in order:
 
-| Group | Chapter | State |
-|---|---|---|
-| [`introduction`](introduction.md) | 1 | stated, in progress |
-| [`expectation`](expectation.md) | 2 | partly stated, in progress |
-| [`alterations`](alterations.md) | 3 | stated, in progress |
-| [`second-moment`](second-moment.md) | 4 | engine stated; asymptotics planned |
-| [`chernoff`](chernoff.md) | 5 | stated, in progress |
-| [`local-lemma`](local-lemma.md) | 6 | stated, in progress |
-| [`correlation`](correlation.md) | 7 | stated, in progress |
-| [`janson`](janson.md) | 8 | stated, in progress |
-| [`concentration`](concentration.md) | 9 | one node stated; rest planned |
-| [`entropy`](entropy.md) | 10 | stated, in progress |
-| [`containers`](containers.md) | 11 | stated, in progress |
+**"Proved" below means every *stated* declaration in the group is `sorry`-free.**  It does not
+mean the chapter is exhausted — several groups deliberately leave material unstated, and each
+group file has a "planned, not stated" section saying which and why.
+
+| Group | Chapter | Stated declarations | Unstated remainder |
+|---|---|---|---|
+| [`introduction`](introduction.md) | 1 | **all proved** | — |
+| [`expectation`](expectation.md) | 2 | **all proved** | some of §2 |
+| [`alterations`](alterations.md) | 3 | 2 open | — |
+| [`second-moment`](second-moment.md) | 4 | **all proved** | asymptotics |
+| [`chernoff`](chernoff.md) | 5 | **all proved** | — |
+| [`local-lemma`](local-lemma.md) | 6 | **all proved** | — |
+| [`correlation`](correlation.md) | 7 | **all proved** | — |
+| [`janson`](janson.md) | 8 | **all proved** | — |
+| [`concentration`](concentration.md) | 9 | **all proved** | martingales, Talagrand, TSP |
+| [`entropy`](entropy.md) | 10 | 3 open | Sidorenko, Kahn–Zhao, Steiner |
+| [`containers`](containers.md) | 11 | 4 open | 11.1.3, 11.1.5, supersaturation |
+
+**Eight of the eleven groups have every stated declaration proved.**  The open work is
+concentrated in Chapters 3, 10 and 11, and `entropy_le_logb_card` alone is the sole obligation
+beneath five otherwise-complete Chapter 10 theorems.
 
 **Everything in Chapter 1 §1.2 except Bollobás' two families theorem is already in
 Mathlib** — Sperner (`IsAntichain.sperner`), LYM
