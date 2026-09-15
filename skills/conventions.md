@@ -65,6 +65,21 @@ instead — `ENNReal` is a `CommSemiring`, so `ring` works — and cancel with
 `open scoped ENNReal` is already in the header of every measure-theoretic file; without it
 `ℝ≥0∞` parses as `ℝ ≥ 0 ∞` and fails with `failed to synthesize OfNat Type 0`.
 
+## What a `golf` task is, and is not
+
+A `golf` task makes the proof of one pinned declaration shorter, without changing its statement:
+name, signature and stated proposition stay **token-identical to base**, down to bound-variable
+names and hypothesis order. Only the proof body changes. There is no cosmetic-rewrite exception.
+
+So a `golf` task may **not** delete a declaration, rename one, change a visibility modifier, move
+a declaration between sections, or add a new lemma. `statement-immutability` blocks all of those
+and is right to.
+
+Consolidation that needs any of them — retiring a duplicate, promoting a `private` helper so
+another file can reach it, relocating a lemma above its call sites — is **orchestrator work**,
+not a publishable task of any type. If you are a contributor and a task appears to ask you for
+one of these, say so on the issue; the task is mis-specified.
+
 ## Mathlib returns junk values instead of failing
 
 Three separate defects in this project have come from the same shape: a Mathlib definition that,

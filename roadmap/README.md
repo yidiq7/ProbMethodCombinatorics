@@ -415,3 +415,16 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   generalising `jansonMu`/`jansonDelta` in place, under three already-proved theorems, and that
   call is better made by whoever holds the proof.  The task asks for a proposal rather than
   handing down an interface.
+- **2026-09-14 — I published an impossible task, and the gate caught it.**  #121 was filed as a
+  `golf` task but asked for a deletion and a `private` → public promotion.  The golf spec is
+  explicit that a golfed declaration's statement must stay **token-identical to base** and only
+  the proof body may change, so no correct implementation could have passed
+  `statement-immutability`, and PR #136 was blocked for doing exactly what the task asked.
+  **`merge-override` was considered and rejected**: the check was not misfiring, it was enforcing
+  the rule it exists for, and overriding a correct check to cover an orchestrator
+  mis-specification is how a gate becomes decorative.  The contributor's commit was cherry-picked
+  onto `main` unchanged (`6c32d17`), the PR closed **without deleting its branch**, and the
+  declaration-level claims verified rather than taken from the PR's table.
+  **Rule now in `conventions.md`: consolidation that deletes, renames, changes visibility, or
+  relocates is orchestrator work, never a task.**  `golf` means "same statement, shorter proof"
+  and nothing else.
