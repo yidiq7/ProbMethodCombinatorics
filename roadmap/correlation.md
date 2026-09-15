@@ -127,3 +127,22 @@ generalisation is faithful. It is stated with hypotheses rather than
 The `IsProbabilityMeasure` instance is registered immediately and the docstring says why:
 `Measure.infinitePi` is `if h : ∀ i, IsProbabilityMeasure (μ i) then … else 0`, so without it the
 definition is silently the zero measure and every `infinitePi` lemma fails to fire with no error.
+
+
+## `setBernoulli_cylinder` — the lemma to reach for
+
+Found by the contributor who proved `prob_mem_monotone` (#158), and not known to me when that
+task was written: Mathlib's `setBernoulli_cylinder` computes the measure of a cylinder event
+directly, which gives "misses every element of a finite `J`" as `(1 - s) ^ #J` in one step.
+
+**Reach for it before building cylinder computations by hand.** It is the natural tool for
+anything in Chapters 7–8 that needs the probability of a prescribed pattern on finitely many
+coordinates, and this project has written that kind of computation out longhand more than once.
+
+The proof of `prob_mem_monotone` is also worth reading as a model: it takes Zhao's **Proof 2**
+(two-round exposure) rather than the monotone coupling, constructing `p'` with
+`(1-p)(1-p') = 1-q` and matching the two distributions on the avoidance events, which generate
+the σ-algebra. That stays inside `setBernoulli` throughout; the coupling route would have needed
+an auxiliary `[0,1]`-valued field. The `p = 1` branch has to be split out — `1 - p = 0` forces
+`q = 1`, available only because `p ≤ q ≤ 1` — and for `p < 1` the witness `(q-p)/(1-p)` needs
+*both* endpoints of `I` to be placed.

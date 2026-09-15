@@ -708,3 +708,16 @@ in one.
   after a mistake was followed by the next contributor to touch the area.
   **#84 is now `Finset.sum_subset` plus `sum_probOf` away from closing**, and with it Brégman–Minc
   and the triangle-intersecting bound go unconditional.
+- **2026-09-15 — #158 merged: monotonicity of the satisfying probability.**  Landed within the
+  hour, via Zhao's **Proof 2** (two-round exposure) — the route the task prose flagged as likely
+  easier because it stays inside `setBernoulli` rather than needing a `[0,1]`-valued coupling
+  field.  It unblocks #152, whose step 2 is exactly this.
+  The contributor found **`setBernoulli_cylinder`**, which I did not know existed when writing
+  the task and which computes cylinder measures in one step.  Recorded in `correlation.md`;
+  this project has written that computation out longhand more than once.
+  Pattern worth noting across #150, #156 and #158, all merged within about an hour of
+  publication: each landed on a node whose prose had done real work — correcting a wrong route,
+  choosing between the source's two proofs, or separating mathematics from bookkeeping.  The
+  nodes that sat for five hours were the ones where I had given a bad route (#84) or bundled two
+  kinds of work (#15, #60).  **Prose quality tracks throughput about as closely as statement
+  quality does.**
