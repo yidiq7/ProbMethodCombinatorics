@@ -4,13 +4,13 @@ The primitives a worker agent drives. Each one does a single mechanical
 step and stops; deciding what to claim, how to prove it, and when to
 submit is the agent's.
 
-  - `choir list <repo>`              — show claimable tasks
-  - `choir claim <repo> <issue>`     — claim a task and set up the workspace
-  - `choir heartbeat <repo> <issue>` — refresh the lease on a long task
-  - `choir submit [repo] [issue]`    — push the branch + open the PR
-  - `choir release [repo] [issue]`   — graceful unwind of a claim
-  - `choir status`                   — list local workspaces
-  - `choir update`                   — pull the Choir checkout + reinstall deps
+  - `choir worker list <repo>`              — show claimable tasks
+  - `choir worker claim <repo> <issue>`     — claim a task, set up the workspace
+  - `choir worker heartbeat <repo> <issue>` — refresh the lease on a long task
+  - `choir worker submit [repo] [issue]`    — push the branch + open the PR
+  - `choir worker release [repo] [issue]`   — graceful unwind of a claim
+  - `choir worker status`                   — list local workspaces
+  - `choir update`                          — pull the checkout, reinstall deps
 
 Every one is also importable: a harness that wants them in-process calls
 `client.lease.claim`, `client.submit.submit_for_issue` and so on directly.
@@ -340,6 +340,12 @@ def cmd_update(args: Namespace) -> int:
         print(f"updated: {result.old_sha[:7]} -> {result.new_sha[:7]}")
     else:
         print("already up to date")
+    if result.entry_point is None:
+        print(
+            "warning: could not write the `choir` entry point to ~/.local/bin — "
+            "commands still work as <checkout>/.venv/bin/choir",
+            file=sys.stderr,
+        )
     return 0
 
 
@@ -366,8 +372,10 @@ def _add_format_flags(
     )
 
 
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="choir worker",
+def main(argv: list[str] | None = None, *, prog: str = "choir worker") -> int:
+    # `prog` so the router can lend this parser's `update` to the top-level
+    # `choir update` without its help claiming to be a worker command.
+    parser = argparse.ArgumentParser(prog=prog,
                                      description="Choir worker commands")
     _add_format_flags(parser)
     sub = parser.add_subparsers(dest="cmd", required=True)
