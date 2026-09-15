@@ -141,3 +141,27 @@ pins — a strictly worse outcome than two odd commits. The fix is procedural:
 
 The general form: **an orchestrator that delegates work into its own working directory has to
 treat that directory as shared state.** The subagent did nothing wrong; the concurrency was mine.
+
+
+## 2026-09-15 — Re-check the lease *at the moment you retire a node*, not when you decide to
+
+I closed #124 and deleted its declaration while it was **actively claimed with an open PR**.
+Timeline: claimed 05:23, PR #141 opened 05:27, retired by me 05:32. I had checked lease activity
+during an earlier review — when the node genuinely had no claim — and treated that check as still
+valid several minutes and one PR later.
+
+The roadmap already said "check lease activity before retiring a node". The check happened; it
+was just stale by the time it was acted on. **A liveness check is only valid at the instant of
+the destructive action**, and retiring a node is destructive to whoever holds it.
+
+Concretely, before closing an issue or deleting a declaration:
+
+- re-run `sync-leases` and re-read the issue's labels *in the same step* as the close;
+- check for an open PR naming the issue (`gh pr list --search "closes #N"`), because a PR can
+  exist before the label state settles;
+- prefer reverting over arguing when you get it wrong — the contributor's branch is the thing
+  with the work in it.
+
+The recovery that worked: restore the declaration byte-identical to the PR's base commit, so the
+contributor's branch merges through the normal flow instead of being cherry-picked or closed.
+Their work stays theirs, and the protocol does the merge.
