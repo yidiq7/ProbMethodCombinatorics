@@ -104,4 +104,34 @@ theorem variance_sum_indicator_le [IsProbabilityMeasure μ] {ι : Type*} [Fintyp
   rw [Set.indicator_of_notMem hqΔ, Set.indicator_of_notMem hqD, add_zero, hcov i j,
     (hD i j hne hnotD).measure_inter_eq_mul, ENNReal.toReal_mul, sub_self]
 
+/-- **Erdős's distinct-sums bound** (Zhao, Theorem 4.6.3; `sources/mit18_226_f22_lec_full.pdf`,
+printed p. 61 = PDF p. 67).  If a `k`-element set of naturals bounded by `n` has all `2 ^ k`
+subset sums distinct, then `n ≳ 2 ^ k / √k` — concretely, `3 · 2 ^ k ≤ 8 √k · n`.
+
+This beats the pigeonhole bound `n ≥ 2 ^ k / k` by a factor of `√k`, and it is the chapter's
+purest illustration of the second moment method: the pigeonhole argument counts *all* subset
+sums, while this one discards the outliers that Chebyshev says are rare.
+
+**Route.**  Let `X = ∑ εᵢ xᵢ` with `εᵢ ∈ {0,1}` independent and uniform.  Then `μ = (∑ xᵢ)/2`
+and `σ² = (∑ xᵢ²)/4 ≤ n²k/4`, so `2σ ≤ n√k`.  Chebyshev gives `ℙ(|X - μ| ≥ 2σ) ≤ 1/4`, hence
+`ℙ(|X - μ| < n√k) ≥ 3/4`.  In the other direction, distinctness makes `X` injective on
+`{0,1}^k`, so `ℙ(X = x) ≤ 2^{-k}` for every `x`, and the open interval `(μ - n√k, μ + n√k)`
+contains at most `2n√k` integers; therefore `ℙ(|X - μ| < n√k) ≤ 2n√k · 2^{-k}`.  Comparing the
+two gives `2n√k · 2^{-k} ≥ 3/4`.
+
+`prob_eq_zero_le_variance_div_sq` and `variance_sum_indicator_le` above are the engine; the
+`εᵢ` are independent so the variance of the sum is the sum of the variances.
+
+Erdős's conjecture that `n ≳ 2 ^ k` (Conjecture 4.6.2) is **open mathematics** and must not be
+stated as a theorem.  Theorem 4.6.6 (Dubroff–Fox–Xu), which improves the constant via Harper's
+vertex-isoperimetric inequality, is a separate and harder node.
+
+The bound was checked against the known minimal witnesses for `k ≤ 8` (the Conway–Guy
+sequence `1, 2, 4, 7, 13, 24, 44, 84`) before publication. -/
+theorem le_card_of_distinctSubsetSums {n k : ℕ} (hk : 0 < k) (S : Finset ℕ)
+    (hSn : ∀ x ∈ S, x ≤ n) (hScard : S.card = k)
+    (hdistinct : ∀ A ⊆ S, ∀ B ⊆ S, ∑ x ∈ A, x = ∑ x ∈ B, x → A = B) :
+    3 * 2 ^ k ≤ 8 * Real.sqrt k * n := by
+  sorry
+
 end ProbMethodCombinatorics
