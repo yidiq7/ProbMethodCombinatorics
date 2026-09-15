@@ -50,9 +50,15 @@ idempotent, so `Var X i ≤ 𝔼 X i`), and bound each remaining term by `ℙ(A 
 ## Planned, not stated
 
 - **`triangle_threshold`** — Proposition 4.1.2 and Theorem 4.1.11: `1/n` is the threshold
-  for `G(n,p)` to contain a triangle. Needs a triangle-count random variable over
-  `G(Fin n, p)` and its first two moments; that count and its expectation are the natural
-  next nodes once `variance_indicator_bound` lands.
+  for `G(n,p)` to contain a triangle.  **Assessed 2026-09-15: §4.1's non-asymptotic content is
+  already complete.**  Corollary 4.1.7 *is* the proved `prob_eq_zero_le_variance_div_sq`,
+  Chebyshev (4.1.5) is upstream as `meas_ge_le_variance_div_sq`, and Definition 4.1.3 is
+  Mathlib's `variance`.  Everything that remains in the section — 4.1.2, 4.1.8, 4.1.11 — is
+  **asymptotic**, and needs two things the project does not have: a triangle-count random
+  variable over `binomialRandom` (an orchestrator-authored definition) and a settled `whp`
+  idiom.  The natural first nodes are then the two finite moment computations,
+  `𝔼X = binom(n,3) p³` and the variance bound; those are publishable the moment the count
+  exists.
 - **`subgraph_threshold`** — Theorem 4.2.10 (Bollobás 1981): `n^{-1/m(H)}` is the
   threshold for containing a fixed `H`, where `m(H)` is the maximum edge-vertex ratio over
   subgraphs. Needs Definition 4.2.7 (`ρ`, `m`) as shared definitions first.
