@@ -1607,6 +1607,113 @@ theorem entropy_eq_sum_condEntropy_revealedBefore {n : ℕ} (p : Equiv.Perm (Fin
   rw [← hL, key]
   exact Finset.sum_congr rfl fun i _ => hR i
 
+/-- The expectation of a function of a random variable, rewritten as a sum over the sample
+space. -/
+private theorem sum_probOf_mul {Ω T : Type*} [Fintype Ω] [Fintype T] [DecidableEq T]
+    (p : Ω → ℝ) (Y : Ω → T) (f : T → ℝ) :
+    ∑ t : T, probOf p Y t * f t = ∑ ω, p ω * f (Y ω) := by
+  have h : ∀ t : T, probOf p Y t * f t
+      = ∑ ω ∈ univ.filter fun ω => Y ω = t, p ω * f (Y ω) := by
+    intro t
+    simp only [probOf, Finset.sum_mul]
+    refine Finset.sum_congr rfl fun ω hω => ?_
+    rw [(Finset.mem_filter.mp hω).2]
+  rw [Finset.sum_congr rfl fun t (_ : t ∈ univ) => h t,
+    Finset.sum_fiberwise_eq_sum_filter (univ : Finset Ω) univ Y fun ω => p ω * f (Y ω)]
+  simp
+
+/-- **The uniform bound applied fibre by fibre.**  If, inside every fibre of the conditioning
+variable `Y`, the variable `X` is confined to the finset `B t`, then `H(X ∣ Y)` is at most the
+expectation of `log₂ |B t|`.  The conditional distribution in the fibre `t` is a probability
+mass function in its own right, so `entropy_le_logb_card` bounds its entropy by
+`log₂ |B t|`, and the fibres are weighted by `P(Y = t)`. -/
+private theorem condEntropy_le_sum_probOf_mul_logb {Ω S T : Type*} [Fintype Ω] [Fintype S]
+    [DecidableEq S] [Fintype T] [DecidableEq T] {p : Ω → ℝ} (hp : ∀ ω, 0 ≤ p ω)
+    (X : Ω → S) (Y : Ω → T) (B : T → Finset S)
+    (hB : ∀ (t : T) (s : S), s ∉ B t → probOf p (fun ω => (X ω, Y ω)) (s, t) = 0) :
+    condEntropy p X Y ≤ ∑ t : T, probOf p Y t * Real.logb 2 ((B t).card : ℝ) := by
+  rw [condEntropy]
+  refine Finset.sum_le_sum fun t _ => ?_
+  rcases eq_or_lt_of_le (probOf_nonneg hp Y t) with hq | hq
+  · have hj : ∀ s : S, probOf p (fun ω => (X ω, Y ω)) (s, t) = 0 := fun s =>
+      le_antisymm ((probOf_pair_le_right hp X Y s t).trans hq.ge) (probOf_nonneg hp _ _)
+    simp [hj, ← hq]
+  · have hq0 : probOf p Y t ≠ 0 := ne_of_gt hq
+    have hfil : ∀ s : S, (univ.filter fun ω => (X ω, Y ω) = (s, t))
+        = (univ.filter fun ω => X ω = s).filter fun ω => Y ω = t := by
+      intro s
+      ext ω
+      simp [Prod.ext_iff]
+    have hsum : ∀ s : S,
+        probOf (fun ω => if Y ω = t then p ω / probOf p Y t else 0) X s
+          = probOf p (fun ω => (X ω, Y ω)) (s, t) / probOf p Y t := by
+      intro s
+      simp only [probOf, hfil s]
+      rw [Finset.sum_div, ← Finset.sum_filter]
+    have hptnn : ∀ ω, 0 ≤ (if Y ω = t then p ω / probOf p Y t else 0) := by
+      intro ω
+      split
+      · exact div_nonneg (hp ω) hq.le
+      · exact le_rfl
+    have hpt1 : ∑ ω, (if Y ω = t then p ω / probOf p Y t else 0) = 1 := by
+      rw [← Finset.sum_filter, ← Finset.sum_div]
+      exact div_self hq0
+    have hent := entropy_le_logb_card hptnn hpt1 X (B t)
+      fun s hs => by rw [hsum s, hB t s hs, zero_div]
+    rw [entropy] at hent
+    simp only [hsum] at hent
+    refine le_trans (le_of_eq ?_) (mul_le_mul_of_nonneg_left hent hq.le)
+    rw [Finset.mul_sum]
+    refine Finset.sum_congr rfl fun s _ => ?_
+    have hcancel : probOf p Y t * (probOf p (fun ω => (X ω, Y ω)) (s, t) / probOf p Y t)
+        = probOf p (fun ω => (X ω, Y ω)) (s, t) := by
+      field_simp
+    linear_combination
+      Real.logb 2 (probOf p (fun ω => (X ω, Y ω)) (s, t) / probOf p Y t) * hcancel
+
+/-- The columns of row `i` that a matching may still use once the entries revealed before row
+`i` are known: the ones of row `i` in a column that `y` does not already occupy. -/
+private noncomputable def availSet {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ) (i : Fin n)
+    (y : Fin n → Option (Fin n)) : Finset (Fin n) :=
+  univ.filter fun c => A i c = 1 ∧ ∀ j, y j ≠ some c
+
+/-- A column `π k` is free at row `i` exactly when row `k` is not revealed before row `i`. -/
+private theorem revealedBefore_ne_some_iff {n : ℕ} (τ π : Equiv.Perm (Fin n)) (i k : Fin n) :
+    (∀ j, revealedBefore τ i π j ≠ some (π k)) ↔ τ i ≤ τ k := by
+  simp only [revealedBefore]
+  constructor
+  · intro h
+    by_contra hc
+    exact h k (by rw [if_pos (not_le.mp hc)])
+  · intro h j hj
+    by_cases hlt : τ j < τ i
+    · rw [if_pos hlt] at hj
+      rw [π.injective (Option.some_injective _ hj)] at hlt
+      exact absurd hlt (not_lt.mpr h)
+    · rw [if_neg hlt] at hj
+      exact absurd hj (by simp)
+
+/-- `availCount` is determined by what was revealed before row `i`: it counts the free columns
+of row `i`, and `π` matches them bijectively with the rows not yet revealed. -/
+private theorem card_availSet_revealedBefore {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ)
+    (π τ : Equiv.Perm (Fin n)) (i : Fin n) :
+    (availSet A i (revealedBefore τ i π)).card = availCount A π τ i := by
+  rw [availSet, availCount]
+  refine Finset.card_equiv π.symm fun c => ?_
+  rw [Finset.mem_filter, Finset.mem_filter]
+  simp only [Finset.mem_univ, true_and, Equiv.apply_symm_apply]
+  exact and_congr Iff.rfl (by
+    rw [← revealedBefore_ne_some_iff τ π i (π.symm c), Equiv.apply_symm_apply])
+
+/-- The entry of row `i` is itself a free column: it is a one of row `i`, and no earlier row
+occupies it. -/
+private theorem mem_availSet_of_mem_permSupport {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ)
+    {π : Equiv.Perm (Fin n)} (hπ : π ∈ permSupport A) (τ : Equiv.Perm (Fin n)) (i : Fin n) :
+    π i ∈ availSet A i (revealedBefore τ i π) := by
+  rw [availSet, Finset.mem_filter]
+  exact ⟨Finset.mem_univ _, (Finset.mem_filter.mp hπ).2 i,
+    (revealedBefore_ne_some_iff τ π i i).mpr le_rfl⟩
+
 /-- **The greedy bound on one conditional entropy** (the "`≤ log₂ Nᵢ`" step of Theorem 10.2.1).
 Condition a uniform matching `π` of the `0/1` matrix `A` on the entries revealed before row `i`.
 The count `availCount A π τ i` is determined by those entries — it is `dᵢ` minus the number of
@@ -1620,7 +1727,22 @@ theorem condEntropy_le_expected_logb_availCount {n : ℕ} (A : Matrix (Fin n) (F
     condEntropy (uniformPMF (permSupport A)) (fun π => π i) (revealedBefore τ i)
       ≤ ((permSupport A).card : ℝ)⁻¹ *
         ∑ π ∈ permSupport A, Real.logb 2 (availCount A π τ i) := by
-  sorry
+  have hB : ∀ (t : Fin n → Option (Fin n)) (s : Fin n), s ∉ availSet A i t →
+      probOf (uniformPMF (permSupport A))
+        (fun π : Equiv.Perm (Fin n) => (π i, revealedBefore τ i π)) (s, t) = 0 := by
+    intro t s hs
+    refine Finset.sum_eq_zero fun π hπ => ?_
+    rw [Finset.mem_filter, Prod.mk.injEq] at hπ
+    by_cases hmem : π ∈ permSupport A
+    · have hmemA := mem_availSet_of_mem_permSupport A hmem τ i
+      rw [hπ.2.1, hπ.2.2] at hmemA
+      exact absurd hmemA hs
+    · simp [uniformPMF, hmem]
+  refine (condEntropy_le_sum_probOf_mul_logb (uniformPMF_nonneg (permSupport A))
+    (fun π : Equiv.Perm (Fin n) => π i) (revealedBefore τ i) (availSet A i) hB).trans_eq ?_
+  rw [sum_probOf_mul, Finset.mul_sum]
+  simp only [uniformPMF, ite_mul, zero_mul, Finset.sum_ite_mem, Finset.univ_inter]
+  exact Finset.sum_congr rfl fun π _ => by rw [card_availSet_revealedBefore]
 
 /-- **Radhakrishnan's entropy bound, for one reveal order** (the displayed inequality on p. 180
 of the notes).  Let `π` be uniform on the matchings of `A`, and fix an order `τ` in which to
