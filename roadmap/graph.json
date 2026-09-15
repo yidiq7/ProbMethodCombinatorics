@@ -1180,7 +1180,7 @@
       "decl": "ProbMethodCombinatorics.janson_prob_none_le_of_mu_le",
       "doc": "janson.md#janson_two--janson_prob_none_le_of_mu_le",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "janson_mu",
         "janson_delta"
