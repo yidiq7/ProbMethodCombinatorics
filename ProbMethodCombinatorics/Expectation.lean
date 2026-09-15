@@ -455,6 +455,51 @@ private theorem sum_subsets_by_card {n : ℕ} (f : ℕ → ℝ) :
   rw [← Finset.powerset_univ, Finset.sum_powerset_apply_card, hcard]
   exact Finset.sum_congr rfl fun k _ => nsmul_eq_mul _ _
 
+/-- Replacing a row of `±1` signs by all-ones permutes the sign vectors, so the total
+absolute inner product over all sign vectors is the same. -/
+private theorem sum_abs_row_eq_sum_abs {n : ℕ} (c : Fin n → ℝ)
+    (hc : ∀ j, c j = 1 ∨ c j = -1) :
+    ∑ S : Finset (Fin n), |∑ j, c j * signVec S j|
+      = ∑ S : Finset (Fin n), |∑ j, signVec S j| := by
+  set s : Finset (Fin n) := Finset.univ.filter (fun j => 0 < c j) with hs
+  have hcs : ∀ j, c j = signVec s j := by
+    intro j
+    rcases hc j with h | h
+    · have hj : j ∈ s := by simp [hs, h]
+      simp [signVec, hj, h]
+    · have hj : j ∉ s := by simp [hs, h]
+      simp [signVec, hj, h]
+  have hstep : ∀ S : Finset (Fin n),
+      |∑ j, c j * signVec S j| = |∑ j, signVec (symmDiff s S) j| := by
+    intro S
+    have : ∑ j, c j * signVec S j = -∑ j, signVec (symmDiff s S) j := by
+      rw [← Finset.sum_neg_distrib]
+      exact Finset.sum_congr rfl fun j _ => by
+        rw [hcs j, signVec_mul_signVec]
+    rw [this, abs_neg]
+  rw [Finset.sum_congr rfl fun S _ => hstep S]
+  exact Equiv.sum_comp
+    (⟨fun S => symmDiff s S, fun S => symmDiff s S,
+      fun S => symmDiff_symmDiff_cancel_left s S,
+      fun S => symmDiff_symmDiff_cancel_left s S⟩ :
+      Finset (Fin n) ≃ Finset (Fin n)) (fun S => |∑ j, signVec S j|)
+
+/-- The total absolute coordinate sum over all `±1` vectors. -/
+private theorem sum_abs_sum_signVec (n : ℕ) :
+    ∑ S : Finset (Fin n), |∑ j, signVec S j|
+      = 2 * (n : ℝ) * ((n - 1).choose ((n - 1) / 2) : ℝ) := by
+  have h1 : ∀ S : Finset (Fin n), |∑ j, signVec S j| = |2 * (S.card : ℝ) - n| :=
+    fun S => by rw [sum_signVec]
+  have h2 : ∀ k : ℕ,
+      (n.choose k : ℝ) * |2 * (k : ℝ) - n| = |(n : ℝ) - 2 * k| * (n.choose k : ℝ) := by
+    intro k; rw [abs_sub_comm]; ring
+  have h3 : (((n - 1) / 2 + 1 : ℕ) : ℝ) * (n.choose ((n - 1) / 2 + 1) : ℝ)
+      = (n : ℝ) * ((n - 1).choose ((n - 1) / 2) : ℝ) := by
+    exact_mod_cast congrArg (fun m : ℕ => (m : ℝ)) (succ_mul_choose_succ n ((n - 1) / 2))
+  rw [Finset.sum_congr rfl fun S _ => h1 S,
+    sum_subsets_by_card (fun k => |2 * (k : ℝ) - n|),
+    Finset.sum_congr rfl fun k _ => h2 k, sum_range_abs_choose n, mul_assoc, h3, ← mul_assoc]
+
 /-- **Unbalancing lights** (Zhao, Theorem 2.5.1; `sources/mit18_226_f22_lec_full.pdf`, printed
 p. 23 = PDF p. 29).  For any `±1` matrix there are sign vectors `x`, `y` with
 
