@@ -344,4 +344,45 @@ theorem card_le_of_tetrahedronFree {n : ℕ} (hn : 4 ≤ n) (H : Finset (Finset 
     4 * H.card ≤ 3 * n.choose 3 := by
   sorry
 
+/-! ### §2.5 Unbalancing lights -/
+
+/-- **Unbalancing lights** (Zhao, Theorem 2.5.1; `sources/mit18_226_f22_lec_full.pdf`, printed
+p. 23 = PDF p. 29).  For any `±1` matrix there are sign vectors `x`, `y` with
+
+    ∑ᵢⱼ aᵢⱼ xᵢ yⱼ ≥ n² · binom(n-1, ⌊(n-1)/2⌋) / 2^(n-1).
+
+**Stated exactly, with no `o(1)` and no central limit theorem.**  The book's form is
+`(√(2/π) + o(1)) n^{3/2}`, proved by computing `𝔼|Sₙ|` for a sum of `n` iid uniform signs via
+the CLT — but Zhao notes in passing that `𝔼|Sₙ| = n 2^{1-n} binom(n-1, ⌊(n-1)/2⌋)` exactly, and
+that identity is what is stated here.  It is strictly more informative than the asymptotic form,
+which it implies since the right-hand side is `~ √(2/π) n^{3/2}`.
+
+Mathlib does have a central limit theorem (`Probability/CentralLimitTheorem.lean`), so the
+book's route is not blocked — the exact route is simply better, and avoids needing
+`𝔼|X|` for a standard Gaussian.
+
+**Route.**  The half-random argument: choose the `yⱼ` uniformly and independently, set
+`Rᵢ = ∑ⱼ aᵢⱼ yⱼ`, and take `xᵢ` to be the sign of `Rᵢ` (either sign when `Rᵢ = 0`).  Then
+`∑ᵢⱼ aᵢⱼ xᵢ yⱼ = ∑ᵢ |Rᵢ|`.  Each `Rᵢ` is distributed as `Sₙ` — a sum of `n` iid uniform signs,
+because the `aᵢⱼ` are `±1` — so `𝔼 ∑ᵢ |Rᵢ| = n · 𝔼|Sₙ|`, and averaging gives one choice of `y`
+at least that good.  **The `Rᵢ` are not independent of each other, and the proof does not need
+them to be**; only the marginal distribution of each is used.
+
+The exact expectation is a binomial identity: `∑ₖ |2k - n| binom(n,k) = n · 2 binom(n-1, ⌊(n-1)/2⌋)`,
+which telescopes.  Verified against the direct sum for `n ≤ 14` before publication.
+
+**Tight at `n = 1` and `n = 2`** — brute force over all sign matrices gives worst-case values of
+exactly `1` and `2`, matching the bound — so no proof that loses a constant factor will do.
+`n = 0` is fine and needs no hypothesis: `ℕ` subtraction makes the bound `0`, and the empty sum
+is `0`.
+
+Chapter 2 is finite averaging throughout; no measure theory is needed, and the "random `y`" is a
+sum over `Finset` sign vectors. -/
+theorem exists_signs_sum_ge {n : ℕ} (a : Fin n → Fin n → ℝ)
+    (ha : ∀ i j, a i j = 1 ∨ a i j = -1) :
+    ∃ x y : Fin n → ℝ, (∀ i, x i = 1 ∨ x i = -1) ∧ (∀ j, y j = 1 ∨ y j = -1) ∧
+      (n : ℝ) ^ 2 * ((n - 1).choose ((n - 1) / 2) : ℝ) / 2 ^ (n - 1)
+        ≤ ∑ i, ∑ j, a i j * x i * y j := by
+  sorry
+
 end ProbMethodCombinatorics
