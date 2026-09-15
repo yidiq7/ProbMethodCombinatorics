@@ -390,3 +390,28 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   `statement-immutability` on a PR that changed nothing.  **Sequencing matters when acting on a
   contributor's finding about the statement they are working against.**  `setBernoulli_inter_le_mul`
   keeps the instance; Harris genuinely needs it, so the asymmetry is real.
+- **2026-09-14 — six PRs merged; Erdős 1959 and Janson I are both unconditional.**
+  `exists_girth_gt_and_chromaticNumber_gt` (Theorem 3.4.1) and `janson_prob_none_le` with its
+  conditioning step are now free of `sorryAx`, checked with `#print axioms` rather than inferred
+  from green merges.  `Correlation.lean` reached zero `sorry`.  **12 sorries, zero custom
+  axioms**, down from 26 two batches ago.
+  The cross-PR name-collision check ran again on the two file-sharing pairs and found nothing —
+  worth keeping as a habit, since the gate checks each PR against its own base and never against
+  its siblings.
+- **2026-09-14 — a decomposition I published was superseded while it was being published.**
+  #60 had been abandoned four times, so it was split into #126/#127; a contributor was
+  simultaneously proving it directly, landed that as #130, **flagged the overlap themselves**,
+  and offered to re-route their finished proof through my two nodes.  Declined and both nodes
+  retired.  A direct proof that exists beats a two-part proof that does not, and asking someone
+  to restructure green work through orchestrator scaffolding protects the plan at their expense.
+  **Check for lease activity before retiring a node** — both were unclaimed, so nothing was lost.
+- **2026-09-14 — `setBernoulli` is uniform-`p` only, and Janson's lower tail is not.**  Warnke's
+  proof thins the index set by an independent Bernoulli `q`, leaving per-coordinate inclusion
+  probabilities that `setBernoulli` cannot express.  The contributor found this and **stopped at
+  the boundary** instead of inventing a primitive inside `Janson.lean`.  `setBernoulliPi` is now
+  in `Correlation.lean`, with `setBernoulli_eq_setBernoulliPi` proving it a faithful
+  generalisation — **that specialisation lemma is the point; a definition that merely elaborates
+  demonstrates nothing.**  A non-uniform Janson I is deliberately *not* stated: it would mean
+  generalising `jansonMu`/`jansonDelta` in place, under three already-proved theorems, and that
+  call is better made by whoever holds the proof.  The task asks for a proposal rather than
+  handing down an interface.

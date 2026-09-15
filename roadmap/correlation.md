@@ -92,3 +92,38 @@ neither, and requiring them would have made both lemmas unusable from `Janson.le
 carries no measurable structure. That was checked by applying them in that context before the
 tasks went out — a signature that type-checks in isolation is not the same as one that can be
 used.
+
+## What did *not* work for `harris_setbernoulli`, and why
+
+Recorded because it cost real time and the failure is not obvious from the type signatures.
+
+**`fkg` does not apply.** Mathlib's `fkg` requires `[Fintype α]`, and `Set ι` for merely
+`Countable ι` is infinite, so there is no finite sum over singletons to build the
+log-supermodular density from. This is the central obstruction and no amount of massaging the
+lattice gets around it. The proof instead goes by **transport through complementation** from an
+increasing/increasing form, done additively in the `ENNReal` `CommSemiring` exactly as the
+conventions note prescribes.
+
+**`ℝ≥0∞` is not a `CommSemiring` with `IsStrictOrderedRing`**, so the four-functions step has to
+go through `ℝ≥0` and be transported back.
+
+`setBernoulli_mul_le_inter`, the increasing/increasing companion, is public and sits beside
+`binomialRandom_mul_le_inter`; it is the direct analogue and the two belong together.
+
+## A non-uniform Bernoulli on subsets
+
+`setBernoulliPi f` keeps coordinate `i` with probability `f i`, independently. It exists because
+Warnke's proof of the Janson lower tail thins the index set by an independent Bernoulli `q`, so
+the thinned space has per-coordinate probabilities that `setBernoulli` — uniform-`p` only —
+cannot express. The contributor who proved `janson_lower_tail` identified the gap and **stopped
+at it** rather than inventing a primitive inside `Janson.lean`; authoring it centrally is the
+rule, and this is the second time that rule has paid for itself.
+
+`setBernoulli_eq_setBernoulliPi` recovers `setBernoulli` exactly. **That lemma is the point**: a
+new definition that merely elaborates proves nothing, and the specialisation is what shows the
+generalisation is faithful. It is stated with hypotheses rather than
+`f = fun i ↦ if i ∈ u then p else 0`, since that spelling needs `Decidable (i ∈ u)`.
+
+The `IsProbabilityMeasure` instance is registered immediately and the docstring says why:
+`Measure.infinitePi` is `if h : ∀ i, IsProbabilityMeasure (μ i) then … else 0`, so without it the
+definition is silently the zero measure and every `infinitePi` lemma fails to fire with no error.

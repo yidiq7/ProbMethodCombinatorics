@@ -159,3 +159,33 @@ all:
 `metrics struggle`. It has now caught three false statements and two badly-shaped tasks. The
 diagnostic order that works: check the statement first, and only once it survives, treat repeated
 abandonment as a decomposition request.
+
+## Erdős 1959 is complete
+
+`exists_girth_gt_and_chromaticNumber_gt` — for every `k` there are graphs of girth `> k` and
+chromatic number `> k` — is **free of `sorryAx`**, verified with `#print axioms` rather than
+inferred from a green merge. It is the deepest result in Chapter 3 and the one this group was
+built around; the chain runs back through `exists_girth_gt_and_mul_indepNum_lt` and
+`exists_shortCycleCover_and_indepNum_le` to PR #57.
+
+Two ideas from the final step (`exists_bad_card_lt_and_indepNum_le`, PR #130) that generalise:
+
+- **Use a complement set, not a filter.** Writing the per-candidate family as
+  `Finset.powersetCard M (univ \ K S)` rather than filtering `graphFamily` makes the count
+  *definitionally* a `powersetCard`, so `Finset.card_powersetCard` gives an **equality** and no
+  decidability question arises anywhere. The filtered form needs a `DecidablePred` for
+  independence and yields only an inequality.
+- **`WLOG ε ≤ 1` via `suffices` at `δ = min ε 1`.** This makes `x ≤ n` unconditional, so the
+  ratio induction never meets the degenerate `T − c = 0`. The published task prose claimed large
+  `ε` "needs no branch" — true of the *statement*, but not of the proof, and the distinction is
+  worth remembering when writing route prose.
+
+## The decomposition that was superseded
+
+`card_filter_indepNum_le` and `two_mul_choose_mul_choose_lt_choose` were published to split this
+step after it had been abandoned four times. A contributor proved the step **directly** while
+that split was being published, flagged the overlap themselves, and offered to restructure
+through the new nodes. That offer was declined and both nodes were retired: a direct proof that
+exists beats a two-part proof that does not, and re-routing finished green work through
+orchestrator scaffolding would protect the plan at the contributor's expense. Neither node had
+been claimed, so nothing was lost — **which is the thing to check before retiring a node.**

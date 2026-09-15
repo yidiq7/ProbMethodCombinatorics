@@ -404,15 +404,12 @@
       "decl": "ProbMethodCombinatorics.exists_bad_card_lt_and_indepNum_le",
       "doc": "alterations.md#the-erdos-1959-random-graph-step",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "graph_family",
         "girth_edge_count"
       ],
-      "proof_uses": [
-        "indep_counting",
-        "indep_estimate"
-      ]
+      "proof_uses": []
     },
     "girth_union_bound": {
       "kind": "theorem",
@@ -1199,13 +1196,14 @@
       "decl": "ProbMethodCombinatorics.janson_lower_tail",
       "doc": "janson.md#janson_three--janson_lower_tail",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "janson_mu",
         "janson_delta",
         "janson_count"
       ],
       "proof_uses": [
+        "janson_lower_tail_step",
         "janson_one"
       ]
     },
@@ -1620,7 +1618,7 @@
       "decl": "ProbMethodCombinatorics.exists_containers",
       "doc": "containers.md#112-graph-containers",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": [
         "graph_container_fingerprint"
@@ -1742,7 +1740,7 @@
       "decl": "ProbMethodCombinatorics.setBernoulli_inter_le_mul",
       "doc": "correlation.md#the-setbernoulli-forms-for-chapter-8",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": []
     },
@@ -1764,7 +1762,7 @@
       "decl": "ProbMethodCombinatorics.janson_prob_none_step_le",
       "doc": "janson.md#janson_one--janson_prob_none_le",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": [
         "harris_setbernoulli",
@@ -1789,31 +1787,44 @@
       "decl": "ProbMethodCombinatorics.log_div_add_one_add_pow_le",
       "doc": "alterations.md#decompositions",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": []
     },
-    "indep_counting": {
-      "kind": "theorem",
-      "parent": "alterations",
-      "file": "ProbMethodCombinatorics/Alterations.lean",
-      "decl": "ProbMethodCombinatorics.card_filter_indepNum_le",
-      "doc": "alterations.md#decompositions",
+    "setbernoulli_pi": {
+      "kind": "definition",
+      "parent": "correlation",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.setBernoulliPi",
+      "doc": "correlation.md#a-non-uniform-bernoulli-on-subsets",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": []
     },
-    "indep_estimate": {
+    "setbernoulli_harris_incr": {
       "kind": "theorem",
-      "parent": "alterations",
-      "file": "ProbMethodCombinatorics/Alterations.lean",
-      "decl": "ProbMethodCombinatorics.two_mul_choose_mul_choose_lt_choose",
-      "doc": "alterations.md#decompositions",
+      "parent": "correlation",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.setBernoulli_mul_le_inter",
+      "doc": "correlation.md#the-setbernoulli-forms-for-chapter-8",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "janson_lower_tail_step": {
+      "kind": "theorem",
+      "parent": "janson",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.janson_lower_tail_step_le",
+      "doc": "janson.md#janson_three--janson_lower_tail",
       "statement": "formalized",
       "proof": "planned",
       "uses": [],
-      "proof_uses": []
+      "proof_uses": [
+        "setbernoulli_pi"
+      ]
     }
   }
 }

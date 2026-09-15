@@ -117,3 +117,23 @@ split is needed**, which is the nice part: with `q = μ/Δ`,
 
 true by construction, so the hypothesis `Λ ≥ μ` that the naive route needs never arises. And
 `q = μ/Δ ≤ 1` is precisely this theorem's own hypothesis.
+
+## `janson_three` — and the one primitive it still needs
+
+`janson_lower_tail` is proved modulo `janson_lower_tail_step_le`, the Chernoff/thinning step of
+Warnke's argument. `exp_neg_le_one_sub_add_sq_div_two` — `exp (-x) ≤ 1 - x + x²/2` for `x ≥ 0`,
+proved **without calculus** from `Real.quadratic_le_exp_of_nonneg` — is the analytic input and is
+already closed.
+
+The obstacle in the remaining step is structural rather than analytic. Thinning by an independent
+Bernoulli `q` leaves the index set carrying **per-coordinate** inclusion probabilities (`p` on
+`ι`, `q` on `κ`), and `setBernoulli` is uniform-`p` only, so `janson_prob_none_le` cannot be
+applied literally even though Janson I is true for arbitrary independent probabilities.
+`setBernoulliPi` in `Correlation.lean` now supplies the missing measure.
+
+**What is deliberately still unstated** is a non-uniform Janson I. Stating it means choosing
+whether `jansonMu`/`jansonDelta` are generalised in place — they are consumed by three
+already-proved theorems whose proofs must not break — or whether a parallel pair is better. That
+choice is better made by someone holding the proof, so the task asks for a proposal instead of
+handing down an interface. If the thinning turns out to route through a *product* of two uniform
+`setBernoulli`s, no non-uniform Janson I is needed at all.
