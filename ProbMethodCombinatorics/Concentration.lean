@@ -1,4 +1,5 @@
 import Mathlib.Probability.Moments.SubGaussian
+import Mathlib.Probability.Martingale.Basic
 import Mathlib.MeasureTheory.Constructions.Pi
 
 /-!
@@ -475,5 +476,45 @@ theorem measure_sub_integral_ge_le {ι : Type*} [Fintype ι] {Ω : ι → Type*}
   congr 1
   field_simp
   ring
+
+/-! ### §9.2 Azuma's inequality
+
+The martingale route to concentration.  Note that `measure_sub_integral_ge_le` above — the
+bounded differences inequality, Theorem 9.1.3 — is **already proved without it**, via Mathlib's
+Hoeffding bound for sums of independent sub-Gaussians.  So Azuma is not needed for what this
+chapter already has; it is the input to §9.3–§9.6, none of which is stated yet. -/
+
+/-- **Azuma's inequality** (Zhao, Theorem 9.2.8; `sources/mit18_226_f22_lec_full.pdf`, printed
+p. 132 = PDF p. 138).  A martingale whose increments are bounded by `cᵢ` is concentrated:
+
+    ℙ(Zₙ - Z₀ ≥ λ) ≤ exp (-λ² / (2 (c₁² + ⋯ + cₙ²))).
+
+Theorem 9.2.7 is the case `cᵢ = 1` with `λ` rescaled by `√n`, and is not stated separately.
+
+**Route.** The moment generating function, exactly as in Chapter 5 but conditionally.  Hoeffding's
+lemma (Zhao's Lemma 9.2.12: a mean-zero variable in an interval of length `ℓ` has
+`𝔼 eˣ ≤ e^{ℓ²/8}`) is **already upstream** as
+`ProbabilityTheory.hasSubgaussianMGF_of_mem_Icc_of_integral_eq_zero`, which this file already
+uses for the bounded differences inequality.  Applied to `Zᵢ - Zᵢ₋₁` conditionally on `ℱ (i-1)`
+it gives `𝔼[e^{t(Zᵢ-Zᵢ₋₁)} | ℱ (i-1)] ≤ e^{t²cᵢ²/8}`; iterating over `i` and applying Markov at
+`t = 4λ/∑cᵢ²` yields the bound.
+
+**The conditional step is the work.**  Mathlib has `Martingale`, `Filtration` and `condExp`, so
+the infrastructure exists — what does not exist is a conditional sub-Gaussian MGF bound, and
+getting Hoeffding's lemma to apply under `μ[· | ℱ (i-1)]` rather than under `μ` is the whole
+difficulty.  Budget for that rather than for the algebra.
+
+No measurability hypothesis is needed on `Z`: `Martingale` includes `Adapted`, so each `Z i` is
+`ℱ i`-measurable and hence `m0`-measurable, which is what makes `{ω | λ ≤ Z n ω - Z 0 ω}`
+measurable.  Contrast `measure_sub_integral_ge_le`, where `Measurable f` had to be assumed and
+its absence made the statement false. -/
+theorem measure_martingale_sub_ge_le {Ω : Type*} {m0 : MeasurableSpace Ω} {μ : Measure Ω}
+    [IsProbabilityMeasure μ] {ℱ : Filtration ℕ m0} {Z : ℕ → Ω → ℝ}
+    (hZ : Martingale Z ℱ μ) (n : ℕ) (c : ℕ → ℝ)
+    (hc : ∀ i ∈ Finset.Icc 1 n, ∀ᵐ ω ∂μ, |Z i ω - Z (i - 1) ω| ≤ c i)
+    {lam : ℝ} (hlam : 0 < lam) (hsum : 0 < ∑ i ∈ Finset.Icc 1 n, c i ^ 2) :
+    (μ {ω | lam ≤ Z n ω - Z 0 ω}).toReal
+      ≤ Real.exp (-lam ^ 2 / (2 * ∑ i ∈ Finset.Icc 1 n, c i ^ 2)) := by
+  sorry
 
 end ProbMethodCombinatorics
