@@ -559,3 +559,10 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   the count with `c = SimpleGraph.triangleRemovalBound ε`.  `containers.md` had it recorded as
   **missing from Mathlib and the most useful thing anyone could add**; it is instead a
   transcription away.  Correcting that entry.
+- **2026-09-15 — #147 merged: the project's first `golf` task to land.**  One line in, 135 out,
+  collapsing the duplicated averaging argument so that `exists_isDominating_card_le` calls
+  `exists_isDominating_card_le_of_mem_Icc` instead of inlining it.  The earlier golf attempt
+  (#136) was blocked by `statement-immutability`, correctly — I had mis-published it, asking for
+  a deletion and a visibility change, neither of which is a proof-body edit.  This one is the
+  genuine article, and the contrast is the clearest statement of what `golf` means:
+  **same pinned statement, shorter body, nothing else moved.**
