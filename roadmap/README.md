@@ -630,3 +630,42 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   strictness and dropping non-triviality makes it a side-condition-free shared-layer fact.  **A
   strengthening nobody consumes is a liability, not a bonus** — it would have forced every caller
   to discharge non-triviality.
+
+## The unstated remainder, audited (2026-09-15)
+
+Four chapters carry unstated book content.  Each item below was checked against **what its proof
+needs**, not what its statement mentions — the distinction that produced two wrong notes in this
+file earlier today, one in each direction.  Three categories, and they call for different
+responses:
+
+**(a) Everything present — state it.**  Done this session: §4.6 distinct sums (#151), §4.3
+multiple round exposure (#152), §4.3 monotonicity (#153).
+
+**(b) Blocked on Mathlib infrastructure that does not exist.**  Do not publish these; a task
+whose analytic input is absent costs a contributor a day to discover.
+- §4.5 Hardy–Ramanujan, §4.5 Erdős–Kac — **no Mertens theorem** (`∑_{p≤n} 1/p = log log n + O(1)`);
+  nothing in `Mathlib/NumberTheory/`.
+- §2.2 large sum-free subsets — **no `IsSumFree`** (`ThreeAPFree` is a different notion) *and*
+  **no primes in arithmetic progressions** (`PrimesCongruentOne` is `≡ 1 mod k` only; no
+  Dirichlet).
+- §2.5 unbalancing lights — needs a central limit estimate.
+- §2.6 crossing number — needs Euler's formula for planar graphs.
+- §10.3 Sidorenko — needs homomorphism counts and graphons; and its general case is **open
+  mathematics**, so only the proved special case could ever be stated.
+
+**(c) Real work on infrastructure that does exist.**  Statable whenever there is capacity; these
+are the honest growth path.
+- §9.2 Azuma — `Martingale`, `Filtration` and `condExp` are all present; Azuma itself is not.
+  Everything in §9.3–§9.6 is downstream of it.
+- §10.2 Kahn–Lovász — needs two orchestrator-authored definitions first (a count of perfect
+  matchings, and the bipartite double cover; note `boxProd` is the **Cartesian** product and
+  would silently build the wrong graph).
+- §4.3 Bollobás–Thomason, §4.1/§4.2 thresholds, §4.4 clique number — all need an `ε`–`N` or
+  `whp` idiom plus, for §4.2, a definition of `m(H)`.
+- §11.1.3 / §11.1.5 — need `ex(n, H)` and a `whp` idiom.
+- §2.4 hypergraph Turán sampling — not yet assessed; the most likely of Chapter 2's four to be
+  tractable.
+
+**The standing rule this audit enforces:** a "not in Mathlib" note has a shelf life, and a
+"Mathlib has the vocabulary" note is not evidence of tractability.  Re-check before publishing,
+and search for the proof's inputs.

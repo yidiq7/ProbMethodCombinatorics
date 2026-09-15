@@ -5,11 +5,19 @@ a statistic over a family of objects, then take an object at least as good as th
 No independence is needed anywhere in it, which is exactly why the finite-averaging
 formalization works.
 
-Two of the chapter's six sections are stated so far.  §2.2 (large sum-free subsets),
-§2.4 (sampling bounds for the hypergraph Turán problem), §2.5 (unbalancing lights) and
-§2.6 (the crossing number inequality) are planned but unstated; §2.5 and §2.6 need
-analytic input (a central limit estimate, Euler's formula) that the project does not yet
-have.
+Two of the chapter's six sections are stated so far.  The other four are unstated, and as of
+2026-09-15 each has a **named blocker** rather than merely being pending:
+
+- **§2.2 (large sum-free subsets)** — blocked twice over.  Mathlib has no `IsSumFree`
+  (`ThreeAPFree` is a different notion — three-term progressions, not sums), so the predicate
+  would have to be authored here; and Erdős's proof needs a prime `p ≡ 2 (mod 3)` above the
+  largest element, which needs primes in an arithmetic progression.  `PrimesCongruentOne.lean`
+  covers only `≡ 1 mod k`, and Mathlib has no Dirichlet theorem.
+- **§2.4 (sampling bounds for the hypergraph Turán problem)** — the most likely of the four to
+  be tractable; a counting/averaging argument with no obvious missing input.  Not yet assessed
+  in detail.
+- **§2.5 (unbalancing lights)** — needs a central limit estimate.
+- **§2.6 (the crossing number inequality)** — needs Euler's formula for planar graphs.
 
 ## `hamilton_paths` — `ProbMethodCombinatorics.hamiltonPaths`
 
