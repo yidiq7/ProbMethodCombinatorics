@@ -1889,6 +1889,17 @@
       "proof": "planned",
       "uses": [],
       "proof_uses": []
+    },
+    "sampling_bound": {
+      "kind": "theorem",
+      "parent": "expectation",
+      "file": "ProbMethodCombinatorics/Expectation.lean",
+      "decl": "ProbMethodCombinatorics.card_le_of_tetrahedronFree",
+      "doc": "expectation.md#24-bounding-by-sampling",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
     }
   }
 }

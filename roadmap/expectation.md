@@ -13,9 +13,11 @@ Two of the chapter's six sections are stated so far.  The other four are unstate
   would have to be authored here; and Erdős's proof needs a prime `p ≡ 2 (mod 3)` above the
   largest element, which needs primes in an arithmetic progression.  `PrimesCongruentOne.lean`
   covers only `≡ 1 mod k`, and Mathlib has no Dirichlet theorem.
-- **§2.4 (sampling bounds for the hypergraph Turán problem)** — the most likely of the four to
-  be tractable; a counting/averaging argument with no obvious missing input.  Not yet assessed
-  in detail.
+- **§2.4 (sampling bounds for the hypergraph Turán problem)** — **assessed and stated
+  2026-09-15** as `card_le_of_tetrahedronFree` (Proposition 2.4.2).  Fully tractable: finite,
+  entirely in `ℕ`, a self-contained double count, no missing Mathlib input.  Tight at `n = 4`.
+  Lemma 2.4.3 and the five-vertex refinement are separate nodes, not yet stated; Question 2.4.1
+  itself is a **notorious open problem** and must never be stated.
 - **§2.5 (unbalancing lights)** — needs a central limit estimate.
 - **§2.6 (the crossing number inequality)** — needs Euler's formula for planar graphs.
 
@@ -63,3 +65,16 @@ of `x ↦ 1/(n - x)`.  Mathlib's `SimpleGraph.IsTuranMaximal` development proves
 stronger structural theorem (the extremal graph is the Turán graph) but never states this
 bound, so either route is open: derive it from `caro_wei` as the book does, or count the
 edges of `turanGraph n r` and quote Mathlib's extremal result.
+
+
+## §2.4 Bounding by sampling
+
+`sampling_bound` (Proposition 2.4.2) is stated: `4 |H| ≤ 3 binom(n,3)` for a tetrahedron-free
+3-graph on `n ≥ 4` vertices.  Kept entirely in `ℕ` rather than carrying the `3/4`.
+
+Done as a **double count** rather than as expectation over a sampled 4-set, which is the same
+argument and avoids introducing a probability space for a finite average — Chapter 2's standing
+convention.  The identity that closes it is `4 binom(n,4) = binom(n,3) (n-3)`.
+
+Verified tight at `n = 4`, and brute force at `n = 5` reproduces Zhao's Lemma 2.4.3 (maximum 7)
+exactly — a useful cross-check that the encoding of "tetrahedron-free" is the intended one.
