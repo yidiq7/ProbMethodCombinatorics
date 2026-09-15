@@ -1037,4 +1037,35 @@ lemma setBernoulli_eq_setBernoulliPi {u : Set ι} {p : I} {f : ι → I}
 
 end BernoulliPi
 
+/-! ### §4.3 Thresholds: multiple round exposure
+
+Zhao, Lemma 4.3.7 (`sources/mit18_226_f22_lec_full.pdf`, printed p. 49 = PDF p. 55) — the
+quantitative engine behind Bollobás–Thomason (Theorem 4.3.6, every non-trivial monotone property
+has a threshold).  It lives in this file rather than in `SecondMoment.lean` because it is a
+statement about `setBernoulli` and upper sets, which is this file's subject; Chapter 4's own file
+is measure-theoretic but has no random-subset machinery. -/
+
+/-- **Multiple round exposure** (Zhao, Lemma 4.3.7).  If a monotone property `F` is missed by
+`Ω_p`, then it is missed by each of `m` independent copies of `Ω_q`, so
+`ℙ(Ω_p ∉ F) ≤ ℙ(Ω_q ∉ F) ^ m`.
+
+**The hypothesis is stated in its natural general form** rather than as `q = p / m`.  The union
+`Y` of `m` independent copies of `Ω_q` keeps each element with probability `1 - (1 - q)^m`, so
+the argument needs exactly that this is at most `p` — then `ℙ(Ω_p ∉ F) ≤ ℙ(Y ∉ F)`, because
+missing an upper set is a decreasing event, and `ℙ(Y ∉ F) ≤ ℙ(Ω_q ∉ F)^m` because `Y` misses `F`
+only if all `m` copies do.
+
+The book's `q = p / m` is the special case, and it satisfies the hypothesis by Bernoulli's
+inequality: `(1 - p/m)^m ≥ 1 - p` gives `1 - (1 - p/m)^m ≤ p`.  Checked numerically for
+`m ≤ 10` across `p`.  Stating it this way avoids having to produce `p / m` as an element of the
+unit interval, and is strictly more general.
+
+`[Countable ι]` for the reason recorded throughout Chapters 7 and 8: off it, the events here are
+not measurable and `setBernoulli` silently returns an outer measure. -/
+theorem prob_notMem_le_pow_of_isUpperSet {ι : Type*} [Countable ι] (F : Set (Set ι))
+    (hF : IsUpperSet F) (hFm : MeasurableSet F) (p q : I) (m : ℕ)
+    (hpq : 1 - (1 - (q : ℝ)) ^ m ≤ (p : ℝ)) :
+    (setBernoulli Set.univ p Fᶜ).toReal ≤ (setBernoulli Set.univ q Fᶜ).toReal ^ m := by
+  sorry
+
 end ProbMethodCombinatorics
