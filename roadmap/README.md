@@ -542,3 +542,20 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   Notable: it reached for `Real.log_le_sub_one_of_pos` rather than Mathlib's concavity API, which
   is the idiom added to `skills/conventions.md` after my own route prose had been sending people
   at `ConcaveOn`.  The conventions file is being read.
+- **2026-09-15 — `statement-immutability` caught a branch reverting the Chapter 11 statement
+  repair.**  PR #146's head lacked the `d ≤ 2δn` hypothesis its own base carried: a stale
+  workspace whose older copy of the declaration won the merge.  Merging would have silently
+  reinstated a statement already proved false.  **After repairing a statement, expect in-flight
+  branches to revert it** — re-pinning open tasks does not help, because the branch already
+  exists, so the check is the only backstop.  Never override `statement-immutability` on a file
+  whose statements were recently changed.
+  Its companion red, `sorry-delta`, was a false alarm: the audit reported `submission: proof`
+  despite a well-formed reduction block, because the body was edited **one second** after the
+  check fired.  The `submission:` line is the tell.
+- **2026-09-15 — triangle supersaturation is reachable from Mathlib after all.**  #146 points out
+  that `SimpleGraph.CliqueFree.card_edgeFinset_le` at `r = 2` gives Mantel,
+  `SimpleGraph.farFromTriangleFree_iff` converts it, and
+  `SimpleGraph.FarFromTriangleFree.le_card_cliqueFinset` — the triangle removal lemma — supplies
+  the count with `c = SimpleGraph.triangleRemovalBound ε`.  `containers.md` had it recorded as
+  **missing from Mathlib and the most useful thing anyone could add**; it is instead a
+  transcription away.  Correcting that entry.

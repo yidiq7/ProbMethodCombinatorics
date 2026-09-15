@@ -165,3 +165,28 @@ Concretely, before closing an issue or deleting a declaration:
 The recovery that worked: restore the declaration byte-identical to the PR's base commit, so the
 contributor's branch merges through the normal flow instead of being cherry-picked or closed.
 Their work stays theirs, and the protocol does the merge.
+
+
+## 2026-09-15 — `statement-immutability` caught a branch silently reverting a statement repair
+
+Worth recording because it is the single most valuable red check the project has had, and because
+the failure mode is invisible in the PR's own diff view.
+
+`exists_containers` and `exists_containers_fingerprint` were repaired (the missing `d ≤ 2δn`
+proviso) at `1e4659a`. PR #146's *head* lacked the hypothesis while its *base* had it — so
+merging would have reinstated a statement already proved false. The contributor's workspace
+predated the repair even though GitHub computed the merge base as after it: a stale workspace
+whose older copy of the declaration wins the merge. Same shape as the stale-pin reverts on #42
+and #48, but on a **statement** rather than a proof, which is strictly worse.
+
+Two consequences for how to run the loop:
+
+- **After repairing a statement, expect in-flight branches to revert it.** Any PR against that
+  file opened before the repair landed will carry the old text. Re-pinning open *tasks* does not
+  help — a branch already exists. The check is the only backstop, so never override
+  `statement-immutability` on a file whose statements were recently changed.
+- **`sorry-delta` reads the PR body at the moment it runs.** #146's audit reported
+  `submission: proof` despite a well-formed `choir-reduction` block, because the body was edited
+  one second after the check fired. The tell is the `submission:` line in the audit output: if it
+  says `proof` on a PR that declares a reduction, the gate did not see the block, and a re-push
+  fixes it. Do not go looking for a defect in the block.
