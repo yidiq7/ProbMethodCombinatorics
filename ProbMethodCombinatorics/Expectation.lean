@@ -307,4 +307,41 @@ theorem card_edgeFinset_le_of_cliqueFree (G : SimpleGraph V) [DecidableRel G.Adj
 
 end IndependentSets
 
+/-! ### §2.4 Bounding by sampling -/
+
+/-- **A cheap sampling bound** (Zhao, Proposition 2.4.2; `sources/mit18_226_f22_lec_full.pdf`,
+printed p. 22 = PDF p. 28).  A tetrahedron-free 3-uniform hypergraph on `n ≥ 4` vertices has at
+most `(3/4) binom(n,3)` edges — stated as `4 |H| ≤ 3 binom(n,3)` so that everything stays in `ℕ`.
+
+`K₄⁽³⁾`, the tetrahedron, is the complete 3-graph on four vertices, so "tetrahedron-free" says
+that no four vertices carry all four of their triples.  The hypothesis is phrased as "every
+4-set has a triple outside `H`", which is the same thing and is what the proof consumes.
+
+**Route — this is linearity of expectation over a sampled 4-set, and it is short.**  Sample
+`S` uniformly among the 4-subsets.  If `|H| = p · binom(n,3)` then the expected number of edges
+inside `S` is `4p`; tetrahedron-freeness bounds that count by `3` pointwise, so `4p ≤ 3`.
+
+Equivalently, and this is the form to use in Lean, **double count** the pairs `(S, e)` with
+`|S| = 4`, `e ⊆ S`, `e ∈ H`:
+
+* each `e ∈ H` extends to exactly `n - 3` such `S`, giving `|H| (n-3)` pairs;
+* each `S` contributes at most `3`, giving at most `3 binom(n,4)`.
+
+So `|H| (n-3) ≤ 3 binom(n,4)`, and `4 binom(n,4) = binom(n,3) (n-3)` — the standard identity —
+turns that into the claim.  `Nat.succ_mul_choose_eq` or `Nat.choose_mul_succ_eq` is the
+Mathlib-side lever; the identity was verified for `n ≤ 11` before publication.
+
+**The bound is tight at `n = 4`** (it gives `|H| ≤ 3`, and three of the four triples is
+achievable), which is worth knowing because it rules out any proof that throws away a constant.
+Brute force also confirms `n = 5` gives `|H| ≤ 7`, matching Zhao's Lemma 2.4.3 exactly — that
+lemma is **not** stated here, and improving this proposition by sampling five vertices instead of
+four is a separate and better node.
+
+Chapter 2 is finite averaging throughout, with no measure theory; see `skills/conventions.md`. -/
+theorem card_le_of_tetrahedronFree {n : ℕ} (hn : 4 ≤ n) (H : Finset (Finset (Fin n)))
+    (h3 : ∀ e ∈ H, e.card = 3)
+    (hfree : ∀ S : Finset (Fin n), S.card = 4 → ∃ e ⊆ S, e.card = 3 ∧ e ∉ H) :
+    4 * H.card ≤ 3 * n.choose 3 := by
+  sorry
+
 end ProbMethodCombinatorics
