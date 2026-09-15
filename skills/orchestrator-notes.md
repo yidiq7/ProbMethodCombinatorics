@@ -190,3 +190,14 @@ Two consequences for how to run the loop:
   one second after the check fired. The tell is the `submission:` line in the audit output: if it
   says `proof` on a PR that declares a reduction, the gate did not see the block, and a re-push
   fixes it. Do not go looking for a defect in the block.
+
+## 2026-09-15 — Commit messages: always a quoted heredoc, never `-m` with backticks
+
+`git commit -m "... the [backtick]submission:[backtick] line ..."` runs the backticked text as a
+command substitution, and the phrase silently vanishes from the message. It happened once here,
+and the message could not be repaired: `main` is a protected branch, so `--force-with-lease` is
+rejected — correctly, and I would not want it otherwise.
+
+Use `git commit -F -` with a **quoted** heredoc (`<<'EOF'`), which suppresses all expansion. Every
+other commit this session used that form; the one that used `-m` is the one that broke. The
+mangled message stands, because rewriting shared history to fix prose is the wrong trade.
