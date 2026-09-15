@@ -1834,7 +1834,7 @@
       "decl": "ProbMethodCombinatorics.exists_triangle_supersaturation",
       "doc": "containers.md#111-containers-for-triangle-free-graphs",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": []
     },

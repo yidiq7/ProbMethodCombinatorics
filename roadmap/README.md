@@ -604,3 +604,10 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   **too pessimistic** about Mathlib (triangle removal was there all along), this one **too
   optimistic**.  Both were written from a search for the *statement's* vocabulary rather than
   for the *proof's* inputs.  Search for what the proof needs.
+- **2026-09-15 — #150 merged: triangle supersaturation is proved.**  Unconditional, via the
+  Mathlib route the contributor identified on #146 and I verified before publishing.  **The
+  normalisation trap I flagged did not bite**: Mathlib's `FarFromTriangleFree ε` is measured
+  against `ε · card²`, so `(1/4 + ε)n² − n²/4 = εn²` lines up with no rescaling.  The factor of
+  six between ordered triples and 3-cliques is handled by *not needing it* — a surjection from
+  triples onto cliques gives the lower bound the statement wants, and the overcount only helps.
+  `exists_containers_triangleFree` is now down to a single obligation, #149.
