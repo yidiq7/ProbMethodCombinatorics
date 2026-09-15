@@ -669,3 +669,14 @@ are the honest growth path.
 **The standing rule this audit enforces:** a "not in Mathlib" note has a shelf life, and a
 "Mathlib has the vocabulary" note is not evidence of tractability.  Re-check before publishing,
 and search for the proof's inputs.
+- **2026-09-15 — #84 decomposed after two silent releases; Gibbs' inequality is now #154.**
+  Lease ages made the case: #84 and #90 had each been held **5+ hours with no PR**, and #98 has
+  now been claimed **four times**.  For #84 the diagnostic order was already exhausted —
+  statement verified, route corrected — so decomposition was the remaining lever.
+  `sum_negMulLogb_le_logb_card` carries all the mathematics with **no `probOf`, no `entropy`, no
+  measure**: finitely many nonnegative reals summing to `1`.  Verified on 20000 random
+  weightings, and *tight* at the uniform weighting, so no shortcut exists.  What remains in #84
+  is `Finset.sum_subset` plus `sum_probOf` — a handful of lines.
+  **Checking lease age is the cheap diagnostic I should run every idle turn.**  It is the only
+  visible form of the claim-and-release signal, which `metrics struggle` cannot see, and it is
+  what told me which of the five claimed nodes needed help rather than patience.

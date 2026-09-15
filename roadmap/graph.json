@@ -1403,7 +1403,9 @@
       "uses": [
         "entropy_def"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "gibbs_inequality"
+      ]
     },
     "entropy_chain_rule": {
       "kind": "theorem",
@@ -1870,6 +1872,17 @@
       "file": "ProbMethodCombinatorics/Correlation.lean",
       "decl": "ProbMethodCombinatorics.prob_mem_mono_of_isUpperSet",
       "doc": "correlation.md#43-thresholds-multiple-round-exposure",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
+    },
+    "gibbs_inequality": {
+      "kind": "theorem",
+      "parent": "entropy",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.sum_negMulLogb_le_logb_card",
+      "doc": "entropy.md#101-basic-properties",
       "statement": "formalized",
       "proof": "planned",
       "uses": [],
