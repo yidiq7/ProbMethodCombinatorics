@@ -533,3 +533,12 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   worth more than one that merges** — and this is the fourth author-side false statement, all four
   found by reading rather than by any gate check.
   `Kₙ` and "disjoint union of stars" are now the standing test pair for Chapter 11 statements.
+- **2026-09-15 — #144 merged; 5 sorries left, all in Chapters 10 and 11.**  The
+  Erdős–Kleitman–Rothschild upper bound is proved modulo `exists_containers_triangleFree` alone.
+  The PR is the model for a reduction return: one declared child, everything downstream
+  unconditional, and a body precise enough that the analysis could be checked independently
+  before reading the Lean.  It also **avoided routing through `exists_containers_fingerprint` on
+  its own judgement** — vindicated hours later when that statement turned out to be false.
+  Notable: it reached for `Real.log_le_sub_one_of_pos` rather than Mathlib's concavity API, which
+  is the idiom added to `skills/conventions.md` after my own route prose had been sending people
+  at `ConcaveOn`.  The conventions file is being read.
