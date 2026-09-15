@@ -106,6 +106,22 @@ before expecting the API to work.
 `section Countable`, a `[IsProbabilityMeasure]` argument — a statement built on the unfenced
 remainder deserves a second look. That is how the Chapter 8 defect was spotted.
 
+## Entropy sums: reach for `log t ≤ t - 1`, not Mathlib's Jensen API
+
+Every inequality between entropy sums proved in this project so far has come out shorter through
+`Real.log_le_sub_one_of_pos` than through `ConcaveOn`/Jensen. `entropy_pair_le_add` in
+`Entropy.lean` is the worked template: bound each term with `log (x) ≤ x - 1`, sum, and rescale
+at the end with
+
+    calc -w * Real.logb 2 w = (-w * Real.log w) * (Real.log 2)⁻¹ := by rw [Real.logb]; ring
+
+Terms where the probability is `0` vanish on both sides, so the `pₛ = 0` case needs no split —
+`Real.logb 2 0 = 0` by Mathlib's junk convention, which is also why the shared layer needs no
+`support` definition.
+
+Mathlib's concavity lemmas exist (`Real.strictConcaveOn_negMulLog`) but getting a finite weighted
+Jensen out of them for these shapes has repeatedly cost more than the elementary route.
+
 ## Reductions: two things that trip people up
 
 **A child may be a placeholder that was already there.** `children` in a `choir-reduction` block

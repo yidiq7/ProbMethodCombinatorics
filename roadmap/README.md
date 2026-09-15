@@ -447,3 +447,15 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   The remaining shape issue — Janson I is stated at `univ`, so a sub-family needs subtype
   gymnastics — is **recorded and not built**, because nothing needs it yet.  That is the
   discipline `setBernoulliPi` failed.
+- **2026-09-15 — two of the project's abandonments trace to my route prose, not to difficulty.**
+  `entropy_le_logb_card` (#84) had been claimed and released twice with no note.  The statement is
+  sound; the prose pointed at Mathlib's `ConcaveOn` Jensen API and named
+  `Finset.inner_le_nnorm_mul_nnorm`, **which is Cauchy–Schwarz, not Jensen** — a wrong pointer I
+  wrote.  Meanwhile `entropy_pair_le_add`, proved in the same file, does the job with
+  `Real.log_le_sub_one_of_pos` in a few lines.  Corrected on the issue and generalised into
+  `skills/conventions.md`.
+  **Task prose is checked by nothing.**  Statements get `statement-equiv`, numerical sanity checks
+  and now a stage-two reading; routes get no scrutiny at all, and this is the third time a
+  published route has been wrong where the statement was fine.  When a task is abandoned with no
+  note, **re-read the route before concluding the task is hard** — the diagnostic order is
+  statement, then route, then decomposition.
