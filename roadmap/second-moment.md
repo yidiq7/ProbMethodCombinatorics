@@ -61,4 +61,28 @@ idempotent, so `Var X i ≤ 𝔼 X i`), and bound each remaining term by `ℙ(A 
   so the statement is expressible; Turán's second-moment proof is the route. This is the
   one section of the chapter that needs no random graphs at all and may well be stated
   before the others.
-- **`distinct_sums`** — §4.6, Erdős's distinct-sums problem.
+- ~~**`distinct_sums`**~~ — **stated 2026-09-15** as `le_card_of_distinctSubsetSums`, task #151.
+  See §4.6 below.
+
+
+## §4.6 Distinct sums
+
+`distinct_sums` (Theorem 4.6.3) is stated: `3 · 2^k ≤ 8 √k · n` whenever a `k`-element subset of
+`[n]` has all `2^k` subset sums distinct. It was the first of the chapter's applications to be
+stated because it is the only one needing **no random graphs at all** — the randomness is a
+uniform sign vector — and because it comes with an explicit constant, so no `o(1)` idiom is
+required.
+
+It is also the chapter's best advertisement for its own method: the pigeonhole bound
+`n ≥ 2^k/k` has to account for every subset sum, while the second moment lets you discard the
+outliers Chebyshev says are rare, buying a factor of `√k`.
+
+Verified against the known minimal witnesses for `k ≤ 8` — the Conway–Guy sequence
+`1, 2, 4, 7, 13, 24, 44, 84` — before publication. The bound is comfortably slack at small `k`
+(at `k = 3` it forces only `n ≥ 2` where the truth is `4`).
+
+`hk : 0 < k` is load-bearing: at `k = 0` the claim reads `3 ≤ 0`.
+
+**Deliberately not stated.** Conjecture 4.6.2 (`n ≳ 2^k`, Erdős's \$300 problem) is **open
+mathematics**. Theorem 4.6.6 (Dubroff–Fox–Xu) improves the constant via Harper's
+vertex-isoperimetric inequality and is a separate, harder node.

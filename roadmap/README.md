@@ -585,3 +585,11 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   `triangleRemovalBound` (`Triangle/Removal.lean:41`) — with `triangleRemovalBound_pos` at line
   44 supplying exactly the positivity the `∃ c > 0` needs.  **A "not in Mathlib" note in a
   roadmap is a claim with a shelf life; this one was wrong.**
+- **2026-09-15 — Chapter 4's first application stated.**  With every open task claimed and no
+  PRs to review, the remaining orchestrator work is the material each group file lists under
+  "planned, not stated" — that is real book content, and stating it is my job rather than
+  something to wait on.  `le_card_of_distinctSubsetSums` (Theorem 4.6.3, task #151) is the most
+  tractable of Chapter 4's five: **no random graphs**, and an explicit constant, so it needs no
+  `o(1)` idiom.  Checked against the Conway–Guy minimal witnesses for `k ≤ 8` before publishing.
+  Erdős's Conjecture 4.6.2 is open mathematics and is deliberately not stated — the standing
+  rule that a conjecture in the source must never be transcribed as a theorem.

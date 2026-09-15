@@ -640,14 +640,13 @@
     "distinct_sums": {
       "kind": "theorem",
       "parent": "second_moment",
-      "doc": "second-moment.md#planned-not-stated",
-      "statement": "planned",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.le_card_of_distinctSubsetSums",
+      "doc": "second-moment.md#46-distinct-sums",
+      "statement": "formalized",
       "proof": "planned",
       "uses": [],
-      "proof_uses": [
-        "prob_zero_bound",
-        "variance_indicator_bound"
-      ]
+      "proof_uses": []
     },
     "chernoff": {
       "kind": "group",
