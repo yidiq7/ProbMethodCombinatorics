@@ -69,9 +69,25 @@ It is stated **before** `exists_containers` because that is the direction the de
 11.2.1 is a counting corollary of this, obtained by taking `𝒞` to be the image of `A ∘ S` over
 the small fingerprints.  The file originally had them in the book's order, which made the
 corollary unprovable without a forward reference; a contributor working 11.2.1 found that and
-reported it rather than duplicating the statement. -/
+reported it rather than duplicating the statement.
+
+**`d ≤ 2 * δ * n` is load-bearing and was missing.**  It is Zhao's own proviso — stated on
+printed p. 207 inside the proof idea ("provided that `d ≤ 2δ|V|`") and omitted from the theorem —
+and without it the statement is **false** for every `c ≥ 3/2`.  Two instances refute it together:
+
+* `G = Kₙ`, where `d = n - 1` and the only independent sets are `∅` and singletons.  If
+  `δ < 1/2` then `2δn/d < 1`, so every fingerprint is forced empty, so the single container
+  `A ∅` must contain every vertex and `n ≤ (1 - δ) n` fails.  Hence `δ ≥ 1/2`.
+* `G` a disjoint union of `m` paths on three vertices, where `d = 4/3`, the maximum degree is
+  `2 ≤ c d`, and the `2m` leaves are independent of size `2n/3`.  Any container holding them
+  needs `(1 - δ) n ≥ 2n/3`.  Hence `δ ≤ 1/3`.
+
+The hypothesis excludes the first family (`n - 1 ≤ 2δn` fails for `δ < 1/2`) while keeping the
+second (`4/3 ≤ 2δn` for `n` large), which is exactly its role: it says the fingerprint budget
+`2δn/d` is at least `1`, so that a fingerprint can be nonempty at all. -/
 theorem exists_containers_fingerprint (c : ℝ) (hc : 0 < c) :
     ∃ δ > 0, ∀ (n : ℕ) (G : SimpleGraph (Fin n)) [DecidableRel G.Adj] (d : ℝ), 0 < d →
+      d ≤ 2 * δ * n →
       (∑ v, (G.degree v : ℝ)) = d * n → (∀ v, (G.degree v : ℝ) ≤ c * d) →
       ∃ S A : Finset (Fin n) → Finset (Fin n),
         ∀ I : Finset (Fin n), G.IsIndepSet (I : Set (Fin n)) →
@@ -91,17 +107,21 @@ coefficients it abbreviates.
 **A corollary of `exists_containers_fingerprint` above**, not an independent theorem: take `𝒞`
 to be the image of `T ↦ T ∪ A T` over the fingerprints `T` small enough and with `T ∪ A T` small
 enough.  The second condition is load-bearing — without it the fingerprint theorem says nothing
-about a `T` that is not some `S I`. -/
+about a `T` that is not some `S I`.
+
+Carries the same `d ≤ 2 * δ * n` proviso as `exists_containers_fingerprint`, and for the same
+reason — see the counterexamples in that docstring. -/
 theorem exists_containers (c : ℝ) (hc : 0 < c) :
     ∃ δ > 0, ∀ (n : ℕ) (G : SimpleGraph (Fin n)) [DecidableRel G.Adj] (d : ℝ), 0 < d →
+      d ≤ 2 * δ * n →
       (∑ v, (G.degree v : ℝ)) = d * n → (∀ v, (G.degree v : ℝ) ≤ c * d) →
       ∃ 𝒞 : Finset (Finset (Fin n)),
         (𝒞.card : ℝ) ≤ ∑ i ∈ range (⌊2 * δ * n / d⌋₊ + 1), (n.choose i : ℝ) ∧
         (∀ I : Finset (Fin n), G.IsIndepSet (I : Set (Fin n)) → ∃ C ∈ 𝒞, I ⊆ C) ∧
         (∀ C ∈ 𝒞, (C.card : ℝ) ≤ (1 - δ) * n) := by
   obtain ⟨δ, hδ, hfp⟩ := exists_containers_fingerprint c hc
-  refine ⟨δ, hδ, fun n G _ d hd hsum hdeg => ?_⟩
-  obtain ⟨S, A, hSA⟩ := hfp n G d hd hsum hdeg
+  refine ⟨δ, hδ, fun n G _ d hd hdn hsum hdeg => ?_⟩
+  obtain ⟨S, A, hSA⟩ := hfp n G d hd hdn hsum hdeg
   -- The fingerprints that are both small and have a small container.  The second condition is
   -- needed because the fingerprint theorem says nothing about a `T` that is not some `S I`.
   set F : Finset (Finset (Fin n)) :=
