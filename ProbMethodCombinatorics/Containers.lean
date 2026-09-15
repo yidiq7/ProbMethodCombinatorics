@@ -198,7 +198,97 @@ factor. -/
 theorem card_triangleFreeGraphs_le (ε : ℝ) (hε : 0 < ε) :
     ∃ N, ∀ n ≥ N,
       ((triangleFreeGraphs n).card : ℝ) ≤ (2 : ℝ) ^ ((1 / 4 + ε) * (n : ℝ) ^ 2) := by
-  sorry
+  obtain ⟨C, hC, hcont⟩ := exists_containers_triangleFree (ε / 2) (by linarith)
+  have hlog2 : 0 < Real.log 2 := Real.log_pos one_lt_two
+  have hscale : 0 < Real.log 2 * (ε / 2) := mul_pos hlog2 (by linarith)
+  obtain ⟨K, hKdef⟩ : ∃ K : ℝ, K = 4 * C / (Real.log 2 * (ε / 2)) := ⟨_, rfl⟩
+  have hK : 0 < K := hKdef ▸ div_pos (by linarith) hscale
+  have hLK : Real.log 2 * (ε / 2) * K = 4 * C := by
+    rw [hKdef]
+    field_simp
+  refine ⟨⌈K ^ 4⌉₊ + 1, fun n hn => ?_⟩
+  obtain ⟨𝒞, hcard, hsize, hcover⟩ := hcont n
+  have hn1 : (1 : ℝ) ≤ (n : ℝ) := by
+    have h : 1 ≤ n := le_trans (Nat.le_add_left 1 _) hn
+    exact_mod_cast h
+  have hpos : (0 : ℝ) < (n : ℝ) := lt_of_lt_of_le zero_lt_one hn1
+  have h32 : (0 : ℝ) < (n : ℝ) ^ ((3 : ℝ) / 2) := Real.rpow_pos_of_pos hpos _
+  have h14 : (0 : ℝ) < (n : ℝ) ^ ((1 : ℝ) / 4) := Real.rpow_pos_of_pos hpos _
+  have h74 : (0 : ℝ) < (n : ℝ) ^ ((7 : ℝ) / 4) := Real.rpow_pos_of_pos hpos _
+  have e1 : (n : ℝ) ^ ((3 : ℝ) / 2) * (n : ℝ) ^ ((1 : ℝ) / 4) = (n : ℝ) ^ ((7 : ℝ) / 4) := by
+    rw [← Real.rpow_add hpos]
+    norm_num
+  have e2 : (n : ℝ) ^ ((7 : ℝ) / 4) * (n : ℝ) ^ ((1 : ℝ) / 4) = (n : ℝ) ^ 2 := by
+    rw [← Real.rpow_add hpos, ← Real.rpow_natCast (n : ℝ) 2]
+    norm_num
+  -- `log t ≤ t - 1` applied at `t = n ^ (1/4)` gives `log n ≤ 4 n ^ (1/4)`.
+  have hlogn : Real.log (n : ℝ) ≤ 4 * (n : ℝ) ^ ((1 : ℝ) / 4) := by
+    have h := Real.log_le_sub_one_of_pos h14
+    rw [Real.log_rpow hpos] at h
+    linarith
+  have hKn : K ≤ (n : ℝ) ^ ((1 : ℝ) / 4) := by
+    have hce : K ^ 4 ≤ (n : ℝ) := by
+      refine le_trans (Nat.le_ceil _) ?_
+      have h : (⌈K ^ 4⌉₊ : ℕ) ≤ n := le_trans (Nat.le_add_right _ 1) hn
+      exact_mod_cast h
+    have hrw : K = (K ^ 4) ^ ((1 : ℝ) / 4) := by
+      rw [← Real.rpow_natCast K 4, ← Real.rpow_mul hK.le]
+      norm_num
+    rw [hrw]
+    exact Real.rpow_le_rpow (by positivity) hce (by norm_num)
+  -- The container count `n ^ (C n ^ (3/2))` is at most `2 ^ ((ε/2) n²)`.
+  have hanal : (n : ℝ) ^ (C * (n : ℝ) ^ ((3 : ℝ) / 2)) ≤ (2 : ℝ) ^ (ε / 2 * (n : ℝ) ^ 2) := by
+    have hCm : (0 : ℝ) ≤ C * (n : ℝ) ^ ((3 : ℝ) / 2) := mul_nonneg hC.le h32.le
+    have hineq : Real.log (n : ℝ) * (C * (n : ℝ) ^ ((3 : ℝ) / 2))
+        ≤ Real.log 2 * (ε / 2 * (n : ℝ) ^ 2) := by
+      calc Real.log (n : ℝ) * (C * (n : ℝ) ^ ((3 : ℝ) / 2))
+          ≤ 4 * (n : ℝ) ^ ((1 : ℝ) / 4) * (C * (n : ℝ) ^ ((3 : ℝ) / 2)) :=
+            mul_le_mul_of_nonneg_right hlogn hCm
+        _ = 4 * C * ((n : ℝ) ^ ((3 : ℝ) / 2) * (n : ℝ) ^ ((1 : ℝ) / 4)) := by ring
+        _ = Real.log 2 * (ε / 2) * K * (n : ℝ) ^ ((7 : ℝ) / 4) := by rw [hLK, e1]
+        _ ≤ Real.log 2 * (ε / 2) * (n : ℝ) ^ ((1 : ℝ) / 4) * (n : ℝ) ^ ((7 : ℝ) / 4) :=
+            mul_le_mul_of_nonneg_right
+              (mul_le_mul_of_nonneg_left hKn hscale.le) h74.le
+        _ = Real.log 2 * (ε / 2 * ((n : ℝ) ^ ((7 : ℝ) / 4) * (n : ℝ) ^ ((1 : ℝ) / 4))) := by
+            ring
+        _ = Real.log 2 * (ε / 2 * (n : ℝ) ^ 2) := by rw [e2]
+    have hl : (n : ℝ) ^ (C * (n : ℝ) ^ ((3 : ℝ) / 2))
+        = Real.exp (Real.log (n : ℝ) * (C * (n : ℝ) ^ ((3 : ℝ) / 2))) :=
+      Real.rpow_def_of_pos hpos _
+    have hr : (2 : ℝ) ^ (ε / 2 * (n : ℝ) ^ 2)
+        = Real.exp (Real.log 2 * (ε / 2 * (n : ℝ) ^ 2)) :=
+      Real.rpow_def_of_pos (by norm_num) _
+    rw [hl, hr]
+    exact Real.exp_le_exp.mpr hineq
+  -- Every triangle-free graph is a subgraph of a container, and a container with `m` edges has
+  -- `2 ^ m` subgraphs.
+  have hsub : triangleFreeGraphs n ⊆ 𝒞.biUnion fun F => F.powerset := by
+    intro G hG
+    obtain ⟨F, hF, hGF⟩ := hcover G hG
+    exact Finset.mem_biUnion.mpr ⟨F, hF, Finset.mem_powerset.mpr hGF⟩
+  have hnat : (triangleFreeGraphs n).card ≤ ∑ F ∈ 𝒞, 2 ^ F.card :=
+    calc (triangleFreeGraphs n).card ≤ (𝒞.biUnion fun F => F.powerset).card :=
+          Finset.card_le_card hsub
+      _ ≤ ∑ F ∈ 𝒞, F.powerset.card := Finset.card_biUnion_le
+      _ = ∑ F ∈ 𝒞, 2 ^ F.card := by simp [Finset.card_powerset]
+  have hterm : ∀ F ∈ 𝒞, (2 : ℝ) ^ F.card ≤ (2 : ℝ) ^ ((1 / 4 + ε / 2) * (n : ℝ) ^ 2) := by
+    intro F hF
+    rw [← Real.rpow_natCast (2 : ℝ) F.card]
+    exact Real.rpow_le_rpow_of_exponent_le one_le_two (hsize F hF)
+  calc ((triangleFreeGraphs n).card : ℝ)
+      ≤ ((∑ F ∈ 𝒞, 2 ^ F.card : ℕ) : ℝ) := by exact_mod_cast hnat
+    _ = ∑ F ∈ 𝒞, (2 : ℝ) ^ F.card := by push_cast; ring
+    _ ≤ 𝒞.card • (2 : ℝ) ^ ((1 / 4 + ε / 2) * (n : ℝ) ^ 2) :=
+        Finset.sum_le_card_nsmul _ _ _ hterm
+    _ = (𝒞.card : ℝ) * (2 : ℝ) ^ ((1 / 4 + ε / 2) * (n : ℝ) ^ 2) := by
+        rw [nsmul_eq_mul]
+    _ ≤ (n : ℝ) ^ (C * (n : ℝ) ^ ((3 : ℝ) / 2)) * (2 : ℝ) ^ ((1 / 4 + ε / 2) * (n : ℝ) ^ 2) :=
+        mul_le_mul_of_nonneg_right hcard (Real.rpow_nonneg (by norm_num) _)
+    _ ≤ (2 : ℝ) ^ (ε / 2 * (n : ℝ) ^ 2) * (2 : ℝ) ^ ((1 / 4 + ε / 2) * (n : ℝ) ^ 2) :=
+        mul_le_mul_of_nonneg_right hanal (Real.rpow_nonneg (by norm_num) _)
+    _ = (2 : ℝ) ^ ((1 / 4 + ε) * (n : ℝ) ^ 2) := by
+        rw [← Real.rpow_add (by norm_num)]
+        ring_nf
 
 /-- **Erdős–Kleitman–Rothschild**, lower bound: every subgraph of the complete bipartite graph
 `K_{⌊n/2⌋, ⌈n/2⌉}` is triangle-free, and there are `2 ^ (⌊n/2⌋⌈n/2⌉)` of them.

@@ -97,3 +97,55 @@ and making the predicate reducible means it does not have to.
   mathematics** and must not be stated as a theorem.
 - **Triangle supersaturation**, the missing input to `container_triangle_free`. The most useful
   thing anyone could add to this group.
+
+
+## The `d ≤ 2δn` proviso — and how three statements came to be false
+
+`exists_containers_fingerprint` and `exists_containers` were published **false**, for every
+`c ≥ 3/2`, and PR #143 inherited the defect into two further public statements before anyone
+noticed. All are now fixed. The cause is worth stating exactly, because it is a transcription
+failure of a kind that will recur.
+
+**Zhao states the theorem and the proviso in different places.** Theorem 11.2.1 on printed
+p. 206 carries no upper bound on `d`; the bound appears one page later, inside the proof idea:
+*"at least `≥ d/2` new vertices are added to `X` (provided that `d ≤ 2δ|V|`)"*. I transcribed the
+boxed theorem and not the parenthetical. **A textbook's theorem box is not always the whole
+hypothesis list** — when a proof sketch introduces a side condition, check whether the statement
+depends on it.
+
+The two refuting families, which between them killed three statements this week and are now the
+project's standard test pair for Chapter 11:
+
+* **`Kₙ`** — `d = n - 1`, only `∅` and singletons independent. For `δ < 1/2` the budget
+  `2δn/d < 1` forces every fingerprint empty, so one container must hold every vertex:
+  `n ≤ (1-δ)n` fails. **Forces `δ ≥ 1/2`.**
+* **`m` disjoint paths on three vertices** — `d = 4/3`, max degree `2 ≤ c·d` once `c ≥ 3/2`, and
+  the `2m` leaves are independent of size `2n/3`. **Forces `δ ≤ 1/3`.**
+
+`d ≤ 2δn` excludes the first and keeps the second, which is precisely its content: the
+fingerprint budget is at least `1`, so a fingerprint can be nonempty at all.
+
+**`exists_containers_three_uniform` needs no analogue** and did not acquire one: `3|H| ≤ 3·C(n,3)`
+gives `d < n²/2`, so its budget `n/√d` always exceeds `√2`.
+
+**`exists_containers` had already merged** as a declared reduction onto the fingerprint form, so
+it was proved-modulo-a-false-lemma rather than unsound — the kernel was never deceived. Threading
+the new hypothesis through its body was one extra binder.
+
+## Stability is needed and is not derivable from 11.2.3 as stated
+
+PR #143 established, in the course of reducing 11.3.1, that a two-phase fingerprint needs
+
+    S I ⊆ J ⊆ I → S J = S I
+
+for *both* phases, so that the composite `F = S I ∪ S' (S I) I` satisfies `S F = S I`. This is the
+book's "two maximal independent sets with the same fingerprint produce the same partition" bullet,
+which the book states for one phase only. **It is true of the greedy algorithm and free inside any
+honest proof of it, but it cannot be recovered from the statement of 11.2.3**, whose `S` is an
+arbitrary function. Raised on #98; if the proof there produces it, it should be stated rather than
+re-derived.
+
+The open design question on #99 is the **dense corner**: `√d ≳ n`. Relaxing the sub-obligations'
+budgets does not fix it, because the parent's own budget `⌊n/√d⌋₊` is only guaranteed `≥ 1`, so a
+size-2 composite fingerprint does not fit. Either the assembly arithmetic changes or that corner
+gets its own argument.

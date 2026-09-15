@@ -146,6 +146,30 @@ Terms where the probability is `0` vanish on both sides, so the `pₛ = 0` case 
 Mathlib's concavity lemmas exist (`Real.strictConcaveOn_negMulLog`) but getting a finite weighted
 Jensen out of them for these shapes has repeatedly cost more than the elementary route.
 
+## Test a candidate obligation against extremal instances before committing to it
+
+If you are returning a reduction, the obligations you name become public statements that others
+build on — and a false obligation is worse than no progress, because the parent then *looks*
+discharged. Four author-side statements in this project have been false, and every one was found
+by reading rather than by a gate check. None of the nine checks can see it.
+
+Before you commit to an obligation, instantiate it on the extremal cases of its own hypotheses
+and see whether the conclusion survives. For graph and hypergraph statements the two that have
+actually killed statements here are:
+
+* **the complete graph / complete hypergraph** — maximal density, `d ≈ n`, very few independent
+  sets, so any "budget" of the form `εn/d` or `n/√d` collapses below `1` and forces existentials
+  to be empty;
+* **a disjoint union of small stars or paths** — minimal density, `d = O(1)`, but a *large*
+  independent set (all the leaves), which forces any "container" or "cover" bound to be generous.
+
+A statement that must satisfy both simultaneously is often pinned into a contradiction. That is
+exactly how `exists_containers_fingerprint` was refuted: `Kₙ` forced `δ ≥ 1/2`, stars forced
+`δ ≤ 1/3`.
+
+**And if the source states a side condition inside a proof sketch rather than in the theorem box,
+it probably belongs in the statement.** That is where the missing `d ≤ 2δ|V|` was.
+
 ## Reductions: two things that trip people up
 
 **A child may be a placeholder that was already there.** `children` in a `choir-reduction` block

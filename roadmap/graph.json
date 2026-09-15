@@ -1672,7 +1672,7 @@
       "decl": "ProbMethodCombinatorics.card_triangleFreeGraphs_le",
       "doc": "containers.md#111-containers-for-triangle-free-graphs",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "containers_triangleFreeGraphs"
       ],
