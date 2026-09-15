@@ -680,3 +680,20 @@ and search for the proof's inputs.
   **Checking lease age is the cheap diagnostic I should run every idle turn.**  It is the only
   visible form of the claim-and-release signal, which `metrics struggle` cannot see, and it is
   what told me which of the five claimed nodes needed help rather than patience.
+
+## Source page map (read the TOC once, 2026-09-15)
+
+**`PDF page = printed page + 6`.**  Recorded because locating a statement by trial-and-error
+cost four wasted PDF reads in one session; the table of contents is at PDF pp. 5–6 and settles it
+in one.
+
+| § | topic | printed | § | topic | printed |
+|---|---|---|---|---|---|
+| 1.1–1.4 | Ramsey, set systems, 2-colouring, list chromatic | 1, 7, 10, 12 | 7.1–7.2 | Harris–FKG, applications | 107, 110 |
+| 2.1–2.6 | Hamiltonian paths, sum-free, Turán, sampling, unbalancing lights, crossing number | 17, 18, 19, 21, 23, 25 | 8.1–8.3 | non-existence, lower tails, chromatic number | 115, 121, 124 |
+| 3.1–3.5 | dominating set, Heilbronn, Markov, girth+chromatic, greedy colouring | 29, 30, 31, 32, 33 | 9.1–9.6 | bounded differences, **martingales 130**, chromatic 135, isoperimetry 139, Talagrand 152, TSP 162 | 129 |
+| 4.1–4.7 | triangle 37, subgraph thresholds 42, thresholds 46, clique number 55, Hardy–Ramanujan 57, distinct sums 61, Weierstrass 63 | 37 | 10.1–10.4 | basics 173, permanent/Steiner 178, Sidorenko 185, Shearer 190 | 173 |
+| 5.1–5.3 | discrepancy, equiangular, Hajós | 71, 73, 75 | 11.1–11.3 | triangle-free containers 203, graph containers 206, hypergraph 208 | 201 |
+| 6.1–6.6 | LLL, colouring, transversals, cycles, lopsided, algorithmic | 79, 83, 89, 90, 92, 97 | | | |
+
+**Chapter starts (printed):** 1 · 17 · 29 · 37 · 69 · 79 · 107 · 115 · 129 · 173 · 201.
