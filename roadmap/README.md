@@ -33,7 +33,7 @@ group file has a "planned, not stated" section saying which and why.
 | [`janson`](janson.md) | 8 | **all proved** | — |
 | [`concentration`](concentration.md) | 9 | **all proved** | martingales, Talagrand, TSP |
 | [`entropy`](entropy.md) | 10 | **all proved** | Sidorenko, Kahn–Zhao, Steiner |
-| [`containers`](containers.md) | 11 | 1 open | 11.1.3, 11.1.5, supersaturation |
+| [`containers`](containers.md) | 11 | 2 open | 11.1.3, 11.1.5, supersaturation |
 
 **Ten of the eleven groups have every stated declaration proved.**  All remaining open work is in
 Chapter 11, and the counts in this table are derived from `graph.json` (nodes with
@@ -48,6 +48,7 @@ Chapter 11, and the counts in this table are derived from `graph.json` (nodes wi
 
 | Obligation | Task | What rests on it |
 |---|---|---|
+| `exists_container_round` | [#176](https://github.com/yidiq7/ProbMethodCombinatorics/issues/176) | §11.3's run, and through it Theorem 11.3.1 |
 | `exists_containers_fingerprint_three_uniform` | **not published — held** | Theorem 11.3.1, via #172's reduction |
 
 It is 11.3.1's fingerprint form, and by its author's own account it carries all of that theorem's
@@ -96,6 +97,44 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   cases.
 
 ## Log
+
+- **2026-09-16 — §11.3's round interface is authored and its first node published (#176).**
+  `IsContainerRound` and `exists_container_round` are in the file and build; the chapter's
+  decomposition has started rather than remaining a plan.  Three things settled on the way, each
+  of which had to be settled *before* publishing anything that mentions the interface:
+
+  **The run's dichotomy is satisfiable in all four halting modes**, which the interface draft could
+  not confirm and which was the actual blocker.  `R` is existentially returned and the halting mode
+  is a function of the fingerprint through the replay, so `R` may be chosen per mode.  The branch
+  that fires is decided uniformly by the handshake bound `|D| < |E|/(c√d)` on vertices deleted for
+  forbidden-pair degree: either `E` is dense, or `D` is small and the run either order-retired
+  enough vertices or exhausted `I` — and in that last case `I ⊆ S ∪ D`, whose size clears the
+  container bound by two orders of magnitude.  Covering needs no case split, because the
+  order-retired set is disjoint from `I`.
+
+  **§11.2's headline theorems cannot be called by anything.**  Both bind `δ` existentially, and
+  `∃ δ > 0` carries no lower bound, so no hypothesis in `c, d, n` can guarantee their proviso for
+  whatever `δ` they return.  The δ-parametric obligations are the usable interface, which also
+  makes the stability conjunct added to `exists_fingerprint_of_greedy_rule` load-bearing.
+
+  **Why #176 is safe to publish while the run is unsettled:** `IsContainerRound`'s clause
+  hypotheses *are* the run's invariants, passed in rather than assumed globally.  Strengthening the
+  run's invariant set therefore cannot change what a rule must provide, so the interface can be
+  frozen now.  For the same reason the interface relates `d` and `n` nowhere — that constraint
+  belongs to the nodes that call §11.2.
+
+  Two supporting lemmas landed as orchestrator vocabulary rather than inside one task's proof:
+  `maxCodegree_mono` (the algorithm deletes edges, so 11.3.1's codegree hypotheses must transport)
+  and `degree_fromEdgeSet` (the run accumulates a `Finset (Sym2 _)` because a `DecidableRel`
+  instance cannot come from under an existential, while §11.2 takes a `SimpleGraph`).  The second
+  also settled a statement question: the dense-branch node can state its degree hypothesis on
+  `G.degree` directly.
+
+- **2026-09-16 — the `choir/type:*` label race recurred on #176, as logged.**  Setting difficulty
+  and priority straight after `create-task` dropped `choir/type:prove` again.  The logged remedy
+  worked as written — `gh issue edit --add-label` is additive and cannot drop the others — and the
+  diagnostic held: list the new issue's labels once after publishing, because an untyped task still
+  reads as a task.
 
 - **2026-09-16 — §11.2 is closed.  One sorry left in the project, and it is the held node.**
   #174 (`exists_fingerprint_of_greedy_rule`) merged — the last published obligation and the largest.
