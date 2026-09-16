@@ -399,13 +399,28 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   re-auditing.  `verify-pr.yml` was left untouched (overseer-adapted); branch-protection required
   contexts still match.  Commit `05c9542`.
 
-- **2026-09-13 — the blocking poller cannot survive on this machine; use `poll --once`.**
-  `choir orch poll` blocks for up to `max_wait_seconds`, and a long-lived process is what the
-  OOM killer takes first while the contributor agents' `lean` builds spike to 1–2 GB each.  It
-  was killed six times.  **`poll --once` does one check and exits**, which survives, but it
-  gives no wake-up — so on a memory-constrained machine the loop is overseer-driven rather
-  than self-driving: check with `poll --once`, act, stop.  Nothing is lost either way, because
-  the loop keeps no state in the process; it all lives in this repo.
+- **2026-09-16 — the loop is self-driving at AUTO; run the poller in the background, never in the foreground.**
+  `choir orch poll` blocks for up to `max_wait_seconds`, and a long-lived *foreground* process is
+  what the OOM killer takes first while contributor agents' `lean` builds spike to 1–2 GB each.
+  That is an argument against blocking the session on it, not against polling:
+
+      # started with the harness's background mechanism, not left in the foreground
+      choir orch --repo yidiq7/ProbMethodCombinatorics --prover lean4 poll
+
+  Backgrounded, the process exiting *is* the wake-up — on a change, on a code-3 quiet timeout, or
+  on being killed — and the orchestrator reacts and restarts it.  A killed poller becomes a
+  wake-up rather than a silent hang, which is what made the foreground version untenable.
+
+  **Do not read the OOM history as licence to stop and wait for the overseer.**  `ORCHESTRATOR.md`
+  § Automation levels is explicit that at AUTO the orchestrator runs the whole loop itself and that
+  "stopping to ask permission to keep going is a bug at those levels".  The only escalations are a
+  new axiom, a statement that looks wrong, and a policy change — and even then the rest of the work
+  continues meanwhile.
+
+  **When the board is empty, the bottleneck is usually the orchestrator, not the contributors.**
+  A poller finds nothing while the next move is authoring an interface or publishing a node, and
+  waiting on it looks like patience when it is idleness.  Check what the plan says is ready before
+  reaching for `poll`.
 
 - **2026-09-13 — the duplicated measure layer is fully retired.**  Golfs #62, #69 and #70
   removed 148, 65 and 69 lines respectively; `LocalLemma.lean` went from ~1150 to ~866 and
