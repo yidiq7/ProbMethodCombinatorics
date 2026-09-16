@@ -14,6 +14,79 @@ it.  Active guidance, not a changelog — resolved entries are pruned.
 
 ---
 
+## 2026-09-16 — `choir worker heartbeat` never refreshes a lease; `refreshed: false` means nothing
+
+**Reported by a contributor working #99, and verified in the Choir checkout at `0.1.2`.** If you
+run the named command on your own live lease you get `{"refreshed": false}` and the thread's
+heartbeat comment keeps its original timestamp.
+
+Why: `client/cli.py`'s `cmd_heartbeat` calls `heartbeat(args.repo, args.issue)` and passes no
+`session`, so it takes the default `session=""` — the subparser has no `--session` flag and does
+not resolve the workspace. `client/heartbeat.py` then checks
+`(decision.holder, decision.holder_session) != (login, session)` and returns before writing. Since
+claiming and beating are separate invocations, `holder_session` is always a real id, so the pair
+never matches. The library path is fine if you pass `session=`; only the named command is broken,
+and that is the one `CONTRIBUTOR.md` tells you to use.
+
+**What this means for you, until it is fixed upstream:**
+
+- **`refreshed: false` is not "you lost the lease".** Right now it carries no information at all.
+  Do not release a claim or abandon work because of it.
+- **A lease can go stale at the 24h mark even though you heartbeated as instructed.** If your
+  proof is running long and you see the task reclaimed or double-claimed, that is this bug, not
+  someone jumping your claim. Say so on the issue and keep your branch.
+- Heartbeat is best-effort by contract, so nothing will surface this to you. Judge your claim by
+  the issue thread, not by the command's return.
+
+Reported upstream; not patched here, because `~/.choir/checkout` is shared tooling for every
+project on the machine and the fix belongs in Choir.
+
+## 2026-09-16 — Never let a `private` declaration reach a published statement (lean4)
+
+**A `private` declaration referenced by a target's statement silently disables `comparator`.**
+PRs #173 and #174 both failed with `outcome: statement-mismatch` while every other check —
+`statement-immutability` included — was green, and neither diff touched a statement.
+
+Lean 4 mangles private names with the **module path**: compiling `private def myPrivateFoo` and
+printing the environment gives `_private._stdin.0.myPrivateFoo`. Comparator builds the base side
+under a `ChoirBase.` module prefix, so the two sides reference different constants and the
+statements cannot match as kernel terms, for any diff.
+
+This was the orchestrator's own doing (`IsGreedyRule` was adopted `private` and is now public), so
+you are unlikely to hit it from a task's *given* statement. Where it can bite you: **a helper
+lemma you author whose statement mentions a `private def` you also added.** Keep anything that
+appears in a *statement* public, and reserve `private` for things only proof bodies mention.
+
+**The tell:** `comparator` red, `statement-immutability` green, no statement in your diff. That is
+never something to work around — comment on the issue.
+
+## 2026-09-16 — If you flag an obligation as possibly false, say what you tried — and read your own evidence
+
+PR #166 reduced Theorem 11.2.3 to three obligations and flagged one, `exists_dense_fingerprint`,
+as neither provable nor refutable, asking that it not be published.  **The obligation is true, and
+the proof is about fifteen lines of counting.**  The task is published (#171) with the route in its
+prose.
+
+What went wrong is worth copying, because the author did almost everything right.  They probed
+clique unions, clique-plus-matching and Hi/Lo degree-sequence constructions for a counterexample,
+found that **every one was covered**, and reported honestly that there was "no refutation, but no
+proof either".  That report is what let the obstruction be located in minutes — so **flagging was
+the right call and is never held against you.**
+
+The misreading: they had fixed one construction (select the largest-degree vertex, kill its
+predecessors in *degree* order) and found a window where it fell one vertex short.  The window is a
+property of that construction, not of the statement, which only asks for *some* order in which
+every vertex has `|N(v) ∪ Pred(v)| ≥ δn`.  Built greedily instead of by degree, it always exists.
+
+Two things to take from it:
+
+- **Repeated failure to refute is evidence the statement is true.**  If your counterexample search
+  keeps getting covered, that is a signal to look for a proof, not a signal that the corner is hard.
+- **Separate "I cannot prove this" from "this looks false", and say which.**  They are different
+  reports and they get different answers (`orchestrator-review.md` makes the same distinction for
+  `choir-defect` comments).  "My construction leaves a window of width `(c-1)δ`" is a precise and
+  useful thing to say; "the obligation may be false" was an over-reading of it.
+
 ## 2026-09-15 — `statement-immutability` caught a branch silently reverting a statement repair
 
 Worth recording because it is the single most valuable red check the project has had, and because

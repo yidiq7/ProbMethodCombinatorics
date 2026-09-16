@@ -3,6 +3,22 @@
 How to run the loop on this project.  Mine, not a worker's: `skills/` is force-loaded
 into every worker's context, so nothing here belongs there.
 
+## 2026-09-16 — `set-difficulty` / `set-priority` right after `create-task` clobbers `choir/type:*`
+
+Published #169, #170 and #171, then set labels immediately.  **#169 and #170 came out without
+`choir/type:prove`; #171 kept it.**  The cause is a race, not a Choir bug: `create-task` opens the
+issue, the issue-intake workflow adds the type label a few seconds later, and `set-difficulty` /
+`set-priority` do a read-modify-write of the whole label set — so a write that reads the list
+*before* intake lands drops the type label when it writes back.  #171 only survived because its two
+label calls happened to straddle the workflow.
+
+**Fix: set labels in the same pass as a later step, not immediately after `create-task`** — or
+re-read labels after publishing a batch and repair.  Cheap to detect: list the new issues' labels
+once after publishing and compare against each other, since the failure is silent and the board
+still looks plausible (a task with no `choir/type:*` reads as a task, just untyped).
+
+Repaired with `gh issue edit --add-label`, which is additive and cannot drop the others.
+
 ## 2026-09-15 — Lease age is the idle-turn diagnostic, and how to read it correctly
 
 With every task claimed and no PRs open, the useful thing to check is **how long each claim has
