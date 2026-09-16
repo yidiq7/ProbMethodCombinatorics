@@ -228,30 +228,3 @@ What to do with a long hold depends on the diagnostic order already recorded abo
 decomposed (statement and route already verified, so decomposition was what was left), and #90
 given a targeted hint instead (its route is three lines; splitting it would not have helped, and
 the real cost was an associativity transport with a precedent already in the file).
-
-## 2026-09-16 — The graph's edges are derived; run `sync-graph` once a pass
-
-`roadmap/graph.json` holds a node for every declaration in the source, carrying the edges
-its term actually has.  Regenerate it; don't hand-edit what it writes.
-
-    choir orch sync-graph <checkout>          # step 3, after pulling and rebuilding
-    choir orch sync-graph <checkout> --check  # step 1 — anything it reports means a pass skipped it
-
-Once a pass, not once per merge: a merge is not in the build until you have pulled and
-rebuilt.  It reads compiled artifacts and refuses unless they are up to date with the
-source, so build first.
-
-It owns `kind`, `file`, `uses` and `proof_uses`, and the statuses of nodes it creates.
-Everything else is yours and is left untouched:
-
-- `parent`, `doc`, and the statuses of nodes already in the graph;
-- the edges of a node whose `statement` is still `planned`;
-- the `proof_uses` of a node still carrying a `sorry` — the route you intend, which no term
-  can show yet;
-- any edge to an `upstream` node.
-
-When you accept a reduction, give each child the group its parent holds: a child lives in the
-target's file and is part of the same result, so the group is inherited, not chosen.
-
-`choir` on PATH resolves to the worker's checkout — run `choir update` after any change to
-Choir itself.
