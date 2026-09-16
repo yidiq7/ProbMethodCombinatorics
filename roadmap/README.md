@@ -32,24 +32,25 @@ group file has a "planned, not stated" section saying which and why.
 | [`correlation`](correlation.md) | 7 | **all proved** | — |
 | [`janson`](janson.md) | 8 | **all proved** | — |
 | [`concentration`](concentration.md) | 9 | **all proved** | martingales, Talagrand, TSP |
-| [`entropy`](entropy.md) | 10 | 2 open | Sidorenko, Kahn–Zhao, Steiner |
+| [`entropy`](entropy.md) | 10 | **all proved** | Sidorenko, Kahn–Zhao, Steiner |
 | [`containers`](containers.md) | 11 | 2 open | 11.1.3, 11.1.5, supersaturation |
 
-**Nine of the eleven groups have every stated declaration proved**, and as of 2026-09-16 that
-sentence is finally true rather than aspirational — Chapters 2, 4, 7 and 9 were still carrying a
-`sorry` apiece when it was written.  The open work is now exactly **four declarations in two
-chapters**, and the counts in this table are derived from `graph.json` (nodes with
-`statement: formalized`, `proof: planned`), which `sync-graph --check` keeps honest:
+**Ten of the eleven groups have every stated declaration proved.**  The whole of the remaining
+open work is **two declarations, both in Chapter 11**, and the counts in this table are derived
+from `graph.json` (nodes with `statement: formalized`, `proof: planned`), which
+`sync-graph --check` keeps honest:
 
 | Obligation | Chapter | Task | What rests on it |
 |---|---|---|---|
-| `entropy_le_logb_card` | 10 | [#84](https://github.com/yidiq7/ProbMethodCombinatorics/issues/84) | 5 Ch. 10 theorems: Brégman (both), Loomis–Whitney, Shearer's family form, triangle-intersecting |
-| `shearer_triple` | 10 | [#90](https://github.com/yidiq7/ProbMethodCombinatorics/issues/90) | Loomis–Whitney (jointly with the above) |
 | `exists_containers_fingerprint` | 11 | [#98](https://github.com/yidiq7/ProbMethodCombinatorics/issues/98) | all of §11.2–11.3 |
 | `exists_containers_three_uniform` | 11 | [#99](https://github.com/yidiq7/ProbMethodCombinatorics/issues/99) | Theorem 11.3.1 |
 
-`entropy_le_logb_card` is the sole obligation beneath **four** of those five Chapter 10
-theorems; Loomis–Whitney is the one that needs `shearer_triple` as well.
+**Chapter 11 is the only chapter left, and it is the one the source does not prove** —
+Theorems 11.2.1 and 11.3.1 are given as an algorithm plus a proof idea, with details deferred to
+Morris' 2016 lecture notes.  So the remaining work is not "two more tasks of the usual kind":
+these are research-level obligations where reductions, not single-PR proofs, are the honest
+expectation ([`containers.md`](containers.md) says so at length, and records the `d ≤ 2δn`
+transcription failure that made three statements false before it was caught).
 
 **Everything in Chapter 1 §1.2 except Bollobás' two families theorem is already in
 Mathlib** — Sperner (`IsAntichain.sperner`), LYM
@@ -83,6 +84,44 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   cases.
 
 ## Log
+
+- **2026-09-16 — Chapter 10 is closed.  Two sorries left in the project, both in Chapter 11.**
+  #167 (`entropy_le_logb_card`) and #168 (`shearer_triple`) merged, taking the inventory to
+  **2 sorries, 0 axioms**.  `Entropy.lean` now carries none, and **six** Chapter 10 theorems went
+  from proved-modulo-`sorryAx` to unconditional in those two merges: #167 released Brégman's
+  per-order bound, Brégman–Minc, Shearer's family form and the triangle-intersecting bound, and
+  #168 released Loomis–Whitney, which needed both.
+
+  **Both PRs added zero new top-level declarations** — the fifth and sixth of seven this session
+  to do so.  #167 is the clearest case yet of a task whose whole content was already in the file:
+  the proof is four `have`s restricting the entropy sum from `univ` to the support finset `A` and
+  then one `exact` onto the base lemma `sum_negMulLogb_le_logb_card`, which was proved centrally
+  long ago.  #168 was 12 lines, exactly the shape `orchestrator-log.md` predicted when it chose a
+  hint over decomposition on 2026-09-15 ("its route is three lines … the real cost was an
+  associativity transport with a precedent already in the file") — 5 of the 12 lines are that
+  transport.  **That prediction being right is the strongest evidence so far that the
+  statement-then-route-then-decomposition diagnostic order is the correct one.**
+
+  The multiplicity-2 in `shearer_triple` is worth recording because it is where a wrong-but-
+  compiling proof would have come from: it falls out of an *exact* cancellation of `H(Z)` between
+  subadditivity (`H(X,Y,Z) ≤ H(X,Y) + H(Z)`) and the file's submodularity lemma
+  (`H(X,Y,Z) + H(Z) ≤ H(X,Z) + H(Y,Z)`), not from absorbing a nonnegativity slack.  Neither PR
+  instantiated the general `shearer`, and neither re-derived it — the route was sanctioned in the
+  task prose precisely so #90 would not wait on it.
+
+- **2026-09-16 — `roadmap/entropy.md` was stale in two ways that would have cost a contributor.**
+  Fixed both, and worth generalizing.  It listed `shearer_family`, `bregman_chain_rule` and
+  `bregman_greedy_bound` under "Obligations left behind by reductions" — **all three have been
+  proved for some time**, so a contributor reading the group file for available work would have
+  found three phantom obligations.  It also told them a Mathlib search turns up `measureEntropy`
+  (Kolmogorov–Sinai) to be ruled out; at the pinned Mathlib there is **no `measureEntropy` at
+  all**.  `Mathlib/InformationTheory/` holds only `Coding/`, `Hamming.lean` and
+  `KullbackLeibler/`.
+
+  **A group file's "what's open" section is a second copy of state that `graph.json` already
+  holds, and it drifts.**  The counts in this README are now derived from the graph rather than
+  written by hand; the per-group prose is not, and that is where to look next time something reads
+  wrong.
 
 - **2026-09-16 — all four open tasks re-pinned `fa3909e` → `b338588`; #99 was the one that needed it.**
   The rule in `skills/orchestrator-notes.md` is that a stale pin is harmless unless something merged

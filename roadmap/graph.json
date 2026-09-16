@@ -1466,13 +1466,15 @@
       "decl": "ProbMethodCombinatorics.entropy_le_logb_card",
       "doc": "entropy.md#101-basic-properties",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "entropy_def",
         "entropy_probOf"
       ],
       "proof_uses": [
-        "gibbs_inequality"
+        "gibbs_inequality",
+        "probOf_nonneg",
+        "sum_probOf"
       ]
     },
     "entropy_chain_rule": {
@@ -1570,13 +1572,14 @@
       "decl": "ProbMethodCombinatorics.shearer_triple",
       "doc": "entropy.md#104-shearers-lemma",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "entropy_def"
       ],
       "proof_uses": [
-        "entropy_chain_rule",
-        "entropy_drop_conditioning"
+        "entropy_comp_inj",
+        "entropy_subadditive",
+        "entropy_triple_add_le"
       ]
     },
     "loomis_whitney_discrete": {

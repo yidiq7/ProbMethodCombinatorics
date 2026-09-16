@@ -8,8 +8,16 @@ subadditivity or its refinement, Shearer's lemma.
 **Almost nothing here is in Mathlib.** It has `Real.negMulLog` and `Real.binEntropy` (the binary
 entropy function on `[0,1]`, with concavity and monotonicity), and `Matrix.permanent`. It has
 **no** Shannon entropy of a discrete random variable, no conditional entropy, no chain rule, no
-Shearer, no Brégman–Minc, no Sidorenko, no Loomis–Whitney. The `measureEntropy` that turns up in
-a search is Kolmogorov–Sinai entropy of a dynamical system and is unrelated.
+Shearer, no Brégman–Minc, no Sidorenko, no Loomis–Whitney.
+
+**Corrected 2026-09-16:** this file said a search turns up `measureEntropy`, the Kolmogorov–Sinai
+entropy of a dynamical system.  At the pinned Mathlib there is **no `measureEntropy` at all** —
+`grep -rl measureEntropy Mathlib/` is empty — so do not go looking for it to rule it out.  What
+the pinned `Mathlib/InformationTheory/` actually holds is `Coding/`, `Hamming.lean` and
+`KullbackLeibler/`.  The KL material is the only adjacent thing and is the wrong tool here: it is
+`ENNReal`-valued over `MeasureTheory.Measure` with absolute-continuity and integrability side
+conditions, and `klDiv_of_not_ac` *returns `∞`* when they fail — the junk-value trap
+`skills/conventions.md` warns about.
 
 ## Convention
 
@@ -126,13 +134,21 @@ remarks in the notes and are not stated.
   (Theorem 10.4.12) and **Galvin–Tetali** (Theorem 10.4.14). All are real formalization
   projects on their own; they are the right place to expect reductions rather than single PRs.
 
-## Obligations left behind by reductions
+## Obligations left behind by reductions — all discharged
 
-Three nodes exist only because a contributor stopped and named what they were missing instead of
-inlining it. All three are what stands between the project and unconditional proofs of theorems
-that have already merged.
+**This chapter is closed as of 2026-09-16: `Entropy.lean` carries no `sorry`, and every theorem in
+it is unconditional.**  The last two obligations went in PRs
+[#167](https://github.com/yidiq7/ProbMethodCombinatorics/pull/167) (`entropy_le_logb_card`) and
+[#168](https://github.com/yidiq7/ProbMethodCombinatorics/pull/168) (`shearer_triple`); #167 alone
+stripped `sorryAx` from five merged theorems at once, and #168 released the sixth,
+Loomis–Whitney.
 
-- `shearer_family` — Corollary 10.4.7. Discharges the last `sorryAx` in `triangle_intersecting`.
+The three nodes below were listed here as open until 2026-09-16 and are **all proved**; the list
+is kept because the pattern is the point — each exists because a contributor stopped and named
+what they were missing instead of inlining it, and every one of them was eventually discharged as
+its own task.  Nothing in this section is available to claim.
+
+- `shearer_family` — Corollary 10.4.7. Discharged the last `sorryAx` in `triangle_intersecting`.
 - `bregman_chain_rule` — the chain rule telescoped along an arbitrary *reveal order*, stated for
   any distribution on `Equiv.Perm (Fin n)` and independent of the matrix. Radhakrishnan's proof
   reveals entries in a uniform random order, so the chain rule has to be available along an
