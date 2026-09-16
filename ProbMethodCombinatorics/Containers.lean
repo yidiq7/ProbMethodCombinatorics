@@ -54,6 +54,18 @@ containing a fixed set of `k` vertices. -/
 def maxCodegree {α : Type*} [Fintype α] [DecidableEq α] (k : ℕ) (H : Finset (Finset α)) : ℕ :=
   (univ.filter fun A : Finset α => A.card = k).sup fun A => (H.filter fun e => A ⊆ e).card
 
+/-- Codegrees only shrink when edges are removed.
+
+§11.3's algorithm deletes edges from its working hypergraph, so the codegree hypotheses of
+Theorem 11.3.1 — stated for `H` — have to be transported to every intermediate hypergraph the run
+reaches.  That is what this is for. -/
+theorem maxCodegree_mono {α : Type*} [Fintype α] [DecidableEq α] (k : ℕ)
+    {A B : Finset (Finset α)} (h : A ⊆ B) : maxCodegree k A ≤ maxCodegree k B := by
+  unfold maxCodegree
+  refine Finset.sup_mono_fun ?_
+  intro s _
+  exact Finset.card_le_card (Finset.filter_subset_filter _ h)
+
 /-- The `n`-vertex triangle-free graphs, as a finset of edge sets. -/
 noncomputable def triangleFreeGraphs (n : ℕ) : Finset (Finset (Sym2 (Fin n))) :=
   univ.filter IsTriangleFreeEdgeSet

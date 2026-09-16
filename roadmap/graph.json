@@ -668,7 +668,9 @@
       "statement": "formalized",
       "proof": "formalized",
       "uses": [],
-      "proof_uses": []
+      "proof_uses": [
+        "chebyshev"
+      ]
     },
     "chernoff": {
       "kind": "group",
@@ -1122,7 +1124,9 @@
       "doc": "correlation.md#harris_binomial--binomialrandom_mul_le_inter",
       "statement": "formalized",
       "proof": "formalized",
-      "uses": [],
+      "uses": [
+        "binomial_random_graph"
+      ],
       "proof_uses": [
         "fkg_upstream"
       ]
@@ -1135,7 +1139,9 @@
       "doc": "correlation.md#harris_lower_family--prod_le_binomialrandom_iinter",
       "statement": "formalized",
       "proof": "formalized",
-      "uses": [],
+      "uses": [
+        "binomial_random_graph"
+      ],
       "proof_uses": [
         "harris_binomial"
       ]
@@ -1148,7 +1154,9 @@
       "doc": "correlation.md#triangle_free_lower--le_binomialrandom_cliquefree_three",
       "statement": "formalized",
       "proof": "formalized",
-      "uses": [],
+      "uses": [
+        "binomial_random_graph"
+      ],
       "proof_uses": [
         "harris_lower_family"
       ]
@@ -1332,7 +1340,9 @@
       "statement": "formalized",
       "proof": "formalized",
       "uses": [],
-      "proof_uses": []
+      "proof_uses": [
+        "hoeffding_lemma_upstream"
+      ]
     },
     "shamir_spencer": {
       "kind": "theorem",
@@ -1625,7 +1635,9 @@
       "doc": "entropy.md#applications",
       "statement": "formalized",
       "proof": "formalized",
-      "uses": [],
+      "uses": [
+        "permanent_upstream"
+      ],
       "proof_uses": [
         "ProbMethodCombinatorics_entropy_uniformPMF",
         "availCount",
@@ -1645,7 +1657,9 @@
       "doc": "entropy.md#applications",
       "statement": "formalized",
       "proof": "formalized",
-      "uses": [],
+      "uses": [
+        "binEntropy_upstream"
+      ],
       "proof_uses": []
     },
     "permanent_upstream": {
@@ -3022,7 +3036,8 @@
       "statement": "formalized",
       "proof": "formalized",
       "uses": [
-        "permSupport"
+        "permSupport",
+        "permanent_upstream"
       ],
       "proof_uses": []
     },
@@ -3777,6 +3792,17 @@
       "proof_uses": [
         "greedyRun_grows"
       ]
+    },
+    "maxCodegree_mono": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.maxCodegree_mono",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "containers_maxCodegree"
+      ],
+      "proof_uses": []
     }
   }
 }
