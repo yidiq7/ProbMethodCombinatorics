@@ -128,7 +128,18 @@ alive.  Three facts make it work.
   `d ≤ δ * n` makes `2 * δ * n / d ≥ 2`, which is exactly enough for the integer `m` to satisfy
   `m ≤ 2 * δ * n / d`.  On the branch that halts for want of alive vertices the container is `S`
   itself, and `∑ v, degree v = d * n` with `degree ≤ c * d` bounds every independent set by
-  `(1 - 1 / (2 * c)) * n ≤ (1 - δ) * n`. -/
+  `(1 - 1 / (2 * c)) * n ≤ (1 - δ) * n`.
+
+**The last conjunct, `S J = S I` for `S I ⊆ J ⊆ I`, is the stability property, and it is stated
+here deliberately rather than left to be rediscovered.**  PR #143 established while reducing
+Theorem 11.3.1 that a two-phase fingerprint needs it for *both* phases, so that the composite
+`F = S I ∪ S' (S I) I` satisfies `S F = S I`; the source states the corresponding bullet for one
+phase only, and it **cannot be recovered from the conclusion of 11.2.3**, whose `S` is an
+arbitrary function.  It is free inside any honest proof of this obligation, by the same replay the
+second bullet above describes: for `k < m` the pick `v_{k+1}` lies in `S I ⊆ J` and in `A_k`, so
+`J ∩ A_k` is nonempty and stability of `pick` (`T' ⊆ T` with `pick A T ∈ T'`) forces the same
+choice; and if `I ∩ A_m = ∅` then `J ∩ A_m = ∅` too, so the two runs halt together.  Do not prove
+it separately at the end — it should fall out of the run's invariants. -/
 theorem exists_fingerprint_of_greedy_rule (c d δ : ℝ) (hc : 0 < c) (hδ : 0 < δ)
     (hδc : δ ≤ 1 / (100 * c)) (n : ℕ) (G : SimpleGraph (Fin n)) [DecidableRel G.Adj]
     (hd : 0 < d) (hdn : d ≤ δ * n) (hsum : (∑ v, (G.degree v : ℝ)) = d * n)
@@ -139,7 +150,8 @@ theorem exists_fingerprint_of_greedy_rule (c d δ : ℝ) (hc : 0 < c) (hδ : 0 <
       ∀ I : Finset (Fin n), G.IsIndepSet (I : Set (Fin n)) →
         S I ⊆ I ∧ I ⊆ S I ∪ A (S I) ∧
         ((S I).card : ℝ) ≤ 2 * δ * n / d ∧
-        ((S I ∪ A (S I)).card : ℝ) ≤ (1 - δ) * n := by
+        ((S I ∪ A (S I)).card : ℝ) ≤ (1 - δ) * n ∧
+        ∀ J : Finset (Fin n), S I ⊆ J → J ⊆ I → S J = S I := by
   sorry
 
 /-- **Containers from a single-vertex fingerprint, in the dense corner `δ * n < d`.**  When the
@@ -148,18 +160,35 @@ average degree exceeds `δ * n` the fingerprint budget `2 * δ * n / d` of Theor
 `s I ∈ I` and a set `K v` depending only on the selected vertex, with `I ⊆ insert (s I) (K (s I))`
 and that container missing at least `δ * n` vertices.
 
-Selecting from `I` the vertex `v` of largest degree (ties by index) and taking
-`K v = (V \ ({u | v ≺ u} ∪ N(v)))` works whenever the count
+`d ≤ 2 * δ * n` is what keeps the budget at least `1`, so that a one-vertex fingerprint is
+permitted at all.
 
-    d * n ≤ |{u | u ≺ v}| * (c * d) + n * (G.degree v)
+**Route.**  Build the order greedily rather than by degree.  Write `Z v = N(v) ∪ {u | u ≺ v}`;
+the statement is equivalent to producing an order in which every `v` has `|Z v| ≥ δ * n`, since
+`K v := V \ insert v (Z v)` then gives `insert (s I) (K (s I)) = V \ Z (s I)` of card
+`n - |Z (s I)|`, and taking `s I` to be the `≺`-least element of `I` makes `I ∩ Z (s I) = ∅`
+(independence kills `N`, minimality kills the predecessors).
 
-forces `|{u | u ≺ v} ∪ N(v)| ≥ δ * n`, which it does for `d ≥ δ * n * (1 + 2 * c * δ)`.  Between
-`δ * n` and that, the count is short of `δ * n` by a second-order amount and the corner needs its
-own argument.  Keeping the two vertex sets `{u | u ≺ v}` and `N(v)` separate sharpens the count to
-`d * n ≤ t * (c * d + n - t)` and moves the threshold down to `d ≥ δ * n * (1 - δ) / (1 - c * δ)`,
-so what is left open is a window of relative width `(c - 1) * δ` above `δ * n`; it is empty for
-`c = 1`.  `d ≤ 2 * δ * n` is what keeps the budget at least `1`, so that a one-vertex fingerprint
-is permitted at all. -/
+The one lemma needed is a **greedy extension step**: for every `j < δ * n` and every `P` with
+`|P| = j` there is `v ∉ P` with `|N(v) \ P| ≥ δ * n - j`.  If not, then summing degrees and
+bounding the `P`–`Pᶜ` edges from the `P` side twice,
+
+    d * n < 2 * j * (c * d) + (n - j) * (δ * n - j),
+
+which rearranges to `n * (d - δ * n) < j * (2 * c * d + j - n - δ * n)`.  The left side is
+positive by `hlo`.  On the right, `c ≥ 1` (the average degree is `d` and the maximum is `≤ c * d`),
+so `δ ≤ 1 / 100` and `c * d ≤ 2 * c * δ * n ≤ n / 50`; hence `2 * c * d + j - n - δ * n ≤ -0.95 * n`
+and the right side is `≤ 0`.  Contradiction.  Applying the step for `j = 0, 1, …, ⌈δ * n⌉ - 1`
+yields distinct `v₁ ≺ ⋯ ≺ v_m` with `|Z vᵢ| ≥ (i - 1) + (δ * n - (i - 1)) = δ * n`, and every
+later vertex has `≥ ⌈δ * n⌉` predecessors.
+
+**This docstring claimed until 2026-09-16 that a window of relative width `(c - 1) * δ` above
+`δ * n` was left open, and PR #166 flagged the obligation as possibly false.  That was wrong, and
+the error is instructive: the window is an artifact of the *degree* order, not of the statement.**
+The sharpened count `d * n ≤ t * (c * d + n - t)` is correct, but it is a bound on what the
+largest-degree vertex can guarantee, and in the window a tiny high-degree set can leave the
+chosen vertex one short.  Nothing forces the order to be by degree, and the greedy order above is
+unconditional in these hypotheses — no lower bound on `d - δ * n` is used beyond positivity. -/
 theorem exists_dense_fingerprint (c d δ : ℝ) (hc : 0 < c) (hδ : 0 < δ) (hδc : δ ≤ 1 / (100 * c))
     (n : ℕ) (G : SimpleGraph (Fin n)) [DecidableRel G.Adj] (hd : 0 < d) (hlo : δ * n < d)
     (hhi : d ≤ 2 * δ * n) (hsum : (∑ v, (G.degree v : ℝ)) = d * n)
@@ -220,7 +249,12 @@ theorem exists_containers_fingerprint (c : ℝ) (hc : 0 < c) :
     exact one_div_le_one_div_of_le (by norm_num) (by linarith)
   by_cases hcase : d ≤ δ * n
   · obtain ⟨pick, kill, hrule⟩ := exists_greedy_rule c d δ hc hδ hδc n G hd hcase hsum hdeg
-    exact exists_fingerprint_of_greedy_rule c d δ hc hδ hδc n G hd hcase hsum hdeg pick kill hrule
+    -- The obligation additionally yields stability of `S`, which this theorem does not expose.
+    obtain ⟨S, A, hSA⟩ :=
+      exists_fingerprint_of_greedy_rule c d δ hc hδ hδc n G hd hcase hsum hdeg pick kill hrule
+    refine ⟨S, A, fun I hI => ?_⟩
+    obtain ⟨h1, h2, h3, h4, -⟩ := hSA I hI
+    exact ⟨h1, h2, h3, h4⟩
   · obtain ⟨s, K, hsK⟩ :=
       exists_dense_fingerprint c d δ hc hδ hδc n G hd (lt_of_not_ge hcase) hdn hsum hdeg
     refine ⟨fun I => if I = ∅ then ∅ else {s I}, fun T => T.biUnion K, fun I hI => ?_⟩
