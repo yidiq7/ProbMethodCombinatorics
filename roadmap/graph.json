@@ -3834,6 +3834,15 @@
         "IsContainerRound"
       ],
       "proof_uses": []
+    },
+    "exists_fingerprint_of_dense_pairs": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.exists_fingerprint_of_dense_pairs",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
     }
   }
 }

@@ -1141,6 +1141,51 @@ theorem exists_container_round (c d : ℝ) (hc : 0 < c) (hd : 0 < d) (n : ℕ) :
       IsContainerRound c d pick kill := by
   sorry
 
+/-- **The dense branch of §11.3: containers from a dense graph of forbidden pairs.**
+
+When the hypergraph algorithm terminates without having retired many vertices, the graph `F` of
+forbidden pairs it accumulated is dense and of bounded degree, and the *graph* container theorem
+applies to it.  This node is that application, and it is the chapter's only cross-chapter
+dependency.
+
+**It is stated on the edge set alone and mentions no run**, so it does not wait on the run node:
+what the dense branch supplies is four properties of `F` — diagonal-free, degrees at most
+`2 * c * √d`, at least `n√d/(100 * max c 1)` edges, and the applicability bound `happ` — together
+with a set `I` containing no pair of `F`.  `degree_fromEdgeSet` bridges the degree hypothesis to
+the `SimpleGraph` form §11.2 wants.
+
+**`happ` is what keeps the call legal, and it is not slack.**  Writing `M = max c 1` and
+`q = √d`, the accumulated graph has average degree `d_G = 2|F|/n`, which `hdense` puts at
+`≥ q/(50M)` and `hdeg` at `≤ 2cq`.  So §11.2 must be invoked at `c_G = 100M²` and
+`δ_G = 1/(100 c_G) = 1/(10⁴M²)`, and its hypothesis `d_G ≤ δ_G * n` becomes `2cq ≤ n/(10⁴M²)`.
+`happ` supplies that with a factor of five to spare.  **Outside `happ` the graph container theorem
+cannot be applied to `F` at all** — that regime is §11.3's open question and is deliberately not
+a task.
+
+Call the **δ-parametric** obligations `exists_greedy_rule` and `exists_fingerprint_of_greedy_rule`,
+not `exists_containers` or `exists_containers_fingerprint`: those bind `δ` existentially, so their
+`δ` cannot be named in a hypothesis here and no bound on `c, d, n` can guarantee their proviso.
+The obligations take `δ` as an argument, so this node chooses it.
+
+The two conclusions §11.2 returns sit inside what is claimed here with room: its budget
+`2 δ_G n / d_G` is at most `n/(100 M q)`, against the `n/(2q)` below, and its container bound
+`(1 - δ_G) n` is stronger than the `(1 - δ) n` below, since `δ_G ≥ δ`.  The final conjunct is the
+stability property, which the obligation provides and the composite fingerprint of §11.3
+needs. -/
+theorem exists_fingerprint_of_dense_pairs (c d : ℝ) (hc : 0 < c) (hd : 0 < d)
+    (n : ℕ) (F : Finset (Sym2 (Fin n)))
+    (hdiag : ∀ e ∈ F, ¬ e.IsDiag)
+    (hdeg : ∀ v : Fin n, ((F.filter fun e => v ∈ e).card : ℝ) ≤ 2 * c * Real.sqrt d)
+    (hdense : (n : ℝ) * Real.sqrt d / (100 * max c 1) ≤ (F.card : ℝ))
+    (happ : 10 ^ 5 * (max c 1) ^ 3 * Real.sqrt d ≤ (n : ℝ)) :
+    ∃ S A : Finset (Fin n) → Finset (Fin n),
+      ∀ I : Finset (Fin n), (∀ u ∈ I, ∀ v ∈ I, s(u, v) ∉ F) →
+        S I ⊆ I ∧ I ⊆ S I ∪ A (S I) ∧
+        ((S I).card : ℝ) ≤ (n : ℝ) / (2 * Real.sqrt d) ∧
+        ((S I ∪ A (S I)).card : ℝ) ≤ (1 - 1 / (10 ^ 10 * (max c 1) ^ 4)) * n ∧
+        ∀ J : Finset (Fin n), S I ⊆ J → J ⊆ I → S J = S I := by
+  sorry
+
 /-- **The container theorem for 3-uniform hypergraphs, with fingerprints** (the fingerprint form
 of Zhao, Theorem 11.3.1).  This is to Theorem 11.3.1 what `exists_containers_fingerprint` is to
 `exists_containers`: the refinement that the applications actually need, and — despite being
