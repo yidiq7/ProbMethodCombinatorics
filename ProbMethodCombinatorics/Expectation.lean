@@ -369,10 +369,8 @@ Equivalently, and this is the form to use in Lean, **double count** the pairs `(
 
 So `|H| (n-3) ≤ 3 binom(n,4)`, and `4 binom(n,4) = binom(n,3) (n-3)` — the standard identity —
 turns that into the claim.  `Nat.choose_succ_right_eq` or `Nat.add_one_mul_choose_eq` is the
-Mathlib-side lever; the identity was verified for `n ≤ 11` before publication.
-(This docstring named `Nat.succ_mul_choose_eq` until 2026-09-16, which does not exist at this
-pin — it was renamed to `Nat.add_one_mul_choose_eq`.  Two contributors re-derived the identity
-by hand after searching for the old name.)
+Mathlib-side lever; the identity was verified for `n ≤ 11` before publication.  Note there is
+no `Nat.succ_mul_choose_eq` at this pin.
 
 **The bound is tight at `n = 4`** (it gives `|H| ≤ 3`, and three of the four triples is
 achievable), which is worth knowing because it rules out any proof that throws away a constant.

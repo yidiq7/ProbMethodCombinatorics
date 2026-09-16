@@ -67,8 +67,7 @@ instead — `ENNReal` is a `CommSemiring`, so `ring` works — and cancel with
 assuming it.  Without it `ℝ≥0∞` parses as `ℝ ≥ 0 ∞` and fails with
 `failed to synthesize OfNat Type 0`.  If your file lacks it, spell out `ENNReal`/`NNReal` in
 your proof rather than adding to the header — the header is not yours to change in a `prove`
-task.  (This note claimed "every measure-theoretic file" until 2026-09-16, and PR #165 paid for
-the difference.)
+task.
 
 ## What a `golf` task is, and is not
 

@@ -76,13 +76,11 @@ vertices, and `kill A v` is the set of vertices retired from `A` when `v` is sel
   `I` retires at least `3 * d / 4` vertices, none of them in `I`.
 
 **This is public, and must stay public, even though only this file uses it.**  It appears in the
-*statements* of `exists_greedy_rule` and `exists_fingerprint_of_greedy_rule`, and on lean4 a
-`private` declaration in a published target's statement **silently disables the `comparator`
-audit**: Lean mangles private names with the module path (`_private.<Module>.0.<name>`), while
-comparator builds the base tree under a `ChoirBase.` module prefix, so the two sides reference
-different constants and every such PR fails with `statement-mismatch` no matter what it contains.
-It was `private` from PR #166 until 2026-09-16 and blocked PRs #173 and #174 for exactly that
-reason. -/
+*statements* of `exists_greedy_rule` and `exists_fingerprint_of_greedy_rule`, and `comparator`
+cannot verify a target whose statement reaches a `private` declaration: Lean mangles private names
+with the module path (`_private.<Module>.0.<name>`), while comparator builds the base tree under a
+`ChoirBase.` module prefix, so the two sides cannot hold such a declaration under one name.  Making
+it private costs both targets their kernel-level statement check. -/
 def IsGreedyRule {n : ℕ} (G : SimpleGraph (Fin n)) (d δ : ℝ)
     (pick : Finset (Fin n) → Finset (Fin n) → Fin n)
     (kill : Finset (Fin n) → Fin n → Finset (Fin n)) : Prop :=
@@ -625,13 +623,13 @@ and the right side is `≤ 0`.  Contradiction.  Applying the step for `j = 0, 1,
 yields distinct `v₁ ≺ ⋯ ≺ v_m` with `|Z vᵢ| ≥ (i - 1) + (δ * n - (i - 1)) = δ * n`, and every
 later vertex has `≥ ⌈δ * n⌉` predecessors.
 
-**This docstring claimed until 2026-09-16 that a window of relative width `(c - 1) * δ` above
-`δ * n` was left open, and PR #166 flagged the obligation as possibly false.  That was wrong, and
-the error is instructive: the window is an artifact of the *degree* order, not of the statement.**
-The sharpened count `d * n ≤ t * (c * d + n - t)` is correct, but it is a bound on what the
-largest-degree vertex can guarantee, and in the window a tiny high-degree set can leave the
-chosen vertex one short.  Nothing forces the order to be by degree, and the greedy order above is
-unconditional in these hypotheses — no lower bound on `d - δ * n` is used beyond positivity. -/
+**Why the order must be greedy rather than by degree.**  Selecting the largest-degree vertex
+leaves a window of relative width `(c - 1) * δ` above `δ * n` uncovered: the sharpened count
+`d * n ≤ t * (c * d + n - t)` is a bound on what the largest-degree vertex can guarantee, and in
+that window a tiny high-degree set can leave the chosen vertex one short.  The window is a
+property of that construction, not of this statement — nothing here forces the order to be by
+degree, and the greedy order above is unconditional in these hypotheses, using no lower bound on
+`d - δ * n` beyond positivity. -/
 theorem exists_dense_fingerprint (c d δ : ℝ) (hc : 0 < c) (hδ : 0 < δ) (hδc : δ ≤ 1 / (100 * c))
     (n : ℕ) (G : SimpleGraph (Fin n)) [DecidableRel G.Adj] (hd : 0 < d) (hlo : δ * n < d)
     (hhi : d ≤ 2 * δ * n) (hsum : (∑ v, (G.degree v : ℝ)) = d * n)

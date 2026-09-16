@@ -10,14 +10,12 @@ entropy function on `[0,1]`, with concavity and monotonicity), and `Matrix.perma
 **no** Shannon entropy of a discrete random variable, no conditional entropy, no chain rule, no
 Shearer, no Brégman–Minc, no Sidorenko, no Loomis–Whitney.
 
-**Corrected 2026-09-16:** this file said a search turns up `measureEntropy`, the Kolmogorov–Sinai
-entropy of a dynamical system.  At the pinned Mathlib there is **no `measureEntropy` at all** —
-`grep -rl measureEntropy Mathlib/` is empty — so do not go looking for it to rule it out.  What
-the pinned `Mathlib/InformationTheory/` actually holds is `Coding/`, `Hamming.lean` and
-`KullbackLeibler/`.  The KL material is the only adjacent thing and is the wrong tool here: it is
-`ENNReal`-valued over `MeasureTheory.Measure` with absolute-continuity and integrability side
-conditions, and `klDiv_of_not_ac` *returns `∞`* when they fail — the junk-value trap
-`skills/conventions.md` warns about.
+**There is no `measureEntropy` at the pinned Mathlib** — `grep -rl measureEntropy Mathlib/` is
+empty — so do not go looking for it to rule it out.  What `Mathlib/InformationTheory/` holds is
+`Coding/`, `Hamming.lean` and `KullbackLeibler/`.  The KL material is the only adjacent thing,
+and it is the wrong tool here: it is `ENNReal`-valued over `MeasureTheory.Measure` with
+absolute-continuity and integrability side conditions, and `klDiv_of_not_ac` *returns `∞`* when
+they fail — the junk-value trap `skills/conventions.md` warns about.
 
 ## Convention
 
@@ -143,10 +141,10 @@ it is unconditional.**  The last two obligations went in PRs
 stripped `sorryAx` from five merged theorems at once, and #168 released the sixth,
 Loomis–Whitney.
 
-The three nodes below were listed here as open until 2026-09-16 and are **all proved**; the list
-is kept because the pattern is the point — each exists because a contributor stopped and named
-what they were missing instead of inlining it, and every one of them was eventually discharged as
-its own task.  Nothing in this section is available to claim.
+The three nodes below are **all proved**; the list is kept because the pattern is the point —
+each exists because a contributor stopped and named what they were missing instead of inlining it,
+and every one was eventually discharged as its own task.  Nothing in this section is available to
+claim.
 
 - `shearer_family` — Corollary 10.4.7. Discharged the last `sorryAx` in `triangle_intersecting`.
 - `bregman_chain_rule` — the chain rule telescoped along an arbitrary *reveal order*, stated for

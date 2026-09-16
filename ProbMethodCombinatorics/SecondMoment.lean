@@ -119,7 +119,7 @@ and `σ² = (∑ xᵢ²)/4 ≤ n²k/4`.  Distinctness makes `X` injective on `{0
 `ℙ(X = x) ≤ 2^{-k}` for every `x`, and a window of half-width `c` around `μ` therefore carries
 probability at most `(2c + 1) · 2^{-k}`; Chebyshev bounds the same quantity from below.
 
-**The `+1` is not absorbable, and the proof carries it** (established by PR #165, 2026-09-16).
+**The `+1` is not absorbable, and the proof carries it.**
 An *open* interval of length `2c` contains up to `⌊2c⌋ + 1` integers, not `2c`, so the naive
 route above — comparing `2n√k · 2^{-k} ≥ 3/4` at `c = 2σ ≤ n√k` — is off by one and does not
 close.  Parity does not rescue it: it helps when `∑ xᵢ` is odd and fails when it is even.  The
@@ -133,8 +133,8 @@ suffices through `k ≤ 7`.
 
 The engine is Mathlib's `meas_ge_le_variance_div_sq` (Chebyshev) with `IndepFun.variance_sum`;
 the `εᵢ` are a genuine product-Bernoulli family (`Measure.pi`), so the variance of the sum is the
-sum of the variances.  It does **not** use `prob_eq_zero_le_variance_div_sq` or
-`variance_sum_indicator_le`, which this docstring named until 2026-09-16.
+sum of the variances.  It uses neither `prob_eq_zero_le_variance_div_sq` nor
+`variance_sum_indicator_le`.
 
 Erdős's conjecture that `n ≳ 2 ^ k` (Conjecture 4.6.2) is **open mathematics** and must not be
 stated as a theorem.  Theorem 4.6.6 (Dubroff–Fox–Xu), which improves the constant via Harper's

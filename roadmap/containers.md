@@ -157,8 +157,6 @@ threshold in the retirement clause is exactly what `|Aᶜ| = |X| + |S|` reaches 
 **Neither obligation's prover may edit it** — doing so changes both children's statements, and
 `statement-immutability` will block it.
 
-**It was `private` for a few hours on 2026-09-16, and that was a mistake with teeth — see
-"Never put a `private` declaration in a published statement" below.**
 
 **Zhao's `d/2` retirement guarantee is not sufficient as stated**, and PR #166's author found why.
 With a `d/2` guarantee, `(m-1)·(d/2) < δn` only gives `m < 1 + B` for `B = 2δn/d`, i.e. `m ≤ ⌈B⌉`,
@@ -167,36 +165,21 @@ not the `m ≤ B` the fingerprint budget needs.  Getting `m ≤ B` needs a guara
 makes `cd` negligible against `n`.  **That is what forces the two-regime split**, and it is a
 genuine correction to the source's proof sketch, not a formalization artifact.
 
-## Never put a `private` declaration in a published statement (lean4)
+## Keep statement-reachable declarations public (lean4)
 
-**A `private` declaration referenced by a published target's statement silently disables
-`comparator`, the project's strongest gate, and there is no way to tell from the check name.**
-Learned the hard way on 2026-09-16: `IsGreedyRule` was adopted `private`, and PRs #173 and #174 —
-the two tasks whose statements mention it — both failed `comparator` with
-`outcome: statement-mismatch` while every other check was green, including
-`statement-immutability`.  Neither diff had touched a statement.
+**Any declaration that appears in the statement of a published task is public, however local it
+looks.**  `private` is for proof-internal helpers only, and even then not if a statement's *type*
+can reach them.
 
-The mechanism, verified rather than guessed:
+Lean mangles a private name with its declaring module path (`private def myPrivateFoo` becomes
+`_private.<Module>.0.myPrivateFoo`), while `comparator` builds the base tree under a `ChoirBase.`
+module prefix so it can sit beside the head tree in one workspace.  The two sides therefore cannot
+hold a private declaration under one name, and `comparator` declines to run on such a target — the
+statement keeps `statement-immutability` but loses its kernel-level check, which on this chapter's
+statements is the check worth most.
 
-* Lean 4 mangles a private name with its **module path**.  Compiling `private def myPrivateFoo`
-  and printing the environment gives `_private._stdin.0.myPrivateFoo`.
-* Comparator builds the base ("challenge") tree under a `ChoirBase.` module prefix so it can
-  coexist with the head tree in one workspace (`CHALLENGE_PREFIX = "ChoirBase"` in
-  `gate/verify/comparator.py`).
-* So the challenge holds `_private.ChoirBase.ProbMethodCombinatorics.Containers.0.…IsGreedyRule`
-  and the solution holds `_private.ProbMethodCombinatorics.Containers.0.…IsGreedyRule`.  The
-  target's *type* therefore references two different constants, and the statements cannot match as
-  kernel terms — deterministically, for any diff.
-
-**Choir's own comment says the opposite**, and it is the assumption that fails:
-`gate/verify/comparator.py`'s header argues the mapping is sound because "Renaming modules never
-renames *declarations* (Lean decl names come from namespaces, not file paths)".  True of public
-declarations; false of private ones.  Reported upstream — it is a Choir bug, not a project one.
-
-**The rule for this project:** any declaration that appears in the statement of a published task
-is public, full stop, however local it looks.  `private` is for proof-internal helpers only, and
-even then not if a published statement's *type* can reach them.  The tell, if it happens again, is
-`comparator` red with `statement-immutability` green and no statement in the diff.
+`IsGreedyRule` is the live example: it is public for exactly this reason, and both obligations
+whose statements mention it depend on that.
 
 ## §11.2's dense corner is closed — it was never open
 
