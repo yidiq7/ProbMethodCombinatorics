@@ -1722,9 +1722,14 @@
       "decl": "ProbMethodCombinatorics.exists_containers_fingerprint",
       "doc": "containers.md#112-graph-containers",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
-      "proof_uses": []
+      "proof_uses": [
+        "IsGreedyRule",
+        "exists_dense_fingerprint",
+        "exists_fingerprint_of_greedy_rule",
+        "exists_greedy_rule"
+      ]
     },
     "hypergraph_container": {
       "kind": "theorem",
@@ -3667,6 +3672,49 @@
       "statement": "formalized",
       "proof": "formalized",
       "uses": [],
+      "proof_uses": []
+    },
+    "IsGreedyRule": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.IsGreedyRule",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "exists_dense_fingerprint": {
+      "kind": "theorem",
+      "parent": "containers",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.exists_dense_fingerprint",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
+    },
+    "exists_fingerprint_of_greedy_rule": {
+      "kind": "theorem",
+      "parent": "containers",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.exists_fingerprint_of_greedy_rule",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "IsGreedyRule"
+      ],
+      "proof_uses": []
+    },
+    "exists_greedy_rule": {
+      "kind": "theorem",
+      "parent": "containers",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.exists_greedy_rule",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "IsGreedyRule"
+      ],
       "proof_uses": []
     }
   }

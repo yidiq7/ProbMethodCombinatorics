@@ -137,7 +137,69 @@ gives `d < n²/2`, so its budget `n/√d` always exceeds `√2`.
 it was proved-modulo-a-false-lemma rather than unsound — the kernel was never deceived. Threading
 the new hypothesis through its body was one extra binder.
 
-## Stability is needed and is not derivable from 11.2.3 as stated
+## §11.2 is reduced: PR #166, and the three obligations it created
+
+`exists_containers_fingerprint` (Theorem 11.2.3) is **proved** as of 2026-09-16, as a three-way
+reduction merged in [PR #166](https://github.com/yidiq7/ProbMethodCombinatorics/pull/166).  The
+parent's body is not glue-only: it chooses `δ := 1/(100 * max c 1)` (rather than `1/(100c)`, so
+that `δ ≤ 1/100` holds even for `c < 1`, where `c ≥ 1` is only derivable once `n ≥ 1`), splits on
+`d ≤ δn` versus `δn < d`, and repackages the dense corner's `(s, K)` into the `(S, A)` shape with
+`I = ∅` handled separately.  The three obligations are nodes `exists_greedy_rule`,
+`exists_fingerprint_of_greedy_rule` and `exists_dense_fingerprint`, all in `Containers.lean`,
+all published as tasks.
+
+**`IsGreedyRule` is orchestrator-owned vocabulary, and stays `private`.**  It is a `private def`
+the contributor added, and it appears in the *statements* of two published tasks, which makes it
+mine in substance even though a worker wrote it.  I have reviewed its four clauses and adopt them:
+they are jointly satisfiable (decreasing `deg_{G[A]}` order, ties by index, `pick` = the
+`≺`-least element, `kill A v = {u ∈ A | u ≺ v} ∪ (N(v) ∩ A)`), and they are *dimensioned to the
+assembly* — the `2δn` threshold in the retirement clause is exactly what `|Aᶜ| = |X| + |S|`
+reaches during the run.  `private` is right because both consumers live in this file (Lean 4
+`private` is module-scoped) and §11.3 will need a *hypergraph* analogue rather than this
+predicate, so making it public would freeze eight clauses of vocabulary nobody else reuses.
+**Neither obligation's prover may edit it** — doing so changes both children's statements, and
+`statement-immutability` will block it.
+
+**Zhao's `d/2` retirement guarantee is not sufficient as stated**, and PR #166's author found why.
+With a `d/2` guarantee, `(m-1)·(d/2) < δn` only gives `m < 1 + B` for `B = 2δn/d`, i.e. `m ≤ ⌈B⌉`,
+not the `m ≤ B` the fingerprint budget needs.  Getting `m ≤ B` needs a guarantee of
+`(d/2)·(B/⌊B⌋)`, which `B ≥ 2` caps at `3d/4` — and `3d/4` is available exactly because `d ≤ δn`
+makes `cd` negligible against `n`.  **That is what forces the two-regime split**, and it is a
+genuine correction to the source's proof sketch, not a formalization artifact.
+
+## §11.2's dense corner is closed — it was never open
+
+**Not to be confused with §11.3's dense corner**, `√d ≳ n` on task #99, which is a different
+theorem and is still open (last paragraph of this file).  This section is about `δn < d ≤ 2δn` in
+the *graph* container theorem.
+
+**PR #166 flagged `exists_dense_fingerprint` as neither provable nor refutable, with an open
+window of relative width `(c-1)δ` above `δn`, and asked that it not be published.  That was
+wrong.**  The obligation is true, the proof is short, and the window is an artifact of one choice
+in the construction.
+
+The route, now recorded in the declaration's own docstring: the statement is equivalent to
+producing an order in which every vertex has `|N(v) ∪ Pred(v)| ≥ δn`.  The window appears only if
+the order is taken by **degree** — the sharpened count `dn ≤ t(cd + n - t)` is a bound on what the
+largest-degree vertex can guarantee, and in the window a small high-degree set can leave the
+chosen vertex one short.  Nothing forces that order.  Build it **greedily** instead: for every
+`j < δn` and every `P` with `|P| = j` there is `v ∉ P` with `|N(v) \ P| ≥ δn - j`, since otherwise
+summing degrees and bounding the `P`–`Pᶜ` edges twice from the `P` side gives
+`n(d - δn) < j(2cd + j - n - δn)`, whose left side is positive by `δn < d` while `c ≥ 1` forces
+`cd ≤ n/50` and hence the right side `≤ 0`.  Iterate for `j = 0 … ⌈δn⌉ - 1`.
+
+**No lower bound on `d - δn` is used beyond positivity**, which is precisely why the width of the
+supposed window is irrelevant.
+
+The lesson is the mirror image of the `d ≤ 2δn` failure recorded below, and worth holding next to
+it: **that one was a statement published false and believed true; this one was a statement
+published true and believed false.**  Both came from reasoning about a particular construction
+rather than about the statement.  When an obligation resists, ask whether what is stuck is the
+*statement* or the *one construction tried so far* — the author had probed clique unions,
+clique-plus-matching and Hi/Lo degree sequences for a counterexample and found none, which was
+evidence the statement was true, not evidence the corner was hard.
+
+## Stability is needed, and is now stated on the obligation
 
 PR #143 established, in the course of reducing 11.3.1, that a two-phase fingerprint needs
 
@@ -150,7 +212,25 @@ honest proof of it, but it cannot be recovered from the statement of 11.2.3**, w
 arbitrary function. Raised on #98; if the proof there produces it, it should be stated rather than
 re-derived.
 
-The open design question on #99 is the **dense corner**: `√d ≳ n`. Relaxing the sub-obligations'
+**Done, 2026-09-16.** It is now a conjunct of `exists_fingerprint_of_greedy_rule`'s conclusion:
+
+    ∀ J : Finset (Fin n), S I ⊆ J → J ⊆ I → S J = S I
+
+I verified it is genuinely free from the `IsGreedyRule` interface before stating it, rather than
+taking the reduction author's word: for `k < m` the pick `v_{k+1}` lies in `S I ⊆ J` and in `A_k`,
+so `J ∩ A_k` is nonempty and the stability clause of `pick` (`T' ⊆ T` with `pick A T ∈ T'`) forces
+the same choice; and if `I ∩ A_m = ∅` then `J ∩ A_m = ∅`, so the two runs halt together.  The
+parent drops the conjunct at its one call site and still composes.
+
+**It was stated now rather than when the obligation is discharged, which is the opposite of what
+PR #166 proposed.**  The author suggested adding it once obligation 2 lands; that would be a
+statement change to an already-published task, and `skills/orchestrator-notes.md` records what
+that does — in-flight branches built on the older pin silently revert the statement, and
+`statement-immutability` is the only thing that catches it.  **Author the interface before
+publishing, not after.**  This project has paid for that lesson once already, in the duplicated
+measure layer of #28–#30.
+
+The open design question on **#99** is its own **dense corner**: `√d ≳ n`. Relaxing the sub-obligations'
 budgets does not fix it, because the parent's own budget `⌊n/√d⌋₊` is only guaranteed `≥ 1`, so a
 size-2 composite fingerprint does not fit. Either the assembly arithmetic changes or that corner
 gets its own argument.
