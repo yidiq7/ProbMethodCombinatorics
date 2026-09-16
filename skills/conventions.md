@@ -62,8 +62,13 @@ rearrangement through it drags a `b ≤ a` side condition behind it.  Rearrange 
 instead — `ENNReal` is a `CommSemiring`, so `ring` works — and cancel with
 `ENNReal.add_le_add_iff_right`, discharging finiteness with `ne_top_of_le_ne_top`.  See
 `prod_le_binomialRandom_iInter` in `Correlation.lean` for the pattern.
-`open scoped ENNReal` is already in the header of every measure-theoretic file; without it
-`ℝ≥0∞` parses as `ℝ ≥ 0 ∞` and fails with `failed to synthesize OfNat Type 0`.
+`open scoped ENNReal` is in `Concentration.lean`, `Correlation.lean` and `Janson.lean` — but
+**not** in `SecondMoment.lean` or `LocalLemma.lean`, so check your target's header rather than
+assuming it.  Without it `ℝ≥0∞` parses as `ℝ ≥ 0 ∞` and fails with
+`failed to synthesize OfNat Type 0`.  If your file lacks it, spell out `ENNReal`/`NNReal` in
+your proof rather than adding to the header — the header is not yours to change in a `prove`
+task.  (This note claimed "every measure-theoretic file" until 2026-09-16, and PR #165 paid for
+the difference.)
 
 ## What a `golf` task is, and is not
 

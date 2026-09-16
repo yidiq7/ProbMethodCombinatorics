@@ -72,6 +72,60 @@ edge-count bound the book proves, so the edge-count bound stays a task.
 
 ## Log
 
+- **2026-09-16 — five proofs merged; the trust boundary is down to four sorries in two chapters.**
+  Reviewed and merged #160 (`prob_notMem_le_pow_of_isUpperSet`), #162 (`card_le_of_tetrahedronFree`),
+  #163 (`measure_martingale_sub_ge_le`), #164 (`exists_signs_sum_ge`) and #165
+  (`le_card_of_distinctSubsetSums`).  Inventory went **9 sorries → 4, axioms 0 → 0**; the remaining
+  four are `exists_containers_fingerprint` and `exists_containers_three_uniform` (Ch. 11) and
+  `entropy_le_logb_card` and `shearer_triple` (Ch. 10).  With these, **Chapters 2, 4, 7 and 9 have
+  no `sorry` left in any stated declaration** — the README table above claimed that before it was
+  true, and is now accurate for those rows.
+
+  **What stage-two review actually turned on, recorded because it generalizes.**  Four of the five
+  diffs (#160, #163, #164, #165) added **zero new top-level declarations** — a single `sorry`
+  replaced by a proof body whose every auxiliary fact is a local `have`.  That makes the review
+  surface *empty* in the one place the kernel cannot help: with the target statement identical to
+  base as a kernel term, a clean axiom closure and no net-new sorries, a local `have` cannot smuggle
+  anything, because the kernel discharged it against a fixed goal.  **Check the new-declaration
+  count first; it tells you how much judgment the PR actually needs.**  #164 was the exception with
+  ten new declarations (including `private def signVec`), and the argument that settled it is the
+  same one in a different key: all ten are `private` and fully proved, and the target's statement
+  never mentions them, so a wrong helper could only be unprovable, not load-bearing.
+
+  Only #162 added helpers with hypotheses, and both take the target's own `h3`/`hfree` verbatim —
+  nothing added, and `card_le_card_filter_superset` is a *lower* bound sitting on the low side of
+  the double count, so it cannot hide a weakening.
+
+- **2026-09-16 — three prose defects the reviews surfaced; all are orchestrator work, none blocked a merge.**
+  Recorded so they are fixed rather than rediscovered:
+  - **`Nat.succ_mul_choose_eq` does not exist at this pin.**  It is named in `Expectation.lean`'s
+    §2.4 docstring (~line 331) and in the task prose for #157 as "the Mathlib-side lever".  The
+    real name is **`Nat.add_one_mul_choose_eq`** (`Mathlib/Data/Nat/Choose/Basic.lean`); it was
+    renamed, not removed.  Two contributors independently re-derived it by hand because the
+    docstring sent them looking for a name that is not there.
+  - **`SecondMoment.lean`'s target docstring now misdescribes its own proof.**  It still gives the
+    off-by-one route ("the open interval … contains at most `2n√k` integers") and names
+    `prob_eq_zero_le_variance_div_sq` / `variance_sum_indicator_le` as the engine; #165 uses
+    neither, applying Chebyshev at `(7/8)n√k` with a `2c+1` count and a `k ≤ 5` pigeonhole branch.
+  - **`skills/conventions.md` claims `open scoped ENNReal` is in the header of every
+    measure-theoretic file.**  It is not in `SecondMoment.lean`.  The convention doc is the stale
+    thing, not the PR.
+
+  The pattern: **every one of these is a stale claim in prose that a worker then paid for.**  Proof
+  routes named in a docstring age as fast as the proofs do, and a wrong lemma name costs a
+  contributor real budget.
+
+- **2026-09-16 — gate overlay resynced to Choir `258a6d3` (protocol 8 → 8).**
+  The overlay was pinned at Choir `253d364` and 27 commits behind; `choir update` had already
+  confirmed this machine's checkout was at `origin/main`, which is a *different* artifact — the
+  in-repo overlay does not follow it, only `upgrade-project.sh` moves it.  Checked before running
+  it that `gate/checks.py` was **byte-identical** across those 27 commits, so `REQUIRED_PRESENT`
+  gained nothing and no open PR could be stranded by required-but-absent; the changes were confined
+  to `gate/provers/{base,deps,lean4}.py` plus new `orchestrator/graph/`, i.e. **`sync-graph`'s
+  dependency-edge derivation, not PR audits.**  That is why the six PRs open at the time needed no
+  re-auditing.  `verify-pr.yml` was left untouched (overseer-adapted); branch-protection required
+  contexts still match.  Commit `05c9542`.
+
 - **2026-09-13 — the blocking poller cannot survive on this machine; use `poll --once`.**
   `choir orch poll` blocks for up to `max_wait_seconds`, and a long-lived process is what the
   OOM killer takes first while the contributor agents' `lean` builds spike to 1–2 GB each.  It

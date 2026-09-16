@@ -115,14 +115,26 @@ purest illustration of the second moment method: the pigeonhole argument counts 
 sums, while this one discards the outliers that Chebyshev says are rare.
 
 **Route.**  Let `X = ∑ εᵢ xᵢ` with `εᵢ ∈ {0,1}` independent and uniform.  Then `μ = (∑ xᵢ)/2`
-and `σ² = (∑ xᵢ²)/4 ≤ n²k/4`, so `2σ ≤ n√k`.  Chebyshev gives `ℙ(|X - μ| ≥ 2σ) ≤ 1/4`, hence
-`ℙ(|X - μ| < n√k) ≥ 3/4`.  In the other direction, distinctness makes `X` injective on
-`{0,1}^k`, so `ℙ(X = x) ≤ 2^{-k}` for every `x`, and the open interval `(μ - n√k, μ + n√k)`
-contains at most `2n√k` integers; therefore `ℙ(|X - μ| < n√k) ≤ 2n√k · 2^{-k}`.  Comparing the
-two gives `2n√k · 2^{-k} ≥ 3/4`.
+and `σ² = (∑ xᵢ²)/4 ≤ n²k/4`.  Distinctness makes `X` injective on `{0,1}^k`, so
+`ℙ(X = x) ≤ 2^{-k}` for every `x`, and a window of half-width `c` around `μ` therefore carries
+probability at most `(2c + 1) · 2^{-k}`; Chebyshev bounds the same quantity from below.
 
-`prob_eq_zero_le_variance_div_sq` and `variance_sum_indicator_le` above are the engine; the
-`εᵢ` are independent so the variance of the sum is the sum of the variances.
+**The `+1` is not absorbable, and the proof carries it** (established by PR #165, 2026-09-16).
+An *open* interval of length `2c` contains up to `⌊2c⌋ + 1` integers, not `2c`, so the naive
+route above — comparing `2n√k · 2^{-k} ≥ 3/4` at `c = 2σ ≤ n√k` — is off by one and does not
+close.  Parity does not rescue it: it helps when `∑ xᵢ` is odd and fails when it is even.  The
+repair is to apply Chebyshev a shade inside `2σ`, at `c = (7/8)·n·√k`: then `σ²/c² ≤ 16/49`,
+so the central mass is `≥ 33/49`, and `(33/49)·2^k ≤ 2c + 1 = (7/4)n√k + 1` beats the target
+`3·2^k ≤ 8√k·n` exactly when `2^k ≥ 58`.  Hence the proof **splits at `k ≥ 6`**
+(`by_cases hk6 : 6 ≤ k`, with `h64 : 64 ≤ 2^k` load-bearing), and covers `k ≤ 5` by
+`interval_cases` against the pigeonhole bound `2^k ≤ nk + 1`, which is derived rather than
+assumed and also supplies `1 ≤ n` for free.  The two branches overlap: pigeonhole alone in fact
+suffices through `k ≤ 7`.
+
+The engine is Mathlib's `meas_ge_le_variance_div_sq` (Chebyshev) with `IndepFun.variance_sum`;
+the `εᵢ` are a genuine product-Bernoulli family (`Measure.pi`), so the variance of the sum is the
+sum of the variances.  It does **not** use `prob_eq_zero_le_variance_div_sq` or
+`variance_sum_indicator_le`, which this docstring named until 2026-09-16.
 
 Erdős's conjecture that `n ≳ 2 ^ k` (Conjecture 4.6.2) is **open mathematics** and must not be
 stated as a theorem.  Theorem 4.6.6 (Dubroff–Fox–Xu), which improves the constant via Harper's
