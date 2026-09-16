@@ -3881,6 +3881,19 @@
       "proof_uses": [
         "card_filter_mem_eq_two"
       ]
+    },
+    "exists_run_of_container_round": {
+      "kind": "theorem",
+      "parent": "containers",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.exists_run_of_container_round",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "IsContainerRound",
+        "containers_maxCodegree"
+      ],
+      "proof_uses": []
     }
   }
 }

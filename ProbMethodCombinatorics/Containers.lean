@@ -1186,6 +1186,70 @@ theorem exists_container_round (c d : ℝ) (hc : 0 < c) (hd : 0 < d) (n : ℕ) :
       IsContainerRound c d pick kill := by
   sorry
 
+/-- **The run: iterate the round and deliver the first phase's fingerprint.**
+
+The largest of §11.3's nodes, and the analogue of `exists_fingerprint_of_greedy_rule`.  Given a
+round satisfying `IsContainerRound`, iterate it at most `⌊n / (2√d)⌋` times from `Av = univ`,
+`Ae = H`, accumulating the selected vertices into `S`, the vertices retired by `kill` into the
+set whose complement `R` names, and the forbidden pairs into `E`: on selecting `u`, every pair
+`xy` with `uxy` an edge of the **alive** hypergraph joins `E`, vertices of `E`-degree above
+`2c√d` leave the alive set, and edges meeting a pair of `E` leave `Ae`.
+
+**Read `u x y ∈ E(A)`, not `E(H)`.**  The source's algorithm box says `E(H)`; with `E(H)` the
+degree invariant below is false, since a vertex would accumulate up to `|S| · Δ₂ = Θ(c · n)`
+forbidden-pair neighbours.
+
+**The budget is on rounds, not on retired vertices**, which is this run's main simplification over
+§11.2's.  There the budget was on retired vertices and recovering `m ≤ B` from
+`(m-1)·yield < budget` forced the retirement guarantee up from `d/2` to `3d/4`; here the round
+count is capped directly and no sharpening is needed.
+
+**`R` is not "the retired set", and reading it that way is the trap.**  It is whatever set the
+run chooses to exclude from the container, and the choice differs by halting mode — the run can
+stop because either threshold fired, because `I` ran out of alive vertices, or because the round
+budget ran out.  `R` is existentially returned and the halting mode is a function of the
+fingerprint through the same replay that gives stability, so a mode-dependent choice is still a
+well-defined function.
+
+**The dichotomy follows from one handshake bound, in every mode.**  Writing `D` for the vertices
+deleted for forbidden-pair degree, summing degrees gives `|D| · 2c√d < 2|E|`, so
+`|D| < |E|/(c√d)`.  Then either `|E| ≥ n√d/(100M)` and the second disjunct holds, or `D` is small
+and the first does: either enough vertices were retired, or `I` was exhausted, in which case
+`I ⊆ S ∪ D` and the complement of that container clears `n/(100M)` comfortably.  Covering needs no
+case split at all, because the retired vertices are disjoint from `I`.
+
+The last four conjuncts are exactly the hypotheses of `exists_fingerprint_of_dense_pairs` at
+`F := E (S I)`; that they compose with no bridging step is machine-checked.  The budget `n/(2√d)`
+is half the composite's, the dense branch supplying the other half.
+
+A `private` definition for the run is expected and welcome, as is a further `choir-reduction` if
+the recursion and its invariants are more than one PR's worth. -/
+theorem exists_run_of_container_round (c d : ℝ) (hc : 0 < c) (hd : 0 < d)
+    (n : ℕ) (H : Finset (Finset (Fin n)))
+    (h3 : ∀ e ∈ H, e.card = 3)
+    (hsum : 3 * (H.card : ℝ) = d * n)
+    (hcod1 : (maxCodegree 1 H : ℝ) ≤ c * d)
+    (hcod2 : (maxCodegree 2 H : ℝ) ≤ c * Real.sqrt d)
+    (hn : 10 ^ 5 * (max c 1) ^ 2 ≤ Real.sqrt d)
+    (hqn : 4 * Real.sqrt d ≤ (n : ℝ))
+    (pick : Finset (Fin n) → Finset (Finset (Fin n)) → Finset (Fin n) → Fin n)
+    (kill : Finset (Fin n) → Finset (Finset (Fin n)) → Fin n → Finset (Fin n))
+    (hrule : IsContainerRound c d pick kill) :
+    ∃ (S R : Finset (Fin n) → Finset (Fin n))
+      (E : Finset (Fin n) → Finset (Sym2 (Fin n))),
+      ∀ I : Finset (Fin n), (∀ e ∈ H, ¬ e ⊆ I) →
+        S I ⊆ I ∧
+        ((S I).card : ℝ) ≤ (n : ℝ) / (2 * Real.sqrt d) ∧
+        (∀ J : Finset (Fin n), S I ⊆ J → J ⊆ I → S J = S I) ∧
+        I ⊆ S I ∪ (R (S I))ᶜ ∧
+        (∀ e ∈ E (S I), ¬ e.IsDiag) ∧
+        (∀ v : Fin n, (((E (S I)).filter fun e => v ∈ e).card : ℝ)
+            ≤ 2 * c * Real.sqrt d) ∧
+        (∀ u ∈ I, ∀ v ∈ I, s(u, v) ∉ E (S I)) ∧
+        ((n : ℝ) / (100 * max c 1) ≤ ((R (S I)).card : ℝ) ∨
+          (n : ℝ) * Real.sqrt d / (100 * max c 1) ≤ ((E (S I)).card : ℝ)) := by
+  sorry
+
 /-- **The dense branch of §11.3: containers from a dense graph of forbidden pairs.**
 
 When the hypergraph algorithm terminates without having retired many vertices, the graph `F` of
