@@ -66,6 +66,29 @@ theorem maxCodegree_mono {α : Type*} [Fintype α] [DecidableEq α] (k : ℕ)
   intro s _
   exact Finset.card_le_card (Finset.filter_subset_filter _ h)
 
+/-- A non-diagonal `Sym2` element has exactly two vertices. -/
+theorem card_filter_mem_eq_two {n : ℕ} (e : Sym2 (Fin n)) (he : ¬ e.IsDiag) :
+    (univ.filter fun v : Fin n => v ∈ e).card = 2 := by
+  induction e using Sym2.ind with
+  | _ a b =>
+    rw [Sym2.mk_isDiag_iff] at he
+    have hset : (univ.filter fun v : Fin n => v ∈ s(a, b)) = {a, b} := by
+      ext v
+      simp [Sym2.mem_iff]
+    rw [hset, Finset.card_insert_of_notMem (by simpa using he), Finset.card_singleton]
+
+/-- **The handshake identity** for a diagonal-free edge set: summing each vertex's incident-edge
+count over all vertices counts every edge twice. -/
+theorem sum_card_incident {n : ℕ} (F : Finset (Sym2 (Fin n)))
+    (hdiag : ∀ e ∈ F, ¬ e.IsDiag) :
+    ∑ v : Fin n, (F.filter fun e => v ∈ e).card = 2 * F.card := by
+  have hswap : ∑ v : Fin n, (F.filter fun e => v ∈ e).card
+      = ∑ e ∈ F, (univ.filter fun v : Fin n => v ∈ e).card := by
+    simp only [Finset.card_filter]
+    exact Finset.sum_comm
+  rw [hswap, Finset.sum_congr rfl fun e he => card_filter_mem_eq_two e (hdiag e he),
+    Finset.sum_const, smul_eq_mul, mul_comm]
+
 /-- A vertex's degree in the graph a diagonal-free edge set spans, counted in the edge set.
 
 §11.3's algorithm accumulates forbidden pairs as a `Finset (Sym2 (Fin n))`, because a
@@ -85,6 +108,28 @@ theorem degree_fromEdgeSet {n : ℕ} (F : Finset (Sym2 (Fin n)))
   refine ⟨fun h => h.1, fun h => ⟨h, ?_⟩⟩
   intro huv
   exact hdiag _ h (by simp [huv])
+
+/-- The same degree, counted as incident edges of `F`.
+
+This is the form the chapter's statements use, so it is the one to reach for: a hypothesis stated
+over `F.filter (v ∈ ·)` rewrites through this in one step, where `degree_fromEdgeSet` alone would
+leave a `card_bij` to do. -/
+theorem degree_fromEdgeSet_eq_card_incident {n : ℕ} (F : Finset (Sym2 (Fin n)))
+    (hdiag : ∀ e ∈ F, ¬ e.IsDiag) (v : Fin n)
+    [DecidableRel (SimpleGraph.fromEdgeSet (F : Set (Sym2 (Fin n)))).Adj] :
+    (SimpleGraph.fromEdgeSet (F : Set (Sym2 (Fin n)))).degree v
+      = (F.filter fun e => v ∈ e).card := by
+  rw [degree_fromEdgeSet F hdiag v]
+  refine Finset.card_bij (fun u _ => s(v, u)) ?_ ?_ ?_
+  · intro u hu
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hu ⊢
+    exact ⟨hu, Sym2.mem_mk_left v u⟩
+  · intro u _ u' _ he
+    exact Sym2.congr_right.mp he
+  · intro e he
+    simp only [Finset.mem_filter] at he
+    obtain ⟨u, rfl⟩ := Sym2.mem_iff_exists.mp he.2
+    exact ⟨u, by simp only [Finset.mem_filter, Finset.mem_univ, true_and]; exact he.1, rfl⟩
 
 /-- The `n`-vertex triangle-free graphs, as a finset of edge sets. -/
 noncomputable def triangleFreeGraphs (n : ℕ) : Finset (Finset (Sym2 (Fin n))) :=
@@ -1198,40 +1243,11 @@ theorem exists_fingerprint_of_dense_pairs (c d : ℝ) (hc : 0 < c) (hd : 0 < d)
   -- a degree in the graph is the number of pairs of `F` at the vertex
   have hdegcard : ∀ v : Fin n,
       (SimpleGraph.fromEdgeSet (F : Set (Sym2 (Fin n)))).degree v
-        = (F.filter fun e => v ∈ e).card := by
-    intro v
-    rw [degree_fromEdgeSet F hdiag v]
-    refine Finset.card_bij (fun u _ => s(v, u)) ?_ ?_ ?_
-    · intro u hu
-      simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hu ⊢
-      exact ⟨hu, Sym2.mem_mk_left v u⟩
-    · intro u _ u' _ he
-      exact Sym2.congr_right.mp he
-    · intro e he
-      simp only [Finset.mem_filter] at he
-      obtain ⟨u, rfl⟩ := Sym2.mem_iff_exists.mp he.2
-      exact ⟨u, by simp only [Finset.mem_filter, Finset.mem_univ, true_and]; exact he.1, rfl⟩
+        = (F.filter fun e => v ∈ e).card :=
+    fun v => degree_fromEdgeSet_eq_card_incident F hdiag v
   -- the handshake identity
   have hhand : ∑ v : Fin n, ((F.filter fun e => v ∈ e).card : ℝ) = 2 * (F.card : ℝ) := by
-    have htwo : ∀ e : Sym2 (Fin n), ¬ e.IsDiag →
-        (univ.filter fun v : Fin n => v ∈ e).card = 2 := by
-      intro e
-      induction e using Sym2.ind with
-      | _ a b =>
-        intro hab
-        rw [Sym2.mk_isDiag_iff] at hab
-        have hset : (univ.filter fun v : Fin n => v ∈ s(a, b)) = {a, b} := by
-          ext v
-          simp [Sym2.mem_iff]
-        rw [hset, Finset.card_insert_of_notMem (by simpa using hab), Finset.card_singleton]
-    have hnat : ∑ v : Fin n, (F.filter fun e => v ∈ e).card = 2 * F.card := by
-      have hswap : ∑ v : Fin n, (F.filter fun e => v ∈ e).card
-          = ∑ e ∈ F, (univ.filter fun v : Fin n => v ∈ e).card := by
-        simp only [Finset.card_filter]
-        exact Finset.sum_comm
-      rw [hswap, Finset.sum_congr rfl fun e he => htwo e (hdiag e he), Finset.sum_const,
-        smul_eq_mul, mul_comm]
-    exact_mod_cast hnat
+    exact_mod_cast sum_card_incident F hdiag
   -- the average degree of the forbidden-pair graph
   have hFpos : (0 : ℝ) < (F.card : ℝ) :=
     lt_of_lt_of_le (div_pos (mul_pos hnR hq) (by linarith)) hdense

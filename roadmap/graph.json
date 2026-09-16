@@ -3845,9 +3845,41 @@
       "uses": [],
       "proof_uses": [
         "IsGreedyRule",
-        "degree_fromEdgeSet",
+        "degree_fromEdgeSet_eq_card_incident",
         "exists_fingerprint_of_greedy_rule",
-        "exists_greedy_rule"
+        "exists_greedy_rule",
+        "sum_card_incident"
+      ]
+    },
+    "card_filter_mem_eq_two": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.card_filter_mem_eq_two",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "degree_fromEdgeSet_eq_card_incident": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.degree_fromEdgeSet_eq_card_incident",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "degree_fromEdgeSet"
+      ]
+    },
+    "sum_card_incident": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.sum_card_incident",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "card_filter_mem_eq_two"
       ]
     }
   }
