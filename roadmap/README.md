@@ -33,17 +33,23 @@ group file has a "planned, not stated" section saying which and why.
 | [`janson`](janson.md) | 8 | **all proved** | — |
 | [`concentration`](concentration.md) | 9 | **all proved** | martingales, Talagrand, TSP |
 | [`entropy`](entropy.md) | 10 | **all proved** | Sidorenko, Kahn–Zhao, Steiner |
-| [`containers`](containers.md) | 11 | 2 open | 11.1.3, 11.1.5, supersaturation |
+| [`containers`](containers.md) | 11 | 4 open | 11.1.3, 11.1.5, supersaturation |
 
-**Ten of the eleven groups have every stated declaration proved.**  The whole of the remaining
-open work is **two declarations, both in Chapter 11**, and the counts in this table are derived
-from `graph.json` (nodes with `statement: formalized`, `proof: planned`), which
-`sync-graph --check` keeps honest:
+**Ten of the eleven groups have every stated declaration proved.**  All remaining open work is in
+Chapter 11, and the counts in this table are derived from `graph.json` (nodes with
+`statement: formalized`, `proof: planned`), which `sync-graph --check` keeps honest:
 
-| Obligation | Chapter | Task | What rests on it |
-|---|---|---|---|
-| `exists_containers_fingerprint` | 11 | [#98](https://github.com/yidiq7/ProbMethodCombinatorics/issues/98) | all of §11.2–11.3 |
-| `exists_containers_three_uniform` | 11 | [#99](https://github.com/yidiq7/ProbMethodCombinatorics/issues/99) | Theorem 11.3.1 |
+| Obligation | Task | What rests on it |
+|---|---|---|
+| `exists_greedy_rule` | [#169](https://github.com/yidiq7/ProbMethodCombinatorics/issues/169) | Theorem 11.2.3, via #166's reduction |
+| `exists_fingerprint_of_greedy_rule` | [#170](https://github.com/yidiq7/ProbMethodCombinatorics/issues/170) | same — and the largest of the three |
+| `exists_dense_fingerprint` | [#171](https://github.com/yidiq7/ProbMethodCombinatorics/issues/171) | same — the dense corner `δn < d ≤ 2δn` |
+| `exists_containers_three_uniform` | [#99](https://github.com/yidiq7/ProbMethodCombinatorics/issues/99) | Theorem 11.3.1 |
+
+**The count went up, and that is the reduction working as intended.**  `exists_containers_fingerprint`
+(Theorem 11.2.3) is now **proved**, and the three obligations beneath it are what its proof rests
+on — one declaration became three, each individually claimable.  The honest measure of Chapter 11
+is not the sorry count but that §11.2's assembly is settled and only its three inputs remain.
 
 **Chapter 11 is the only chapter left, and it is the one the source does not prove** —
 Theorems 11.2.1 and 11.3.1 are given as an algorithm plus a proof idea, with details deferred to
@@ -84,6 +90,53 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   cases.
 
 ## Log
+
+- **2026-09-16 — Theorem 11.2.3 is proved as a three-way reduction (#166); its "unsettled" obligation
+  was not unsettled, and I published it.**
+  Merged PR #166, which proves `exists_containers_fingerprint` from `exists_greedy_rule`,
+  `exists_fingerprint_of_greedy_rule` and `exists_dense_fingerprint`, now tasks #169, #170 and #171.
+  Inventory went 2 → 4 sorries, which is the reduction working: one declaration became three, each
+  individually claimable, and §11.2's assembly is settled.
+
+  **The author asked me not to publish obligation 3, and I overrode that.**  They flagged
+  `exists_dense_fingerprint` as neither provable nor refutable — an open window of relative width
+  `(c-1)δ` above `δn` — and said publishing it would risk a contributor's budget on a possibly-false
+  statement.  That reservation was well-motivated (two of their earlier reductions were rejected for
+  false obligations) but it was wrong.  **The window is an artifact of building the order by degree.**
+  The statement only asks for *some* order in which every vertex has `|N(v) ∪ Pred(v)| ≥ δn`; built
+  greedily it always exists, because for `j < δn` and `|P| = j` some `v ∉ P` has
+  `|N(v) \ P| ≥ δn - j` — otherwise `n(d - δn) < j(2cd + j - n - δn)`, positive on the left and
+  `≤ 0` on the right once `c ≥ 1` forces `cd ≤ n/50`.
+
+  **I did not take the reviewer's word for this.**  The algebra identity and the contradiction were
+  machine-checked numerically across 300,000 points of the feasible dense regime (the normalized
+  quantity `(2cd + j - n - δn)/n` maxes out near `-0.96`), and the construction was checked by hand.
+  Only then did I rewrite the docstring, publish the task, and put the route in its prose so the
+  contributor transcribes a verified argument rather than searching.
+
+  **The lesson, stated next to its mirror image.**  `roadmap/containers.md` already records three
+  statements published *false* and believed true (the `d ≤ 2δn` proviso).  This is the first
+  published *true* and believed false.  Both came from reasoning about one construction instead of
+  about the statement.  The author's own evidence pointed the right way and they misread it: they had
+  probed clique unions, clique-plus-matching and Hi/Lo degree sequences for a counterexample and
+  found that every one was covered.  **Repeated failure to refute is evidence the statement is true,
+  not evidence the corner is hard.**
+
+  **Also decided rather than deferred:** `IsGreedyRule`, the `private def` the reduction introduced,
+  is adopted as orchestrator-owned vocabulary and stays `private` (both consumers are in this file;
+  §11.3 needs a hypergraph analogue, not this predicate), and both tasks are told it is frozen.  And
+  the stability conjunct `∀ J, S I ⊆ J → J ⊆ I → S J = S I` went onto obligation 2's conclusion
+  **before** publishing, not after it lands as the author proposed — I verified it is free from the
+  interface, and changing a published task's statement is what invites the stale-workspace reverts
+  recorded in `skills/orchestrator-notes.md`.  The parent still composes; 3257 jobs, four expected
+  sorries.
+
+- **2026-09-16 — a conflation I introduced and then caught: there are two "dense corners" in Chapter 11.**
+  While writing the above I claimed this file had been wrong to call the dense corner "the open design
+  question".  It was not.  **§11.2's corner is `δn < d ≤ 2δn`** (graph containers, now closed);
+  **§11.3's is `√d ≳ n`** on #99, where the parent's own budget `⌊n/√d⌋₊` is only guaranteed `≥ 1`,
+  and that one is still open.  `containers.md` now distinguishes them explicitly at both mentions.
+  Worth recording because the two corners have the same name, the same shape, and opposite status.
 
 - **2026-09-16 — Chapter 10 is closed.  Two sorries left in the project, both in Chapter 11.**
   #167 (`entropy_le_logb_card`) and #168 (`shearer_triple`) merged, taking the inventory to

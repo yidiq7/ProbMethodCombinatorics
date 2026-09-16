@@ -73,8 +73,17 @@ vertices, and `kill A v` is the set of vertices retired from `A` when `v` is sel
 * `kill A v ⊆ A` and `v ∉ kill A v`, so the selected vertex is retired separately from the
   vertices its selection retires.
 * As long as fewer than `2 * δ * n` vertices have been retired, selecting from an independent set
-  `I` retires at least `3 * d / 4` vertices, none of them in `I`. -/
-private def IsGreedyRule {n : ℕ} (G : SimpleGraph (Fin n)) (d δ : ℝ)
+  `I` retires at least `3 * d / 4` vertices, none of them in `I`.
+
+**This is public, and must stay public, even though only this file uses it.**  It appears in the
+*statements* of `exists_greedy_rule` and `exists_fingerprint_of_greedy_rule`, and on lean4 a
+`private` declaration in a published target's statement **silently disables the `comparator`
+audit**: Lean mangles private names with the module path (`_private.<Module>.0.<name>`), while
+comparator builds the base tree under a `ChoirBase.` module prefix, so the two sides reference
+different constants and every such PR fails with `statement-mismatch` no matter what it contains.
+It was `private` from PR #166 until 2026-09-16 and blocked PRs #173 and #174 for exactly that
+reason. -/
+def IsGreedyRule {n : ℕ} (G : SimpleGraph (Fin n)) (d δ : ℝ)
     (pick : Finset (Fin n) → Finset (Fin n) → Fin n)
     (kill : Finset (Fin n) → Fin n → Finset (Fin n)) : Prop :=
   (∀ A T : Finset (Fin n), T.Nonempty → pick A T ∈ T) ∧

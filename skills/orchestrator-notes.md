@@ -14,6 +14,33 @@ it.  Active guidance, not a changelog — resolved entries are pruned.
 
 ---
 
+## 2026-09-16 — If you flag an obligation as possibly false, say what you tried — and read your own evidence
+
+PR #166 reduced Theorem 11.2.3 to three obligations and flagged one, `exists_dense_fingerprint`,
+as neither provable nor refutable, asking that it not be published.  **The obligation is true, and
+the proof is about fifteen lines of counting.**  The task is published (#171) with the route in its
+prose.
+
+What went wrong is worth copying, because the author did almost everything right.  They probed
+clique unions, clique-plus-matching and Hi/Lo degree-sequence constructions for a counterexample,
+found that **every one was covered**, and reported honestly that there was "no refutation, but no
+proof either".  That report is what let the obstruction be located in minutes — so **flagging was
+the right call and is never held against you.**
+
+The misreading: they had fixed one construction (select the largest-degree vertex, kill its
+predecessors in *degree* order) and found a window where it fell one vertex short.  The window is a
+property of that construction, not of the statement, which only asks for *some* order in which
+every vertex has `|N(v) ∪ Pred(v)| ≥ δn`.  Built greedily instead of by degree, it always exists.
+
+Two things to take from it:
+
+- **Repeated failure to refute is evidence the statement is true.**  If your counterexample search
+  keeps getting covered, that is a signal to look for a proof, not a signal that the corner is hard.
+- **Separate "I cannot prove this" from "this looks false", and say which.**  They are different
+  reports and they get different answers (`orchestrator-review.md` makes the same distinction for
+  `choir-defect` comments).  "My construction leaves a window of width `(c-1)δ`" is a precise and
+  useful thing to say; "the obligation may be false" was an over-reading of it.
+
 ## 2026-09-15 — `statement-immutability` caught a branch silently reverting a statement repair
 
 Worth recording because it is the single most valuable red check the project has had, and because
