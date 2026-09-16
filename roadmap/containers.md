@@ -365,6 +365,32 @@ it is why those two could be worked in parallel.
 `degree_fromEdgeSet` is the bridge that lets the degree hypothesis be stated on the edge set and
 handed to §11.2 as a `SimpleGraph` degree bound.
 
+### Node 5: what has been ruled out
+
+Two cheap resolutions are gone; recording them so the next attempt starts past them.
+
+Write `d = α n²`, so the regime is `α` bounded away from `0`, up to the hard ceiling `α < 1/2`
+that `|H| ≤ C(n,3)` imposes.  The fingerprint budget `n/√d = 1/√α` is then **`Θ(1)`** — a
+fingerprint holds a bounded number of vertices however large `n` is.
+
+**The identity construction fails everywhere in the regime.**  The obvious move is `S I := I`,
+`A := ∅`, which satisfies every conjunct including stability whenever independent sets already fit
+the budget.  They do not.  A set spanning no edge leaves all `C(|I|,3)` of its triples out of `H`,
+so `d n / 3 ≤ C(n,3) - C(|I|,3)` and `|I|` can be as large as `n(1 - 2α)^{1/3}` — `Θ(n)` for every
+`α` bounded away from `1/2`, against a `Θ(1)` budget.  At `α = 0.2` and `n = 10⁶` that is an
+independent set of `843433` vertices against a budget of `2`.
+
+**Counting does not refute it either.**  With `B = Θ(1)` there are `~n^B` fingerprints, so the
+fingerprint contributes only `O(log n)` bits — 32 to 89 bits at `n = 10⁶` across the regime —
+against containers of `2^{(1-δ)n}` subsets each.  There is no pigeonhole obstruction; the covering
+has to come from the containers genuinely being small, not from having many of them.
+
+So node 5 is **neither trivially true nor refuted by counting**, which is exactly the state in
+which this chapter has twice guessed wrong.  The two known handles are the ceiling `α < 1/2` (the
+only regime where independent sets are forced small) and the possibility that the fingerprint form
+is simply false at `Θ(1)` budget and 11.3.1 needs a regime hypothesis it does not currently carry.
+Settle which before publishing anything here.
+
 **Node 5 — the regime the subroutine cannot reach — is orchestrator research, not a task.**  Node 4
 must carry a hypothesis keeping it inside `exists_containers`' range (`√d ≤ n/(50 · max c 1)`, or
 whatever constant is fixed).  The complementary window `n²/(2500c²) < d < n²/2` needs its own node,
