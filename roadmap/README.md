@@ -33,7 +33,7 @@ group file has a "planned, not stated" section saying which and why.
 | [`janson`](janson.md) | 8 | **all proved** | — |
 | [`concentration`](concentration.md) | 9 | **all proved** | martingales, Talagrand, TSP |
 | [`entropy`](entropy.md) | 10 | **all proved** | Sidorenko, Kahn–Zhao, Steiner |
-| [`containers`](containers.md) | 11 | 4 open | 11.1.3, 11.1.5, supersaturation |
+| [`containers`](containers.md) | 11 | 3 open | 11.1.3, 11.1.5, supersaturation |
 
 **Ten of the eleven groups have every stated declaration proved.**  All remaining open work is in
 Chapter 11, and the counts in this table are derived from `graph.json` (nodes with
@@ -43,13 +43,18 @@ Chapter 11, and the counts in this table are derived from `graph.json` (nodes wi
 |---|---|---|
 | `exists_greedy_rule` | [#169](https://github.com/yidiq7/ProbMethodCombinatorics/issues/169) | Theorem 11.2.3, via #166's reduction |
 | `exists_fingerprint_of_greedy_rule` | [#170](https://github.com/yidiq7/ProbMethodCombinatorics/issues/170) | same — and the largest of the three |
-| `exists_dense_fingerprint` | [#171](https://github.com/yidiq7/ProbMethodCombinatorics/issues/171) | same — the dense corner `δn < d ≤ 2δn` |
-| `exists_containers_three_uniform` | [#99](https://github.com/yidiq7/ProbMethodCombinatorics/issues/99) | Theorem 11.3.1 |
+| `exists_containers_fingerprint_three_uniform` | **not published — held** | Theorem 11.3.1, via #172's reduction |
 
-**The count went up, and that is the reduction working as intended.**  `exists_containers_fingerprint`
-(Theorem 11.2.3) is now **proved**, and the three obligations beneath it are what its proof rests
-on — one declaration became three, each individually claimable.  The honest measure of Chapter 11
-is not the sorry count but that §11.2's assembly is settled and only its three inputs remain.
+**Both container theorems are now proved, and all three remaining sorries are obligations beneath
+them.**  11.2.3 (`exists_containers_fingerprint`) rests on #169 and #170; 11.3.1
+(`exists_containers_three_uniform`) rests on the third.  §11.2's dense corner closed in #175.
+
+**The third is deliberately unpublished.**  It is 11.3.1's fingerprint form, and by its author's
+own account it carries all of that theorem's mathematical content plus an open design question —
+so it fails the reduction contract's "closable in one PR?" test.  [`containers.md`](containers.md)
+has the four-node split that should replace it, why the fifth node is orchestrator research rather
+than a task, and the standing caution that the interface must be **public** from its first commit.
+Holding it is an imminent-replan hold, the one sanctioned kind; do not publish it by reflex.
 
 **Chapter 11 is the only chapter left, and it is the one the source does not prove** —
 Theorems 11.2.1 and 11.3.1 are given as an algorithm plus a proof idea, with details deferred to
@@ -90,6 +95,49 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   cases.
 
 ## Log
+
+- **2026-09-16 — Theorem 11.3.1 proved from one obligation (#172), accepted via *amend*, and its child held unpublished.**
+  Both container theorems are now proved; all three remaining sorries are obligations beneath them.
+  I merged #172 rather than rejecting it because the ~34 lines of counting assembly are real,
+  kernel-checked content that has to exist either way — but I did **not** publish its child, and the
+  reasoning is worth keeping.
+
+  **The reduction contract's four questions did not all pass.**  The child says the right thing (its
+  hypothesis list is token-identical to the parent's, verified by diffing with the decl names
+  normalised away) and the split is formally real (child ⟹ parent by genuine counting, parent ⇏
+  child).  But **"is each child closable in one PR?" is a clear no**, and that alone decides
+  publication.  An independent review and the PR's own author converged on it separately: the child
+  carries all of 11.3.1's mathematical content, plus the open `√d ≳ n` corner, plus — in the corner —
+  a *strengthening* over the parent.  Publishing it would hand someone the hardest statement in the
+  project with a known-open design question inside it.
+
+  **The corner is now localized, which is the session's most useful piece of new mathematics.**  It
+  is not a vibe about `√d ≳ n`; it is `exists_containers`' own proviso failing.  That theorem at
+  parameter `c_G` yields `δ_G = 1/(100 · max c_G 1)` and demands `d_G ≤ 2 δ_G n = n/(50 · max c_G 1)`,
+  while at termination `d_G = 2e(G)/n = Ω(√d)` — so the subroutine is applicable only for
+  `d = O(n²/c_G²)`, against an a priori bound of only `d < n²/2`.  **A `Θ(n²)` window where the
+  graph container theorem cannot be applied to `G` at all.**  I verified the δ and the proviso in the
+  source.  It is the same `d ≤ 2δn` proviso that made `exists_containers` false before `1e4659a`,
+  biting one chapter later — which is the third time that single proviso has driven a design decision
+  in this project.
+
+  **Two things I checked rather than assumed, both of which mattered:**
+  - **`sync-graph` did not over-record the cross-chapter edge.**  `hypergraph_container`'s
+    `proof_uses` came back as the child alone, not `graph_container` — correct, since #172's proof
+    calls `exists_containers` nowhere.  Had it recorded that edge, a chapter resting on an open proof
+    would compute as complete.  Note this *replaced* a hand-written planned edge to `graph_container`;
+    the intended dependency now lives in `containers.md`'s prose and will reappear as node 4 of the
+    real split.
+  - **`IsGreedyRule` survived the merge public.**  #172's base was two commits behind and one of
+    those commits edits the same file, which is the #146 shape exactly.  Confirmed post-merge.
+
+  Amended in the file: the new theorem had been inserted *above* the `### 11.3` header (so 11.3's
+  fingerprint form was filed under §11.2), and its docstring asserted "both ends are comfortable",
+  conflating "budget never collapses" (proved) with "budget ≥ 2" (false for `n²/4 < d`).  Both fixed.
+
+  **One decision deliberately deferred**, and safe only because the node is unpublished: whether the
+  child carries §11.2's stability conjunct.  Nothing needs it today.  Reshaping an unpublished node is
+  free; changing a published task's statement is not.
 
 - **2026-09-16 — the dense corner is proved (#175), and publishing it over its author's objection was right.**
   `exists_dense_fingerprint` merged, 0 axioms / 3 sorries.  The contributor followed the greedy-order

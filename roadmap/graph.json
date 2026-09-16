@@ -1738,12 +1738,12 @@
       "decl": "ProbMethodCombinatorics.exists_containers_three_uniform",
       "doc": "containers.md#113-the-hypergraph-container-theorem",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "containers_maxCodegree"
       ],
       "proof_uses": [
-        "graph_container"
+        "exists_containers_fingerprint_three_uniform"
       ]
     },
     "container_triangle_free": {
@@ -3714,6 +3714,18 @@
       "proof": "planned",
       "uses": [
         "IsGreedyRule"
+      ],
+      "proof_uses": []
+    },
+    "exists_containers_fingerprint_three_uniform": {
+      "kind": "theorem",
+      "parent": "containers",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.exists_containers_fingerprint_three_uniform",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "containers_maxCodegree"
       ],
       "proof_uses": []
     }
