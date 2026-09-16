@@ -3837,12 +3837,18 @@
     },
     "exists_fingerprint_of_dense_pairs": {
       "kind": "theorem",
+      "parent": "containers",
       "file": "ProbMethodCombinatorics/Containers.lean",
       "decl": "ProbMethodCombinatorics.exists_fingerprint_of_dense_pairs",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
-      "proof_uses": []
+      "proof_uses": [
+        "IsGreedyRule",
+        "degree_fromEdgeSet",
+        "exists_fingerprint_of_greedy_rule",
+        "exists_greedy_rule"
+      ]
     }
   }
 }

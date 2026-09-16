@@ -33,7 +33,7 @@ group file has a "planned, not stated" section saying which and why.
 | [`janson`](janson.md) | 8 | **all proved** | — |
 | [`concentration`](concentration.md) | 9 | **all proved** | martingales, Talagrand, TSP |
 | [`entropy`](entropy.md) | 10 | **all proved** | Sidorenko, Kahn–Zhao, Steiner |
-| [`containers`](containers.md) | 11 | 3 open | 11.1.3, 11.1.5, supersaturation |
+| [`containers`](containers.md) | 11 | 2 open | 11.1.3, 11.1.5, supersaturation |
 
 **Ten of the eleven groups have every stated declaration proved.**  All remaining open work is in
 Chapter 11, and the counts in this table are derived from `graph.json` (nodes with
@@ -49,7 +49,6 @@ Chapter 11, and the counts in this table are derived from `graph.json` (nodes wi
 | Obligation | Task | What rests on it |
 |---|---|---|
 | `exists_container_round` | [#176](https://github.com/yidiq7/ProbMethodCombinatorics/issues/176) | §11.3's run, and through it Theorem 11.3.1 |
-| `exists_fingerprint_of_dense_pairs` | [#177](https://github.com/yidiq7/ProbMethodCombinatorics/issues/177) | §11.3's dense branch — the only cross-chapter dependency |
 | `exists_containers_fingerprint_three_uniform` | **not published — held** | Theorem 11.3.1, via #172's reduction |
 
 It is 11.3.1's fingerprint form, and by its author's own account it carries all of that theorem's
@@ -98,6 +97,28 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   cases.
 
 ## Log
+
+- **2026-09-16 — §11.3's dense branch is proved (#178), and the loop ran itself to get there.**
+  `exists_fingerprint_of_dense_pairs` merged about twenty minutes after being published; 0 axioms,
+  2 sorries.  Both §11.3 tasks were claimed within five minutes of publication, which is the
+  clearest evidence yet that **the decomposition was the bottleneck, not contributor capacity** —
+  the board had been empty because nothing was authored, not because nobody was working.
+
+  The proof is honest glue: zero new declarations, both δ-parametric obligations called at the
+  prescribed constants, stability passed through from the obligation rather than reproved, and
+  `S`/`A` destructured before `I` is introduced so `A` cannot close over it.  Every arithmetic
+  chain closed at the slack predicted before publishing — `hδc` exactly, `hdegG` tight at the
+  worst case, the rest with factors of 5, 50 and 10⁶.
+
+  **The review's most useful output was three criticisms of what I authored**, which is what it was
+  asked for: `hc : 0 < c` is dead (left alone rather than restate a just-merged declaration), the
+  independence hypothesis is formally stronger than `IsIndepSet` (free given `hdiag`), and the
+  docstring over-promised `degree_fromEdgeSet`.  That last one cost the contributor ~28 lines and
+  is recorded as its own lesson in `orchestrator-log.md`.
+
+  Worth keeping: the obligation returns `(1 - 1/(10⁴M²))n` while the statement claims only
+  `(1 - 1/(10¹⁰M⁴))n`.  The sharper constant is proved and currently discarded, available if the
+  composite ever needs it.
 
 - **2026-09-16 — §11.3's round interface is authored and its first node published (#176).**
   `IsContainerRound` and `exists_container_round` are in the file and build; the chapter's

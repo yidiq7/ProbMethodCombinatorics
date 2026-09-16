@@ -3,6 +3,30 @@
 How to run the loop on this project.  Mine, not a worker's: `skills/` is force-loaded
 into every worker's context, so nothing here belongs there.
 
+## "Lemma X bridges this" — check the two forms match *syntactically* before writing it
+
+I proved `degree_fromEdgeSet` in the `univ.filter fun u => s(v, u) ∈ F` form, then stated
+`exists_fingerprint_of_dense_pairs`'s degree hypothesis over `F.filter fun e => v ∈ e`, and told
+the contributor in the docstring and the task prose that the lemma "bridges the degree hypothesis
+to the `SimpleGraph` form §11.2 wants".  The two cardinalities are equal but **not
+definitionally**, so it cost them a `card_bij` plus the full handshake — about 28 lines my prose
+implied were already done.
+
+The failure is specific and repeatable: I wrote the bridging lemma and the consuming statement in
+separate sittings and checked that they were *about* the same quantity rather than that one
+`rw`s into the other.  **When prose promises that a named lemma discharges a hypothesis, put the
+lemma's conclusion and the hypothesis side by side and confirm the rewrite, or say plainly which
+connecting step the contributor still owns.**  Over-promising costs more than saying nothing: a
+contributor who is told the bridge exists spends their first hour looking for the one-liner.
+
+This is the same class of defect as the stale `Nat.succ_mul_choose_eq` and the "both ends are
+comfortable" claim, except that those were inherited and this one I authored this session while
+cataloguing the others.
+
+**When it happens, promote the contributor's connecting lemmas into the file** rather than leaving
+them inside one proof, so the next consumer does not pay again.
+
+
 ## `~/.local/bin/choir` is shared state and may point at a worker's clone
 
 The `choir` on PATH is a one-line shim written by whichever Choir setup ran last. On this machine
