@@ -91,6 +91,50 @@ edge-count bound the book proves, so the edge-count bound stays a task.
 
 ## Log
 
+- **2026-09-16 — the dense corner is proved (#175), and publishing it over its author's objection was right.**
+  `exists_dense_fingerprint` merged, 0 axioms / 3 sorries.  The contributor followed the greedy-order
+  route published in the task prose: `hstep` states the extension lemma with `P` universal and no
+  extra side condition, the double count is the honest `P`–`Pᶜ` edge count in `ℕ`
+  (`Finset.sum_sdiff` + `card_sdiff_add_card_inter`, with the factor 2 present), `c ≥ 1` is derived
+  from `hsum` + `hdeg` rather than assumed, and the `⌈δn⌉` boundary uses `Nat.lt_ceil` in the
+  direction that gives the strict real bound at the last step.  **Zero new top-level declarations** —
+  the whole argument is inline, so there is no worker-authored statement to audit.
+
+  **Worth stating plainly: the reduction's author believed this obligation might be false and asked
+  that it not be published, and they were wrong.**  Verifying the mathematics myself before
+  overriding them was the step that made the override legitimate rather than reckless — and the
+  contributor then closed it in one PR.  The cost of having deferred to the author's reservation
+  would have been an indefinite hold on a provable node.
+
+- **2026-09-16 — `private` in a published statement silently disables `comparator`.  My mistake, and the most expensive one of the session.**
+  PRs #173 and #174 both failed `comparator` with `statement-mismatch` while every other check,
+  `statement-immutability` included, was green — and neither diff touched a statement.  Cause:
+  Lean 4 mangles private names with the **module path** (verified directly — `private def
+  myPrivateFoo` compiles to `_private._stdin.0.myPrivateFoo`), and comparator builds the base tree
+  under a `ChoirBase.` module prefix, so challenge and solution reference different constants for
+  `IsGreedyRule` and the statements cannot match as kernel terms for *any* diff.
+
+  **`gate/verify/comparator.py`'s header states the assumption that fails**: the mapping is argued
+  sound because "Renaming modules never renames *declarations* (Lean decl names come from
+  namespaces, not file paths)".  True of public declarations only.  Reported to the overseer as an
+  upstream Choir bug; not patched locally, since `~/.choir/checkout` is shared by every project on
+  this machine.
+
+  **I made this hole this morning**, adopting `IsGreedyRule` as `private` when ratifying #166 on the
+  reasoning that both consumers lived in one file.  That reasoning was about namespace tidiness and
+  it cost the project its strongest gate on two targets.  Now public (`eda593c`); no proof text
+  changed, so both PRs need only a rebase, which they were told.
+  **Rule: anything reachable from a published statement is public, however local it looks.**
+  The tell, if it recurs: `comparator` red, `statement-immutability` green, no statement in the diff.
+
+- **2026-09-16 — `choir worker heartbeat` is a no-op; a contributor found it and I confirmed it.**
+  `cmd_heartbeat` passes no `session`, its subparser has no `--session` and does not resolve the
+  workspace, and the holder check compares the `(login, session)` *pair* against a lease whose
+  `holder_session` is always a real id — so it returns before writing, every time.  Consequences
+  recorded for workers in `skills/orchestrator-notes.md`: **`refreshed: false` carries no
+  information**, and a lease goes stale at 24h despite correct heartbeating, so a stale-reclaim can
+  land on actively-worked code.  Upstream fix is the overseer's call.
+
 - **2026-09-16 — Theorem 11.2.3 is proved as a three-way reduction (#166); its "unsettled" obligation
   was not unsettled, and I published it.**
   Merged PR #166, which proves `exists_containers_fingerprint` from `exists_greedy_rule`,
