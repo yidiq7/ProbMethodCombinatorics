@@ -3711,7 +3711,7 @@
       "file": "ProbMethodCombinatorics/Containers.lean",
       "decl": "ProbMethodCombinatorics.exists_greedy_rule",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "IsGreedyRule"
       ],

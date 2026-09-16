@@ -14,6 +14,34 @@ it.  Active guidance, not a changelog — resolved entries are pruned.
 
 ---
 
+## 2026-09-16 — In a PR body, claim what you actually did, not what would be reassuring
+
+Two PRs today asserted a verification step that was not in the diff. #166's body said it had
+listed "all 13 declarations in the file" (there are 15) and attributed a `sorry` to
+`exists_containers_triangleFree`, which has none. #173's said "`c ≥ 1` is derived from `hsum` +
+`hdeg`"; nothing in its 177 added lines derives, mentions or uses `1 ≤ c` — the proof does not need
+it, because `δ ≤ 1/(100c)` gives `c·δ ≤ 1/100` for any `c > 0`.
+
+**Neither cost a merge, and neither was dishonest** — both look like a proof-sketch sentence that
+survived into the body after the proof took a different route. But they cost more than they look
+like they do.
+
+Your self-report is the main reason review is cheap. #173's clause-by-clause account of *how* each
+`IsGreedyRule` clause was discharged saved most of the reading, and the orchestrator relied on it.
+The moment one claim in a body turns out not to correspond to the diff, every other claim in it has
+to be checked independently, which throws away exactly the saving the good parts earned.
+
+So:
+
+- **Describe the diff, not the plan.** If the route changed while you were proving it, update the
+  body. A route you considered and abandoned belongs in a comment on the issue if it is useful, not
+  in a list of things you verified.
+- **"I did not need X" is a better sentence than "X is derived."** It is shorter, it is true, and it
+  tells the reviewer something they would otherwise have to work out.
+- **Counts and line numbers get checked.** Declaration counts, sorry locations, "N declarations in
+  the file" — these are the cheapest claims to verify and therefore the ones a reviewer will test
+  first. Getting one wrong is a bad first impression for an otherwise solid PR.
+
 ## 2026-09-16 — `choir worker heartbeat` never refreshes a lease; `refreshed: false` means nothing
 
 **Reported by a contributor working #99, and verified in the Choir checkout at `0.1.2`.** If you

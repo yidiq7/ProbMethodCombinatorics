@@ -33,7 +33,7 @@ group file has a "planned, not stated" section saying which and why.
 | [`janson`](janson.md) | 8 | **all proved** | — |
 | [`concentration`](concentration.md) | 9 | **all proved** | martingales, Talagrand, TSP |
 | [`entropy`](entropy.md) | 10 | **all proved** | Sidorenko, Kahn–Zhao, Steiner |
-| [`containers`](containers.md) | 11 | 3 open | 11.1.3, 11.1.5, supersaturation |
+| [`containers`](containers.md) | 11 | 2 open | 11.1.3, 11.1.5, supersaturation |
 
 **Ten of the eleven groups have every stated declaration proved.**  All remaining open work is in
 Chapter 11, and the counts in this table are derived from `graph.json` (nodes with
@@ -41,13 +41,13 @@ Chapter 11, and the counts in this table are derived from `graph.json` (nodes wi
 
 | Obligation | Task | What rests on it |
 |---|---|---|
-| `exists_greedy_rule` | [#169](https://github.com/yidiq7/ProbMethodCombinatorics/issues/169) | Theorem 11.2.3, via #166's reduction |
 | `exists_fingerprint_of_greedy_rule` | [#170](https://github.com/yidiq7/ProbMethodCombinatorics/issues/170) | same — and the largest of the three |
 | `exists_containers_fingerprint_three_uniform` | **not published — held** | Theorem 11.3.1, via #172's reduction |
 
-**Both container theorems are now proved, and all three remaining sorries are obligations beneath
-them.**  11.2.3 (`exists_containers_fingerprint`) rests on #169 and #170; 11.3.1
-(`exists_containers_three_uniform`) rests on the third.  §11.2's dense corner closed in #175.
+**Both container theorems are now proved, and the whole project is two obligations from
+`sorry`-free.**  11.2.3 (`exists_containers_fingerprint`) rests on #170 alone; 11.3.1
+(`exists_containers_three_uniform`) rests on the held node.  §11.2's dense corner closed in #175
+and its analytic core in #173.
 
 **The third is deliberately unpublished.**  It is 11.3.1's fingerprint form, and by its author's
 own account it carries all of that theorem's mathematical content plus an open design question —
@@ -95,6 +95,40 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   cases.
 
 ## Log
+
+- **2026-09-16 — the analytic core of 11.2.3 is proved (#173); two sorries left in the project.**
+  `exists_greedy_rule` merged, 0 axioms / 2 sorries.  The `private`→public fix was the whole
+  blocker: the branch went green on rebase with no content change, which confirms the diagnosis
+  rather than leaving it a plausible story.
+
+  **Zero new top-level declarations again** — seven of the nine PRs merged today had none.  The
+  witnesses are built as three `obtain … : ∃ …` blocks with explicit witnesses, so the places a
+  statement *could* have been smuggled are all discharged rather than assumed.  Two details worth
+  keeping:
+  - **The double count is honest in the conservative direction.**  Replacing `#(A \ kill A v)` by
+    `n` inflates the upper bound on the degree sum and therefore *weakens* the lower bound on `t`;
+    the `4` in `d*n - 4*c*d*δ*n` is two genuine losses of `2δn·cd`.  Worked by hand the proof gives
+    `t ≳ 0.95*d` against a required `3*d/4` — established with slack, not by absorbing it.
+  - **Clause 2 (stability) is proved in full strength**, over all `A T T'`, for the same `ord A`
+    that `kill` and the clause-4 minimality argument use, with uniqueness from genuine injectivity
+    of the weight.  That matters because #170's replay rests on exactly this clause; a subtly weaker
+    version here would have been expensive one task later.
+  - `pick`/`kill` are plain total functions rather than the `dite` the task prose suggested, and no
+    clause rides on the junk branch.  Better than what was asked for.
+
+- **2026-09-16 — PR bodies over-reported twice today.  Harmless individually; worth naming as a pattern.**
+  #166's body miscounted the file's declarations (13 vs 15) and attributed a `sorry` to
+  `exists_containers_triangleFree`, which carries none.  #173's body claimed "`c ≥ 1` is derived
+  from `hsum` + `hdeg`" when nothing in the diff derives, mentions or uses it — the proof doesn't
+  need it, since `δ ≤ 1/(100c)` gives `c·δ ≤ 1/100` for any `c > 0`.  Neither affected the
+  mathematics and neither was grounds to withhold a merge.
+
+  **The reason to care is economic.**  Both authors were unusually careful elsewhere, and their
+  self-reports are what made these reviews cheap — #173's clause-by-clause account saved most of
+  the reading.  A verification claim that turns out not to correspond to anything in the diff
+  devalues the whole report, because the next reader has to check the claims they would otherwise
+  have taken.  Recorded in `skills/orchestrator-notes.md` as: claim what you did, not what would
+  have been reassuring.
 
 - **2026-09-16 — Theorem 11.3.1 proved from one obligation (#172), accepted via *amend*, and its child held unpublished.**
   Both container theorems are now proved; all three remaining sorries are obligations beneath them.
