@@ -107,6 +107,177 @@ theorem exists_greedy_rule (c d δ : ℝ) (hc : 0 < c) (hδ : 0 < δ) (hδc : δ
       (kill : Finset (Fin n) → Fin n → Finset (Fin n)), IsGreedyRule G d δ pick kill := by
   sorry
 
+/-- One run of the greedy container algorithm on the target set `T`.  The state is the pair
+`(X, P)` of retired and selected vertices, the alive set being `(X ∪ P)ᶜ`; a step selects `pick`
+of the alive part of `T`, adds it to `P` and its `kill` set to `X`.  The run halts once `b`
+vertices are retired or nothing of `T` is alive, and `fuel` bounds the number of steps. -/
+private def greedyRun {n : ℕ} (pick : Finset (Fin n) → Finset (Fin n) → Fin n)
+    (kill : Finset (Fin n) → Fin n → Finset (Fin n)) (b : ℕ) (T : Finset (Fin n)) :
+    ℕ → Finset (Fin n) → Finset (Fin n) → Finset (Fin n) × Finset (Fin n)
+  | 0, X, P => (X, P)
+  | fuel + 1, X, P =>
+    if b ≤ X.card then (X, P)
+    else if (T ∩ (X ∪ P)ᶜ).Nonempty then
+      greedyRun pick kill b T fuel
+        (X ∪ kill (X ∪ P)ᶜ (pick (X ∪ P)ᶜ (T ∩ (X ∪ P)ᶜ)))
+        (insert (pick (X ∪ P)ᶜ (T ∩ (X ∪ P)ᶜ)) P)
+    else (X, P)
+
+/-- Both components of the state of `greedyRun` only ever grow. -/
+private theorem greedyRun_grows {n : ℕ} (pick : Finset (Fin n) → Finset (Fin n) → Fin n)
+    (kill : Finset (Fin n) → Fin n → Finset (Fin n)) (b : ℕ) (T : Finset (Fin n)) (fuel : ℕ) :
+    ∀ X P : Finset (Fin n), X ⊆ (greedyRun pick kill b T fuel X P).1 ∧
+      P ⊆ (greedyRun pick kill b T fuel X P).2 := by
+  induction fuel with
+  | zero => exact fun X P => ⟨Finset.Subset.refl _, Finset.Subset.refl _⟩
+  | succ fuel ih =>
+    intro X P
+    rw [greedyRun]
+    split_ifs with h1 h2
+    · exact ⟨Finset.Subset.refl _, Finset.Subset.refl _⟩
+    · exact ⟨Finset.subset_union_left.trans (ih _ _).1,
+        (Finset.subset_insert _ _).trans (ih _ _).2⟩
+    · exact ⟨Finset.Subset.refl _, Finset.Subset.refl _⟩
+
+/-- **The run is replayed by the set of vertices it selects.**  Shrinking the target to any `J`
+that still contains every selected vertex leaves the run unchanged: stability of `pick` forces
+the same selection at every step, and the two runs halt together. -/
+private theorem greedyRun_replay {n : ℕ} (pick : Finset (Fin n) → Finset (Fin n) → Fin n)
+    (kill : Finset (Fin n) → Fin n → Finset (Fin n))
+    (hpick : ∀ A T : Finset (Fin n), T.Nonempty → pick A T ∈ T)
+    (hstab : ∀ A T T' : Finset (Fin n), T' ⊆ T → pick A T ∈ T' → pick A T' = pick A T)
+    (b fuel : ℕ) :
+    ∀ T J X P : Finset (Fin n), (greedyRun pick kill b T fuel X P).2 ⊆ J → J ⊆ T →
+      greedyRun pick kill b J fuel X P = greedyRun pick kill b T fuel X P := by
+  induction fuel with
+  | zero => exact fun T J X P _ _ => rfl
+  | succ fuel ih =>
+    intro T J X P hSJ hJT
+    have hstep : ∀ T' : Finset (Fin n),
+        greedyRun pick kill b T' (fuel + 1) X P =
+          if b ≤ X.card then (X, P)
+          else if (T' ∩ (X ∪ P)ᶜ).Nonempty then
+            greedyRun pick kill b T' fuel
+              (X ∪ kill (X ∪ P)ᶜ (pick (X ∪ P)ᶜ (T' ∩ (X ∪ P)ᶜ)))
+              (insert (pick (X ∪ P)ᶜ (T' ∩ (X ∪ P)ᶜ)) P)
+          else (X, P) := fun T' => by rw [greedyRun]
+    rw [hstep T] at hSJ
+    rw [hstep J, hstep T]
+    by_cases h1 : b ≤ X.card
+    · simp only [if_pos h1]
+    simp only [if_neg h1] at hSJ ⊢
+    by_cases h2 : (T ∩ (X ∪ P)ᶜ).Nonempty
+    · simp only [if_pos h2] at hSJ ⊢
+      have hvT : pick (X ∪ P)ᶜ (T ∩ (X ∪ P)ᶜ) ∈ T ∩ (X ∪ P)ᶜ := hpick _ _ h2
+      have hvJ : pick (X ∪ P)ᶜ (T ∩ (X ∪ P)ᶜ) ∈ J :=
+        hSJ ((greedyRun_grows pick kill b T fuel _ _).2 (Finset.mem_insert_self _ _))
+      have hvJA : pick (X ∪ P)ᶜ (T ∩ (X ∪ P)ᶜ) ∈ J ∩ (X ∪ P)ᶜ :=
+        Finset.mem_inter.mpr ⟨hvJ, (Finset.mem_inter.mp hvT).2⟩
+      have h2J : (J ∩ (X ∪ P)ᶜ).Nonempty := ⟨_, hvJA⟩
+      rw [if_pos h2J, hstab (X ∪ P)ᶜ (T ∩ (X ∪ P)ᶜ) (J ∩ (X ∪ P)ᶜ)
+        (Finset.inter_subset_inter_right hJT) hvJA]
+      exact ih T J _ _ hSJ hJT
+    · have h2J : ¬ (J ∩ (X ∪ P)ᶜ).Nonempty := by
+        rintro ⟨x, hx⟩
+        rw [Finset.mem_inter] at hx
+        exact h2 ⟨x, Finset.mem_inter.mpr ⟨hJT hx.1, hx.2⟩⟩
+      simp only [if_neg h2, if_neg h2J]
+
+/-- **The invariants carried by one run of the greedy algorithm on an independent set `I`.**
+Along the run the retired set `X` misses `I` (so the selected vertices are all that `I` can
+have inside `X ∪ P`), the fingerprint `P` stays inside `I` and disjoint from `X`, at least one
+and indeed at least `3 * d / 4` vertices are retired per selection, and the selections made
+before the last cost at most the budget `b - 1`.  The run halts either with the budget spent or
+with nothing of `I` left alive, never for want of fuel, because `b ≤ fuel + X.card` is an
+invariant too. -/
+private theorem greedyRun_invariants {n : ℕ} {G : SimpleGraph (Fin n)} {d δ : ℝ}
+    {pick : Finset (Fin n) → Finset (Fin n) → Fin n}
+    {kill : Finset (Fin n) → Fin n → Finset (Fin n)}
+    (hrule : IsGreedyRule G d δ pick kill) (hd : 0 < d) {b : ℕ}
+    (hb : (b : ℝ) - 1 < δ * n) {I : Finset (Fin n)}
+    (hI : G.IsIndepSet (I : Set (Fin n))) (fuel : ℕ) :
+    ∀ X P Y Q : Finset (Fin n), greedyRun pick kill b I fuel X P = (Y, Q) →
+      Disjoint X I → P ⊆ I → Disjoint X P → P.card ≤ X.card →
+      3 * d / 4 * (P.card : ℝ) ≤ X.card →
+      (P.card = 0 ∨ 3 * d / 4 * ((P.card : ℝ) - 1) ≤ (b : ℝ) - 1) →
+      b ≤ fuel + X.card →
+      Disjoint Y I ∧ P ⊆ Q ∧ Q ⊆ I ∧ Disjoint Y Q ∧ Q.card ≤ Y.card ∧
+        3 * d / 4 * (Q.card : ℝ) ≤ Y.card ∧
+        (Q.card = 0 ∨ 3 * d / 4 * ((Q.card : ℝ) - 1) ≤ (b : ℝ) - 1) ∧
+        (b ≤ Y.card ∨ I ⊆ Y ∪ Q) := by
+  obtain ⟨hmem, -, hkill, hstep⟩ := hrule
+  induction fuel with
+  | zero =>
+    intro X P Y Q hrun hXI hPI hXP hle hinv hbud hfuel
+    rw [greedyRun, Prod.mk.injEq] at hrun
+    obtain ⟨rfl, rfl⟩ := hrun
+    exact ⟨hXI, Finset.Subset.refl _, hPI, hXP, hle, hinv, hbud, Or.inl (by omega)⟩
+  | succ fuel ih =>
+    intro X P Y Q hrun hXI hPI hXP hle hinv hbud hfuel
+    rw [greedyRun] at hrun
+    by_cases h1 : b ≤ X.card
+    · rw [if_pos h1, Prod.mk.injEq] at hrun
+      obtain ⟨rfl, rfl⟩ := hrun
+      exact ⟨hXI, Finset.Subset.refl _, hPI, hXP, hle, hinv, hbud, Or.inl h1⟩
+    rw [if_neg h1] at hrun
+    by_cases h2 : (I ∩ (X ∪ P)ᶜ).Nonempty
+    · rw [if_pos h2] at hrun
+      set A : Finset (Fin n) := (X ∪ P)ᶜ with hA
+      set v : Fin n := pick A (I ∩ A) with hv
+      have hvIA : v ∈ I ∩ A := hmem _ _ h2
+      have hvI : v ∈ I := (Finset.mem_inter.mp hvIA).1
+      have hvXP : v ∉ X ∪ P := Finset.mem_compl.mp (hA ▸ (Finset.mem_inter.mp hvIA).2)
+      have hvX : v ∉ X := fun h => hvXP (Finset.mem_union_left _ h)
+      have hvP : v ∉ P := fun h => hvXP (Finset.mem_union_right _ h)
+      have hkXP : Disjoint (kill A v) (X ∪ P) :=
+        Finset.disjoint_left.mpr fun a ha hb' => Finset.mem_compl.mp (hA ▸ (hkill A v).1 ha) hb'
+      obtain ⟨hkX, hkP⟩ := Finset.disjoint_union_right.mp hkXP
+      -- the entry condition turns the budget test into the hypothesis `IsGreedyRule` wants
+      have hXb : (X.card : ℝ) ≤ (b : ℝ) - 1 := by
+        have h : (X.card : ℝ) + 1 ≤ (b : ℝ) := by
+          have : X.card + 1 ≤ b := by omega
+          exact_mod_cast this
+        linarith
+      have hAc : ((Aᶜ).card : ℝ) ≤ 2 * δ * n := by
+        rw [hA, compl_compl]
+        have h : (X ∪ P).card ≤ X.card + P.card := Finset.card_union_le _ _
+        have h' : ((X ∪ P).card : ℝ) ≤ (X.card : ℝ) + (P.card : ℝ) := by exact_mod_cast h
+        have h'' : ((P.card : ℝ)) ≤ (X.card : ℝ) := by exact_mod_cast hle
+        linarith
+      obtain ⟨hdisj, hcard34⟩ := hstep A hAc I hI h2
+      have hkpos : 1 ≤ (kill A v).card := by
+        rcases Nat.eq_zero_or_pos (kill A v).card with h | h
+        · rw [h] at hcard34; norm_num at hcard34; linarith
+        · exact h
+      have hcX : (X ∪ kill A v).card = X.card + (kill A v).card :=
+        Finset.card_union_of_disjoint (Finset.disjoint_left.mpr
+          fun a ha hb' => Finset.disjoint_left.mp hkX hb' ha)
+      have hcP : (insert v P).card = P.card + 1 := Finset.card_insert_of_notMem hvP
+      have hk34 : 3 * d / 4 ≤ ((kill A v).card : ℝ) := hcard34
+      obtain ⟨g1, g2, g3, g4, g5, g6, g7, g8⟩ :=
+        ih (X ∪ kill A v) (insert v P) Y Q hrun
+          (Finset.disjoint_union_left.mpr ⟨hXI, hdisj⟩)
+          (Finset.insert_subset hvI hPI)
+          (Finset.disjoint_union_left.mpr
+            ⟨Finset.disjoint_insert_right.mpr ⟨hvX, hXP⟩,
+             Finset.disjoint_insert_right.mpr ⟨(hkill A v).2, hkP⟩⟩)
+          (by rw [hcX, hcP]; omega)
+          (by
+            rw [hcX, hcP]
+            push_cast
+            linarith)
+          (Or.inr (by
+            rw [hcP]
+            push_cast
+            linarith))
+          (by rw [hcX]; omega)
+      exact ⟨g1, (Finset.subset_insert _ _).trans g2, g3, g4, g5, g6, g7, g8⟩
+    · rw [if_neg h2, Prod.mk.injEq] at hrun
+      obtain ⟨rfl, rfl⟩ := hrun
+      refine ⟨hXI, Finset.Subset.refl _, hPI, hXP, hle, hinv, hbud, Or.inr fun x hx => ?_⟩
+      by_contra hxc
+      exact h2 ⟨x, Finset.mem_inter.mpr ⟨hx, Finset.mem_compl.mpr hxc⟩⟩
+
 /-- **The container algorithm assembled from its greedy step.**  Running a greedy rule from the
 alive set `Finset.univ` and the empty fingerprint produces the fingerprint function `S` and the
 container function `A` of Theorem 11.2.3 in the regime `d ≤ δ * n`.
@@ -152,7 +323,94 @@ theorem exists_fingerprint_of_greedy_rule (c d δ : ℝ) (hc : 0 < c) (hδ : 0 <
         ((S I).card : ℝ) ≤ 2 * δ * n / d ∧
         ((S I ∪ A (S I)).card : ℝ) ≤ (1 - δ) * n ∧
         ∀ J : Finset (Fin n), S I ⊆ J → J ⊆ I → S J = S I := by
-  sorry
+  have hn0 : (0 : ℝ) ≤ (n : ℝ) := Nat.cast_nonneg n
+  have hδn0 : (0 : ℝ) ≤ δ * n := by positivity
+  -- the budget: a natural number squeezed against `δ * n` from both sides
+  obtain ⟨b, hb, hbge⟩ : ∃ b : ℕ, (b : ℝ) - 1 < δ * n ∧ δ * (n : ℝ) ≤ (b : ℝ) :=
+    ⟨⌈δ * (n : ℝ)⌉₊, by linarith [Nat.ceil_lt_add_one hδn0], Nat.le_ceil _⟩
+  have hmem := hrule.1
+  have hstab := hrule.2.1
+  refine ⟨fun J => (greedyRun pick kill b J b ∅ ∅).2,
+    fun J => if b ≤ (greedyRun pick kill b J b ∅ ∅).1.card then
+      ((greedyRun pick kill b J b ∅ ∅).1 ∪ (greedyRun pick kill b J b ∅ ∅).2)ᶜ else ∅,
+    fun I hI => ?_⟩
+  obtain ⟨X, P, hXP⟩ : ∃ X P, greedyRun pick kill b I b ∅ ∅ = (X, P) := ⟨_, _, rfl⟩
+  obtain ⟨hXI, -, hPI, hdXP, hle, hinv1, hinv2, hhalt⟩ :=
+    greedyRun_invariants hrule hd hb hI b ∅ ∅ X P hXP (by simp) (by simp) (by simp)
+      (by simp) (by simp) (Or.inl (by simp)) (by simp)
+  -- replaying the run on the fingerprint reproduces it, which is both how `A` sees the
+  -- container and how the stability conjunct is discharged
+  have hRP : greedyRun pick kill b P b ∅ ∅ = (X, P) :=
+    (greedyRun_replay pick kill hmem hstab b b I P ∅ ∅
+      (by rw [hXP]) hPI).trans hXP
+  have hlast : ∀ J : Finset (Fin n), P ⊆ J → J ⊆ I →
+      (greedyRun pick kill b J b ∅ ∅).2 = P := fun J hPJ hJI => by
+    rw [greedyRun_replay pick kill hmem hstab b b I J ∅ ∅
+      (by rw [hXP]; exact hPJ) hJI, hXP]
+  have hPX : (P.card : ℝ) ≤ (X.card : ℝ) := by exact_mod_cast hle
+  have hXn : X.card ≤ n := by simpa using Finset.card_le_univ X
+  -- the budget arithmetic: `m - 1` selections cost `3 * d / 4` each out of `δ * n`
+  have hcardS : (P.card : ℝ) ≤ 2 * δ * n / d := by
+    rw [le_div_iff₀ hd]
+    rcases hinv2 with h0 | h2
+    · rw [h0]; push_cast; nlinarith
+    · rcases le_or_gt (3 * d) (2 * (δ * n)) with h3 | h3
+      · nlinarith
+      · have hlt3 : (P.card : ℝ) < 3 := by nlinarith
+        have hlt3' : (P.card : ℝ) ≤ 2 := by
+          have h' : P.card < 3 := by exact_mod_cast hlt3
+          have h'' : P.card ≤ 2 := by omega
+          exact_mod_cast h''
+        nlinarith
+  simp only [hXP, hRP]
+  by_cases hhX : b ≤ X.card
+  · -- the budget was spent: the container is the complement of the retired set
+    rw [if_pos hhX]
+    have hcont : P ∪ (X ∪ P)ᶜ = Xᶜ := by
+      ext x
+      have hdx : x ∈ X → x ∉ P := fun h => Finset.disjoint_left.mp hdXP h
+      simp only [Finset.mem_union, Finset.mem_compl]
+      tauto
+    have hccard : ((Xᶜ).card : ℝ) = (n : ℝ) - X.card := by
+      have h : (Xᶜ).card = n - X.card := by rw [Finset.card_compl]; simp
+      rw [h, Nat.cast_sub hXn]
+    have hδX : δ * (n : ℝ) ≤ (X.card : ℝ) := hbge.trans (by exact_mod_cast hhX)
+    refine ⟨hPI, ?_, hcardS, ?_, hlast⟩
+    · rw [hcont]
+      exact fun x hx => Finset.mem_compl.mpr fun hX => Finset.disjoint_left.mp hXI hX hx
+    · rw [hcont, hccard]; linarith
+  · -- the run ran out of alive vertices of `I`, so `I` is its own fingerprint
+    rw [if_neg hhX]
+    have hIP : I ⊆ P := by
+      rcases hhalt with h | h
+      · exact absurd h hhX
+      · exact fun x hx => (Finset.mem_union.mp (h hx)).elim
+          (fun h' => absurd hx (Finset.disjoint_left.mp hXI h')) id
+    have hb1 : (1 : ℝ) ≤ (b : ℝ) := by
+      have : 1 ≤ b := by omega
+      exact_mod_cast this
+    have hδnpos : (0 : ℝ) < δ * n := by linarith
+    have hnne : (n : ℝ) ≠ 0 := fun h => by
+      rw [h, mul_zero] at hδnpos; exact absurd hδnpos (lt_irrefl 0)
+    have hnpos : (0 : ℝ) < (n : ℝ) := lt_of_le_of_ne hn0 (Ne.symm hnne)
+    -- the maximum degree bound forces `c ≥ 1`, hence `δ ≤ 1 / 100`
+    have hc1 : (1 : ℝ) ≤ c := by
+      have h1 : (∑ v : Fin n, (G.degree v : ℝ)) ≤ ∑ _v : Fin n, c * d :=
+        Finset.sum_le_sum fun v _ => hdeg v
+      rw [hsum, Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul] at h1
+      nlinarith [mul_pos hnpos hd]
+    have hδ100 : δ ≤ 1 / 100 := by
+      have h : 1 / (100 * c) ≤ 1 / 100 := by
+        refine one_div_le_one_div_of_le (by norm_num) ?_
+        nlinarith
+      linarith
+    have hXb : (X.card : ℝ) ≤ (b : ℝ) - 1 := by
+      have h : X.card + 1 ≤ b := by omega
+      have h' : (X.card : ℝ) + 1 ≤ (b : ℝ) := by exact_mod_cast h
+      linarith
+    refine ⟨hPI, by simpa using hIP, hcardS, ?_, hlast⟩
+    rw [Finset.union_empty]
+    nlinarith [mul_nonneg (by linarith : (0 : ℝ) ≤ 1 - 2 * δ) hnpos.le]
 
 /-- **Containers from a single-vertex fingerprint, in the dense corner `δ * n < d`.**  When the
 average degree exceeds `δ * n` the fingerprint budget `2 * δ * n / d` of Theorem 11.2.3 is below
