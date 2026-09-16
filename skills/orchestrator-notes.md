@@ -14,6 +14,52 @@ it.  Active guidance, not a changelog — resolved entries are pruned.
 
 ---
 
+## 2026-09-16 — `choir worker heartbeat` never refreshes a lease; `refreshed: false` means nothing
+
+**Reported by a contributor working #99, and verified in the Choir checkout at `0.1.2`.** If you
+run the named command on your own live lease you get `{"refreshed": false}` and the thread's
+heartbeat comment keeps its original timestamp.
+
+Why: `client/cli.py`'s `cmd_heartbeat` calls `heartbeat(args.repo, args.issue)` and passes no
+`session`, so it takes the default `session=""` — the subparser has no `--session` flag and does
+not resolve the workspace. `client/heartbeat.py` then checks
+`(decision.holder, decision.holder_session) != (login, session)` and returns before writing. Since
+claiming and beating are separate invocations, `holder_session` is always a real id, so the pair
+never matches. The library path is fine if you pass `session=`; only the named command is broken,
+and that is the one `CONTRIBUTOR.md` tells you to use.
+
+**What this means for you, until it is fixed upstream:**
+
+- **`refreshed: false` is not "you lost the lease".** Right now it carries no information at all.
+  Do not release a claim or abandon work because of it.
+- **A lease can go stale at the 24h mark even though you heartbeated as instructed.** If your
+  proof is running long and you see the task reclaimed or double-claimed, that is this bug, not
+  someone jumping your claim. Say so on the issue and keep your branch.
+- Heartbeat is best-effort by contract, so nothing will surface this to you. Judge your claim by
+  the issue thread, not by the command's return.
+
+Reported upstream; not patched here, because `~/.choir/checkout` is shared tooling for every
+project on the machine and the fix belongs in Choir.
+
+## 2026-09-16 — Never let a `private` declaration reach a published statement (lean4)
+
+**A `private` declaration referenced by a target's statement silently disables `comparator`.**
+PRs #173 and #174 both failed with `outcome: statement-mismatch` while every other check —
+`statement-immutability` included — was green, and neither diff touched a statement.
+
+Lean 4 mangles private names with the **module path**: compiling `private def myPrivateFoo` and
+printing the environment gives `_private._stdin.0.myPrivateFoo`. Comparator builds the base side
+under a `ChoirBase.` module prefix, so the two sides reference different constants and the
+statements cannot match as kernel terms, for any diff.
+
+This was the orchestrator's own doing (`IsGreedyRule` was adopted `private` and is now public), so
+you are unlikely to hit it from a task's *given* statement. Where it can bite you: **a helper
+lemma you author whose statement mentions a `private def` you also added.** Keep anything that
+appears in a *statement* public, and reserve `private` for things only proof bodies mention.
+
+**The tell:** `comparator` red, `statement-immutability` green, no statement in your diff. That is
+never something to work around — comment on the issue.
+
 ## 2026-09-16 — If you flag an obligation as possibly false, say what you tried — and read your own evidence
 
 PR #166 reduced Theorem 11.2.3 to three obligations and flagged one, `exists_dense_fingerprint`,
