@@ -32,12 +32,24 @@ group file has a "planned, not stated" section saying which and why.
 | [`correlation`](correlation.md) | 7 | **all proved** | — |
 | [`janson`](janson.md) | 8 | **all proved** | — |
 | [`concentration`](concentration.md) | 9 | **all proved** | martingales, Talagrand, TSP |
-| [`entropy`](entropy.md) | 10 | 3 open | Sidorenko, Kahn–Zhao, Steiner |
-| [`containers`](containers.md) | 11 | 4 open | 11.1.3, 11.1.5, supersaturation |
+| [`entropy`](entropy.md) | 10 | 2 open | Sidorenko, Kahn–Zhao, Steiner |
+| [`containers`](containers.md) | 11 | 2 open | 11.1.3, 11.1.5, supersaturation |
 
-**Nine of the eleven groups have every stated declaration proved.**  The open work is
-concentrated in Chapters 10 and 11, and `entropy_le_logb_card` alone is the sole obligation
-beneath five otherwise-complete Chapter 10 theorems.
+**Nine of the eleven groups have every stated declaration proved**, and as of 2026-09-16 that
+sentence is finally true rather than aspirational — Chapters 2, 4, 7 and 9 were still carrying a
+`sorry` apiece when it was written.  The open work is now exactly **four declarations in two
+chapters**, and the counts in this table are derived from `graph.json` (nodes with
+`statement: formalized`, `proof: planned`), which `sync-graph --check` keeps honest:
+
+| Obligation | Chapter | Task | What rests on it |
+|---|---|---|---|
+| `entropy_le_logb_card` | 10 | [#84](https://github.com/yidiq7/ProbMethodCombinatorics/issues/84) | 5 Ch. 10 theorems: Brégman (both), Loomis–Whitney, Shearer's family form, triangle-intersecting |
+| `shearer_triple` | 10 | [#90](https://github.com/yidiq7/ProbMethodCombinatorics/issues/90) | Loomis–Whitney (jointly with the above) |
+| `exists_containers_fingerprint` | 11 | [#98](https://github.com/yidiq7/ProbMethodCombinatorics/issues/98) | all of §11.2–11.3 |
+| `exists_containers_three_uniform` | 11 | [#99](https://github.com/yidiq7/ProbMethodCombinatorics/issues/99) | Theorem 11.3.1 |
+
+`entropy_le_logb_card` is the sole obligation beneath **four** of those five Chapter 10
+theorems; Loomis–Whitney is the one that needs `shearer_triple` as well.
 
 **Everything in Chapter 1 §1.2 except Bollobás' two families theorem is already in
 Mathlib** — Sperner (`IsAntichain.sperner`), LYM

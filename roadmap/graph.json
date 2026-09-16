@@ -666,7 +666,7 @@
       "decl": "ProbMethodCombinatorics.le_card_of_distinctSubsetSums",
       "doc": "second-moment.md#46-distinct-sums",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": []
     },
@@ -1330,7 +1330,7 @@
       "decl": "ProbMethodCombinatorics.measure_martingale_sub_ge_le",
       "doc": "concentration.md#92-azumas-inequality",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": []
     },
@@ -1997,10 +1997,11 @@
       "decl": "ProbMethodCombinatorics.prob_notMem_le_pow_of_isUpperSet",
       "doc": "correlation.md#43-thresholds-multiple-round-exposure",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": [
-        "prob_mem_monotone"
+        "prob_mem_monotone",
+        "setbernoulli_block_indep"
       ]
     },
     "prob_mem_monotone": {
@@ -2034,9 +2035,12 @@
       "decl": "ProbMethodCombinatorics.card_le_of_tetrahedronFree",
       "doc": "expectation.md#24-bounding-by-sampling",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
-      "proof_uses": []
+      "proof_uses": [
+        "card_filter_subset_le_three",
+        "card_le_card_filter_superset"
+      ]
     },
     "unbalancing_lights": {
       "kind": "theorem",
@@ -2045,9 +2049,14 @@
       "decl": "ProbMethodCombinatorics.exists_signs_sum_ge",
       "doc": "expectation.md#25-unbalancing-lights",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
-      "proof_uses": []
+      "proof_uses": [
+        "signVec",
+        "signVec_eq_one_or_neg_one",
+        "sum_abs_row_eq_sum_abs",
+        "sum_abs_sum_signVec"
+      ]
     },
     "abs_sub_integral_merge_le": {
       "kind": "theorem",
@@ -3528,6 +3537,133 @@
       "uses": [
         "uniformWeights"
       ],
+      "proof_uses": []
+    },
+    "card_filter_subset_le_three": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Expectation.lean",
+      "decl": "ProbMethodCombinatorics.card_filter_subset_le_three",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "card_le_card_filter_superset": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Expectation.lean",
+      "decl": "ProbMethodCombinatorics.card_le_card_filter_superset",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "signVec": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Expectation.lean",
+      "decl": "ProbMethodCombinatorics.signVec",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "signVec_eq_one_or_neg_one": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Expectation.lean",
+      "decl": "ProbMethodCombinatorics.signVec_eq_one_or_neg_one",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "signVec"
+      ],
+      "proof_uses": []
+    },
+    "signVec_mul_signVec": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Expectation.lean",
+      "decl": "ProbMethodCombinatorics.signVec_mul_signVec",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "signVec"
+      ],
+      "proof_uses": []
+    },
+    "succ_mul_choose_succ": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Expectation.lean",
+      "decl": "ProbMethodCombinatorics.succ_mul_choose_succ",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "sum_abs_row_eq_sum_abs": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Expectation.lean",
+      "decl": "ProbMethodCombinatorics.sum_abs_row_eq_sum_abs",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "signVec"
+      ],
+      "proof_uses": [
+        "signVec_mul_signVec"
+      ]
+    },
+    "sum_abs_sum_signVec": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Expectation.lean",
+      "decl": "ProbMethodCombinatorics.sum_abs_sum_signVec",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "signVec"
+      ],
+      "proof_uses": [
+        "succ_mul_choose_succ",
+        "sum_range_abs_choose",
+        "sum_signVec",
+        "sum_subsets_by_card"
+      ]
+    },
+    "sum_range_abs_choose": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Expectation.lean",
+      "decl": "ProbMethodCombinatorics.sum_range_abs_choose",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "sum_range_sub_two_mul_choose"
+      ]
+    },
+    "sum_range_sub_two_mul_choose": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Expectation.lean",
+      "decl": "ProbMethodCombinatorics.sum_range_sub_two_mul_choose",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "sum_signVec": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Expectation.lean",
+      "decl": "ProbMethodCombinatorics.sum_signVec",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "signVec"
+      ],
+      "proof_uses": []
+    },
+    "sum_subsets_by_card": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Expectation.lean",
+      "decl": "ProbMethodCombinatorics.sum_subsets_by_card",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
       "proof_uses": []
     }
   }
