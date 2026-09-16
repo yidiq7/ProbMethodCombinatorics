@@ -320,6 +320,35 @@ So the usable interface is the **δ-parametric pair**, `exists_greedy_rule` and
 With `E(H)` the `Δ(G) = O(√d)` invariant is false — `|S| · Δ₂` is already `Θ(c·n)`.  Same species
 of transcription trap as the missing `d ≤ 2δn`, and in the same section.
 
+**The run's dichotomy is satisfiable in every halting mode, and the glue is a handshake bound.**
+This was the one clause the interface draft could not pin down, so it is settled here before
+anything is published.  The run has four halting modes — either density threshold fires, `I` runs
+out of alive vertices, or the round budget is exhausted — and the worry was that no single choice
+of the returned set `R` satisfies covering *and* the dichotomy in all four.  It does, because `R`
+is existentially returned and the halting mode is a function of the fingerprint (through the same
+replay that gives stability), so `R` may be chosen per mode and still be a well-defined function.
+
+Write `W` for the order-retired vertices (predecessors of a selected vertex, disjoint from `I` by
+the rule's disjointness clause) and `D` for those deleted for forbidden-pair degree above
+`2 * c * √d`.  Summing degrees gives `|D| * 2 * c * √d < 2 * |E|`, so
+
+    |D| < |E| / (c * √d)
+
+and that single bound decides every mode:
+
+* `|E| ≥ n√d/(100M)` — the dense branch fires directly.
+* Otherwise `|D| < n/(100 * M * c) ≤ n/(100M)`, so `D` is small, and either many vertices were
+  order-retired (`|W| ≥ δn`, container `S ∪ Av ∪ D`), or `I` was exhausted — in which case
+  `I ⊆ S ∪ D`, the container `S ∪ D` has size at most `n/(2√d) + n/(100M)`, and `|R|` clears `δn`
+  by about two orders of magnitude.
+
+**Covering holds uniformly for the reason that matters: `W ∩ I = ∅`.**  Every vertex of `I` is
+selected, still alive, or in `D`, so `I ⊆ S ∪ Av ∪ D` in every mode without a case split.  The
+mode-dependence is confined to which of those sets the container keeps.
+
+The contributor needs the handshake bound; it is the hint that turns this node from four separate
+arguments into one.  **`R` is not "the retired set"** — reading it that way is the trap.
+
 **Node 5 — the regime the subroutine cannot reach — is orchestrator research, not a task.**  Node 4
 must carry a hypothesis keeping it inside `exists_containers`' range (`√d ≤ n/(50 · max c 1)`, or
 whatever constant is fixed).  The complementary window `n²/(2500c²) < d < n²/2` needs its own node,
