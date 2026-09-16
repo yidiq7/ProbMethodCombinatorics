@@ -261,6 +261,74 @@ that does — in-flight branches built on the older pin silently revert the stat
 publishing, not after.**  This project has paid for that lesson once already, in the duplicated
 measure layer of #28–#30.
 
+## §11.3 is reduced one level (#172), and the child is deliberately NOT published
+
+Theorem 11.3.1 (`exists_containers_three_uniform`) is **proved** as of 2026-09-16, from a single
+obligation `exists_containers_fingerprint_three_uniform` — its fingerprint form, exactly as 11.2.1
+is proved from 11.2.3.  The assembly is ~34 lines of real counting content and is kernel-checked.
+
+**The child is a node, not a task, and must stay that way until §11.3 is decomposed properly.**
+Under the reduction contract the deciding question was "is each child closable in one PR?", and the
+answer is no: by its author's own account the child carries *all* of the mathematical content, plus
+the open corner, plus a strengthening over the parent in the corner.  Publishing it would hand a
+contributor the hardest statement in the project with a known-open design question inside it.  This
+is the one sanctioned reason to hold a ready node back — an **imminent replan** — and it is
+recorded here so a restarted orchestrator does not publish it by reflex.
+
+**What #172 did and did not deliver.**  Worth being exact, because the prose around §11.3 overstates
+it.  Delivered: the counting assembly, and a fingerprint-form statement whose hypothesis list is
+token-identical to the parent's.  *Not* delivered: the `√d ≳ n` corner (passed through untouched —
+there is no case split anywhere in the PR), and the §11.2→§11.3 call site.  **The proof calls
+`exists_containers` nowhere.**  So the chapter's one genuinely new cross-chapter edge is still
+entirely ahead of us, and `graph.json` must not record it as discharged on the strength of #172 —
+`sync-graph` derives edges from the built term, so it will not, but check rather than assume.
+
+## The planned decomposition of §11.3 — four nodes, and a fifth held back
+
+Worked out with the contributor who reduced 11.3.1; recorded before any of it is published, because
+**the interface is the orchestrator's to author and it must be public from the first commit** (see
+the `private`/`comparator` entry above — an interface appearing in a published statement and left
+`private` costs the project its strongest gate).
+
+The structural difference from §11.2 that decides the shape: there, the dense corner is a split on a
+*hypothesis* (`d ≤ δn` vs `δn < d`), which is why `exists_dense_fingerprint` stood alone and closed
+easily.  Here the two branches are the two ways the *same run* of the *same algorithm* can
+terminate — either enough vertices have left `V(A)`, or `G` is dense.  Both consume the run's end
+state, so the corner cannot be carved off by restricting hypotheses; the interface has to **state
+the termination state**: the fingerprint `S`, the forbidden-pair graph `G`, the surviving hypergraph
+`A`, and the invariants (`Δ(G) ≤ c√d` from the high-degree removal, every edge of `A` containing an
+edge of `G`, the edge count at termination).  That is a substantially larger interface than
+`IsGreedyRule`.
+
+1. **The one-round rule** — the hypergraph analogue of `IsGreedyRule`.  Public from the start.
+2. **The run** — iterate the rule at most `n/√d` times, producing `S`, `G`, `A` *with* the
+   termination invariants.  The analogue of #170, and as there the largest piece.
+3. **The "many vertices left" branch** — invariants ⟹ container `≤ (1-δ)n`.
+4. **The dense branch** — invariants ⟹ `exists_containers` applies to `G` ⟹ container `≤ (1-δ)n`.
+   **The sole cross-chapter dependency, deliberately isolated in one node**, because it is the only
+   one that has to satisfy another theorem's hypotheses, and that is where the trouble is.
+
+The child then assembles 3 and 4 by the termination dichotomy.
+
+**Node 5 — the regime the subroutine cannot reach — is orchestrator research, not a task.**  Node 4
+must carry a hypothesis keeping it inside `exists_containers`' range (`√d ≤ n/(50 · max c 1)`, or
+whatever constant is fixed).  The complementary window `n²/(2500c²) < d < n²/2` needs its own node,
+and **that node must not be published until the regime is understood.**  What is known: at
+`d = Θ(n²)` the budget is `Θ(1)`, so for `n²/4 < d` a fingerprint holds exactly one vertex, `S I = I`
+overruns the budget for a 2-element independent set, and the rule must be a balanced orientation of
+pairs rather than anything order-based.  A regular tournament works at complete 3-uniform `H`.
+**That is one family checked by hand.**  Given this file already records one statement published
+false and believed true, and one published true and believed false, this one gets investigated
+before it is guessed in either direction.
+
+**One decision deliberately deferred**: whether the fingerprint child should carry the stability
+conjunct `∀ J, S I ⊆ J → J ⊆ I → S J = S I` that §11.2's obligation now states.  Nothing needs it
+today — the live downstream consumer `exists_shrunken_containers_of_many_triangles` calls the
+*counting* form, not a fingerprint form.  Deferring is safe **only because the child is unpublished**:
+reshaping an unpublished node is free, while changing a published task's statement is what invites
+the stale-workspace reverts recorded in `skills/orchestrator-notes.md`.  Decide it when authoring
+the split above, not later.
+
 The open design question on **#99** is its own **dense corner**: `√d ≳ n`. Relaxing the sub-obligations'
 budgets does not fix it, because the parent's own budget `⌊n/√d⌋₊` is only guaranteed `≥ 1`, so a
 size-2 composite fingerprint does not fit. Either the assembly arithmetic changes or that corner
