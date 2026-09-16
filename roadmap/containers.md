@@ -349,6 +349,22 @@ mode-dependence is confined to which of those sets the container keeps.
 The contributor needs the handshake bound; it is the hint that turns this node from four separate
 arguments into one.  **`R` is not "the retired set"** — reading it that way is the trap.
 
+**State the dense branch self-containedly, so it does not wait on the run.**  The natural reading
+of node 4 — "given the run's termination state, apply §11.2" — makes its hypotheses depend on the
+run's output shape, which is still being split.  It does not need to.  The node's content is
+*§11.2 instantiated at the parameters the dense branch produces*, and those are properties of a
+graph, not of a run: an edge set `F` on `Fin n` that is diagonal-free, has degrees bounded by
+`2 * c * √d`, has at least `n√d/(100M)` edges, and satisfies the applicability bound
+`10⁵ * M³ * √d ≤ n`; plus a set `I` containing no pair of `F`.
+
+Stated that way node 4 mentions no run at all and can be published now, with the run supplying `F`
+later.  This is the same factoring that made `exists_fingerprint_of_greedy_rule` independent of
+`exists_greedy_rule` in §11.2 — the rule arrives as a hypothesis rather than as a dependency — and
+it is why those two could be worked in parallel.
+
+`degree_fromEdgeSet` is the bridge that lets the degree hypothesis be stated on the edge set and
+handed to §11.2 as a `SimpleGraph` degree bound.
+
 **Node 5 — the regime the subroutine cannot reach — is orchestrator research, not a task.**  Node 4
 must carry a hypothesis keeping it inside `exists_containers`' range (`√d ≤ n/(50 · max c 1)`, or
 whatever constant is fixed).  The complementary window `n²/(2500c²) < d < n²/2` needs its own node,
