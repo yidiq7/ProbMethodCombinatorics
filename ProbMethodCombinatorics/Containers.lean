@@ -328,6 +328,37 @@ theorem exists_containers (c : ℝ) (hc : 0 < c) :
     obtain ⟨T, hT, rfl⟩ := mem_image.mp hC
     exact (mem_filter.mp hT).2.2
 
+/-- **The container theorem for 3-uniform hypergraphs, with fingerprints** (the fingerprint form
+of Zhao, Theorem 11.3.1).  This is to Theorem 11.3.1 what `exists_containers_fingerprint` is to
+`exists_containers`: the refinement that the applications actually need, and — despite being
+stated as a separate theorem — **the statement the container algorithm actually produces.**  The
+container assigned to an independent set `I` is not merely *some* member of a small family, but
+`S I ∪ A (S I)`, a function of a fingerprint `S I ⊆ I`.  That `A` depends only on `S I` — and not
+otherwise on `I` — is the whole content; it is what lets a union bound range over fingerprints.
+
+What it claims: for every `c > 0` there is a `δ > 0` such that for every 3-uniform hypergraph `H`
+on `Fin n` whose average degree `d` satisfies `δ⁻¹ ≤ d` and whose codegrees satisfy `Δ₁ ≤ c * d`
+and `Δ₂ ≤ c * √d`, there are functions `S` and `A` on subsets of the vertex set such that every
+independent set `I` — one containing no edge of `H` — has `S I ⊆ I ⊆ S I ∪ A (S I)`, with the
+fingerprint `S I` of size at most `n / √d` and the container `S I ∪ A (S I)` missing at least a
+`δ` fraction of the `n` vertices.
+
+The degree hypotheses are token-identical to those of `exists_containers_three_uniform`, which is
+proved from this statement below — the fingerprint budget `n / √d` is exactly the index of the
+binomial sum there.
+
+**Stated here as an open obligation of a reduction.** -/
+theorem exists_containers_fingerprint_three_uniform (c : ℝ) (hc : 0 < c) :
+    ∃ δ > 0, ∀ (n : ℕ) (H : Finset (Finset (Fin n))) (d : ℝ),
+      (∀ e ∈ H, e.card = 3) → δ⁻¹ ≤ d → 3 * (H.card : ℝ) = d * n →
+      (maxCodegree 1 H : ℝ) ≤ c * d → (maxCodegree 2 H : ℝ) ≤ c * Real.sqrt d →
+      ∃ S A : Finset (Fin n) → Finset (Fin n),
+        ∀ I : Finset (Fin n), (∀ e ∈ H, ¬ e ⊆ I) →
+          S I ⊆ I ∧ I ⊆ S I ∪ A (S I) ∧
+          ((S I).card : ℝ) ≤ (n : ℝ) / Real.sqrt d ∧
+          ((S I ∪ A (S I)).card : ℝ) ≤ (1 - δ) * n := by
+  sorry
+
 /-! ### 11.3 The hypergraph container theorem -/
 
 /-- **The container theorem for 3-uniform hypergraphs** (Zhao, Theorem 11.3.1; Balogh–Morris–
@@ -344,7 +375,40 @@ theorem exists_containers_three_uniform (c : ℝ) (hc : 0 < c) :
         (𝒞.card : ℝ) ≤ ∑ i ∈ range (⌊(n : ℝ) / Real.sqrt d⌋₊ + 1), (n.choose i : ℝ) ∧
         (∀ I : Finset (Fin n), (∀ e ∈ H, ¬ e ⊆ I) → ∃ C ∈ 𝒞, I ⊆ C) ∧
         (∀ C ∈ 𝒞, (C.card : ℝ) ≤ (1 - δ) * n) := by
-  sorry
+  obtain ⟨δ, hδ, hfp⟩ := exists_containers_fingerprint_three_uniform c hc
+  refine ⟨δ, hδ, fun n H d hcard hd hsum h1 h2 => ?_⟩
+  obtain ⟨S, A, hSA⟩ := hfp n H d hcard hd hsum h1 h2
+  -- The fingerprints that are both small and have a small container.  The second condition is
+  -- needed because the fingerprint theorem says nothing about a `T` that is not some `S I`.
+  set F : Finset (Finset (Fin n)) :=
+    univ.powerset.filter fun T : Finset (Fin n) =>
+      (T.card : ℝ) ≤ (n : ℝ) / Real.sqrt d ∧ ((T ∪ A T).card : ℝ) ≤ (1 - δ) * n with hF
+  refine ⟨F.image fun T => T ∪ A T, ?_, ?_, ?_⟩
+  · have hsub : F ⊆ (range (⌊(n : ℝ) / Real.sqrt d⌋₊ + 1)).biUnion
+        fun i => powersetCard i (univ : Finset (Fin n)) := by
+      intro T hT
+      rw [hF, mem_filter] at hT
+      exact mem_biUnion.mpr ⟨T.card, mem_range.mpr (Nat.lt_succ_of_le (Nat.le_floor hT.2.1)),
+        mem_powersetCard.mpr ⟨subset_univ _, rfl⟩⟩
+    have hcount : ((range (⌊(n : ℝ) / Real.sqrt d⌋₊ + 1)).biUnion
+        fun i => powersetCard i (univ : Finset (Fin n))).card
+        = ∑ i ∈ range (⌊(n : ℝ) / Real.sqrt d⌋₊ + 1), n.choose i := by
+      rw [card_biUnion ((pairwise_disjoint_powersetCard (univ : Finset (Fin n))).set_pairwise _)]
+      simp
+    have hnat : (F.image fun T => T ∪ A T).card
+        ≤ ∑ i ∈ range (⌊(n : ℝ) / Real.sqrt d⌋₊ + 1), n.choose i :=
+      card_image_le.trans (hcount ▸ card_le_card hsub)
+    calc ((F.image fun T => T ∪ A T).card : ℝ)
+        ≤ ((∑ i ∈ range (⌊(n : ℝ) / Real.sqrt d⌋₊ + 1), n.choose i : ℕ) : ℝ) :=
+          Nat.cast_le.mpr hnat
+      _ = ∑ i ∈ range (⌊(n : ℝ) / Real.sqrt d⌋₊ + 1), (n.choose i : ℝ) := by push_cast; ring
+  · intro I hI
+    obtain ⟨-, hcov, hsmall, hcont⟩ := hSA I hI
+    exact ⟨S I ∪ A (S I), mem_image_of_mem _
+      (mem_filter.mpr ⟨mem_powerset.mpr (subset_univ _), hsmall, hcont⟩), hcov⟩
+  · intro C hC
+    obtain ⟨T, hT, rfl⟩ := mem_image.mp hC
+    exact (mem_filter.mp hT).2.2
 
 /-! ### 11.1 Containers for triangle-free graphs -/
 
