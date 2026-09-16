@@ -27,18 +27,21 @@ shared state — it changes what every live worker session executes, so it is no
 workers are running. Check `head -3 ~/.local/bin/choir` at loop start; it costs nothing and tells
 you whose code you are about to run.
 
-## §11.3's held node covers a wide range of `d`, not a narrow corner
+## §11.3's held node owns a window of `d` about 10^8 wide
 
-Worth keeping straight because the phrase "dense corner" understates it. Node 4 of the §11.3 split
-can only call `exists_containers` while that theorem's own proviso holds, which works out to
+Worth stating with the real number, because "dense corner" understates it by orders of magnitude.
+Node 4 of the §11.3 split can only invoke §11.2 while that theorem's own proviso holds. With
+`M = max c 1` and `q = √d`: the run leaves `Δ(G) ≤ 2Mq`, the dichotomy's dense branch gives
+`d_G ≥ q/(50M)`, so `c_G = 100M²` and `δ_G = 1/(100c_G) = 1/(10⁴M²)`. The obligation's hypothesis
+is `d_G ≤ δ_G · n`, and `d_G` can be as large as `2Mq`, so the binding constraint is
 
-    sqrt d ≤ κ · n,   κ = 1 / (50 · c · max (c/k) 1)
+    2·10⁴ · M³ · q ≤ n,    i.e.    d ≤ n² / (4·10⁸ · M⁶)
 
-with `k` the constant in the dense branch's `d_G ≥ k·sqrt d`. At `c = 1, k = 1/2` that is
-`d ≤ n²/10⁴`, while the only a priori bound is `d < n²/2` — so the unpublished fifth node owns a
-window about **5000×** wide, not a sliver. Treat it as a regime to be understood, not a corner to
-be patched.
+against an a priori bound of only `d < n²/2`. At `M = 1` the unpublished fifth node therefore owns
+a range spanning a factor of **2·10⁸**, and it grows as `M⁶`.
 
+**The exponent is `M³`, not `M¹`.** Three powers accumulate: one from `Δ(G) ≤ 2Mq`, one from the
+density threshold's `1/(50M)`, and one from `c_G` being quadratic in `M`.
 
 ## 2026-09-16 — `set-difficulty` / `set-priority` right after `create-task` clobbers `choir/type:*`
 

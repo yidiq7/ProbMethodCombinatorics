@@ -293,6 +293,33 @@ edge of `G`, the edge count at termination).  That is a substantially larger int
 
 The child then assembles 3 and 4 by the termination dichotomy.
 
+**Node 4 cannot call `exists_containers`, and neither can anything else.**  Both §11.2 headline
+results are packaged as `∃ δ > 0, ∀ … → d ≤ 2 * δ * n → …`, so `δ` is existentially bound and its
+value is not exposed by the statement.  `∃ δ > 0` carries no *lower* bound on `δ`, so **no
+hypothesis stated in `c`, `d` and `n` can guarantee `d_G ≤ 2 · δ_G · n` for whatever `δ_G` the
+theorem happens to return** — and a hypothesis of node 4 cannot mention `δ_G` at all, since it
+only exists after the theorem is destructured inside a proof.
+
+So the usable interface is the **δ-parametric pair**, `exists_greedy_rule` and
+`exists_fingerprint_of_greedy_rule`, which take `δ` as an explicit argument with `hδc : δ ≤
+1/(100 * c)` and `hdn : d ≤ δ * n`.  Node 4 instantiates `δ` itself.  Two consequences:
+
+* **The §11.2→§11.3 edge lands on the two obligations, not on the headline theorems**, and
+  `exists_containers` keeps no call site anywhere in the project.  That is faithful rather than
+  odd: the book's 11.2.1 is an expository counting corollary, and the fingerprint form is what the
+  algorithm actually produces and what §11.3 consumes.
+* **The stability conjunct on `exists_fingerprint_of_greedy_rule` is load-bearing, not
+  speculative.**  A two-phase fingerprint needs `S₂ F = S₂ I` for the composite
+  `F = S I ∪ S₂ I`, and the packaged `exists_containers_fingerprint` has no stability clause while
+  the obligation does.  Stating it before publishing was the right call.  (A fallback exists if it
+  is ever dropped: applying the graph theorem to `I \ S I` rather than `I` makes the phases
+  disjoint, so `S₂ = F \ S F` and phase-2 stability is unnecessary — a strictly weaker
+  requirement.)
+
+**The source's "add `xy` to `E(G)` whenever `uxy ∈ E(H)`" must be read as `E(A)`, not `E(H)`.**
+With `E(H)` the `Δ(G) = O(√d)` invariant is false — `|S| · Δ₂` is already `Θ(c·n)`.  Same species
+of transcription trap as the missing `d ≤ 2δn`, and in the same section.
+
 **Node 5 — the regime the subroutine cannot reach — is orchestrator research, not a task.**  Node 4
 must carry a hypothesis keeping it inside `exists_containers`' range (`√d ≤ n/(50 · max c 1)`, or
 whatever constant is fixed).  The complementary window `n²/(2500c²) < d < n²/2` needs its own node,
