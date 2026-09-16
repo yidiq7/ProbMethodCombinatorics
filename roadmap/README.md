@@ -84,6 +84,20 @@ edge-count bound the book proves, so the edge-count bound stays a task.
 
 ## Log
 
+- **2026-09-16 — all four open tasks re-pinned `fa3909e` → `b338588`; #99 was the one that needed it.**
+  The rule in `skills/orchestrator-notes.md` is that a stale pin is harmless unless something merged
+  into the *target file*, so I checked rather than re-pinning reflexively.  `Entropy.lean` (#84, #90)
+  was untouched — those pins were harmless.  **`Containers.lean` was not**: PR #159 added 587 lines
+  to it (proving `exists_shrunken_containers_of_many_triangles`) *after* `fa3909e`, so a worker
+  claiming #99 would have built against the placeholder version and had `sorry-delta` reject their
+  branch for reverting a declaration their diff never touched — the exact confusing failure the
+  notes describe, on the project's hardest task.  Re-pinned all four for consistency; each record
+  was re-read through the intake parser afterwards to confirm it still round-trips.
+
+  **Generalization: the pin-staleness check is per *file*, and the file that matters is the one a
+  long-lived task targets.**  Chapters 10 and 11 are where tasks sit open longest, so they are
+  exactly where pins rot unnoticed while the rest of the project moves.
+
 - **2026-09-16 — five proofs merged; the trust boundary is down to four sorries in two chapters.**
   Reviewed and merged #160 (`prob_notMem_le_pow_of_isUpperSet`), #162 (`card_le_of_tetrahedronFree`),
   #163 (`measure_martingale_sub_ge_le`), #164 (`exists_signs_sum_ge`) and #165
