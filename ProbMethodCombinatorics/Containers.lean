@@ -612,6 +612,8 @@ theorem exists_containers (c : ℝ) (hc : 0 < c) :
     obtain ⟨T, hT, rfl⟩ := mem_image.mp hC
     exact (mem_filter.mp hT).2.2
 
+/-! ### 11.3 The hypergraph container theorem -/
+
 /-- **The container theorem for 3-uniform hypergraphs, with fingerprints** (the fingerprint form
 of Zhao, Theorem 11.3.1).  This is to Theorem 11.3.1 what `exists_containers_fingerprint` is to
 `exists_containers`: the refinement that the applications actually need, and — despite being
@@ -631,7 +633,35 @@ The degree hypotheses are token-identical to those of `exists_containers_three_u
 proved from this statement below — the fingerprint budget `n / √d` is exactly the index of the
 binomial sum there.
 
-**Stated here as an open obligation of a reduction.** -/
+**This statement inherits §11.3's open design question, and is strictly stronger than
+`exists_containers_three_uniform` in exactly the regime where that question bites.  Read this
+before claiming it.**
+
+Two separate things are true and must not be confused:
+
+* *The fingerprint budget never collapses.*  `3|H| = d·n` with all edges of card `3` gives
+  `|H| ≤ C(n,3)`, so `d < n²/2` and `n/√d > √2`.  A one-vertex fingerprint always fits.  This is
+  why §11.3 needs no analogue of §11.2's `d ≤ 2δn` proviso, and it is **proved**.
+* *Budget `≥ 1` is not budget `≥ 2`.*  For `n²/4 < d` the budget is in `[√2, 2)`, so a fingerprint
+  holds exactly one vertex.  The `n+1` fingerprints of size `≤ 1` then *exactly exhaust* the
+  parent's count budget `∑_{i<2} C(n,i)`, with no slack — and this statement additionally demands
+  that every independent `I` be covered by a container indexed by one of `I`'s own vertices, with
+  `A` a function of that vertex alone.  The parent demands neither.  So in that corner this
+  obligation is **strictly stronger** than the theorem it was cut from, and `δ` is no lever, since
+  `n/√d` is `δ`-independent.
+
+**Where the corner comes from: the subroutine's own proviso failing.**  The source's algorithm
+applies the *graph* container theorem to the accumulated forbidden-pair graph `G`.
+`exists_containers` at parameter `c_G` produces `δ_G = 1/(100 · max c_G 1)` and demands
+`d_G ≤ 2 δ_G n = n/(50 · max c_G 1)`.  At termination `d_G = 2e(G)/n = Ω(√d)`, so applicability
+requires `d = O(n²/c_G²)` — while the only a priori bound is `d < n²/2`.  That leaves a real
+constant-factor window of `d = Θ(n²)` in which **the graph container theorem cannot be applied to
+`G` at all**, because `G`'s own average degree violates the very proviso §11.2 had to acquire at
+`1e4659a`.  The same proviso, biting one chapter later.
+
+At complete 3-uniform `H` the corner is satisfiable — a regular tournament orientation works, with
+containers of size `(n+1)/2` — but that is **one family checked by hand, not a proof**, and no
+refutation is known either.  Treat the corner as open. -/
 theorem exists_containers_fingerprint_three_uniform (c : ℝ) (hc : 0 < c) :
     ∃ δ > 0, ∀ (n : ℕ) (H : Finset (Finset (Fin n))) (d : ℝ),
       (∀ e ∈ H, e.card = 3) → δ⁻¹ ≤ d → 3 * (H.card : ℝ) = d * n →
@@ -642,8 +672,6 @@ theorem exists_containers_fingerprint_three_uniform (c : ℝ) (hc : 0 < c) :
           ((S I).card : ℝ) ≤ (n : ℝ) / Real.sqrt d ∧
           ((S I ∪ A (S I)).card : ℝ) ≤ (1 - δ) * n := by
   sorry
-
-/-! ### 11.3 The hypergraph container theorem -/
 
 /-- **The container theorem for 3-uniform hypergraphs** (Zhao, Theorem 11.3.1; Balogh–Morris–
 Samotij and Saxton–Thomason, independently, 2015).  The degree conditions are on `Δ₁ ≤ cd` and
