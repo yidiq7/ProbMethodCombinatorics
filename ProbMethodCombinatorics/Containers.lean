@@ -1184,7 +1184,123 @@ theorem exists_fingerprint_of_dense_pairs (c d : ℝ) (hc : 0 < c) (hd : 0 < d)
         ((S I).card : ℝ) ≤ (n : ℝ) / (2 * Real.sqrt d) ∧
         ((S I ∪ A (S I)).card : ℝ) ≤ (1 - 1 / (10 ^ 10 * (max c 1) ^ 4)) * n ∧
         ∀ J : Finset (Fin n), S I ⊆ J → J ⊆ I → S J = S I := by
-  sorry
+  have hM1 : (1 : ℝ) ≤ max c 1 := le_max_right _ _
+  have hcM : c ≤ max c 1 := le_max_left _ _
+  have hq : 0 < Real.sqrt d := Real.sqrt_pos.mpr hd
+  set M : ℝ := max c 1 with hMdef
+  set q : ℝ := Real.sqrt d with hqdef
+  have hM0 : (0 : ℝ) < M := by linarith
+  have hnR : (0 : ℝ) < (n : ℝ) :=
+    lt_of_lt_of_le (mul_pos (mul_pos (by norm_num) (pow_pos hM0 3)) hq) happ
+  -- the forbidden-pair graph, with its adjacency decided by membership in `F`
+  let instAdj : DecidableRel (SimpleGraph.fromEdgeSet (F : Set (Sym2 (Fin n)))).Adj :=
+    fun x y => decidable_of_iff (s(x, y) ∈ F ∧ x ≠ y) (by simp [SimpleGraph.fromEdgeSet_adj])
+  -- a degree in the graph is the number of pairs of `F` at the vertex
+  have hdegcard : ∀ v : Fin n,
+      (SimpleGraph.fromEdgeSet (F : Set (Sym2 (Fin n)))).degree v
+        = (F.filter fun e => v ∈ e).card := by
+    intro v
+    rw [degree_fromEdgeSet F hdiag v]
+    refine Finset.card_bij (fun u _ => s(v, u)) ?_ ?_ ?_
+    · intro u hu
+      simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hu ⊢
+      exact ⟨hu, Sym2.mem_mk_left v u⟩
+    · intro u _ u' _ he
+      exact Sym2.congr_right.mp he
+    · intro e he
+      simp only [Finset.mem_filter] at he
+      obtain ⟨u, rfl⟩ := Sym2.mem_iff_exists.mp he.2
+      exact ⟨u, by simp only [Finset.mem_filter, Finset.mem_univ, true_and]; exact he.1, rfl⟩
+  -- the handshake identity
+  have hhand : ∑ v : Fin n, ((F.filter fun e => v ∈ e).card : ℝ) = 2 * (F.card : ℝ) := by
+    have htwo : ∀ e : Sym2 (Fin n), ¬ e.IsDiag →
+        (univ.filter fun v : Fin n => v ∈ e).card = 2 := by
+      intro e
+      induction e using Sym2.ind with
+      | _ a b =>
+        intro hab
+        rw [Sym2.mk_isDiag_iff] at hab
+        have hset : (univ.filter fun v : Fin n => v ∈ s(a, b)) = {a, b} := by
+          ext v
+          simp [Sym2.mem_iff]
+        rw [hset, Finset.card_insert_of_notMem (by simpa using hab), Finset.card_singleton]
+    have hnat : ∑ v : Fin n, (F.filter fun e => v ∈ e).card = 2 * F.card := by
+      have hswap : ∑ v : Fin n, (F.filter fun e => v ∈ e).card
+          = ∑ e ∈ F, (univ.filter fun v : Fin n => v ∈ e).card := by
+        simp only [Finset.card_filter]
+        exact Finset.sum_comm
+      rw [hswap, Finset.sum_congr rfl fun e he => htwo e (hdiag e he), Finset.sum_const,
+        smul_eq_mul, mul_comm]
+    exact_mod_cast hnat
+  -- the average degree of the forbidden-pair graph
+  have hFpos : (0 : ℝ) < (F.card : ℝ) :=
+    lt_of_lt_of_le (div_pos (mul_pos hnR hq) (by linarith)) hdense
+  set dG : ℝ := 2 * (F.card : ℝ) / n with hdGdef
+  have hdGn : dG * (n : ℝ) = 2 * (F.card : ℝ) := by
+    rw [hdGdef]; field_simp
+  have hdG : (0 : ℝ) < dG := by
+    rw [hdGdef]; exact div_pos (by linarith) hnR
+  have hdGlow : q ≤ 50 * M * dG := by
+    have h1 : (n : ℝ) * q ≤ (F.card : ℝ) * (100 * M) := (div_le_iff₀ (by linarith)).mp hdense
+    nlinarith [hnR, hdGn]
+  have hdGup : dG ≤ 2 * M * q := by
+    have h2 : ∑ v : Fin n, ((F.filter fun e => v ∈ e).card : ℝ) ≤ (n : ℝ) * (2 * M * q) := by
+      calc ∑ v : Fin n, ((F.filter fun e => v ∈ e).card : ℝ)
+          ≤ ∑ _v : Fin n, 2 * M * q :=
+            Finset.sum_le_sum fun v _ => (hdeg v).trans (by nlinarith [hq.le])
+        _ = (n : ℝ) * (2 * M * q) := by
+            rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
+    rw [hhand] at h2
+    nlinarith [hnR, hdGn]
+  -- §11.2 is invoked at `c_G = 100 M²` and `δ_G = 1/(10⁴M²) = 1/(100 c_G)`
+  have hcGpos : (0 : ℝ) < 100 * M ^ 2 := by positivity
+  have h4pos : (0 : ℝ) < 10 ^ 4 * M ^ 2 := by positivity
+  have hδGpos : (0 : ℝ) < 1 / (10 ^ 4 * M ^ 2) := by positivity
+  have hδc : 1 / (10 ^ 4 * M ^ 2) ≤ 1 / (100 * (100 * M ^ 2)) := by
+    rw [show (100 : ℝ) * (100 * M ^ 2) = 10 ^ 4 * M ^ 2 by ring]
+  have hsumG : (∑ v, ((SimpleGraph.fromEdgeSet (F : Set (Sym2 (Fin n)))).degree v : ℝ))
+      = dG * n := by
+    rw [hdGn]
+    simp only [hdegcard]
+    exact hhand
+  have hdegG : ∀ v, ((SimpleGraph.fromEdgeSet (F : Set (Sym2 (Fin n)))).degree v : ℝ)
+      ≤ 100 * M ^ 2 * dG := by
+    intro v
+    rw [hdegcard v]
+    refine (hdeg v).trans ?_
+    nlinarith [mul_le_mul_of_nonneg_left hdGlow (by positivity : (0 : ℝ) ≤ 2 * M), hq.le, hM1]
+  have hdnG : dG ≤ 1 / (10 ^ 4 * M ^ 2) * (n : ℝ) := by
+    rw [show (1 : ℝ) / (10 ^ 4 * M ^ 2) * (n : ℝ) = (n : ℝ) / (10 ^ 4 * M ^ 2) by ring,
+      le_div_iff₀ h4pos]
+    nlinarith [mul_le_mul_of_nonneg_right hdGup (le_of_lt h4pos), happ, hq.le, hM1,
+      mul_nonneg (pow_nonneg hM0.le 3) hq.le]
+  obtain ⟨pick, kill, hrule⟩ :=
+    exists_greedy_rule (100 * M ^ 2) dG (1 / (10 ^ 4 * M ^ 2)) hcGpos hδGpos hδc n
+      (SimpleGraph.fromEdgeSet (F : Set (Sym2 (Fin n)))) hdG hdnG hsumG hdegG
+  obtain ⟨S, A, hSA⟩ :=
+    exists_fingerprint_of_greedy_rule (100 * M ^ 2) dG (1 / (10 ^ 4 * M ^ 2)) hcGpos hδGpos hδc n
+      (SimpleGraph.fromEdgeSet (F : Set (Sym2 (Fin n)))) hdG hdnG hsumG hdegG pick kill hrule
+  refine ⟨S, A, fun I hI => ?_⟩
+  have hIind : (SimpleGraph.fromEdgeSet (F : Set (Sym2 (Fin n)))).IsIndepSet (I : Set (Fin n)) := by
+    intro u hu v hv _ hadj
+    rw [SimpleGraph.fromEdgeSet_adj] at hadj
+    exact hI u (by simpa using hu) v (by simpa using hv) hadj.1
+  obtain ⟨h1, h2, h3, h4, h5⟩ := hSA I hIind
+  refine ⟨h1, h2, ?_, ?_, h5⟩
+  · refine h3.trans ?_
+    rw [div_le_div_iff₀ hdG (by positivity : (0 : ℝ) < 2 * q),
+      show 2 * (1 / (10 ^ 4 * M ^ 2)) * (n : ℝ) * (2 * q) = 4 * (n : ℝ) * q / (10 ^ 4 * M ^ 2) by
+        ring,
+      div_le_iff₀ h4pos]
+    nlinarith [mul_le_mul_of_nonneg_left hdGlow hnR.le,
+      mul_le_mul_of_nonneg_left (show (200 : ℝ) * M ≤ 10 ^ 4 * M ^ 2 by nlinarith [hM1])
+        (mul_pos hnR hdG).le]
+  · refine h4.trans ?_
+    have hMsq : (1 : ℝ) ≤ M ^ 2 := by nlinarith [hM1]
+    have hM24 : M ^ 2 ≤ M ^ 4 := by nlinarith [hMsq, sq_nonneg M]
+    have hle : 1 / (10 ^ 10 * M ^ 4) ≤ 1 / (10 ^ 4 * M ^ 2) :=
+      one_div_le_one_div_of_le h4pos (by nlinarith [hM24, sq_nonneg M])
+    nlinarith [mul_nonneg (sub_nonneg.mpr hle) hnR.le]
 
 /-- **The container theorem for 3-uniform hypergraphs, with fingerprints** (the fingerprint form
 of Zhao, Theorem 11.3.1).  This is to Theorem 11.3.1 what `exists_containers_fingerprint` is to
