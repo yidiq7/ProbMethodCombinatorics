@@ -148,17 +148,17 @@ that `δ ≤ 1/100` holds even for `c < 1`, where `c ≥ 1` is only derivable on
 `exists_fingerprint_of_greedy_rule` and `exists_dense_fingerprint`, all in `Containers.lean`,
 all published as tasks.
 
-**`IsGreedyRule` is orchestrator-owned vocabulary, and stays `private`.**  It is a `private def`
-the contributor added, and it appears in the *statements* of two published tasks, which makes it
-mine in substance even though a worker wrote it.  I have reviewed its four clauses and adopt them:
-they are jointly satisfiable (decreasing `deg_{G[A]}` order, ties by index, `pick` = the
-`≺`-least element, `kill A v = {u ∈ A | u ≺ v} ∪ (N(v) ∩ A)`), and they are *dimensioned to the
-assembly* — the `2δn` threshold in the retirement clause is exactly what `|Aᶜ| = |X| + |S|`
-reaches during the run.  `private` is right because both consumers live in this file (Lean 4
-`private` is module-scoped) and §11.3 will need a *hypergraph* analogue rather than this
-predicate, so making it public would freeze eight clauses of vocabulary nobody else reuses.
+**`IsGreedyRule` is orchestrator-owned vocabulary, and is `public`.**  It appears in the
+*statements* of two published tasks, which makes it mine in substance even though a worker wrote
+it.  I have reviewed its four clauses and adopt them: they are jointly satisfiable (decreasing
+`deg_{G[A]}` order, ties by index, `pick` = the `≺`-least element,
+`kill A v = {u ∈ A | u ≺ v} ∪ (N(v) ∩ A)`), and they are *dimensioned to the assembly* — the `2δn`
+threshold in the retirement clause is exactly what `|Aᶜ| = |X| + |S|` reaches during the run.
 **Neither obligation's prover may edit it** — doing so changes both children's statements, and
 `statement-immutability` will block it.
+
+**It was `private` for a few hours on 2026-09-16, and that was a mistake with teeth — see
+"Never put a `private` declaration in a published statement" below.**
 
 **Zhao's `d/2` retirement guarantee is not sufficient as stated**, and PR #166's author found why.
 With a `d/2` guarantee, `(m-1)·(d/2) < δn` only gives `m < 1 + B` for `B = 2δn/d`, i.e. `m ≤ ⌈B⌉`,
@@ -166,6 +166,37 @@ not the `m ≤ B` the fingerprint budget needs.  Getting `m ≤ B` needs a guara
 `(d/2)·(B/⌊B⌋)`, which `B ≥ 2` caps at `3d/4` — and `3d/4` is available exactly because `d ≤ δn`
 makes `cd` negligible against `n`.  **That is what forces the two-regime split**, and it is a
 genuine correction to the source's proof sketch, not a formalization artifact.
+
+## Never put a `private` declaration in a published statement (lean4)
+
+**A `private` declaration referenced by a published target's statement silently disables
+`comparator`, the project's strongest gate, and there is no way to tell from the check name.**
+Learned the hard way on 2026-09-16: `IsGreedyRule` was adopted `private`, and PRs #173 and #174 —
+the two tasks whose statements mention it — both failed `comparator` with
+`outcome: statement-mismatch` while every other check was green, including
+`statement-immutability`.  Neither diff had touched a statement.
+
+The mechanism, verified rather than guessed:
+
+* Lean 4 mangles a private name with its **module path**.  Compiling `private def myPrivateFoo`
+  and printing the environment gives `_private._stdin.0.myPrivateFoo`.
+* Comparator builds the base ("challenge") tree under a `ChoirBase.` module prefix so it can
+  coexist with the head tree in one workspace (`CHALLENGE_PREFIX = "ChoirBase"` in
+  `gate/verify/comparator.py`).
+* So the challenge holds `_private.ChoirBase.ProbMethodCombinatorics.Containers.0.…IsGreedyRule`
+  and the solution holds `_private.ProbMethodCombinatorics.Containers.0.…IsGreedyRule`.  The
+  target's *type* therefore references two different constants, and the statements cannot match as
+  kernel terms — deterministically, for any diff.
+
+**Choir's own comment says the opposite**, and it is the assumption that fails:
+`gate/verify/comparator.py`'s header argues the mapping is sound because "Renaming modules never
+renames *declarations* (Lean decl names come from namespaces, not file paths)".  True of public
+declarations; false of private ones.  Reported upstream — it is a Choir bug, not a project one.
+
+**The rule for this project:** any declaration that appears in the statement of a published task
+is public, full stop, however local it looks.  `private` is for proof-internal helpers only, and
+even then not if a published statement's *type* can reach them.  The tell, if it happens again, is
+`comparator` red with `statement-immutability` green and no statement in the diff.
 
 ## §11.2's dense corner is closed — it was never open
 
