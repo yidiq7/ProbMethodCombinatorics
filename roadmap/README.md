@@ -33,28 +33,29 @@ group file has a "planned, not stated" section saying which and why.
 | [`janson`](janson.md) | 8 | **all proved** | — |
 | [`concentration`](concentration.md) | 9 | **all proved** | martingales, Talagrand, TSP |
 | [`entropy`](entropy.md) | 10 | **all proved** | Sidorenko, Kahn–Zhao, Steiner |
-| [`containers`](containers.md) | 11 | 2 open | 11.1.3, 11.1.5, supersaturation |
+| [`containers`](containers.md) | 11 | 1 open | 11.1.3, 11.1.5, supersaturation |
 
 **Ten of the eleven groups have every stated declaration proved.**  All remaining open work is in
 Chapter 11, and the counts in this table are derived from `graph.json` (nodes with
 `statement: formalized`, `proof: planned`), which `sync-graph --check` keeps honest:
 
+**§11.2 is closed, kernel-verified.**  Theorems 11.2.1 (`exists_containers`) and 11.2.3
+(`exists_containers_fingerprint`) and all three of 11.2.3's obligations depend on nothing but
+`[propext, Classical.choice, Quot.sound]` — Mathlib's standard trio, **no `sorryAx`**.  Checked with
+`#print axioms`, not inferred from the sorry count.
+
+**The whole project is one obligation from `sorry`-free**, and it is deliberately unpublished:
+
 | Obligation | Task | What rests on it |
 |---|---|---|
-| `exists_fingerprint_of_greedy_rule` | [#170](https://github.com/yidiq7/ProbMethodCombinatorics/issues/170) | same — and the largest of the three |
 | `exists_containers_fingerprint_three_uniform` | **not published — held** | Theorem 11.3.1, via #172's reduction |
 
-**Both container theorems are now proved, and the whole project is two obligations from
-`sorry`-free.**  11.2.3 (`exists_containers_fingerprint`) rests on #170 alone; 11.3.1
-(`exists_containers_three_uniform`) rests on the held node.  §11.2's dense corner closed in #175
-and its analytic core in #173.
-
-**The third is deliberately unpublished.**  It is 11.3.1's fingerprint form, and by its author's
-own account it carries all of that theorem's mathematical content plus an open design question —
-so it fails the reduction contract's "closable in one PR?" test.  [`containers.md`](containers.md)
-has the four-node split that should replace it, why the fifth node is orchestrator research rather
-than a task, and the standing caution that the interface must be **public** from its first commit.
-Holding it is an imminent-replan hold, the one sanctioned kind; do not publish it by reflex.
+It is 11.3.1's fingerprint form, and by its author's own account it carries all of that theorem's
+mathematical content plus an open design question — so it fails the reduction contract's "closable
+in one PR?" test.  [`containers.md`](containers.md) has the four-node split that should replace it,
+why the fifth node is orchestrator research rather than a task, and the standing caution that the
+interface must be **public** from its first commit.  Holding it is an imminent-replan hold, the one
+sanctioned kind; do not publish it by reflex.
 
 **Chapter 11 is the only chapter left, and it is the one the source does not prove** —
 Theorems 11.2.1 and 11.3.1 are given as an algorithm plus a proof idea, with details deferred to
@@ -95,6 +96,34 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   cases.
 
 ## Log
+
+- **2026-09-16 — §11.2 is closed.  One sorry left in the project, and it is the held node.**
+  #174 (`exists_fingerprint_of_greedy_rule`) merged — the last published obligation and the largest.
+  **Kernel-checked rather than inferred:** `#print axioms` gives
+  `[propext, Classical.choice, Quot.sound]` for `exists_containers`, `exists_containers_fingerprint`
+  and all three obligations, with **no `sorryAx`**.  Theorems 11.2.1 and 11.2.3 are unconditional.
+  `exists_containers_three_uniform` still carries `sorryAx`, correctly, from the held §11.3 node.
+
+  **The stability conjunct I authored was free, exactly as claimed — and I checked that rather than
+  assuming it.**  This was the conjunct most worth doubting, since I added it to the statement myself
+  before publishing on the argument that an honest proof yields it.  It is discharged by
+  `greedyRun_replay`, a real fuel induction whose step is the argument I had written out: the step's
+  pick lies in the final `P ⊆ J`, so `J ∩ A_k` is nonempty and clause 2 of `IsGreedyRule` forces the
+  same choice; the halt cases coincide.  Its hypotheses are clauses 1 and 2 verbatim and *not* the
+  `kill` clauses — strictly weaker than `IsGreedyRule`, which is the right shape.
+
+  **The check that mattered most was structural, not mathematical.**  A degenerate `S` (constant,
+  `≡ ∅`, or `S I = I`) would satisfy stability trivially while gutting the other four conjuncts, and
+  `A` secretly depending on `I` would hollow out the fingerprint form entirely.  Both are ruled out
+  by *scope*: the `refine` supplies `S` and `A` as functions of `J` **before** `fun I hI => ?_`
+  introduces `I`, so `A` is lexically incapable of closing over `I`.  That is worth more than any
+  argument about the proof, and it is the kind of thing to look for first on a fingerprint statement.
+
+  Four new declarations, all `private` and all `greedyRun*`; `private` is safe here because none
+  appears in a *public* statement — the target's is frozen and mentions only the public
+  `IsGreedyRule`, so the `comparator` hazard from earlier today cannot fire.  Budget obtained by a
+  case split on `3d ≤ 2δn` rather than the `⌊2B/3⌋ + 1 ≤ B` route in the prose; equivalent, and
+  `hdn : d ≤ δ*n` is genuinely spent in the second case.
 
 - **2026-09-16 — the analytic core of 11.2.3 is proved (#173); two sorries left in the project.**
   `exists_greedy_rule` merged, 0 axioms / 2 sorries.  The `private`→public fix was the whole

@@ -3699,11 +3699,15 @@
       "file": "ProbMethodCombinatorics/Containers.lean",
       "decl": "ProbMethodCombinatorics.exists_fingerprint_of_greedy_rule",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "IsGreedyRule"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "greedyRun",
+        "greedyRun_invariants",
+        "greedyRun_replay"
+      ]
     },
     "exists_greedy_rule": {
       "kind": "theorem",
@@ -3728,6 +3732,51 @@
         "containers_maxCodegree"
       ],
       "proof_uses": []
+    },
+    "greedyRun": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.greedyRun",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "greedyRun_grows": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.greedyRun_grows",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "greedyRun"
+      ],
+      "proof_uses": []
+    },
+    "greedyRun_invariants": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.greedyRun_invariants",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsGreedyRule",
+        "greedyRun"
+      ],
+      "proof_uses": []
+    },
+    "greedyRun_replay": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.greedyRun_replay",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "greedyRun"
+      ],
+      "proof_uses": [
+        "greedyRun_grows"
+      ]
     }
   }
 }
