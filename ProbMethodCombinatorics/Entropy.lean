@@ -974,7 +974,19 @@ theorem shearer_triple {U : Type*} [Fintype U] [DecidableEq U] (p : Ω → ℝ)
     2 * entropy p (fun ω => (X ω, Y ω, Z ω)) ≤
       entropy p (fun ω => (X ω, Y ω)) + entropy p (fun ω => (X ω, Z ω))
         + entropy p (fun ω => (Y ω, Z ω)) := by
-  sorry
+  have hassoc : Function.Injective (fun w : S × T × U => ((w.1, w.2.1), w.2.2)) := by
+    rintro ⟨x₁, y₁, z₁⟩ ⟨x₂, y₂, z₂⟩ h
+    simp only [Prod.mk.injEq] at h
+    obtain ⟨⟨e₁, e₂⟩, e₃⟩ := h
+    simp [e₁, e₂, e₃]
+  -- Chain rule for the pair `(X, Y)` against `Z`: `H(X, Y, Z) ≤ H(X, Y) + H(Z)`.
+  have hpair : entropy p (fun ω => (X ω, Y ω, Z ω))
+      ≤ entropy p (fun ω => (X ω, Y ω)) + entropy p Z := by
+    rw [← entropy_comp_inj (p := p) hassoc (fun ω => (X ω, Y ω, Z ω))]
+    exact entropy_pair_le_add hp hp1 (fun ω => (X ω, Y ω)) Z
+  -- Submodularity: `H(X, Y, Z) + H(Z) ≤ H(X, Z) + H(Y, Z)`.
+  have hsub := entropy_triple_add_le (p := p) hp hp1 X Y Z
+  linarith
 
 end ShearerApplications
 
