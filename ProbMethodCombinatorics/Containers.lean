@@ -1078,6 +1078,69 @@ theorem exists_containers (c : ℝ) (hc : 0 < c) :
 
 /-! ### 11.3 The hypergraph container theorem -/
 
+/-- **One round of the hypergraph container algorithm** (Zhao, the algorithm on printed p. 209),
+as an interface on the pick/kill pair, in the shape `IsGreedyRule` has for §11.2.
+
+The state a round sees is an alive vertex set `Av` together with an alive hypergraph `Ae`.
+`pick Av Ae T` selects from `T` the vertex of largest `Ae`-degree (ties by index), and
+`kill Av Ae v` retires the vertices of `Av` that precede `v` in that order.  The five clauses:
+
+* `pick` lands in `T` whenever there is anything to pick;
+* **stability** — shrinking `T` to any `T'` still containing the selection does not change it.
+  This is what lets the run be replayed from the fingerprint alone, exactly as in §11.2;
+* `kill` retires only alive vertices, and never the selected one;
+* the retired set is **disjoint from `T`**, with no independence hypothesis.  §11.2's analogue
+  needs one because its `kill` also takes a neighbourhood; here `kill` holds only order
+  predecessors, and the selection is order-first in `T`, so disjointness is immediate;
+* the **double count**, stated raw rather than solved for the selected vertex's degree:
+  summing `Ae`-degrees over `Av` counts each edge three times, the retired vertices and the
+  selection contribute at most `(|kill| + 1) * Δ₁(Ae)`, and every surviving vertex has degree at
+  most the selection's.
+
+The forbidden-pair graph does not appear here.  Zhao's round also adds pairs to it and deletes
+edges meeting one, but those actions are determined by the state rather than chosen, so they
+belong to the run and not to this interface.
+
+**The clause hypotheses are the run's invariants**, passed in rather than assumed globally, which
+is what keeps this interface stable: strengthening the run's invariant set does not change what a
+rule has to provide.  It is also why this carries no relation between `d` and `n` — that
+constraint belongs to the nodes that call §11.2, not to the round.
+
+Public because it appears in the statements of published tasks. -/
+def IsContainerRound {n : ℕ} (c d : ℝ)
+    (pick : Finset (Fin n) → Finset (Finset (Fin n)) → Finset (Fin n) → Fin n)
+    (kill : Finset (Fin n) → Finset (Finset (Fin n)) → Fin n → Finset (Fin n)) : Prop :=
+  (∀ (Av : Finset (Fin n)) (Ae : Finset (Finset (Fin n))) (T : Finset (Fin n)),
+      T.Nonempty → pick Av Ae T ∈ T) ∧
+  (∀ (Av : Finset (Fin n)) (Ae : Finset (Finset (Fin n))) (T T' : Finset (Fin n)),
+      T' ⊆ T → pick Av Ae T ∈ T' → pick Av Ae T' = pick Av Ae T) ∧
+  (∀ (Av : Finset (Fin n)) (Ae : Finset (Finset (Fin n))) (v : Fin n),
+      kill Av Ae v ⊆ Av ∧ v ∉ kill Av Ae v) ∧
+  (∀ (Av : Finset (Fin n)) (Ae : Finset (Finset (Fin n))) (T : Finset (Fin n)),
+      T.Nonempty → Disjoint (kill Av Ae (pick Av Ae T)) T) ∧
+  (∀ (Av : Finset (Fin n)) (Ae : Finset (Finset (Fin n))) (T : Finset (Fin n)),
+      T ⊆ Av → T.Nonempty → (∀ e ∈ Ae, e ⊆ Av) → (maxCodegree 1 Ae : ℝ) ≤ c * d →
+      3 * (Ae.card : ℝ)
+        ≤ (n : ℝ) * ((Ae.filter fun e => pick Av Ae T ∈ e).card : ℝ)
+          + (((kill Av Ae (pick Av Ae T)).card : ℝ) + 1) * (c * d))
+
+/-- **Such a round exists** — the hypergraph analogue of `exists_greedy_rule`.
+
+Take the order on `Av` given by decreasing `Ae`-degree with ties by vertex index, let
+`pick Av Ae T` be the order-first element of `T`, and let `kill Av Ae v` be
+`{u ∈ Av | u ≺ v}`.  Stability holds for any order-first selection over an order depending only
+on the state, disjointness because the selection is order-first in `T`, and the double count by
+splitting the degree sum over `Av` at the retired set.
+
+`pick` and `kill` must be total; `exists_greedy_rule` encodes its order as an injective `ℕ` weight
+and selects with `Nat.sInf`, which keeps everything total without a `Decidable` instance, and the
+same scaffolding transposes here with `Ae`-degree in place of `G`-degree in `A`. -/
+theorem exists_container_round (c d : ℝ) (hc : 0 < c) (hd : 0 < d) (n : ℕ) :
+    ∃ (pick : Finset (Fin n) → Finset (Finset (Fin n)) → Finset (Fin n) → Fin n)
+      (kill : Finset (Fin n) → Finset (Finset (Fin n)) → Fin n → Finset (Fin n)),
+      IsContainerRound c d pick kill := by
+  sorry
+
 /-- **The container theorem for 3-uniform hypergraphs, with fingerprints** (the fingerprint form
 of Zhao, Theorem 11.3.1).  This is to Theorem 11.3.1 what `exists_containers_fingerprint` is to
 `exists_containers`: the refinement that the applications actually need, and — despite being

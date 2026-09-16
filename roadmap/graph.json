@@ -3812,6 +3812,28 @@
       "proof": "formalized",
       "uses": [],
       "proof_uses": []
+    },
+    "IsContainerRound": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.IsContainerRound",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "containers_maxCodegree"
+      ]
+    },
+    "exists_container_round": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.exists_container_round",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "IsContainerRound"
+      ],
+      "proof_uses": []
     }
   }
 }
