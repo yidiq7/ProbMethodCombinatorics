@@ -33,7 +33,7 @@ group file has a "planned, not stated" section saying which and why.
 | [`janson`](janson.md) | 8 | **all proved** | — |
 | [`concentration`](concentration.md) | 9 | **all proved** | martingales, Talagrand, TSP |
 | [`entropy`](entropy.md) | 10 | **all proved** | Sidorenko, Kahn–Zhao, Steiner |
-| [`containers`](containers.md) | 11 | 2 open | 11.1.3, 11.1.5, supersaturation |
+| [`containers`](containers.md) | 11 | 3 open | 11.1.3, 11.1.5, supersaturation |
 
 **Ten of the eleven groups have every stated declaration proved.**  All remaining open work is in
 Chapter 11, and the counts in this table are derived from `graph.json` (nodes with
@@ -49,6 +49,7 @@ Chapter 11, and the counts in this table are derived from `graph.json` (nodes wi
 | Obligation | Task | What rests on it |
 |---|---|---|
 | `exists_container_round` | [#176](https://github.com/yidiq7/ProbMethodCombinatorics/issues/176) | §11.3's run, and through it Theorem 11.3.1 |
+| `exists_run_of_container_round` | [#179](https://github.com/yidiq7/ProbMethodCombinatorics/issues/179) | §11.3's first phase — the largest of its nodes |
 | `exists_containers_fingerprint_three_uniform` | **not published — held** | Theorem 11.3.1, via #172's reduction |
 
 It is 11.3.1's fingerprint form, and by its author's own account it carries all of that theorem's
@@ -97,6 +98,34 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   cases.
 
 ## Log
+
+- **2026-09-16 — §11.3's frontier is fully published (#179), and the hold on the composite now has a precise reason.**
+  `exists_run_of_container_round` is stated and published, so the chapter's decomposition is
+  complete: the round (#176), the run (#179), and the dense branch (merged as #178).  0 axioms,
+  3 sorries.
+
+  **Published as one node rather than the pre-split shape I had said I was inclined to accept.**
+  Splitting the run would force its internal state — fuel, state shape — into a public statement,
+  freezing choices the contributor is better placed to make.  §11.2's analogue was a single node
+  with a *private* run definition and closed in one PR, and that precedent outweighs the gain from
+  separating the accounting, especially now that the dichotomy reduces to one handshake bound.
+  The rule of thumb: **split when the interface is forced, not when the node is merely large.**
+
+  **The composability check was machine-verified this time.**  The run's last four conjuncts are
+  exactly the hypotheses of `exists_fingerprint_of_dense_pairs` at `F := E (S I)`, and rather than
+  eyeball that I wrote a scratch `example` applying the one to the other and let Lean elaborate it.
+  Directly the lesson from over-promising `degree_fromEdgeSet` — *confirm the rewrite, do not
+  assume the forms match.*
+
+  **Why the composite stays held, stated exactly.**  It is no longer held because it carries the
+  mathematics — that is now decomposed.  It is held because **the frozen 11.3.1 fingerprint form
+  carries no regime hypothesis**, so proving it needs the whole range of `d`, and the range above
+  `√d > n/(2·10⁴M³)` is precisely what node 5 owns and what the graph container theorem cannot
+  reach.  The composite is unblockable only by settling node 5, not by any amount of glue.
+
+  Three lemmas were promoted out of #178's proof on the way — `card_filter_mem_eq_two`,
+  `sum_card_incident`, `degree_fromEdgeSet_eq_card_incident` — and the merged proof rewritten to
+  call them, so the promotion is verified by the build rather than asserted.
 
 - **2026-09-16 — §11.3's dense branch is proved (#178), and the loop ran itself to get there.**
   `exists_fingerprint_of_dense_pairs` merged about twenty minutes after being published; 0 axioms,
