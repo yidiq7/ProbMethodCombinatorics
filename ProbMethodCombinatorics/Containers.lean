@@ -114,7 +114,183 @@ theorem exists_greedy_rule (c d δ : ℝ) (hc : 0 < c) (hδ : 0 < δ) (hδc : δ
     (hsum : (∑ v, (G.degree v : ℝ)) = d * n) (hdeg : ∀ v, (G.degree v : ℝ) ≤ c * d) :
     ∃ (pick : Finset (Fin n) → Finset (Fin n) → Fin n)
       (kill : Finset (Fin n) → Fin n → Finset (Fin n)), IsGreedyRule G d δ pick kill := by
-  sorry
+  -- `n` is positive: otherwise `0 < d ≤ δ * 0 = 0`.
+  have hn0 : (0 : ℝ) ≤ (n : ℝ) := Nat.cast_nonneg n
+  have hnR : (0 : ℝ) < (n : ℝ) := by
+    rcases eq_or_lt_of_le hn0 with h | h
+    · rw [← h] at hdn; nlinarith
+    · exact h
+  have hn : 0 < n := by exact_mod_cast hnR
+  -- `δ ≤ 1 / (100 * c)` says exactly that `c * δ ≤ 1 / 100`, and `d ≤ δ * n` then makes the
+  -- maximum degree `c * d` negligible against `n`.
+  have hcδ : c * δ ≤ 1 / 100 := by
+    have h := (le_div_iff₀ (by positivity : (0 : ℝ) < 100 * c)).mp hδc
+    nlinarith
+  have hcd : c * d ≤ (n : ℝ) / 100 := by
+    nlinarith [mul_le_mul_of_nonneg_left hdn hc.le, mul_le_mul_of_nonneg_right hcδ hn0]
+  -- The order in which the vertices of `A` are selected: decreasing degree in `G[A]`, ties
+  -- broken by index.  It is encoded as an injective weight `ord A : Fin n → ℕ`, with `decode`
+  -- recovering the vertex from its weight; only these two properties and the monotonicity in
+  -- the degree are used below.
+  obtain ⟨ord, decode, hdecode, hord_mono⟩ :
+      ∃ (ord : Finset (Fin n) → Fin n → ℕ) (decode : ℕ → Fin n),
+        (∀ (A : Finset (Fin n)) (u : Fin n), decode (ord A u) = u) ∧
+        ∀ (A : Finset (Fin n)) (u w : Fin n), ord A u ≤ ord A w →
+          #{x ∈ A | G.Adj w x} ≤ #{x ∈ A | G.Adj u x} := by
+    refine ⟨fun A u => n * (n - #{x ∈ A | G.Adj u x}) + (u : ℕ),
+      fun m => ⟨m % n, Nat.mod_lt _ hn⟩, ?_, ?_⟩
+    · intro A u
+      refine Fin.ext ?_
+      show (n * (n - #{x ∈ A | G.Adj u x}) + (u : ℕ)) % n = (u : ℕ)
+      rw [Nat.mul_add_mod, Nat.mod_eq_of_lt u.isLt]
+    · intro A u w huw
+      have huw' : n * (n - #{x ∈ A | G.Adj u x}) + (u : ℕ)
+          ≤ n * (n - #{x ∈ A | G.Adj w x}) + (w : ℕ) := huw
+      by_contra hcon
+      rw [not_le] at hcon
+      have hwn : #{x ∈ A | G.Adj w x} ≤ n :=
+        le_trans (Finset.card_filter_le _ _) (by simpa using Finset.card_le_univ A)
+      have hstep : n - #{x ∈ A | G.Adj w x} + 1 ≤ n - #{x ∈ A | G.Adj u x} := by omega
+      have hmul : n * (n - #{x ∈ A | G.Adj w x}) + n ≤ n * (n - #{x ∈ A | G.Adj u x}) := by
+        calc n * (n - #{x ∈ A | G.Adj w x}) + n = n * (n - #{x ∈ A | G.Adj w x} + 1) := by ring
+          _ ≤ n * (n - #{x ∈ A | G.Adj u x}) := Nat.mul_le_mul le_rfl hstep
+      have hwlt : (w : ℕ) < n := w.isLt
+      omega
+  have hord_inj : ∀ (A : Finset (Fin n)) (u w : Fin n), ord A u = ord A w → u = w := by
+    intro A u w h
+    rw [← hdecode A u, ← hdecode A w, h]
+  -- `pick A T` is the vertex of `T` of least weight, hence of largest degree in `G[A]`.
+  obtain ⟨pick, hpick_mem, hpick_min⟩ :
+      ∃ pick : Finset (Fin n) → Finset (Fin n) → Fin n,
+        (∀ A T : Finset (Fin n), T.Nonempty → pick A T ∈ T) ∧
+        ∀ (A T : Finset (Fin n)) (u : Fin n), u ∈ T → ord A (pick A T) ≤ ord A u := by
+    refine ⟨fun A T => decode (sInf {m | ∃ u ∈ T, ord A u = m}), ?_, ?_⟩
+    · intro A T hT
+      obtain ⟨u, hu, hum⟩ := Nat.sInf_mem (s := {m | ∃ u ∈ T, ord A u = m})
+        (by obtain ⟨u, hu⟩ := hT; exact ⟨ord A u, u, hu, rfl⟩)
+      show decode (sInf {m | ∃ u ∈ T, ord A u = m}) ∈ T
+      rw [← hum, hdecode]
+      exact hu
+    · intro A T u hu
+      obtain ⟨w, hw, hwm⟩ := Nat.sInf_mem (s := {m | ∃ u ∈ T, ord A u = m}) ⟨ord A u, u, hu, rfl⟩
+      show ord A (decode (sInf {m | ∃ u ∈ T, ord A u = m})) ≤ ord A u
+      rw [← hwm, hdecode, hwm]
+      exact Nat.sInf_le ⟨u, hu, rfl⟩
+  -- Being the vertex of least weight determines `pick A T`.
+  have hpick_eq : ∀ (A T : Finset (Fin n)) (v : Fin n), v ∈ T →
+      (∀ u ∈ T, ord A v ≤ ord A u) → pick A T = v := fun A T v hv hmin =>
+    hord_inj A _ _ (le_antisymm (hpick_min A T v hv) (hmin _ (hpick_mem A T ⟨v, hv⟩)))
+  -- `kill A v` retires the predecessors of `v` in `A` together with its neighbours in `A`.
+  obtain ⟨kill, hkill⟩ :
+      ∃ kill : Finset (Fin n) → Fin n → Finset (Fin n),
+        ∀ (A : Finset (Fin n)) (v : Fin n),
+          kill A v = {x ∈ A | ord A x < ord A v ∨ G.Adj v x} :=
+    ⟨fun A v => {x ∈ A | ord A x < ord A v ∨ G.Adj v x}, fun _ _ => rfl⟩
+  -- The degree of a vertex inside `G[A]` never exceeds its degree in `G`.
+  have hdA_deg : ∀ (A : Finset (Fin n)) (u : Fin n),
+      (#{x ∈ A | G.Adj u x} : ℝ) ≤ (G.degree u : ℝ) := by
+    intro A u
+    refine Nat.cast_le.2 ?_
+    rw [← SimpleGraph.card_neighborFinset_eq_degree]
+    refine Finset.card_le_card fun w hw => ?_
+    exact (SimpleGraph.mem_neighborFinset _ _ _).2 (Finset.mem_filter.1 hw).2
+  have hdA_le : ∀ (A : Finset (Fin n)) (u : Fin n), (#{x ∈ A | G.Adj u x} : ℝ) ≤ c * d :=
+    fun A u => le_trans (hdA_deg A u) (hdeg u)
+  -- Double counting the edges meeting `A`: summing the number of neighbours inside `A` over
+  -- all vertices gives the sum over `A` of the degrees in `G`.
+  have hswap : ∀ A : Finset (Fin n),
+      ∑ u : Fin n, (#{x ∈ A | G.Adj u x} : ℝ) = ∑ w ∈ A, (G.degree w : ℝ) := by
+    intro A
+    have hfil : ∀ x : Fin n, ({u | G.Adj u x} : Finset (Fin n)) = G.neighborFinset x := by
+      intro x
+      ext u
+      simp [SimpleGraph.adj_comm]
+    simp only [Finset.natCast_card_filter]
+    rw [Finset.sum_comm]
+    refine Finset.sum_congr rfl fun w _ => ?_
+    rw [← Finset.natCast_card_filter, hfil w, SimpleGraph.card_neighborFinset_eq_degree]
+  refine ⟨pick, kill, hpick_mem, ?_, ?_, ?_⟩
+  · intro A T T' hsub hmem
+    exact hpick_eq A T' (pick A T) hmem fun u hu => hpick_min A T u (hsub hu)
+  · intro A v
+    refine ⟨by rw [hkill]; exact Finset.filter_subset _ _, ?_⟩
+    rw [hkill, Finset.mem_filter]
+    simp
+  · intro A hA I hI hIA
+    set v := pick A (I ∩ A) with hvdef
+    have hvIA : v ∈ I ∩ A := hpick_mem A (I ∩ A) hIA
+    have hvI : v ∈ I := (Finset.mem_inter.1 hvIA).1
+    have hvmin : ∀ u ∈ I ∩ A, ord A v ≤ ord A u := fun u hu => hpick_min A (I ∩ A) u hu
+    have hsubA : kill A v ⊆ A := by rw [hkill]; exact Finset.filter_subset _ _
+    refine ⟨?_, ?_⟩
+    · -- The retired vertices avoid `I`: a predecessor of `v` lying in `I ∩ A` would contradict
+      -- the minimality of `v`, and a neighbour of `v` cannot lie in the independent set `I`.
+      rw [Finset.disjoint_left]
+      intro u hu huI
+      rw [hkill, Finset.mem_filter] at hu
+      rcases hu.2 with hlt | hadj
+      · exact absurd (hvmin u (Finset.mem_inter.2 ⟨huI, hu.1⟩)) (not_le.2 hlt)
+      · exact hI (Finset.mem_coe.2 hvI) (Finset.mem_coe.2 huI) hadj.ne hadj
+    · -- The retirement count, from the two-sided estimate of `∑ u ∈ A, deg_{G[A]} u`.
+      have hnbr : {x ∈ A | G.Adj v x} ⊆ kill A v := by
+        intro u hu
+        rw [hkill, Finset.mem_filter]
+        exact ⟨(Finset.mem_filter.1 hu).1, Or.inr (Finset.mem_filter.1 hu).2⟩
+      have hdegv : (#{x ∈ A | G.Adj v x} : ℝ) ≤ (#(kill A v) : ℝ) :=
+        Nat.cast_le.2 (Finset.card_le_card hnbr)
+      have hsurv : ∀ u ∈ A \ kill A v,
+          (#{x ∈ A | G.Adj u x} : ℝ) ≤ (#{x ∈ A | G.Adj v x} : ℝ) := by
+        intro u hu
+        rw [Finset.mem_sdiff] at hu
+        have hnot : ¬(ord A u < ord A v ∨ G.Adj v u) := fun h =>
+          hu.2 (by rw [hkill, Finset.mem_filter]; exact ⟨hu.1, h⟩)
+        exact Nat.cast_le.2 (hord_mono A v u (not_lt.1 (not_or.1 hnot).1))
+      -- Every vertex of `A` either is retired, and then has degree at most `c * d`, or survives,
+      -- and then has degree at most that of `v`, which is at most the number retired.
+      have hupper : ∑ u ∈ A, (#{x ∈ A | G.Adj u x} : ℝ)
+          ≤ (#(kill A v) : ℝ) * (c * d) + (n : ℝ) * (#(kill A v) : ℝ) := by
+        have hsplit : ∑ u ∈ A \ kill A v, (#{x ∈ A | G.Adj u x} : ℝ)
+            + ∑ u ∈ kill A v, (#{x ∈ A | G.Adj u x} : ℝ)
+            = ∑ u ∈ A, (#{x ∈ A | G.Adj u x} : ℝ) := Finset.sum_sdiff hsubA
+        have h1 : ∑ u ∈ kill A v, (#{x ∈ A | G.Adj u x} : ℝ) ≤ (#(kill A v) : ℝ) * (c * d) := by
+          calc ∑ u ∈ kill A v, (#{x ∈ A | G.Adj u x} : ℝ)
+              ≤ ∑ _u ∈ kill A v, c * d := Finset.sum_le_sum fun u _ => hdA_le A u
+            _ = (#(kill A v) : ℝ) * (c * d) := by rw [Finset.sum_const, nsmul_eq_mul]
+        have h2 : ∑ u ∈ A \ kill A v, (#{x ∈ A | G.Adj u x} : ℝ)
+            ≤ (n : ℝ) * (#(kill A v) : ℝ) := by
+          have hcard : (#(A \ kill A v) : ℝ) ≤ (n : ℝ) := by
+            have h := Finset.card_le_univ (A \ kill A v)
+            simp only [Fintype.card_fin] at h
+            exact Nat.cast_le.2 h
+          calc ∑ u ∈ A \ kill A v, (#{x ∈ A | G.Adj u x} : ℝ)
+              ≤ ∑ _u ∈ A \ kill A v, (#(kill A v) : ℝ) :=
+                Finset.sum_le_sum fun u hu => le_trans (hsurv u hu) hdegv
+            _ = (#(A \ kill A v) : ℝ) * (#(kill A v) : ℝ) := by
+                rw [Finset.sum_const, nsmul_eq_mul]
+            _ ≤ (n : ℝ) * (#(kill A v) : ℝ) := mul_le_mul_of_nonneg_right hcard (by positivity)
+        linarith
+      -- At most `2 * δ * n` vertices are missing from `A`, so at most `2 * δ * n * (c * d)`
+      -- of the degree sum is lost, twice over.
+      have hlower : d * n - 4 * c * d * δ * n ≤ ∑ u ∈ A, (#{x ∈ A | G.Adj u x} : ℝ) := by
+        have hcompl : ∑ w ∈ Aᶜ, (G.degree w : ℝ) ≤ 2 * δ * n * (c * d) := by
+          calc ∑ w ∈ Aᶜ, (G.degree w : ℝ) ≤ ∑ _w ∈ Aᶜ, c * d :=
+                Finset.sum_le_sum fun w _ => hdeg w
+            _ = (#(Aᶜ) : ℝ) * (c * d) := by rw [Finset.sum_const, nsmul_eq_mul]
+            _ ≤ 2 * δ * n * (c * d) := mul_le_mul_of_nonneg_right hA (by positivity)
+        have hall : ∑ w ∈ A, (G.degree w : ℝ) + ∑ w ∈ Aᶜ, (G.degree w : ℝ)
+            = ∑ w, (G.degree w : ℝ) := Finset.sum_add_sum_compl A _
+        have hsplit2 : ∑ u ∈ A, (#{x ∈ A | G.Adj u x} : ℝ)
+            + ∑ u ∈ Aᶜ, (#{x ∈ A | G.Adj u x} : ℝ)
+            = ∑ u : Fin n, (#{x ∈ A | G.Adj u x} : ℝ) := Finset.sum_add_sum_compl A _
+        have hout : ∑ u ∈ Aᶜ, (#{x ∈ A | G.Adj u x} : ℝ) ≤ ∑ w ∈ Aᶜ, (G.degree w : ℝ) :=
+          Finset.sum_le_sum fun u _ => hdA_deg A u
+        have hsw := hswap A
+        linarith
+      -- `(3 * d / 4) * (c * d + n) ≤ d * n - 4 * c * d * δ * n ≤ #(kill A v) * (c * d + n)`.
+      have hpos : (0 : ℝ) < c * d + n := by positivity
+      refine le_of_mul_le_mul_right ?_ hpos
+      nlinarith [mul_le_mul_of_nonneg_left hcd hd.le,
+        mul_le_mul_of_nonneg_left hcδ (mul_nonneg hd.le hn0)]
 
 /-- **The container algorithm assembled from its greedy step.**  Running a greedy rule from the
 alive set `Finset.univ` and the empty fingerprint produces the fingerprint function `S` and the
