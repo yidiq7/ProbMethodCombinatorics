@@ -33,7 +33,7 @@ group file has a "planned, not stated" section saying which and why.
 | [`janson`](janson.md) | 8 | **all proved** | — |
 | [`concentration`](concentration.md) | 9 | **all proved** | martingales, Talagrand, TSP |
 | [`entropy`](entropy.md) | 10 | **all proved** | Sidorenko, Kahn–Zhao, Steiner |
-| [`containers`](containers.md) | 11 | 2 open | 11.1.3, 11.1.5, supersaturation |
+| [`containers`](containers.md) | 11 | 3 open | 11.1.3, 11.1.5, supersaturation |
 
 **Ten of the eleven groups have every stated declaration proved.**  All remaining open work is in
 Chapter 11, and the counts in this table are derived from `graph.json` (nodes with
@@ -49,6 +49,7 @@ Chapter 11, and the counts in this table are derived from `graph.json` (nodes wi
 | Obligation | Task | What rests on it |
 |---|---|---|
 | `exists_container_round` | [#176](https://github.com/yidiq7/ProbMethodCombinatorics/issues/176) | §11.3's run, and through it Theorem 11.3.1 |
+| `exists_fingerprint_of_dense_pairs` | [#177](https://github.com/yidiq7/ProbMethodCombinatorics/issues/177) | §11.3's dense branch — the only cross-chapter dependency |
 | `exists_containers_fingerprint_three_uniform` | **not published — held** | Theorem 11.3.1, via #172's reduction |
 
 It is 11.3.1's fingerprint form, and by its author's own account it carries all of that theorem's

@@ -85,6 +85,23 @@ decomposed (statement and route already verified, so decomposition was what was 
 given a targeted hint instead (its route is three lines; splitting it would not have helped, and
 the real cost was an associativity transport with a precedent already in the file).
 
+## Backticks in any double-quoted shell argument, not just commit messages
+
+The `-m`-with-backticks trap below is not specific to `git commit`.  The same substitution ate a
+phrase out of a `choir orch create-task --prose "…"` body: one backtick pair among dozens was
+left unescaped, the shell ran `degree_fromEdgeSet` as a command, and the name vanished from the
+published task, leaving "the bridge is , proved in the file".
+
+**Use a quoted heredoc for any long prose argument**, the same `<<'EOF'` that commit messages
+get, and pass it with `--body-file`/`-F -`.  Escaping backticks one by one across a few hundred
+words does not scale, and the failure is silent — the command succeeds and the text is simply
+shorter.
+
+**Unlike a commit message, an issue body is repairable**: `gh issue view --json body` then
+`gh issue edit --body-file` fixes it in place, and the task record re-parses afterwards.  Check
+any long `--prose` for dropped phrases right after publishing; grepping the body for the names
+you meant to cite takes seconds.
+
 ## 2026-09-15 — Commit messages: always a quoted heredoc, never `-m` with backticks
 
 `git commit -m "... the [backtick]submission:[backtick] line ..."` runs the backticked text as a
