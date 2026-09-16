@@ -3,6 +3,43 @@
 How to run the loop on this project.  Mine, not a worker's: `skills/` is force-loaded
 into every worker's context, so nothing here belongs there.
 
+## `~/.local/bin/choir` is shared state and may point at a worker's clone
+
+The `choir` on PATH is a one-line shim written by whichever Choir setup ran last. On this machine
+it points into a **worker's** disposable per-session clone:
+
+    _v="…/ProbMethodCombinatorics/worker-claude-1/choir/.venv/bin/choir"
+
+so orchestrator commands run a worker's copy of Choir, not `~/.choir/checkout`. Two consequences:
+
+- **`choir update` can report a checkout you are not running.** It syncs and prints the SHA of
+  `~/.choir/checkout` while the PATH entry point executes something else. The two agreeing is
+  luck, not a guarantee.
+- **A worker clone is disposable.** If that session's directory is cleaned up, `choir` breaks for
+  every role on the machine; the shim's own fallback prints "re-run Choir setup".
+
+To run the checkout you actually maintain, invoke it directly:
+
+    ~/.choir/checkout/.venv/bin/choir orch …
+
+`orchestrator-init.sh` rewrites the shim to point at the orchestrator's checkout, but that is
+shared state — it changes what every live worker session executes, so it is not a free fix while
+workers are running. Check `head -3 ~/.local/bin/choir` at loop start; it costs nothing and tells
+you whose code you are about to run.
+
+## §11.3's held node covers a wide range of `d`, not a narrow corner
+
+Worth keeping straight because the phrase "dense corner" understates it. Node 4 of the §11.3 split
+can only call `exists_containers` while that theorem's own proviso holds, which works out to
+
+    sqrt d ≤ κ · n,   κ = 1 / (50 · c · max (c/k) 1)
+
+with `k` the constant in the dense branch's `d_G ≥ k·sqrt d`. At `c = 1, k = 1/2` that is
+`d ≤ n²/10⁴`, while the only a priori bound is `d < n²/2` — so the unpublished fifth node owns a
+window about **5000×** wide, not a sliver. Treat it as a regime to be understood, not a corner to
+be patched.
+
+
 ## 2026-09-16 — `set-difficulty` / `set-priority` right after `create-task` clobbers `choir/type:*`
 
 Published #169, #170 and #171, then set labels immediately.  **#169 and #170 came out without
