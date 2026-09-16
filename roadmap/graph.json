@@ -70,10 +70,10 @@
       "doc": "introduction.md#is_monochromatic-ramsey_property-ramsey_number",
       "statement": "formalized",
       "proof": "formalized",
-      "uses": [
+      "uses": [],
+      "proof_uses": [
         "is_monochromatic"
-      ],
-      "proof_uses": []
+      ]
     },
     "ramsey_number": {
       "kind": "definition",
@@ -83,10 +83,10 @@
       "doc": "introduction.md#is_monochromatic-ramsey_property-ramsey_number",
       "statement": "formalized",
       "proof": "formalized",
-      "uses": [
+      "uses": [],
+      "proof_uses": [
         "ramsey_property"
-      ],
-      "proof_uses": []
+      ]
     },
     "ramsey_property_mono": {
       "kind": "theorem",
@@ -99,7 +99,9 @@
       "uses": [
         "ramsey_property"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "is_monochromatic"
+      ]
     },
     "ramsey_lower_erdos": {
       "kind": "theorem",
@@ -136,7 +138,10 @@
       "uses": [
         "ramsey_property"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "erdos_szekeres",
+        "is_monochromatic"
+      ]
     },
     "lt_ramsey_number": {
       "kind": "theorem",
@@ -147,13 +152,14 @@
       "statement": "formalized",
       "proof": "formalized",
       "uses": [
-        "ramsey_number",
-        "ramsey_property"
+        "ramsey_number"
       ],
       "proof_uses": [
+        "is_monochromatic",
+        "ramsey_finite",
         "ramsey_lower_erdos",
-        "ramsey_property_mono",
-        "ramsey_finite"
+        "ramsey_property",
+        "ramsey_property_mono"
       ]
     },
     "bollobas_two_families": {
@@ -165,7 +171,11 @@
       "statement": "formalized",
       "proof": "formalized",
       "uses": [],
-      "proof_uses": []
+      "proof_uses": [
+        "card_orderingsPrecede_mul_choose",
+        "disjoint_orderingsPrecede",
+        "orderingsPrecede"
+      ]
     },
     "two_colorable": {
       "kind": "definition",
@@ -250,7 +260,7 @@
     "markov_upstream": {
       "kind": "theorem",
       "parent": "alterations",
-      "decl": "MeasureTheory.mul_meas_ge_le_lintegral\u2080",
+      "decl": "MeasureTheory.mul_meas_ge_le_lintegral₀",
       "upstream": true
     },
     "markov_counting": {
@@ -313,9 +323,7 @@
       "uses": [
         "twice_area"
       ],
-      "proof_uses": [
-        "markov_counting"
-      ]
+      "proof_uses": []
     },
     "chromatic_indep_bound": {
       "kind": "theorem",
@@ -370,13 +378,13 @@
       "statement": "formalized",
       "proof": "formalized",
       "uses": [
-        "short_cycle_support",
+        "girth_edge_count",
         "graph_family",
-        "girth_edge_count"
+        "short_cycle_support"
       ],
       "proof_uses": [
-        "cycle_double_count",
         "choose_ratio_bound",
+        "cycle_double_count",
         "pow_log_littleo"
       ]
     },
@@ -389,12 +397,13 @@
       "statement": "formalized",
       "proof": "formalized",
       "uses": [
-        "graph_family",
-        "girth_edge_count"
+        "girth_edge_count",
+        "graph_family"
       ],
       "proof_uses": [
+        "girth_expectation",
         "markov_counting",
-        "girth_expectation"
+        "short_cycle_support"
       ]
     },
     "girth_small_indep": {
@@ -406,10 +415,14 @@
       "statement": "formalized",
       "proof": "formalized",
       "uses": [
-        "graph_family",
-        "girth_edge_count"
+        "girth_edge_count",
+        "graph_family"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "card_offDiag_le_two_mul_card_image",
+        "pow_log_littleo",
+        "two_mul_lt_choose_of_le_mul_choose"
+      ]
     },
     "girth_union_bound": {
       "kind": "theorem",
@@ -419,10 +432,13 @@
       "doc": "alterations.md#the-erdos-1959-random-graph-step",
       "statement": "formalized",
       "proof": "formalized",
-      "uses": [
+      "uses": [],
+      "proof_uses": [
+        "girth_edge_count",
+        "girth_few_short_cycles",
+        "girth_small_indep",
         "graph_family"
-      ],
-      "proof_uses": []
+      ]
     },
     "girth_alteration": {
       "kind": "theorem",
@@ -445,9 +461,9 @@
       "proof": "formalized",
       "uses": [],
       "proof_uses": [
-        "girth_few_short_cycles",
-        "girth_small_indep",
-        "markov_counting"
+        "chromatic_indep_bound",
+        "girth_alteration",
+        "girth_union_bound"
       ]
     },
     "girth_chromatic": {
@@ -460,7 +476,6 @@
       "proof": "formalized",
       "uses": [],
       "proof_uses": [
-        "markov_counting",
         "chromatic_indep_bound",
         "girth_random_half"
       ]
@@ -512,7 +527,13 @@
       "uses": [
         "conflicting_pair"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "instIsProbabilityMeasureForallRealUniformWeights",
+        "uniformWeights",
+        "uniformWeights_conflictingPair_mid_le",
+        "uniformWeights_forall_gt",
+        "uniformWeights_forall_lt"
+      ]
     },
     "cherkashin_kozik": {
       "kind": "theorem",
@@ -542,8 +563,9 @@
         "two_colorable"
       ],
       "proof_uses": [
-        "greedy_correct",
         "cherkashin_kozik",
+        "conflicting_pair",
+        "greedy_correct",
         "two_colorable_of_card_lt"
       ]
     },
@@ -678,7 +700,9 @@
       "uses": [
         "to_sign"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "markov_counting"
+      ]
     },
     "chernoff_abs": {
       "kind": "theorem",
@@ -692,7 +716,8 @@
         "to_sign"
       ],
       "proof_uses": [
-        "chernoff_bound"
+        "chernoff_bound",
+        "toSign_not"
       ]
     },
     "chernoff_subset": {
@@ -722,8 +747,7 @@
         "to_sign"
       ],
       "proof_uses": [
-        "chernoff_subset",
-        "chernoff_abs"
+        "chernoff_subset"
       ]
     },
     "large_sign_family": {
@@ -751,8 +775,8 @@
       "proof": "formalized",
       "uses": [],
       "proof_uses": [
-        "chernoff_abs",
-        "large_sign_family"
+        "large_sign_family",
+        "to_sign"
       ]
     },
     "hajos": {
@@ -785,10 +809,10 @@
       "doc": "local-lemma.md#pattern-indep_from-is_dependency_graph",
       "statement": "formalized",
       "proof": "formalized",
-      "uses": [
+      "uses": [],
+      "proof_uses": [
         "pattern"
-      ],
-      "proof_uses": []
+      ]
     },
     "is_dependency_graph": {
       "kind": "definition",
@@ -798,10 +822,10 @@
       "doc": "local-lemma.md#pattern-indep_from-is_dependency_graph",
       "statement": "formalized",
       "proof": "formalized",
-      "uses": [
+      "uses": [],
+      "proof_uses": [
         "indep_from"
-      ],
-      "proof_uses": []
+      ]
     },
     "lll_induction_step": {
       "kind": "theorem",
@@ -814,7 +838,9 @@
       "uses": [
         "is_dependency_graph"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "pattern"
+      ]
     },
     "lll_general": {
       "kind": "theorem",
@@ -827,7 +853,9 @@
       "uses": [
         "is_dependency_graph"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "lll_induction_step"
+      ]
     },
     "lll_symmetric": {
       "kind": "theorem",
@@ -841,7 +869,7 @@
         "is_dependency_graph"
       ],
       "proof_uses": [
-        "lll_general"
+        "pattern"
       ]
     },
     "weierstrass_product": {
@@ -867,7 +895,8 @@
         "is_dependency_graph"
       ],
       "proof_uses": [
-        "lll_general"
+        "lll_general",
+        "weierstrass_product"
       ]
     },
     "two_colorable_local": {
@@ -882,7 +911,13 @@
         "two_colorable"
       ],
       "proof_uses": [
-        "lll_symmetric"
+        "instIsProbabilityMeasureForallBoolUniformColoring",
+        "is_dependency_graph",
+        "lll_symmetric",
+        "pattern",
+        "uniform_coloring",
+        "uniform_coloring_const",
+        "uniform_coloring_indep"
       ]
     },
     "two_colorable_regular": {
@@ -897,7 +932,7 @@
         "two_colorable"
       ],
       "proof_uses": [
-        "lll_symmetric"
+        "two_colorable_local"
       ]
     },
     "ramsey_spencer": {
@@ -909,13 +944,20 @@
       "statement": "formalized",
       "proof": "formalized",
       "uses": [
-        "ramsey_number",
-        "ramsey_property"
+        "ramsey_number"
       ],
       "proof_uses": [
+        "instIsProbabilityMeasureForallBoolUniformColoring",
+        "is_dependency_graph",
+        "is_monochromatic",
         "lll_symmetric",
+        "pattern",
+        "ramsey_finite",
+        "ramsey_property",
         "ramsey_property_mono",
-        "ramsey_finite"
+        "uniform_coloring",
+        "uniform_coloring_const",
+        "uniform_coloring_indep"
       ]
     },
     "independent_transversal": {
@@ -981,10 +1023,10 @@
       "doc": "local-lemma.md#the-uniform-random-two-colouring",
       "statement": "formalized",
       "proof": "formalized",
-      "uses": [
+      "uses": [],
+      "proof_uses": [
         "fair_coin"
-      ],
-      "proof_uses": []
+      ]
     },
     "uniform_coloring_const": {
       "kind": "theorem",
@@ -997,7 +1039,12 @@
       "uses": [
         "uniform_coloring"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "fairCoin_singleton",
+        "fairCoin_univ",
+        "fair_coin",
+        "instIsProbabilityMeasureBoolFairCoin"
+      ]
     },
     "uniform_coloring_indep": {
       "kind": "theorem",
@@ -1010,7 +1057,10 @@
       "uses": [
         "uniform_coloring"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "fair_coin",
+        "instIsProbabilityMeasureBoolFairCoin"
+      ]
     },
     "cycle_double_count": {
       "kind": "theorem",
@@ -1020,7 +1070,10 @@
       "doc": "alterations.md#the-erdos-1959-random-graph-step",
       "statement": "formalized",
       "proof": "formalized",
-      "uses": [],
+      "uses": [
+        "graph_family",
+        "short_cycle_support"
+      ],
       "proof_uses": []
     },
     "choose_ratio_bound": {
@@ -1164,12 +1217,12 @@
       "statement": "formalized",
       "proof": "formalized",
       "uses": [
-        "janson_mu",
-        "janson_delta"
+        "janson_delta",
+        "janson_mu"
       ],
       "proof_uses": [
-        "harris_lower_family",
-        "janson_step"
+        "janson_step",
+        "sum_filter_insert_le"
       ]
     },
     "janson_two": {
@@ -1181,11 +1234,13 @@
       "statement": "formalized",
       "proof": "formalized",
       "uses": [
-        "janson_mu",
-        "janson_delta"
+        "janson_delta",
+        "janson_mu"
       ],
       "proof_uses": [
-        "janson_one"
+        "prob_none_le_subfamily",
+        "sum_powerset_weight_eq",
+        "sum_powerset_weight_mul"
       ]
     },
     "janson_three": {
@@ -1197,13 +1252,13 @@
       "statement": "formalized",
       "proof": "formalized",
       "uses": [
-        "janson_mu",
+        "janson_count",
         "janson_delta",
-        "janson_count"
+        "janson_mu"
       ],
       "proof_uses": [
-        "janson_lower_tail_step",
-        "janson_one"
+        "exp_neg_le_one_sub_add_sq_div_two",
+        "janson_lower_tail_step"
       ]
     },
     "triangle_free_asymptotic": {
@@ -1264,7 +1319,9 @@
       "statement": "formalized",
       "proof": "formalized",
       "uses": [],
-      "proof_uses": []
+      "proof_uses": [
+        "hasSubgaussianMGF_sub_integral_of_bddDiff"
+      ]
     },
     "azuma": {
       "kind": "theorem",
@@ -1346,7 +1403,9 @@
       "statement": "formalized",
       "proof": "formalized",
       "uses": [],
-      "proof_uses": []
+      "proof_uses": [
+        "entropy_probOf"
+      ]
     },
     "entropy_condEntropy": {
       "kind": "definition",
@@ -1357,7 +1416,9 @@
       "statement": "formalized",
       "proof": "formalized",
       "uses": [],
-      "proof_uses": []
+      "proof_uses": [
+        "entropy_probOf"
+      ]
     },
     "entropy_uniformPMF": {
       "kind": "definition",
@@ -1392,7 +1453,11 @@
       "uses": [
         "entropy_def"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "entropy_probOf",
+        "probOf_le_one",
+        "probOf_nonneg"
+      ]
     },
     "entropy_uniform_bound": {
       "kind": "theorem",
@@ -1403,7 +1468,8 @@
       "statement": "formalized",
       "proof": "planned",
       "uses": [
-        "entropy_def"
+        "entropy_def",
+        "entropy_probOf"
       ],
       "proof_uses": [
         "gibbs_inequality"
@@ -1418,10 +1484,13 @@
       "statement": "formalized",
       "proof": "formalized",
       "uses": [
-        "entropy_def",
-        "entropy_condEntropy"
+        "entropy_condEntropy",
+        "entropy_def"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "entropy_probOf",
+        "probOf_nonneg"
+      ]
     },
     "entropy_subadditive": {
       "kind": "theorem",
@@ -1434,7 +1503,11 @@
       "uses": [
         "entropy_def"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "entropy_probOf",
+        "probOf_nonneg",
+        "sum_probOf"
+      ]
     },
     "entropy_drop_conditioning": {
       "kind": "theorem",
@@ -1445,8 +1518,8 @@
       "statement": "formalized",
       "proof": "formalized",
       "uses": [
-        "entropy_def",
-        "entropy_condEntropy"
+        "entropy_condEntropy",
+        "entropy_def"
       ],
       "proof_uses": [
         "entropy_chain_rule",
@@ -1465,8 +1538,9 @@
         "entropy_def"
       ],
       "proof_uses": [
-        "entropy_subadditive",
-        "entropy_chain_rule"
+        "entropy_comp_inj",
+        "entropy_const",
+        "entropy_subadditive"
       ]
     },
     "shearer": {
@@ -1481,9 +1555,12 @@
         "entropy_def"
       ],
       "proof_uses": [
-        "entropy_chain_rule",
-        "entropy_drop_conditioning",
-        "entropy_nonneg"
+        "condEntropy_nonneg",
+        "condEntropy_pi_le",
+        "entropy_comp_inj",
+        "entropy_condEntropy",
+        "entropy_pi_eq_sum_condEntropy",
+        "sum_card_filter_mul_le"
       ]
     },
     "shearer_triple": {
@@ -1512,9 +1589,14 @@
       "proof": "formalized",
       "uses": [],
       "proof_uses": [
+        "card_image_univ_pair",
+        "entropy_def",
+        "entropy_le_logb_card_image",
+        "entropy_uniformPMF",
+        "entropy_uniformPMF_univ_of_injective",
         "shearer_triple",
-        "entropy_uniform_bound",
-        "entropy_uniformPMF"
+        "sum_uniformPMF",
+        "uniformPMF_nonneg"
       ]
     },
     "triangle_intersecting": {
@@ -1529,8 +1611,6 @@
         "entropy_triangleEdges"
       ],
       "proof_uses": [
-        "entropy_uniform_bound",
-        "shearer",
         "shearer_family"
       ]
     },
@@ -1544,10 +1624,14 @@
       "proof": "formalized",
       "uses": [],
       "proof_uses": [
-        "bregman_chain_rule",
-        "bregman_greedy_bound",
-        "entropy_chain_rule",
-        "entropy_uniform_bound"
+        "ProbMethodCombinatorics_entropy_uniformPMF",
+        "availCount",
+        "entropy_def",
+        "entropy_permSupport_le_expected_logb_availCount",
+        "entropy_uniformPMF",
+        "permSupport",
+        "permanent_eq_card_permSupport",
+        "sum_logb_availCount"
       ]
     },
     "binomial_tail_entropy": {
@@ -1585,10 +1669,10 @@
       "doc": "containers.md#two-decisions-about-how-the-statements-are-written",
       "statement": "formalized",
       "proof": "formalized",
-      "uses": [
+      "uses": [],
+      "proof_uses": [
         "entropy_triangleEdges"
-      ],
-      "proof_uses": []
+      ]
     },
     "containers_maxCodegree": {
       "kind": "definition",
@@ -1609,10 +1693,11 @@
       "doc": "containers.md#two-decisions-about-how-the-statements-are-written",
       "statement": "formalized",
       "proof": "formalized",
-      "uses": [
-        "containers_triangleFreeEdgeSet"
-      ],
-      "proof_uses": []
+      "uses": [],
+      "proof_uses": [
+        "containers_triangleFreeEdgeSet",
+        "entropy_triangleEdges"
+      ]
     },
     "graph_container": {
       "kind": "theorem",
@@ -1666,7 +1751,8 @@
       ],
       "proof_uses": [
         "container_shrink_step",
-        "hypergraph_container",
+        "containers_triangleFreeEdgeSet",
+        "entropy_triangleEdges",
         "triangle_supersaturation"
       ]
     },
@@ -1696,7 +1782,10 @@
       "uses": [
         "containers_triangleFreeGraphs"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "containers_triangleFreeEdgeSet",
+        "entropy_triangleEdges"
+      ]
     },
     "shearer_family": {
       "kind": "theorem",
@@ -1708,8 +1797,13 @@
       "proof": "formalized",
       "uses": [],
       "proof_uses": [
+        "entropy_def",
+        "entropy_le_logb_card_image",
+        "entropy_uniformPMF",
+        "entropy_uniformPMF_univ_of_injective",
         "shearer",
-        "entropy_uniform_bound"
+        "sum_uniformPMF",
+        "uniformPMF_nonneg"
       ]
     },
     "bregman_chain_rule": {
@@ -1720,9 +1814,17 @@
       "doc": "entropy.md#applications",
       "statement": "formalized",
       "proof": "formalized",
-      "uses": [],
+      "uses": [
+        "entropy_condEntropy",
+        "entropy_def",
+        "revealedBefore"
+      ],
       "proof_uses": [
-        "entropy_chain_rule"
+        "condEntropy_comp_inj",
+        "entropy_comp_inj",
+        "entropy_pi_eq_sum_condEntropy",
+        "exists_revealedBefore_comp",
+        "perm_toPi_injective"
       ]
     },
     "bregman_greedy_bound": {
@@ -1733,9 +1835,21 @@
       "doc": "entropy.md#applications",
       "statement": "formalized",
       "proof": "formalized",
-      "uses": [],
+      "uses": [
+        "availCount",
+        "entropy_condEntropy",
+        "entropy_uniformPMF",
+        "permSupport",
+        "revealedBefore"
+      ],
       "proof_uses": [
-        "entropy_uniform_bound"
+        "availSet",
+        "card_availSet_revealedBefore",
+        "condEntropy_le_sum_probOf_mul_logb",
+        "entropy_probOf",
+        "mem_availSet_of_mem_permSupport",
+        "sum_probOf_mul",
+        "uniformPMF_nonneg"
       ]
     },
     "harris_setbernoulli": {
@@ -1747,7 +1861,9 @@
       "statement": "formalized",
       "proof": "formalized",
       "uses": [],
-      "proof_uses": []
+      "proof_uses": [
+        "setbernoulli_harris_incr"
+      ]
     },
     "setbernoulli_block_indep": {
       "kind": "theorem",
@@ -1771,6 +1887,7 @@
       "uses": [],
       "proof_uses": [
         "harris_setbernoulli",
+        "isUpperSet_setOf_subset",
         "setbernoulli_block_indep"
       ]
     },
@@ -1805,7 +1922,11 @@
       "statement": "formalized",
       "proof": "formalized",
       "uses": [],
-      "proof_uses": []
+      "proof_uses": [
+        "cylinderOn_of_subset",
+        "exists_cylinderOn_symmDiff_lt",
+        "setBernoulli_mul_le_inter_add_error"
+      ]
     },
     "janson_lower_tail_step": {
       "kind": "theorem",
@@ -1815,9 +1936,15 @@
       "doc": "janson.md#janson_three--janson_lower_tail",
       "statement": "formalized",
       "proof": "formalized",
-      "uses": [],
+      "uses": [
+        "janson_count",
+        "janson_delta",
+        "janson_mu"
+      ],
       "proof_uses": [
-        "setbernoulli_pi"
+        "janson_step",
+        "sum_filter_insert_le",
+        "sum_powerset_weight_eq"
       ]
     },
     "dominating_averaging": {
@@ -1828,7 +1955,9 @@
       "doc": "alterations.md#decompositions",
       "statement": "formalized",
       "proof": "formalized",
-      "uses": [],
+      "uses": [
+        "is_dominating"
+      ],
       "proof_uses": []
     },
     "triangle_supersaturation": {
@@ -1839,7 +1968,9 @@
       "doc": "containers.md#111-containers-for-triangle-free-graphs",
       "statement": "formalized",
       "proof": "formalized",
-      "uses": [],
+      "uses": [
+        "entropy_triangleEdges"
+      ],
       "proof_uses": []
     },
     "container_shrink_step": {
@@ -1850,8 +1981,12 @@
       "doc": "containers.md#111-containers-for-triangle-free-graphs",
       "statement": "formalized",
       "proof": "formalized",
-      "uses": [],
+      "uses": [
+        "containers_triangleFreeEdgeSet",
+        "entropy_triangleEdges"
+      ],
       "proof_uses": [
+        "containers_maxCodegree",
         "hypergraph_container"
       ]
     },
@@ -1877,7 +2012,9 @@
       "statement": "formalized",
       "proof": "formalized",
       "uses": [],
-      "proof_uses": []
+      "proof_uses": [
+        "setBernoulli_cylinder"
+      ]
     },
     "gibbs_inequality": {
       "kind": "theorem",
@@ -1910,6 +2047,1487 @@
       "statement": "formalized",
       "proof": "planned",
       "uses": [],
+      "proof_uses": []
+    },
+    "abs_sub_integral_merge_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.abs_sub_integral_merge_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "abs_sub_le_sum_of_bddDiff",
+        "integrable_of_abs_sub_le"
+      ]
+    },
+    "abs_sub_le_sum_of_bddDiff": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.abs_sub_le_sum_of_bddDiff",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "availCount": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.availCount",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "availSet": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.availSet",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "card_availSet_revealedBefore": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.card_availSet_revealedBefore",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "availCount",
+        "availSet",
+        "revealedBefore"
+      ],
+      "proof_uses": [
+        "revealedBefore_ne_some_iff"
+      ]
+    },
+    "card_filter_orderingsPrecede": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SetSystems.lean",
+      "decl": "ProbMethodCombinatorics.card_filter_orderingsPrecede",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "orderingsPrecede"
+      ],
+      "proof_uses": [
+        "consOrdering",
+        "consOrdering_eraseOrdering",
+        "consOrdering_of_ne",
+        "consOrdering_self",
+        "eraseOrdering",
+        "eraseOrdering_consOrdering",
+        "mem_orderingsPrecede",
+        "succ_eraseOrdering"
+      ]
+    },
+    "card_filter_rank_mul_card_eq_factorial": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.card_filter_rank_mul_card_eq_factorial",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "card_filter_row_eq": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.card_filter_row_eq",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "card_image_univ_coe": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.card_image_univ_coe",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "card_image_univ_of_injective": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.card_image_univ_of_injective",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "card_image_univ_pair": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.card_image_univ_pair",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "card_image_univ_coe",
+        "card_image_univ_of_injective"
+      ]
+    },
+    "card_offDiag_le_two_mul_card_image": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.card_offDiag_le_two_mul_card_image",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "card_orderingsPrecede_empty": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SetSystems.lean",
+      "decl": "ProbMethodCombinatorics.card_orderingsPrecede_empty",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "orderingsPrecede"
+      ],
+      "proof_uses": []
+    },
+    "card_orderingsPrecede_mul_choose": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SetSystems.lean",
+      "decl": "ProbMethodCombinatorics.card_orderingsPrecede_mul_choose",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "orderingsPrecede"
+      ],
+      "proof_uses": [
+        "card_filter_orderingsPrecede",
+        "card_orderingsPrecede_empty",
+        "filter_orderingsPrecede_eq_empty"
+      ]
+    },
+    "condEntropy_comp_inj": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.condEntropy_comp_inj",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_condEntropy"
+      ],
+      "proof_uses": [
+        "entropy_chain_rule",
+        "entropy_comp_inj",
+        "entropy_def"
+      ]
+    },
+    "condEntropy_le_sum_probOf_mul_logb": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.condEntropy_le_sum_probOf_mul_logb",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_condEntropy",
+        "entropy_probOf"
+      ],
+      "proof_uses": [
+        "entropy_def",
+        "entropy_uniform_bound",
+        "probOf_nonneg",
+        "probOf_pair_le_right"
+      ]
+    },
+    "condEntropy_nonneg": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.condEntropy_nonneg",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_condEntropy"
+      ],
+      "proof_uses": [
+        "entropy_probOf",
+        "probOf_nonneg",
+        "probOf_pair_le_right"
+      ]
+    },
+    "condEntropy_pair_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.condEntropy_pair_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_condEntropy"
+      ],
+      "proof_uses": [
+        "entropy_chain_rule",
+        "entropy_def",
+        "entropy_triple_add_le"
+      ]
+    },
+    "condEntropy_pi_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.condEntropy_pi_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_condEntropy"
+      ],
+      "proof_uses": [
+        "condEntropy_comp_inj",
+        "condEntropy_pair_le",
+        "pi_sdiff_injective"
+      ]
+    },
+    "consOrdering": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/SetSystems.lean",
+      "decl": "ProbMethodCombinatorics.consOrdering",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "consOrdering_eraseOrdering": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SetSystems.lean",
+      "decl": "ProbMethodCombinatorics.consOrdering_eraseOrdering",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "consOrdering",
+        "eraseOrdering"
+      ],
+      "proof_uses": [
+        "consOrdering_of_ne",
+        "consOrdering_self",
+        "succ_eraseOrdering"
+      ]
+    },
+    "consOrdering_of_ne": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SetSystems.lean",
+      "decl": "ProbMethodCombinatorics.consOrdering_of_ne",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "consOrdering"
+      ],
+      "proof_uses": []
+    },
+    "consOrdering_self": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SetSystems.lean",
+      "decl": "ProbMethodCombinatorics.consOrdering_self",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "consOrdering"
+      ],
+      "proof_uses": []
+    },
+    "cylinderOn_of_subset": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.cylinderOn_of_subset",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "disjoint_orderingsPrecede": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SetSystems.lean",
+      "decl": "ProbMethodCombinatorics.disjoint_orderingsPrecede",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "orderingsPrecede"
+      ],
+      "proof_uses": [
+        "mem_orderingsPrecede"
+      ]
+    },
+    "entropy_comp_inj": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.entropy_comp_inj",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_def"
+      ],
+      "proof_uses": [
+        "entropy_probOf",
+        "probOf_comp_inj"
+      ]
+    },
+    "entropy_const": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.entropy_const",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_def"
+      ],
+      "proof_uses": [
+        "entropy_probOf"
+      ]
+    },
+    "entropy_eq_zero_of_subsingleton": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.entropy_eq_zero_of_subsingleton",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_def"
+      ],
+      "proof_uses": [
+        "entropy_const",
+        "entropy_probOf"
+      ]
+    },
+    "entropy_le_logb_card_image": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.entropy_le_logb_card_image",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_def"
+      ],
+      "proof_uses": [
+        "entropy_uniform_bound",
+        "probOf_eq_zero_of_notMem_image"
+      ]
+    },
+    "entropy_permSupport_le_expected_logb_availCount": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.entropy_permSupport_le_expected_logb_availCount",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "availCount",
+        "entropy_def",
+        "entropy_uniformPMF",
+        "permSupport"
+      ],
+      "proof_uses": [
+        "bregman_chain_rule",
+        "bregman_greedy_bound",
+        "entropy_condEntropy",
+        "revealedBefore",
+        "sum_uniformPMF",
+        "uniformPMF_nonneg"
+      ]
+    },
+    "entropy_pi_eq_sum_condEntropy": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.entropy_pi_eq_sum_condEntropy",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_condEntropy",
+        "entropy_def"
+      ],
+      "proof_uses": [
+        "entropy_eq_zero_of_subsingleton",
+        "entropy_pi_insert_sub"
+      ]
+    },
+    "entropy_pi_insert": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.entropy_pi_insert",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_def"
+      ],
+      "proof_uses": [
+        "entropy_comp_inj",
+        "pi_insert_injective"
+      ]
+    },
+    "entropy_pi_insert_sub": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.entropy_pi_insert_sub",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_condEntropy",
+        "entropy_def"
+      ],
+      "proof_uses": [
+        "entropy_chain_rule",
+        "entropy_pi_insert"
+      ]
+    },
+    "entropy_pi_mono": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.entropy_pi_mono",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_def"
+      ],
+      "proof_uses": [
+        "condEntropy_nonneg",
+        "entropy_chain_rule",
+        "entropy_condEntropy",
+        "entropy_pi_sdiff"
+      ]
+    },
+    "entropy_pi_sdiff": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.entropy_pi_sdiff",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_def"
+      ],
+      "proof_uses": [
+        "entropy_comp_inj",
+        "pi_sdiff_injective"
+      ]
+    },
+    "entropy_triple_add_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.entropy_triple_add_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_def"
+      ],
+      "proof_uses": [
+        "entropy_probOf",
+        "probOf_comp_inj",
+        "probOf_nonneg",
+        "sum_logb_submodular",
+        "sum_probOf",
+        "sum_probOf_pair",
+        "sum_probOf_pair_left"
+      ]
+    },
+    "ProbMethodCombinatorics_entropy_uniformPMF": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.entropy_uniformPMF",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_def",
+        "entropy_uniformPMF"
+      ],
+      "proof_uses": [
+        "entropy_uniformPMF_of_injOn"
+      ]
+    },
+    "entropy_uniformPMF_of_injOn": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.entropy_uniformPMF_of_injOn",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_def",
+        "entropy_uniformPMF"
+      ],
+      "proof_uses": [
+        "entropy_probOf"
+      ]
+    },
+    "entropy_uniformPMF_univ_of_injective": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.entropy_uniformPMF_univ_of_injective",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_def",
+        "entropy_uniformPMF"
+      ],
+      "proof_uses": [
+        "entropy_uniformPMF_of_injOn"
+      ]
+    },
+    "eraseOrdering": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/SetSystems.lean",
+      "decl": "ProbMethodCombinatorics.eraseOrdering",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "eraseOrdering_consOrdering": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SetSystems.lean",
+      "decl": "ProbMethodCombinatorics.eraseOrdering_consOrdering",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "consOrdering",
+        "eraseOrdering"
+      ],
+      "proof_uses": [
+        "consOrdering_of_ne",
+        "succ_eraseOrdering"
+      ]
+    },
+    "exists_cylinderOn_symmDiff_lt": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.exists_cylinderOn_symmDiff_lt",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "isSetRing_cylinderOn",
+        "measurableSet_of_cylinderOn",
+        "measurableSpace_set_eq_generateFrom"
+      ]
+    },
+    "exists_revealedBefore_comp": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.exists_revealedBefore_comp",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "revealedBefore"
+      ],
+      "proof_uses": []
+    },
+    "exp_neg_le_one_sub_add_sq_div_two": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.exp_neg_le_one_sub_add_sq_div_two",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "fairCoin_singleton": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.fairCoin_singleton",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "fair_coin"
+      ],
+      "proof_uses": []
+    },
+    "fairCoin_univ": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.fairCoin_univ",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "fair_coin"
+      ],
+      "proof_uses": []
+    },
+    "filter_orderingsPrecede_eq_empty": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SetSystems.lean",
+      "decl": "ProbMethodCombinatorics.filter_orderingsPrecede_eq_empty",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "orderingsPrecede"
+      ],
+      "proof_uses": [
+        "mem_orderingsPrecede"
+      ]
+    },
+    "hasSubgaussianMGF_sub_integral_of_bddDiff": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.hasSubgaussianMGF_sub_integral_of_bddDiff",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "abs_sub_le_sum_of_bddDiff",
+        "integrable_of_abs_sub_le",
+        "integral_exp_mul_integral_merge_le"
+      ]
+    },
+    "indicator_one_le_one": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.indicator_one_le_one",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "indicator_one_mul_indicator_one": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.indicator_one_mul_indicator_one",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "instIsProbabilityMeasureBoolFairCoin": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.instIsProbabilityMeasureBoolFairCoin",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "fair_coin"
+      ],
+      "proof_uses": [
+        "fairCoin_univ"
+      ]
+    },
+    "instIsProbabilityMeasureForallBoolUniformColoring": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.instIsProbabilityMeasureForallBoolUniformColoring",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "uniform_coloring"
+      ],
+      "proof_uses": [
+        "fair_coin",
+        "instIsProbabilityMeasureBoolFairCoin"
+      ]
+    },
+    "instIsProbabilityMeasureForallRealUniformWeights": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.instIsProbabilityMeasureForallRealUniformWeights",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "uniformWeights"
+      ],
+      "proof_uses": []
+    },
+    "instIsProbabilityMeasureSetSetBernoulliPi": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.instIsProbabilityMeasureSetSetBernoulliPi",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "setbernoulli_pi"
+      ],
+      "proof_uses": []
+    },
+    "integrable_of_abs_sub_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.integrable_of_abs_sub_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "integral_exp_mul_integral_merge_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.integral_exp_mul_integral_merge_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "abs_sub_integral_merge_le",
+        "abs_sub_le_sum_of_bddDiff",
+        "integrable_of_abs_sub_le",
+        "integral_exp_mul_sub_integral_le_of_abs_sub_le",
+        "integral_integral_update_pi",
+        "integral_integral_update_pi_symm",
+        "measurable_integral_merge"
+      ]
+    },
+    "integral_exp_mul_sub_integral_le_of_abs_sub_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.integral_exp_mul_sub_integral_le_of_abs_sub_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "integral_integral_update_pi": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.integral_integral_update_pi",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "measurePreserving_update_pi"
+      ]
+    },
+    "integral_integral_update_pi_symm": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.integral_integral_update_pi_symm",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "measurePreserving_update_pi"
+      ]
+    },
+    "isSetRing_cylinderOn": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.isSetRing_cylinderOn",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "cylinderOn_of_subset"
+      ]
+    },
+    "isUpperSet_setOf_subset": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.isUpperSet_setOf_subset",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "lintegral_eq_sum_powerset": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.lintegral_eq_sum_powerset",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "measurableSet_setOf_inter_eq"
+      ]
+    },
+    "lintegral_mul_lintegral_le_lintegral_mul": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.lintegral_mul_lintegral_le_lintegral_mul",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "lintegral_eq_sum_powerset",
+        "setBernoulli_trace_mul_le"
+      ]
+    },
+    "map_splice_eq_setBernoulli": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.map_splice_eq_setBernoulli",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "measurableSet_setOf_coe_subset",
+        "measurableSpace_set_eq_generateFrom",
+        "measurable_splice",
+        "setBernoulli_setOf_coe_subset"
+      ]
+    },
+    "measurableSet_of_cylinderOn": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.measurableSet_of_cylinderOn",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "measurableSet_setOf_inter_eq"
+      ]
+    },
+    "measurableSet_setOf_coe_subset": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.measurableSet_setOf_coe_subset",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "measurableSet_setOf_inter_eq": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.measurableSet_setOf_inter_eq",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "measurable_inter_const"
+      ]
+    },
+    "measurableSpace_set_eq_generateFrom": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.measurableSpace_set_eq_generateFrom",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "measurable_integral_merge": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.measurable_integral_merge",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "measurable_inter_const": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.measurable_inter_const",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "measurable_setBernoulli_splice": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.measurable_setBernoulli_splice",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "measurable_splice"
+      ]
+    },
+    "measurable_splice": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.measurable_splice",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "measurePreserving_update_pi": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.measurePreserving_update_pi",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "mem_availSet_of_mem_permSupport": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.mem_availSet_of_mem_permSupport",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "availSet",
+        "permSupport",
+        "revealedBefore"
+      ],
+      "proof_uses": [
+        "revealedBefore_ne_some_iff"
+      ]
+    },
+    "mem_orderingsPrecede": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SetSystems.lean",
+      "decl": "ProbMethodCombinatorics.mem_orderingsPrecede",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "orderingsPrecede"
+      ],
+      "proof_uses": []
+    },
+    "mul_le_mul_add_tsub_add_tsub": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.mul_le_mul_add_tsub_add_tsub",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "orderingsPrecede": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/SetSystems.lean",
+      "decl": "ProbMethodCombinatorics.orderingsPrecede",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "permSupport": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.permSupport",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "perm_toPi_injective": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.perm_toPi_injective",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "permanent_eq_card_permSupport": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.permanent_eq_card_permSupport",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "permSupport"
+      ],
+      "proof_uses": []
+    },
+    "pi_insert_injective": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.pi_insert_injective",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "pi_sdiff_injective": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.pi_sdiff_injective",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "probOf_comp_inj": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.probOf_comp_inj",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_probOf"
+      ],
+      "proof_uses": []
+    },
+    "probOf_eq_zero_of_notMem_image": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.probOf_eq_zero_of_notMem_image",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_probOf"
+      ],
+      "proof_uses": []
+    },
+    "probOf_le_one": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.probOf_le_one",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_probOf"
+      ],
+      "proof_uses": [
+        "probOf_nonneg",
+        "sum_probOf"
+      ]
+    },
+    "probOf_nonneg": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.probOf_nonneg",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_probOf"
+      ],
+      "proof_uses": []
+    },
+    "probOf_pair_le_right": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.probOf_pair_le_right",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_probOf"
+      ],
+      "proof_uses": [
+        "probOf_comp_inj",
+        "probOf_nonneg",
+        "sum_probOf_pair"
+      ]
+    },
+    "prob_none_le_subfamily": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.prob_none_le_subfamily",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "janson_delta",
+        "janson_mu",
+        "janson_one"
+      ]
+    },
+    "revealedBefore": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.revealedBefore",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "revealedBefore_ne_some_iff": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.revealedBefore_ne_some_iff",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "revealedBefore"
+      ],
+      "proof_uses": []
+    },
+    "setBernoulliPi_apply'": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.setBernoulliPi_apply'",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "setbernoulli_pi"
+      ],
+      "proof_uses": []
+    },
+    "setBernoulli_cylinder": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.setBernoulli_cylinder",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "setBernoulli_eq_lintegral_splice": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.setBernoulli_eq_lintegral_splice",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "map_splice_eq_setBernoulli",
+        "measurable_splice"
+      ]
+    },
+    "setBernoulli_eq_setBernoulliPi": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.setBernoulli_eq_setBernoulliPi",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "setbernoulli_pi"
+      ],
+      "proof_uses": []
+    },
+    "setBernoulli_mul_le_inter_add_error": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.setBernoulli_mul_le_inter_add_error",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "indicator_one_le_one",
+        "indicator_one_mul_indicator_one",
+        "lintegral_mul_lintegral_le_lintegral_mul",
+        "measurableSet_of_cylinderOn",
+        "measurable_setBernoulli_splice",
+        "mul_le_mul_add_tsub_add_tsub",
+        "setBernoulli_eq_lintegral_splice",
+        "setBernoulli_splice_tsub_indicator_le"
+      ]
+    },
+    "setBernoulli_setOf_coe_subset": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.setBernoulli_setOf_coe_subset",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "setBernoulli_cylinder"
+      ]
+    },
+    "setBernoulli_setOf_inter_eq": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.setBernoulli_setOf_inter_eq",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "setBernoulli_cylinder"
+      ]
+    },
+    "setBernoulli_setOf_inter_eq_of_not_subset": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.setBernoulli_setOf_inter_eq_of_not_subset",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "setBernoulli_splice_cylinderOn": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.setBernoulli_splice_cylinderOn",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "setBernoulli_splice_tsub_indicator_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.setBernoulli_splice_tsub_indicator_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "setBernoulli_splice_cylinderOn"
+      ]
+    },
+    "setBernoulli_trace_mul_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.setBernoulli_trace_mul_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "setBernoulli_setOf_inter_eq",
+        "setBernoulli_setOf_inter_eq_of_not_subset"
+      ]
+    },
+    "succ_eraseOrdering": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SetSystems.lean",
+      "decl": "ProbMethodCombinatorics.succ_eraseOrdering",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "eraseOrdering"
+      ],
+      "proof_uses": []
+    },
+    "sum_card_filter_mul_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.sum_card_filter_mul_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "sum_filter_insert_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.sum_filter_insert_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "sum_logb_Icc_eq": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.sum_logb_Icc_eq",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "sum_logb_availCount": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.sum_logb_availCount",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "availCount",
+        "permSupport"
+      ],
+      "proof_uses": [
+        "card_filter_rank_mul_card_eq_factorial",
+        "card_filter_row_eq",
+        "sum_logb_Icc_eq"
+      ]
+    },
+    "sum_logb_submodular": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.sum_logb_submodular",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "sum_mul_logb_le_of_sum_le"
+      ]
+    },
+    "sum_mul_logb_le_of_sum_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.sum_mul_logb_le_of_sum_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "sum_powerset_weight_eq": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.sum_powerset_weight_eq",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "sum_powerset_weight_mul": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.sum_powerset_weight_mul",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "sum_powerset_weight_eq"
+      ]
+    },
+    "sum_probOf": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.sum_probOf",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_probOf"
+      ],
+      "proof_uses": []
+    },
+    "sum_probOf_mul": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.sum_probOf_mul",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_probOf"
+      ],
+      "proof_uses": []
+    },
+    "sum_probOf_pair": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.sum_probOf_pair",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_probOf"
+      ],
+      "proof_uses": []
+    },
+    "sum_probOf_pair_left": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.sum_probOf_pair_left",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_probOf"
+      ],
+      "proof_uses": [
+        "probOf_comp_inj",
+        "sum_probOf_pair"
+      ]
+    },
+    "sum_uniformPMF": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.sum_uniformPMF",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_uniformPMF"
+      ],
+      "proof_uses": []
+    },
+    "toSign_not": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Chernoff.lean",
+      "decl": "ProbMethodCombinatorics.toSign_not",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "to_sign"
+      ],
+      "proof_uses": []
+    },
+    "two_mul_lt_choose_of_le_mul_choose": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.two_mul_lt_choose_of_le_mul_choose",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "uniformPMF_nonneg": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.uniformPMF_nonneg",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_uniformPMF"
+      ],
+      "proof_uses": []
+    },
+    "uniformWeights": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.uniformWeights",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "uniformWeights_conflictingPair_mid_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.uniformWeights_conflictingPair_mid_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "conflicting_pair",
+        "uniformWeights"
+      ],
+      "proof_uses": [
+        "uniformWeights_eq_null",
+        "uniformWeights_heaviest_lightest_le"
+      ]
+    },
+    "uniformWeights_eq_null": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.uniformWeights_eq_null",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "uniformWeights"
+      ],
+      "proof_uses": [
+        "uniformWeights_forall_mem"
+      ]
+    },
+    "uniformWeights_forall_gt": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.uniformWeights_forall_gt",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "uniformWeights"
+      ],
+      "proof_uses": [
+        "uniformWeights_forall_mem"
+      ]
+    },
+    "uniformWeights_forall_lt": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.uniformWeights_forall_lt",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "uniformWeights"
+      ],
+      "proof_uses": [
+        "uniformWeights_forall_mem"
+      ]
+    },
+    "uniformWeights_forall_mem": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.uniformWeights_forall_mem",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "uniformWeights"
+      ],
+      "proof_uses": [
+        "uniformWeights_pi"
+      ]
+    },
+    "uniformWeights_heaviest_lightest_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.uniformWeights_heaviest_lightest_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "uniformWeights"
+      ],
+      "proof_uses": [
+        "instIsProbabilityMeasureForallRealUniformWeights",
+        "uniformWeights_pi"
+      ]
+    },
+    "uniformWeights_pi": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Alterations.lean",
+      "decl": "ProbMethodCombinatorics.uniformWeights_pi",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "uniformWeights"
+      ],
       "proof_uses": []
     }
   }
