@@ -3803,6 +3803,15 @@
         "containers_maxCodegree"
       ],
       "proof_uses": []
+    },
+    "degree_fromEdgeSet": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.degree_fromEdgeSet",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
     }
   }
 }

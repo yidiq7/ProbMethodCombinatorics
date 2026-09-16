@@ -66,6 +66,26 @@ theorem maxCodegree_mono {α : Type*} [Fintype α] [DecidableEq α] (k : ℕ)
   intro s _
   exact Finset.card_le_card (Finset.filter_subset_filter _ h)
 
+/-- A vertex's degree in the graph a diagonal-free edge set spans, counted in the edge set.
+
+§11.3's algorithm accumulates forbidden pairs as a `Finset (Sym2 (Fin n))`, because a
+`DecidableRel` instance cannot be produced from under an existential, while §11.2's theorems take
+a `SimpleGraph`.  This is the bridge between the two: it lets a degree bound proved about the
+accumulated edge set be handed to those theorems as a hypothesis about `G.degree`. -/
+theorem degree_fromEdgeSet {n : ℕ} (F : Finset (Sym2 (Fin n)))
+    (hdiag : ∀ e ∈ F, ¬ e.IsDiag) (v : Fin n)
+    [DecidableRel (SimpleGraph.fromEdgeSet (F : Set (Sym2 (Fin n)))).Adj] :
+    (SimpleGraph.fromEdgeSet (F : Set (Sym2 (Fin n)))).degree v
+      = (univ.filter fun u => s(v, u) ∈ F).card := by
+  rw [← SimpleGraph.card_neighborFinset_eq_degree]
+  congr 1
+  ext u
+  simp only [SimpleGraph.mem_neighborFinset, Finset.mem_filter, Finset.mem_univ, true_and,
+    SimpleGraph.fromEdgeSet_adj, Finset.mem_coe]
+  refine ⟨fun h => h.1, fun h => ⟨h, ?_⟩⟩
+  intro huv
+  exact hdiag _ h (by simp [huv])
+
 /-- The `n`-vertex triangle-free graphs, as a finset of edge sets. -/
 noncomputable def triangleFreeGraphs (n : ℕ) : Finset (Finset (Sym2 (Fin n))) :=
   univ.filter IsTriangleFreeEdgeSet
