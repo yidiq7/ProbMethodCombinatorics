@@ -187,7 +187,19 @@ support itself gives the statement in the book. -/
 theorem entropy_le_logb_card (hp : ∀ ω, 0 ≤ p ω) (hp1 : ∑ ω, p ω = 1) (X : Ω → S)
     (A : Finset S) (hA : ∀ s ∉ A, probOf p X s = 0) :
     entropy p X ≤ Real.logb 2 (A.card : ℝ) := by
-  sorry
+  have hsub : A ⊆ (univ : Finset S) := Finset.subset_univ A
+  -- Outside `A` every probability, hence every entropy summand, is zero.
+  have hzero : ∀ s ∈ (univ : Finset S), s ∉ A →
+      -probOf p X s * Real.logb 2 (probOf p X s) = 0 := by
+    intro s _ hs
+    rw [hA s hs]
+    simp
+  have hmass : ∑ s ∈ A, probOf p X s = 1 := by
+    rw [Finset.sum_subset hsub fun s _ hs => hA s hs, sum_probOf, hp1]
+  have hent : entropy p X = ∑ s ∈ A, -probOf p X s * Real.logb 2 (probOf p X s) :=
+    (Finset.sum_subset hsub hzero).symm
+  rw [hent]
+  exact sum_negMulLogb_le_logb_card A (probOf p X) (fun s _ => probOf_nonneg hp X s) hmass
 
 /-- Conditional entropy is the difference of a joint and a marginal entropy; this is the
 computation on p. 176 of the notes.  Together with symmetry of the joint entropy it gives the
