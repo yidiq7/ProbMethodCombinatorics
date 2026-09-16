@@ -34,10 +34,13 @@ from typing import Any
 from gate.inventory.cli import main as _inventory_main
 from gate.jsonio import emit as _emit
 from gate.jsonio import plain as _plain
+from gate.provers import ProverError
 from gate.provers.select import read_prover
 from gate.state.task_record import ProjectRef, TaskRecord, TaskType
 from orchestrator import joining_prompt as _joining_prompt
 from orchestrator import poll as poll_mod
+from orchestrator.graph import GraphSyncError
+from orchestrator.graph import sync_graph as _graph_sync
 from orchestrator.labels import Difficulty, Priority, set_difficulty, set_priority
 from orchestrator.leases import sync_lease_labels
 from orchestrator.metrics.cli import main as _metrics_main
@@ -127,6 +130,22 @@ def _c_viz(a: argparse.Namespace) -> int:
     try:
         return _emit(_viz_report(where, repo=a.repo, out=out, scope=a.scope))
     except ReportError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
+
+
+def _c_sync_graph(a: argparse.Namespace) -> int:
+    """Rewrite the roadmap's derivable half from the built checkout.
+
+    Every declaration the project's source declares gets a node, and
+    every formalized node gets the `uses`/`proof_uses` its term actually
+    has. Planned, `upstream` and group nodes are the orchestrator's own
+    and are left alone. Needs the checkout built: the probe reads
+    compiled artifacts rather than re-elaborating.
+    """
+    try:
+        return _emit(_graph_sync(Path(a.checkout), check=a.check, prover=a.prover))
+    except (GraphSyncError, ProverError) as e:
         print(f"error: {e}", file=sys.stderr)
         return 1
 
@@ -295,21 +314,78 @@ def _c_sync_leases(a: argparse.Namespace) -> int:
 # `project-config` take a local checkout, and `classify` is a pure function
 # over check names.
 _NO_REPO = frozenset(
-    {"metrics", "joining-prompt", "inventory", "project-config", "classify", "viz"}
+    {
+        "metrics",
+        "joining-prompt",
+        "inventory",
+        "project-config",
+        "classify",
+        "viz",
+        "sync-graph",
+    }
 )
 
 
-def _build_parser() -> argparse.ArgumentParser:
+def _add_global_flags(
+    p: argparse.ArgumentParser, *, after_subcommand: bool = False
+) -> None:
+    """Register `--repo` / `--prover` on `p`.
+
+    Registered on the top-level parser and on every subcommand that does not
+    forward its arguments, so the flag means the same wherever it is
+    written. The subcommand copies suppress their default: argparse applies
+    defaults after parsing, so a `None` default here would overwrite a
+    `--repo` given before the subcommand.
+    """
+    default: dict[str, Any] = (
+        {"default": argparse.SUPPRESS} if after_subcommand else {"default": None})
+    p.add_argument("--repo", help="owner/name of the project repo", **default)
+    p.add_argument("--prover",
+                   help="lean4 | isabelle | rocq. Omit and every check is read in its "
+                        "strict class, so an advisory red (statement-equiv on lean4) "
+                        "reads as blocking.", **default)
+
+
+def _add_number(s: argparse.ArgumentParser, alias: str) -> None:
+    """Take the issue or PR number as the positional or as `alias`.
+
+    `salvage` takes two numbers and so has to name them, `--issue` and
+    `--pr`; those spellings are then a fair guess everywhere else. `main`
+    collapses the two into `number`.
+    """
+    s.add_argument("number", type=int, nargs="?", default=None)
+    s.add_argument(alias, type=int, dest="number_flag", default=None, metavar="N",
+                   help="the number, when not given as the positional")
+    s.set_defaults(number_alias=alias)
+
+
+def _resolve_number(
+    subs: dict[str, argparse.ArgumentParser], a: argparse.Namespace
+) -> None:
+    """Collapse the positional and its flag spelling into `number`.
+
+    Errors report against the subcommand's own parser. Against the top level
+    the usage line is the list of every subcommand, which says nothing about
+    the argument that is missing.
+    """
+    alias = getattr(a, "number_alias", None)
+    if alias is None:
+        return
+    if a.number is not None and a.number_flag is not None:
+        subs[a.cmd].error(f"give the number once, as either {alias} or the positional")
+    if a.number is None:
+        if a.number_flag is None:
+            subs[a.cmd].error(f"the following arguments are required: number (or {alias})")
+        a.number = a.number_flag
+
+
+def _build_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.ArgumentParser]]:
     p = argparse.ArgumentParser(
         prog="choir orch",
         description="Orchestrator toolkit as commands. Outcomes are in the JSON, "
                     "not the exit code: 0 = answered, 1 = bad args, 2 = GitHub failed.",
     )
-    p.add_argument("--repo", default=None, help="owner/name of the project repo")
-    p.add_argument("--prover", default=None,
-                   help="lean4 | isabelle | rocq. Omit and every check is read in its "
-                        "strict class, so an advisory red (statement-equiv on lean4) "
-                        "reads as blocking.")
+    _add_global_flags(p)
     sub = p.add_subparsers(dest="cmd", required=True)
 
     def add(name: str, fn, help_: str):
@@ -324,19 +400,19 @@ def _build_parser() -> argparse.ArgumentParser:
     s.add_argument("--limit", type=int, default=200)
 
     s = add("task", _c_task, "one task issue, parsed")
-    s.add_argument("number", type=int)
+    _add_number(s, "--issue")
 
     s = add("prs", _c_prs, "open PRs, each with its three check verdicts")
     s.add_argument("--limit", type=int, default=100)
 
     s = add("pr", _c_pr, "one PR, with its three check verdicts")
-    s.add_argument("number", type=int)
+    _add_number(s, "--pr")
 
     s = add("pr-diff", _c_pr_diff, "the PR diff, as text")
-    s.add_argument("number", type=int)
+    _add_number(s, "--pr")
 
     s = add("pr-comments", _c_pr_comments, "(author, body) per comment")
-    s.add_argument("number", type=int)
+    _add_number(s, "--pr")
 
     s = add("pending-approvals", _c_pending_approvals, "fork runs GitHub is holding")
     s.add_argument("--limit", type=int, default=100)
@@ -355,6 +431,13 @@ def _build_parser() -> argparse.ArgumentParser:
                         "all: every declaration in the corpus, most of them "
                         "local helpers.")
 
+    s = add("sync-graph", _c_sync_graph,
+            "rewrite roadmap/graph.json's derived nodes and edges from the build")
+    s.add_argument("checkout", help="path to the local project checkout")
+    s.add_argument("--check", action="store_true",
+                   help="report what would change and write nothing; nonempty means "
+                        "a merge landed without a sync")
+
     s = add("poll", _c_poll,
             "block until the repo's Choir state changes, then exit")
     s.add_argument("--interval", type=int, default=None,
@@ -365,7 +448,10 @@ def _build_parser() -> argparse.ArgumentParser:
                    help="print the current snapshot and exit")
 
     _add_write_commands(add)
-    return p
+    for s in sub.choices.values():
+        if not s.get_default("forwards"):
+            _add_global_flags(s, after_subcommand=True)
+    return p, sub.choices
 
 
 def _add_write_commands(add) -> None:  # type: ignore[no-untyped-def]
@@ -373,13 +459,13 @@ def _add_write_commands(add) -> None:  # type: ignore[no-untyped-def]
     subcommands so that a permission rule granting one does not grant the
     other — see the module docstring."""
     s = add("merge", _c_merge, "merge a PR — refuses unless the gate is green")
-    s.add_argument("number", type=int)
+    _add_number(s, "--pr")
     s.add_argument("--method", choices=["squash", "merge", "rebase"], default="squash")
     s.add_argument("--keep-branch", action="store_true")
 
     s = add("merge-override", _c_merge_override,
             "OVERSEER ONLY: merge past a red gate, with an attributable reason")
-    s.add_argument("number", type=int)
+    _add_number(s, "--pr")
     s.add_argument("--reason", required=True,
                    help="why the override is justified; posted to the PR before merging")
     s.add_argument("--method", choices=["squash", "merge", "rebase"], default="squash")
@@ -406,6 +492,7 @@ def _add_write_commands(add) -> None:  # type: ignore[no-untyped-def]
         s = add(name, fn, help_)
         s.add_argument("args", nargs=argparse.REMAINDER,
                        help="arguments passed through unchanged")
+        s.set_defaults(forwards=True)
 
     s = add("classify", _c_classify, "TRUST or NEAR_MISS for a set of failed checks")
     s.add_argument("--failed-check", action="append", default=[], required=True,
@@ -419,22 +506,22 @@ def _add_write_commands(add) -> None:  # type: ignore[no-untyped-def]
     s.add_argument("--detail", default="")
 
     s = add("close", _c_close, "close a PR without merging")
-    s.add_argument("number", type=int)
+    _add_number(s, "--pr")
     s.add_argument("--comment", default=None)
 
     s = add("comment", _c_comment, "post a PR comment")
-    s.add_argument("number", type=int)
+    _add_number(s, "--pr")
     s.add_argument("--body", required=True)
 
     s = add("approve-runs", _c_approve_runs, "approve held fork runs at a head SHA")
     s.add_argument("sha")
 
     s = add("set-priority", _c_set_priority, "set choir/priority:*")
-    s.add_argument("number", type=int)
+    _add_number(s, "--issue")
     s.add_argument("value", choices=["low", "normal", "high"])
 
     s = add("set-difficulty", _c_set_difficulty, "set choir/difficulty:*")
-    s.add_argument("number", type=int)
+    _add_number(s, "--issue")
     s.add_argument("value", choices=["easy", "medium", "hard"])
 
     s = add("sync-leases", _c_sync_leases, "reconcile lease labels with lease comments")
@@ -444,10 +531,11 @@ def _add_write_commands(add) -> None:  # type: ignore[no-untyped-def]
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = _build_parser()
+    parser, subs = _build_parser()
     a = parser.parse_args(argv)
     if a.repo is None and a.cmd not in _NO_REPO:
         parser.error(f"--repo is required for '{a.cmd}'")
+    _resolve_number(subs, a)
     try:
         return a.fn(a)
     except (PRError, MaintainerError) as e:

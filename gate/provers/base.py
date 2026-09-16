@@ -66,6 +66,38 @@ class TrustEntry:
 
 
 @dataclass(frozen=True)
+class DeclDependency:
+    """One declaration and the project-internal declarations it draws on.
+
+    `uses` are the declarations its *statement* mentions; `proof_uses`
+    the ones only its body reaches. That is the split a project's
+    `roadmap/graph.json` records under the same two names, so a plan can
+    be regenerated from the environment instead of maintained by hand.
+
+    Both lists name only declarations from the project's own modules. A
+    proof term reaches the whole library, and an edge to `Nat.add_comm`
+    says nothing about the plan — the project's own lemmas are what the
+    roadmap is a map of.
+
+    `module` is the module the declaration is elaborated in, not a path:
+    only the caller knows where a module's source sits, and guessing a
+    layout from the name would be wrong for any project whose library
+    root is not its source root. `has_placeholder` is read from the
+    elaborated term rather than the source text, so it is true exactly
+    when the prover would accept the declaration only under its
+    placeholder axiom.
+    """
+
+    decl: str
+    kind: str
+    module: str
+    line: int
+    has_placeholder: bool
+    uses: tuple[str, ...]
+    proof_uses: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class ProverProfile:
     r"""Everything Choir's gate needs to know about one prover.
 
@@ -98,6 +130,30 @@ class ProverProfile:
     `gate.provers.trust.collect_trust_report` attributes the result
     itself); False for lean4 and isabelle, whose output names each
     declaration.
+
+    Build freshness
+    ---------------
+    `freshness_command` asks the build tool whether the compiled
+    artifacts are up to date with the source, without building
+    anything — lean4's `lake build --no-build`, which exits nonzero
+    when a target is out of date. `None` for a prover with no such
+    query. It answers the one question a reader of compiled artifacts
+    cannot answer for itself, since importing a module whose source has
+    changed yields its last built state and says nothing.
+
+    Dependency probe
+    ----------------
+    `dependency_command(workspace, imports)` writes a probe that reports
+    every declaration the named modules elaborate, together with the
+    project-internal declarations each one draws on, and returns the argv
+    to run it; `parse_dependencies(output)` turns the captured stdout
+    into `DeclDependency` records. Both are `None` for a prover with no
+    way to enumerate a declaration's dependencies from a built
+    environment, and `gate.provers.deps.collect_dependencies` reports
+    that as an unsupported prover rather than an empty result — an empty
+    dependency list is indistinguishable from a project whose
+    declarations genuinely reference nothing, and a caller that wrote it
+    into a plan would erase every edge the plan had.
 
     Declaration kinds
     -----------------
@@ -308,3 +364,6 @@ class ProverProfile:
     decl_continuation_lines: Callable[[Sequence[str]], frozenset[int]] | None = None
     non_body_commands: tuple[str, ...] = ()
     qualify_decl_names: Callable[[str], dict[int, str]] | None = None
+    freshness_command: tuple[str, ...] | None = None
+    dependency_command: Callable[[Path, list[str]], list[str]] | None = None
+    parse_dependencies: Callable[[str], list[DeclDependency]] | None = None

@@ -20,7 +20,12 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from gate.provers.base import CommentSyntax, ProverProfile, TrustEntry
+from gate.provers.base import (
+    CommentSyntax,
+    DeclDependency,
+    ProverProfile,
+    TrustEntry,
+)
 from gate.provers.decl_syntax import (
     decl_line_regex_for,
     decl_name_from,
@@ -593,6 +598,152 @@ def parse_lean_trust_report(output: str) -> list[TrustEntry]:
 
 
 # ---------------------------------------------------------------------------
+# Dependency probe.
+#
+# Probe: a scratch file, written outside the project, importing the
+# project's modules, then one pass
+# over the environment reporting every declaration those modules
+# elaborate. Run via `lake env lean`, like the trust probe, so the
+# project's built `.lake` artifacts are in scope; it reads the compiled
+# environment and never re-elaborates, so the cost is the import.
+#
+# One tab-separated `choir-dep` line per declaration:
+#
+#     choir-dep<TAB>kind<TAB>module<TAB>line<TAB>state<TAB>decl<TAB>uses<TAB>proof_uses
+#
+# `uses` and `proof_uses` are comma-separated and may be empty. The
+# marker prefix is what lets the parser ignore build noise, warnings and
+# blank lines the way `parse_lean_trust_report` does.
+#
+# Three details in the probe body are load-bearing:
+#
+#   * `ConstantInfo.value?` is `None` for an imported theorem, so a
+#     proof's dependencies must be read through `getUsedConstantsAsSet`
+#     — the same traversal `#print axioms` uses. Reading `value?` would
+#     silently report every imported theorem as depending on nothing.
+#   * A `private` declaration's name is mangled, so `privateToUserName?`
+#     has to run before the module filter and before any name is
+#     reported, or every private helper vanishes from the result.
+#   * The environment holds generated declarations a project never wrote
+#     (congruence lemmas, equation lemmas). `findDeclarationRanges?`
+#     separates them: a declaration the source declares has a range, and
+#     the generated ones do not.
+#
+# It enumerates the project's own modules out of the environment header
+# rather than filtering the whole constant map. Both answer the same
+# question, and on a project sitting on a large library they are not
+# remotely the same price: the map holds every declaration of every
+# dependency, and asking each one which module it came from costs more
+# than a hundred times the work of reading the handful of modules the
+# project wrote.
+# ---------------------------------------------------------------------------
+
+_DEPENDENCY_PROBE_FILENAME = ".choir-deps-probe.lean"
+
+_DEPENDENCY_MARKER = "choir-dep"
+
+_DEPENDENCY_PROBE_BODY = r"""open Lean in
+#eval show CoreM Unit from do
+  let env ← getEnv
+  let project : NameSet := PROJECT_MODULES.foldl (fun s m => s.insert m) {}
+  let user : Name → Name := fun n => (privateToUserName? n).getD n
+  let modules := env.header.moduleNames
+  let mine : Array Nat := (List.range modules.size).toArray.filter
+    (fun i => project.contains modules[i]!)
+  let declared : NameSet := mine.foldl (fun s i =>
+    env.header.moduleData[i]!.constNames.foldl
+      (fun s n => if (user n).isInternalDetail then s else s.insert (user n)) s) {}
+  let join : List Name → String := fun ms => String.intercalate "," (ms.map toString)
+  let mut rows : Array String := #[]
+  for i in mine do
+    for n in env.header.moduleData[i]!.constNames do
+      let self := user n
+      if self.isInternalDetail then continue
+      let some ci := env.find? n | continue
+      let some ranges ← findDeclarationRanges? n | continue
+      let kind := match ci with
+        | .thmInfo _ => "theorem"
+        | .axiomInfo _ => "axiom"
+        | _ => "definition"
+      let inType : NameSet :=
+        ci.type.getUsedConstants.foldl (fun s m => s.insert (user m)) {}
+      let every := ci.getUsedConstantsAsSet.toList
+      let reached : NameSet := every.foldl
+        (fun s m => if declared.contains (user m) then s.insert (user m) else s) {}
+      let named := reached.toList.filter (fun m => m != self)
+      rows := rows.push <| String.intercalate "\t"
+        ["MARKER", kind, toString modules[i]!, toString ranges.range.pos.line,
+         if every.any (fun m => m == `sorryAx) then "placeholder" else "complete",
+         toString self,
+         join (named.filter (fun m => inType.contains m)),
+         join (named.filter (fun m => !inType.contains m))]
+  for r in rows.qsort (· < ·) do IO.println r
+"""
+
+
+def build_lean_dependency_probe(workspace: Path, imports: list[str]) -> Path:
+    """Write `<workspace>/.choir-deps-probe.lean` and return its path.
+
+    `imports` are the project's own modules: they are both what the probe
+    imports and the set it reports on, so a module left out is invisible
+    rather than half-reported.
+    """
+    modules = "[" + ", ".join(f"`{module}" for module in imports) + "]"
+    body = _DEPENDENCY_PROBE_BODY.replace("PROJECT_MODULES", modules).replace(
+        "MARKER", _DEPENDENCY_MARKER
+    )
+    # `import Lean` is the probe's own dependency, not the project's: the
+    # metaprogramming API it reads the environment through is not in scope
+    # for a project that doesn't already pull it in.
+    lines = ["import Lean", *(f"import {module}" for module in imports)]
+    probe_path = workspace / _DEPENDENCY_PROBE_FILENAME
+    probe_path.write_text("\n".join(lines) + "\n" + body)
+    return probe_path
+
+
+def lean_dependency_command(workspace: Path, imports: list[str]) -> list[str]:
+    """Write the dependency probe and return the `lake env lean` invocation.
+
+    `workspace` is where the probe is written, which is not the directory
+    it is run in, so the path is absolute.
+    """
+    probe_path = build_lean_dependency_probe(workspace, imports)
+    return ["lake", "env", "lean", str(probe_path)]
+
+
+def _names(field: str) -> tuple[str, ...]:
+    return tuple(part for part in field.split(",") if part)
+
+
+def parse_lean_dependencies(output: str) -> list[DeclDependency]:
+    """Parse `lake env lean` output into `DeclDependency` records.
+
+    Lines without the marker, or with the wrong field count, are ignored:
+    a probe run shares stdout with the build's own diagnostics.
+    """
+    found: list[DeclDependency] = []
+    for raw_line in output.splitlines():
+        fields = raw_line.rstrip("\n").split("\t")
+        if len(fields) != 8 or fields[0].strip() != _DEPENDENCY_MARKER:
+            continue
+        _, kind, module, line, state, decl, uses, proof_uses = fields
+        if not line.isdigit():
+            continue
+        found.append(
+            DeclDependency(
+                decl=decl,
+                kind=kind,
+                module=module,
+                line=int(line),
+                has_placeholder=state == "placeholder",
+                uses=_names(uses),
+                proof_uses=_names(proof_uses),
+            )
+        )
+    return found
+
+
+# ---------------------------------------------------------------------------
 # The profile
 # ---------------------------------------------------------------------------
 
@@ -629,6 +780,9 @@ LEAN4 = ProverProfile(
     decl_prefix_commands=_DECL_PREFIX_COMMANDS,
     non_body_commands=_NON_BODY_COMMANDS,
     qualify_decl_names=qualify_decl_names,
+    freshness_command=("lake", "build", "--no-build"),
+    dependency_command=lean_dependency_command,
+    parse_dependencies=parse_lean_dependencies,
 )
 
 # `qualify_decl_names`'s declaration-boundary regex. Read off the profile
