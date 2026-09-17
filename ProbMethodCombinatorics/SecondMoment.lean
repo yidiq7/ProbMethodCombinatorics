@@ -410,7 +410,23 @@ theorem prob_sum_indicator_eq_zero_le [IsProbabilityMeasure μ] {ι : Type*} [Fi
     (μ {ω | ∑ i, (A i).indicator (fun _ => (1 : ℝ)) ω = 0}).toReal
       ≤ ((∑ i, (μ (A i)).toReal) + ∑ q ∈ D, (μ (A q.1 ∩ A q.2)).toReal)
           / (∑ i, (μ (A i)).toReal) ^ 2 := by
-  sorry
+  -- `memLp_sum_indicator_one` and `integral_sum_indicator_one` are the same two facts, but they
+  -- live in the `IndicatorSum` section further down the file, so they are inlined here.
+  have hmem : MemLp (fun ω => ∑ i, (A i).indicator (fun _ => (1 : ℝ)) ω) 2 μ :=
+    memLp_finsetSum _ fun i _ =>
+      memLp_indicator_const 2 (hA i) 1 (Or.inr (measure_ne_top μ _))
+  have hint : μ[fun ω => ∑ i, (A i).indicator (fun _ => (1 : ℝ)) ω]
+      = ∑ i, (μ (A i)).toReal := by
+    rw [MeasureTheory.integral_finsetSum _ fun i _ =>
+      (integrable_const (1 : ℝ)).indicator (hA i)]
+    exact Finset.sum_congr rfl fun i _ => by
+      rw [integral_indicator_const _ (hA i), smul_eq_mul, mul_one, measureReal_def]
+  -- Chebyshev, with the mean rewritten as `∑ i, ℙ(A i)`.
+  have hcheb := prob_eq_zero_le_variance_div_sq hmem (by rw [hint]; exact hmean)
+  rw [hint] at hcheb
+  -- The variance bound is exactly the claimed numerator, and the denominator is a square.
+  exact hcheb.trans
+    (div_le_div_of_nonneg_right (variance_sum_indicator_le A hA D hD) (sq_nonneg _))
 
 /-! ### §4.1 The triangle count in `G(n, p)` -/
 
