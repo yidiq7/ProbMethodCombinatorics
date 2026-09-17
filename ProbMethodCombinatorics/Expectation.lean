@@ -416,6 +416,41 @@ theorem card_le_of_tetrahedronFree {n : ℕ} (hn : 4 ≤ n) (H : Finset (Finset 
     _ = 3 * (n.choose 3 * (n - 3)) := by rw [hid]
     _ = 3 * n.choose 3 * (n - 3) := by ring
 
+/-- **A five-vertex tetrahedron-free 3-graph has at most seven edges** (Zhao, Lemma 2.4.3).
+
+Complementation turns this into a statement about ordinary graphs.  Sending a triple `e ⊆ Fin 5`
+to its complement `eᶜ`, a pair, is a bijection from triples to pairs, and for `v : Fin 5` the
+four triples inside `univ.erase v` are exactly the four pairs through `v`.  So `H` contains a
+tetrahedron precisely when the complement graph has a vertex of degree `4`, and `H` is
+tetrahedron-free precisely when that graph has maximum degree at most `3`.  A five-vertex graph
+of maximum degree `3` has at most `⌊3 * 5 / 2⌋ = 7` edges, by handshaking.
+
+Tight: the bound `7` is attained. -/
+theorem card_le_seven_of_tetrahedronFree (H : Finset (Finset (Fin 5)))
+    (h3 : ∀ e ∈ H, e.card = 3)
+    (hfree : ∀ S : Finset (Fin 5), S.card = 4 → ∃ e ⊆ S, e.card = 3 ∧ e ∉ H) :
+    H.card ≤ 7 := by
+  sorry
+
+/-- **Sampling five vertices instead of four** (Zhao, Proposition 2.4.4): a tetrahedron-free
+3-graph has at most `(7/10) binom(n,3)` edges.
+
+The proof is `card_le_of_tetrahedronFree` with the sample size raised from `4` to `5`: double
+count the pairs `(S, e)` with `|S| = 5`, `e ⊆ S` and `e ∈ H`, bound the inner count by
+`card_le_seven_of_tetrahedronFree`, and cancel using `10 binom(n,5) = binom(n,3) binom(n-3,2)`.
+
+**`5 ≤ n`, not `4 ≤ n` as the source prints it.**  At `n = 4` the claim is false: the 3-graph on
+four vertices missing exactly one triple is tetrahedron-free and has `3` edges, while
+`(7/10) binom(4,3) = 2.8`.  Four vertices cannot support an argument that samples five.  The
+bound is tight at `n = 5` and at `n = 6`, where the true maxima are `7` and `14` against
+`(7/10) binom(n,3) = 7` and `14`. -/
+theorem card_le_of_tetrahedronFree_sample_five {n : ℕ} (hn : 5 ≤ n)
+    (H : Finset (Finset (Fin n)))
+    (h3 : ∀ e ∈ H, e.card = 3)
+    (hfree : ∀ S : Finset (Fin n), S.card = 4 → ∃ e ⊆ S, e.card = 3 ∧ e ∉ H) :
+    10 * H.card ≤ 7 * n.choose 3 := by
+  sorry
+
 /-! ### §2.5 Unbalancing lights -/
 
 /-- The `±1` vector recording membership in `S`. -/
