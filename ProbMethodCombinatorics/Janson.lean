@@ -869,7 +869,38 @@ theorem prob_no_triangle_le_of_mul_sqrt_le :
             {G : SimpleGraph (Fin n) | ∀ T : {T : Finset (Fin n) // T.card = 3},
               ¬ (↑(offDiagPairs (T : Finset (Fin n))) ⊆ G.edgeSet)}
           ≤ Real.exp (-(1 - ε) * ((n.choose 3 : ℝ) * (p : ℝ) ^ 3)) := by
-  sorry
+  intro ε hε
+  refine ⟨Real.sqrt (ε / 6), by positivity, 6, fun n hn p hp => ?_⟩
+  have hp0 : (0 : ℝ) ≤ (p : ℝ) := p.2.1
+  have hn6 : (6 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn
+  -- Squaring `p √n ≤ √(ε/6)` turns the scale hypothesis into `n p² ≤ ε/6`.
+  have hnp2 : (n : ℝ) * (p : ℝ) ^ 2 ≤ ε / 6 := by
+    have hsq : ((p : ℝ) * Real.sqrt n) ^ 2 ≤ Real.sqrt (ε / 6) ^ 2 :=
+      pow_le_pow_left₀ (by positivity) hp 2
+    rw [mul_pow, Real.sq_sqrt (Nat.cast_nonneg n),
+      Real.sq_sqrt (by positivity : (0 : ℝ) ≤ ε / 6)] at hsq
+    linarith only [hsq]
+  -- `binom(n,3) = n(n-1)(n-2)/6 ≥ n³/12`, which holds from `n = 6` up.
+  have hchoose : (n : ℝ) ^ 3 / 12 ≤ (n.choose 3 : ℝ) := by
+    have hnat : 6 * n.choose 3 = n * (n - 1) * (n - 2) := by
+      have h := Nat.descFactorial_eq_factorial_mul_choose n 3
+      simp only [Nat.descFactorial, Nat.factorial, Nat.sub_zero, mul_one] at h
+      rw [← h]; ring
+    have hc : (6 : ℝ) * (n.choose 3 : ℝ) = (n : ℝ) * ((n : ℝ) - 1) * ((n : ℝ) - 2) := by
+      have h := congrArg (fun k : ℕ => (k : ℝ)) hnat
+      push_cast [Nat.cast_sub (by omega : 1 ≤ n), Nat.cast_sub (by omega : 2 ≤ n)] at h
+      linarith only [h]
+    nlinarith only [hc, hn6]
+  -- `Δ/2 ≤ n⁴p⁵/2 ≤ ε n³p³/12 ≤ ε μ`, the first step being exactly `n p² ≤ ε/6`.
+  have hmul : ((n : ℝ) ^ 3 * (p : ℝ) ^ 3) * ((n : ℝ) * (p : ℝ) ^ 2)
+      ≤ ((n : ℝ) ^ 3 * (p : ℝ) ^ 3) * (ε / 6) :=
+    mul_le_mul_of_nonneg_left hnp2 (by positivity)
+  have hstep : (n : ℝ) ^ 3 / 12 * (p : ℝ) ^ 3 ≤ (n.choose 3 : ℝ) * (p : ℝ) ^ 3 :=
+    mul_le_mul_of_nonneg_right hchoose (pow_nonneg hp0 3)
+  have hmu : ε * ((n : ℝ) ^ 3 / 12 * (p : ℝ) ^ 3) ≤ ε * ((n.choose 3 : ℝ) * (p : ℝ) ^ 3) :=
+    mul_le_mul_of_nonneg_left hstep hε.le
+  refine (binomialRandom_no_triangle_le n p).trans (Real.exp_le_exp.2 ?_)
+  linarith only [hmul, hmu]
 
 /-- The binomial weight of the subsets of `s` containing a fixed `K` sums to `q ^ #K`. -/
 private theorem sum_powerset_weight_eq {α : Type*} [DecidableEq α] (q : ℝ) (s K : Finset α)
