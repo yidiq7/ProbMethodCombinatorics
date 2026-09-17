@@ -4302,11 +4302,14 @@
       "file": "ProbMethodCombinatorics/SecondMoment.lean",
       "decl": "ProbMethodCombinatorics.integral_triangleCount",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "triangleCount"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "binomialRandom_forall_mem_edgeSet",
+        "measurableSet_forall_mem_edgeSet"
+      ]
     },
     "triangleCount": {
       "kind": "definition",
@@ -4349,6 +4352,24 @@
       "decl": "ProbMethodCombinatorics.exists_independent_transversal",
       "statement": "formalized",
       "proof": "planned",
+      "uses": [],
+      "proof_uses": []
+    },
+    "binomialRandom_forall_mem_edgeSet": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.binomialRandom_forall_mem_edgeSet",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "measurableSet_forall_mem_edgeSet": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.measurableSet_forall_mem_edgeSet",
+      "statement": "formalized",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": []
     }
