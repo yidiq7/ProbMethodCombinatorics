@@ -349,6 +349,25 @@ theorem jansonDelta_triangleFamily_le (n : ℕ) (p : I) :
   rw [jansonDelta, Finset.sum_congr rfl hterm, Finset.sum_const, nsmul_eq_mul]
   gcongr
 
+/-- **`Δ` for the triangle family, exactly.**  There are `3 binom(n,3) (n-3)` ordered pairs of
+distinct triples sharing an edge — choose a triple, choose which two of its vertices are shared,
+choose the replacement vertex — and each contributes `p ⁵`.
+
+`jansonDelta_triangleFamily_le` relaxes this to `n⁴p⁵`, which is what the `Δ < μ` regime of
+§8.1 wants.  The exact value is what the **other** regime needs: Janson's second inequality
+(`janson_prob_none_le_of_mu_le`) is applied when `μ ≤ Δ`, and an upper bound on `Δ` cannot
+witness that.  The two forms are used in opposite directions and neither replaces the other.
+
+The formula is correct at every `n`: below `4` the count is `0`, since two distinct triples
+sharing two vertices need a fourth vertex, and `Nat` truncation of `n - 3` agrees. -/
+theorem jansonDelta_triangleFamily (n : ℕ) (p : I) :
+    jansonDelta p
+        (fun T : {T : Finset (Fin n) // T.card = 3} =>
+          (↑(offDiagPairs (T : Finset (Fin n))) : Set (Sym2 (Fin n))))
+        (triangleDependency n)
+      = (3 * n.choose 3 * (n - 3) : ℕ) * (p : ℝ) ^ 5 := by
+  sorry
+
 /-- The conditioning step of the Boppana–Spencer proof of Janson's inequality.
 
 If `i ∉ T` and every `S j` with `j ∈ T` outside `T₁` is disjoint from `S i`, then imposing the
