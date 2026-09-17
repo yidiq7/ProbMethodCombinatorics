@@ -2158,4 +2158,38 @@ theorem perfectMatchingCount_doubleCover {n : ℕ} (G : SimpleGraph (Fin n)) [De
 
 end DoubleCover
 
+/-! ### 10.4 Counting independent sets
+
+Kahn's theorem and Kahn–Zhao (Theorem 10.4.12) bound the number of independent sets of a regular
+graph by a power of the count for `K_{d,d}`.  Mathlib has `SimpleGraph.IsIndepSet` and
+`SimpleGraph.indepNum`, the size of the *largest* independent set, but **no count of them**, so
+`i(G)` is authored here.
+-/
+
+section IndepSetCount
+
+variable {V : Type*} [Fintype V]
+
+/-- `i(G)`, the number of independent sets of `G`, counting the empty set.
+
+`Nat.card` rather than a `Finset.card`: `IsIndepSet` has no `DecidablePred` instance and this
+project declares none.  For finite `V` the subtype is `Finite`, so the count is the honest
+cardinality rather than `Nat.card`'s junk value. -/
+noncomputable def indepSetCount (G : SimpleGraph V) : ℕ :=
+  Nat.card {S : Finset V // G.IsIndepSet (S : Set V)}
+
+/-- **`i(K_{d,d}) = 2^{d+1} - 1`.**
+
+An independent set of the complete bipartite graph cannot meet both sides, since every crossing
+pair is an edge; so it is a subset of one side or the other, and the two families overlap in the
+empty set alone.  Hence `2^d + 2^d - 1`.
+
+This is the base of Kahn–Zhao's bound `i(G) ≤ i(K_{d,d})^{n/(2d)}` for `d`-regular `G` on `n`
+vertices, so the exponent there is what makes the constant matter. -/
+theorem indepSetCount_completeBipartiteGraph (d : ℕ) :
+    indepSetCount (completeBipartiteGraph (Fin d) (Fin d)) = 2 ^ (d + 1) - 1 := by
+  sorry
+
+end IndepSetCount
+
 end ProbMethodCombinatorics
