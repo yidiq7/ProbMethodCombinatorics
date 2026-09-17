@@ -2036,6 +2036,44 @@ the honest cardinality and not `Nat.card`'s junk value at infinite types. -/
 noncomputable def perfectMatchingCount [Fintype V] (G : SimpleGraph V) : ℕ :=
   Nat.card {M : G.Subgraph // M.IsPerfectMatching}
 
+/-- The subgraph of the double cover picked out by a permutation `σ`: the edges are the
+`(i, false) — (σ i, true)`, and every vertex is included.  The adjacency relation carries the
+double cover's own adjacency, so the subgraph is defined for every `σ`; it is a perfect matching
+exactly when `i` and `σ i` are adjacent in `G` for every `i`. -/
+private def doubleCoverSubgraphOfPerm {n : ℕ} (G : SimpleGraph (Fin n))
+    (σ : Equiv.Perm (Fin n)) : (doubleCover G).Subgraph where
+  verts := Set.univ
+  Adj a b := (doubleCover G).Adj a b ∧ (b = (σ a.1, true) ∨ a = (σ b.1, true))
+  adj_sub h := h.1
+  edge_vert _ := Set.mem_univ _
+  symm := ⟨fun _ _ h => ⟨h.1.symm, h.2.symm⟩⟩
+
+/-- `doubleCoverSubgraphOfPerm G σ` is a perfect matching as soon as `σ` moves every vertex along
+an edge of `G`: the vertex `(i, false)` is matched to `(σ i, true)`, and `(j, true)` to
+`(σ⁻¹ j, false)`, which is where the surjectivity of `σ` enters. -/
+private theorem doubleCoverSubgraphOfPerm_isPerfectMatching {n : ℕ} {G : SimpleGraph (Fin n)}
+    {σ : Equiv.Perm (Fin n)} (hσ : ∀ i, G.Adj i (σ i)) :
+    (doubleCoverSubgraphOfPerm G σ).IsPerfectMatching := by
+  rw [SimpleGraph.Subgraph.isPerfectMatching_iff]
+  rintro ⟨u, c⟩
+  cases c with
+  | false =>
+    refine ⟨(σ u, true), ⟨by simpa using hσ u, Or.inl rfl⟩, ?_⟩
+    rintro ⟨v, d⟩ ⟨-, h2 | h2⟩
+    · exact h2
+    · simp at h2
+  | true =>
+    refine ⟨(σ.symm u, false), ⟨by simpa using (hσ (σ.symm u)).symm, Or.inr (by simp)⟩, ?_⟩
+    rintro ⟨v, d⟩ ⟨h1, h2 | h2⟩
+    · rw [h2] at h1
+      simp at h1
+    · have hu : u = σ v := by simpa using h2
+      have hd : d = false := by
+        rw [doubleCover_adj] at h1
+        simpa using h1.2
+      subst hd
+      rw [hu, Equiv.symm_apply_apply]
+
 /-- **The double cover's perfect matchings are the permanent of the adjacency matrix.**
 
 A perfect matching of `G × K₂` sends each `(u, false)` to some `(σ u, true)`, and covering the
@@ -2049,7 +2087,74 @@ permanent, which Brégman–Minc then bounds. -/
 theorem perfectMatchingCount_doubleCover {n : ℕ} (G : SimpleGraph (Fin n)) [DecidableRel G.Adj] :
     perfectMatchingCount (doubleCover G)
       = (univ.filter fun σ : Equiv.Perm (Fin n) => ∀ i, G.Adj i (σ i)).card := by
-  sorry
+  rw [← Fintype.card_subtype, ← Nat.card_eq_fintype_card, perfectMatchingCount]
+  refine (Nat.card_eq_of_bijective
+    (fun σ => (⟨doubleCoverSubgraphOfPerm G σ.1,
+      doubleCoverSubgraphOfPerm_isPerfectMatching σ.2⟩ :
+        {M : (doubleCover G).Subgraph // M.IsPerfectMatching})) ⟨?_, ?_⟩).symm
+  · rintro ⟨σ, hσ⟩ ⟨τ, _⟩ h
+    simp only [Subtype.mk_eq_mk] at h
+    refine Subtype.ext (Equiv.ext fun i => ?_)
+    have h1 : (doubleCoverSubgraphOfPerm G τ).Adj (i, false) (σ i, true) := by
+      rw [← h]; exact ⟨by simpa using hσ i, Or.inl rfl⟩
+    rcases h1.2 with h2 | h2
+    · simpa using h2
+    · simp at h2
+  · rintro ⟨M, hM⟩
+    have hu : ∀ i : Fin n, ∃! j : Fin n, M.Adj (i, false) (j, true) := by
+      intro i
+      obtain ⟨⟨v, d⟩, hw, hwu⟩ := SimpleGraph.Subgraph.isPerfectMatching_iff.mp hM (i, false)
+      have hd : d = true := by
+        have := M.adj_sub hw
+        rw [doubleCover_adj] at this
+        simpa using this.2
+      subst hd
+      exact ⟨v, hw, fun j hj => by simpa using hwu (j, true) hj⟩
+    choose σ₀ hσ₀ hσ₀u using hu
+    have hinj : Function.Injective σ₀ := by
+      intro i j hij
+      have h2 : M.Adj (j, false) (σ₀ i, true) := by rw [hij]; exact hσ₀ j
+      simpa using hM.1.eq_of_adj_right (hσ₀ i) h2
+    have hbij := Finite.injective_iff_bijective.mp hinj
+    have hcoe : ∀ i, (Equiv.ofBijective σ₀ hbij) i = σ₀ i := fun _ => rfl
+    have hGadj : ∀ i, G.Adj i (σ₀ i) := by
+      intro i
+      have := M.adj_sub (hσ₀ i)
+      rw [doubleCover_adj] at this
+      exact this.1
+    refine ⟨⟨Equiv.ofBijective σ₀ hbij, by simpa only [hcoe] using hGadj⟩, Subtype.ext ?_⟩
+    refine SimpleGraph.Subgraph.ext ((Set.eq_univ_iff_forall.mpr hM.2).symm) ?_
+    funext a b
+    obtain ⟨u, c⟩ := a
+    obtain ⟨v, d⟩ := b
+    simp only [eq_iff_iff]
+    constructor
+    · rintro ⟨h1, h2 | h2⟩
+      · obtain ⟨rfl, rfl⟩ : v = σ₀ u ∧ d = true := by simpa only [hcoe, Prod.mk.injEq] using h2
+        have hc : c = false := by
+          rw [doubleCover_adj] at h1
+          simpa using h1.2
+        subst hc
+        exact hσ₀ u
+      · obtain ⟨rfl, rfl⟩ : u = σ₀ v ∧ c = true := by simpa only [hcoe, Prod.mk.injEq] using h2
+        have hd : d = false := by
+          rw [doubleCover_adj] at h1
+          simpa using h1.2
+        subst hd
+        exact (hσ₀ v).symm
+    · intro hadj
+      have hdc := M.adj_sub hadj
+      rw [doubleCover_adj] at hdc
+      refine ⟨M.adj_sub hadj, ?_⟩
+      cases c with
+      | false =>
+        have hd : d = true := by simpa using hdc.2
+        subst hd
+        exact Or.inl (by rw [hcoe, hσ₀u u v hadj])
+      | true =>
+        have hd : d = false := by simpa using hdc.2
+        subst hd
+        exact Or.inr (by rw [hcoe, hσ₀u v u hadj.symm])
 
 end DoubleCover
 
