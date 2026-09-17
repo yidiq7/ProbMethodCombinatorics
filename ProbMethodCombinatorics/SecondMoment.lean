@@ -1076,6 +1076,21 @@ theorem integral_copyCount (H : SimpleGraph V) [DecidableRel H.Adj] (n : ℕ) (p
   rw [MeasureTheory.integral_indicator_const _ (key f hf).1, Measure.real, (key f hf).2,
     smul_eq_mul, mul_one, ENNReal.toReal_pow, ENNReal.coe_toReal, unitInterval.coe_toNNReal]
 
+/-- **The 0-statement's engine** (Zhao, §4.2): `G(n, p)` contains a labelled copy of `H` with
+probability at most `n^{\underline{v_H}} p^{e_H}`.
+
+Markov's inequality on `copyCount`, whose mean is `integral_copyCount`: the count is a sum of
+indicators, so it is integer-valued and `ℙ(count ≠ 0) = ℙ(count ≥ 1) ≤ 𝔼 count`.
+
+This is the half of Theorem 4.2.10 that needs no second moment.  It is also where Example 4.2.6
+bites: run against `H` itself the bound gives the threshold `n^{-v_H/e_H}`, which for `K₄` with a
+pendant edge is `n^{-5/7}` rather than the correct `n^{-2/3}`.  The 1-statement has to be run
+against the **densest subgraph** `H'`, which is what `maxEdgeVertexRatio` is for. -/
+theorem prob_copyCount_ne_zero_le (H : SimpleGraph V) [DecidableRel H.Adj] (n : ℕ) (p : I) :
+    (binomialRandom (Fin n) p).real {G : SimpleGraph (Fin n) | copyCount H G ≠ 0}
+      ≤ (n.descFactorial (Fintype.card V) : ℝ) * (p : ℝ) ^ H.edgeFinset.card := by
+  sorry
+
 end Subgraphs
 
 end ProbMethodCombinatorics
