@@ -1,3 +1,4 @@
+import Mathlib.Combinatorics.SimpleGraph.Clique
 import Mathlib.Combinatorics.SimpleGraph.Finite
 import Mathlib.Probability.Combinatorics.BinomialRandomGraph.Defs
 import Mathlib.Probability.Moments.Variance
@@ -1170,5 +1171,23 @@ theorem prob_copyCount_ne_zero_le (H : SimpleGraph V) [DecidableRel H.Adj] (n : 
   rwa [integral_indicator_const _ hmeas, smul_eq_mul, mul_one, integral_copyCount H n p] at h
 
 end Subgraphs
+
+/-! ### §4.4: the clique number of a random graph -/
+
+/-- **The union bound on cliques** (Zhao, §4.4): `G(n, p)` contains a `k`-clique with probability
+at most `binom(n,k) p^{binom(k,2)}`.
+
+One term per `k`-subset, each contributing the probability that all `binom(k,2)` pairs inside it
+are edges — `binomialRandom_setOf_subset_edgeSet`.  No second moment, no independence beyond the
+coordinates themselves.
+
+This is the first-moment half of §4.4: when `binom(n,k) p^{binom(k,2)} → 0` the clique number is
+below `k` with high probability, which for `p = 1/2` is the upper bound
+`ω(G(n,1/2)) ≤ (2 + o(1)) log₂ n`.  The matching lower bound needs the second moment and is a
+separate node.  §8.3 uses the same bound in its exponential form. -/
+theorem prob_not_cliqueFree_le (n k : ℕ) (p : I) :
+    (binomialRandom (Fin n) p).real {G : SimpleGraph (Fin n) | ¬ G.CliqueFree k}
+      ≤ (n.choose k : ℝ) * (p : ℝ) ^ k.choose 2 := by
+  sorry
 
 end ProbMethodCombinatorics
