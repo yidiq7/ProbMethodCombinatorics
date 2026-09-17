@@ -335,7 +335,20 @@ that leaves either `3(a+b) > 2p` when no wraparound occurs, or `3(a+b-p) < p` wh
 violates one of the window's two bounds.  No primality is needed. -/
 theorem isSumFree_sumFreeWindow (p : ℕ) [NeZero p] :
     IsSumFree (↑(sumFreeWindow p) : Set (ZMod p)) := by
-  sorry
+  intro a ha b hb hab
+  simp only [sumFreeWindow, coe_filter, Set.mem_ofPred_eq, mem_univ, true_and] at ha hb hab
+  -- `(a + b).val` is `a.val + b.val` reduced mod `p`, and `a.val + b.val < 2 * p`, so the
+  -- reduction subtracts `p` at most once.
+  rw [ZMod.val_add] at hab
+  have hap := ZMod.val_lt a
+  have hbp := ZMod.val_lt b
+  rcases lt_or_ge (a.val + b.val) p with h | h
+  · -- No wraparound: `3 * (a.val + b.val) > 2 * p` breaks the window's upper bound.
+    rw [Nat.mod_eq_of_lt h] at hab
+    omega
+  · -- Wraparound: `3 * (a.val + b.val - p) < 4 * p - 3 * p = p` breaks the lower bound.
+    rw [Nat.mod_eq_sub_mod h, Nat.mod_eq_of_lt (by omega)] at hab
+    omega
 
 /-- **The middle third has at least `(p-1)/3` elements**, provided `3 ∤ p`.
 
@@ -345,7 +358,25 @@ window is empty while `p - 1 = 2`.  Under `3 ∤ p` the bound holds and is **tig
 `p ≡ 1 mod 3`**, so nothing here can be relaxed. -/
 theorem card_sumFreeWindow (p : ℕ) [NeZero p] (h3 : ¬ (3 ∣ p)) :
     p - 1 ≤ 3 * (sumFreeWindow p).card := by
-  sorry
+  have hp : 0 < p := Nat.pos_of_ne_zero (NeZero.ne p)
+  -- When `3 ∤ p` the window is exactly the image of `Ioc (p / 3) (2 * p / 3)` under
+  -- `Nat.cast`, which is injective there because that interval sits below `p`.
+  have key : (Finset.Ioc (p / 3) (2 * p / 3)).card ≤ (sumFreeWindow p).card := by
+    refine Finset.card_le_card_of_injOn (fun k => (k : ZMod p)) ?_ ?_
+    · intro k hk
+      simp only [coe_Ioc, Set.mem_Ioc] at hk
+      have hkp : k < p := by omega
+      simp only [sumFreeWindow, coe_filter, Set.mem_ofPred_eq, mem_univ, true_and,
+        ZMod.val_natCast_of_lt hkp]
+      omega
+    · intro k hk l hl hkl
+      simp only [coe_Ioc, Set.mem_Ioc] at hk hl
+      have hkp : k < p := by omega
+      have hlp : l < p := by omega
+      have := congrArg ZMod.val hkl
+      rwa [ZMod.val_natCast_of_lt hkp, ZMod.val_natCast_of_lt hlp] at this
+  rw [Nat.card_Ioc] at key
+  omega
 
 /-! ### §2.4 Bounding by sampling -/
 
