@@ -41,10 +41,18 @@ more versatile: the `cᵢ` there can be smaller than a worst-case Lipschitz boun
   which Mathlib has (`MeasureTheory.Martingale`) but which is a heavier commitment than the
   applications require. Worth stating if a contributor wants the source's route to the node
   above; ask first.
-- **Theorem 9.3.1** (Shamir–Spencer): `χ(G(n,p))` is concentrated in an `O(√n)` window around
-  its mean — *without knowing where the mean is*, which is the striking part. Stating it needs
-  the mean of an `ℕ∞`-valued `chromaticNumber` as a real number, so it wants a small amount of
-  interface first.
+- ~~**Theorem 9.3.1** (Shamir–Spencer)~~ — **stated 2026-09-17** as
+  `measure_abs_sub_integral_chromaticNumber_ge_le` (#209), on the back of three pieces landed the
+  same day: `binomialRandom_eq_map_graphOfExposure` (#201), `abs_sub_chromaticNumber_le_one`
+  (#207), and the already-proved `measure_sub_integral_ge_le`.  The "small amount of interface"
+  the old note asked for turned out to be the **vertex-exposure product**, and which exposure is
+  chosen is not a detail: `n - 1` nonempty vertex blocks give `exp (-2 λ²)`, where `C(n,2)` edge
+  coordinates would give only `exp (-2 λ² / C(n,2))`.  That gap is the content of the theorem.
+
+  **It needs `2 ≤ n`, which the source does not state.**  At `n = 1` the radius `λ √(n-1)` is
+  zero, the event is everything and the left side is `1`, while the right side falls below `1`
+  from `λ = 1` (about `0.0007` at `λ = 2`).  Zhao's interest is asymptotic; the finite form needs
+  the hypothesis, and it is also what makes `0 < ∑ cᵢ²` true.
 - **Lemma 9.3.3** and the clique-number route to Bollobás' theorem, which the source gives as
   an alternative to the Janson route of §8.3.
 - **§9.4 isoperimetry, §9.5 Talagrand's inequality, §9.6 the Euclidean travelling salesman
@@ -72,8 +80,13 @@ distinction that has now produced two wrong roadmap notes elsewhere in this proj
   *Search warning:* grepping Mathlib for "Azuma" returns `Mathlib/Algebra/Azumaya/*` — Azumaya
   algebras, entirely unrelated. A name-substring hit is not evidence the result exists.
 
-- **9.3.1 Shamir–Spencer, §9.4 isoperimetry, §9.5 Talagrand, §9.6 Euclidean TSP.** All still
-  research-level, and all downstream of Azuma. No change.
+- **9.3.1 Shamir–Spencer, §9.4 isoperimetry, §9.5 Talagrand, §9.6 Euclidean TSP.** ~~All still
+  research-level, and all downstream of Azuma.~~ **Corrected 2026-09-17: this was wrong twice
+  over.**  Azuma has been proved here since 2026-09-15 (`measure_martingale_sub_ge_le`,
+  sorry-free), so nothing was downstream of a gap; and 9.3.1 does not go through Azuma at all —
+  it runs on the bounded differences inequality, which was proved even earlier.  9.3.1 is now
+  stated (#209).  §9.4–§9.6 remain genuinely out of reach, but for their own reasons, not this
+  one.
 
 Note the project already has the chapter's headline result — the bounded differences inequality
 — proved via the *independent* route rather than through martingales, so nothing here blocks
