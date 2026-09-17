@@ -24,6 +24,69 @@ open Finset MeasureTheory ProbabilityTheory unitInterval SimpleGraph
 
 variable {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
 
+/-! ### A finite sum of indicators
+
+Both counting random variables in this file — `triangleCount` and `copyCount` — are finite sums
+of `Set.indicator … (fun _ => 1)`.  The four facts each of them needs are facts about that shape
+alone, so they are stated once here and the specialisations below are one-liners.
+
+The definitions are *not* unified: `triangleCount` sums over vertex triples and `copyCount` over
+injective labellings, and both appear in published statements.  Only the arguments are shared.
+-/
+
+section IndicatorSum
+
+variable {α : Type*} {ι : Type*}
+
+theorem sum_indicator_one_nonneg (s : Finset ι) (E : ι → Set α) (x : α) :
+    0 ≤ ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x :=
+  Finset.sum_nonneg fun _ _ => Set.indicator_nonneg (fun _ _ => zero_le_one) x
+
+/-- A finite sum of indicators takes no value strictly between `0` and `1`: if it is nonzero then
+some summand is `1`, and the rest are nonnegative.
+
+This is the integrality that turns Markov's inequality into a bound on `ℙ(X ≠ 0)`. -/
+theorem one_le_sum_indicator_one_of_ne_zero {s : Finset ι} {E : ι → Set α} {x : α}
+    (h : ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x ≠ 0) :
+    1 ≤ ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x := by
+  obtain ⟨i, hi, hne⟩ := Finset.exists_ne_zero_of_sum_ne_zero h
+  have hmem : x ∈ E i := by
+    by_contra hc
+    exact hne (Set.indicator_of_notMem hc _)
+  calc (1 : ℝ) = _ := (Set.indicator_of_mem hmem (fun _ => (1 : ℝ))).symm
+    _ ≤ _ := Finset.single_le_sum
+        (f := fun i => (E i).indicator (fun _ => (1 : ℝ)) x)
+        (fun _ _ => Set.indicator_nonneg (fun _ _ => zero_le_one) x) hi
+
+variable [MeasurableSpace α]
+
+theorem measurable_sum_indicator_one {s : Finset ι} {E : ι → Set α}
+    (hE : ∀ i ∈ s, MeasurableSet (E i)) :
+    Measurable fun x => ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x :=
+  Finset.measurable_sum _ fun i hi => measurable_const.indicator (hE i hi)
+
+theorem integrable_sum_indicator_one {μ : Measure α} [IsFiniteMeasure μ] {s : Finset ι}
+    {E : ι → Set α} (hE : ∀ i ∈ s, MeasurableSet (E i)) :
+    Integrable (fun x => ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x) μ :=
+  integrable_finsetSum _ fun i hi => (integrable_const (1 : ℝ)).indicator (hE i hi)
+
+theorem memLp_sum_indicator_one {μ : Measure α} [IsFiniteMeasure μ] {s : Finset ι}
+    {E : ι → Set α} (hE : ∀ i ∈ s, MeasurableSet (E i)) :
+    MemLp (fun x => ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x) 2 μ :=
+  memLp_finsetSum _ fun i hi =>
+    memLp_indicator_const 2 (hE i hi) 1 (Or.inr (measure_ne_top μ _))
+
+/-- The mean of a finite sum of indicators is the sum of the event probabilities. -/
+theorem integral_sum_indicator_one {μ : Measure α} [IsFiniteMeasure μ] {s : Finset ι}
+    {E : ι → Set α} (hE : ∀ i ∈ s, MeasurableSet (E i)) :
+    μ[fun x => ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x] = ∑ i ∈ s, (μ (E i)).toReal := by
+  rw [MeasureTheory.integral_finsetSum _ fun i hi =>
+    (integrable_const (1 : ℝ)).indicator (hE i hi)]
+  exact Finset.sum_congr rfl fun i hi => by
+    rw [integral_indicator_const _ (hE i hi), smul_eq_mul, mul_one, measureReal_def]
+
+end IndicatorSum
+
 /-- **Chebyshev bound on the probability of non-existence** (Zhao, Corollary 4.1.7): for any
 random variable `X`, `ℙ(X = 0) ≤ Var X / (𝔼 X) ^ 2`.
 
@@ -410,17 +473,10 @@ theorem prob_sum_indicator_eq_zero_le [IsProbabilityMeasure μ] {ι : Type*} [Fi
     (μ {ω | ∑ i, (A i).indicator (fun _ => (1 : ℝ)) ω = 0}).toReal
       ≤ ((∑ i, (μ (A i)).toReal) + ∑ q ∈ D, (μ (A q.1 ∩ A q.2)).toReal)
           / (∑ i, (μ (A i)).toReal) ^ 2 := by
-  -- `memLp_sum_indicator_one` and `integral_sum_indicator_one` are the same two facts, but they
-  -- live in the `IndicatorSum` section further down the file, so they are inlined here.
   have hmem : MemLp (fun ω => ∑ i, (A i).indicator (fun _ => (1 : ℝ)) ω) 2 μ :=
-    memLp_finsetSum _ fun i _ =>
-      memLp_indicator_const 2 (hA i) 1 (Or.inr (measure_ne_top μ _))
+    memLp_sum_indicator_one fun i _ => hA i
   have hint : μ[fun ω => ∑ i, (A i).indicator (fun _ => (1 : ℝ)) ω]
-      = ∑ i, (μ (A i)).toReal := by
-    rw [MeasureTheory.integral_finsetSum _ fun i _ =>
-      (integrable_const (1 : ℝ)).indicator (hA i)]
-    exact Finset.sum_congr rfl fun i _ => by
-      rw [integral_indicator_const _ (hA i), smul_eq_mul, mul_one, measureReal_def]
+      = ∑ i, (μ (A i)).toReal := integral_sum_indicator_one fun i _ => hA i
   -- Chebyshev, with the mean rewritten as `∑ i, ℙ(A i)`.
   have hcheb := prob_eq_zero_le_variance_div_sq hmem (by rw [hint]; exact hmean)
   rw [hint] at hcheb
@@ -814,68 +870,6 @@ theorem measurableSet_setOf_forall_adj {n : ℕ} (T : Finset (Fin n)) :
     rw [hset]
     measurability
 
-/-! ### A finite sum of indicators
-
-Both counting random variables in this file — `triangleCount` and `copyCount` — are finite sums
-of `Set.indicator … (fun _ => 1)`.  The four facts each of them needs are facts about that shape
-alone, so they are stated once here and the specialisations below are one-liners.
-
-The definitions are *not* unified: `triangleCount` sums over vertex triples and `copyCount` over
-injective labellings, and both appear in published statements.  Only the arguments are shared.
--/
-
-section IndicatorSum
-
-variable {α : Type*} {ι : Type*}
-
-theorem sum_indicator_one_nonneg (s : Finset ι) (E : ι → Set α) (x : α) :
-    0 ≤ ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x :=
-  Finset.sum_nonneg fun _ _ => Set.indicator_nonneg (fun _ _ => zero_le_one) x
-
-/-- A finite sum of indicators takes no value strictly between `0` and `1`: if it is nonzero then
-some summand is `1`, and the rest are nonnegative.
-
-This is the integrality that turns Markov's inequality into a bound on `ℙ(X ≠ 0)`. -/
-theorem one_le_sum_indicator_one_of_ne_zero {s : Finset ι} {E : ι → Set α} {x : α}
-    (h : ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x ≠ 0) :
-    1 ≤ ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x := by
-  obtain ⟨i, hi, hne⟩ := Finset.exists_ne_zero_of_sum_ne_zero h
-  have hmem : x ∈ E i := by
-    by_contra hc
-    exact hne (Set.indicator_of_notMem hc _)
-  calc (1 : ℝ) = _ := (Set.indicator_of_mem hmem (fun _ => (1 : ℝ))).symm
-    _ ≤ _ := Finset.single_le_sum
-        (f := fun i => (E i).indicator (fun _ => (1 : ℝ)) x)
-        (fun _ _ => Set.indicator_nonneg (fun _ _ => zero_le_one) x) hi
-
-variable [MeasurableSpace α]
-
-theorem measurable_sum_indicator_one {s : Finset ι} {E : ι → Set α}
-    (hE : ∀ i ∈ s, MeasurableSet (E i)) :
-    Measurable fun x => ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x :=
-  Finset.measurable_sum _ fun i hi => measurable_const.indicator (hE i hi)
-
-theorem integrable_sum_indicator_one {μ : Measure α} [IsFiniteMeasure μ] {s : Finset ι}
-    {E : ι → Set α} (hE : ∀ i ∈ s, MeasurableSet (E i)) :
-    Integrable (fun x => ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x) μ :=
-  integrable_finsetSum _ fun i hi => (integrable_const (1 : ℝ)).indicator (hE i hi)
-
-theorem memLp_sum_indicator_one {μ : Measure α} [IsFiniteMeasure μ] {s : Finset ι}
-    {E : ι → Set α} (hE : ∀ i ∈ s, MeasurableSet (E i)) :
-    MemLp (fun x => ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x) 2 μ :=
-  memLp_finsetSum _ fun i hi =>
-    memLp_indicator_const 2 (hE i hi) 1 (Or.inr (measure_ne_top μ _))
-
-/-- The mean of a finite sum of indicators is the sum of the event probabilities. -/
-theorem integral_sum_indicator_one {μ : Measure α} [IsFiniteMeasure μ] {s : Finset ι}
-    {E : ι → Set α} (hE : ∀ i ∈ s, MeasurableSet (E i)) :
-    μ[fun x => ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x] = ∑ i ∈ s, (μ (E i)).toReal := by
-  rw [MeasureTheory.integral_finsetSum _ fun i hi =>
-    (integrable_const (1 : ℝ)).indicator (hE i hi)]
-  exact Finset.sum_congr rfl fun i hi => by
-    rw [integral_indicator_const _ (hE i hi), smul_eq_mul, mul_one, measureReal_def]
-
-end IndicatorSum
 
 /-- `triangleCount` is measurable: a finite sum of indicators of measurable events. -/
 private lemma measurable_triangleCount {n : ℕ} :
