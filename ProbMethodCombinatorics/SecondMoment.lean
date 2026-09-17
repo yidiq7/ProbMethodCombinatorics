@@ -403,52 +403,130 @@ noncomputable def triangleCount {n : ℕ} (G : SimpleGraph (Fin n)) : ℝ :=
     ({H : SimpleGraph (Fin n) | ∀ a ∈ T, ∀ b ∈ T, a ≠ b → H.Adj a b}).indicator
       (fun _ => (1 : ℝ)) G
 
-/-- The event that a prescribed finite set of pairs are all edges is measurable. -/
+/-! ### Shared vocabulary for edge events in `G(n, p)`
+
+`offDiagPairs` and the lemmas below are **public on purpose**.  The probability that a prescribed
+loop-free set of pairs is entirely present is `p ^ |S|`, and every counting argument in
+Chapters 4, 7 and 8 needs it.  `Correlation.lean` holds its own copies of the same facts, but they
+are `private` and so unreachable from here — which is how three independent re-derivations of this
+one computation came to exist.  Anything new should call these rather than rebuild them. -/
+
+/-- The unordered pairs of **distinct** vertices drawn from `T`: the edge set a triangle on `T`
+would have to contain. -/
+def offDiagPairs {n : ℕ} (T : Finset (Fin n)) : Finset (Sym2 (Fin n)) :=
+  T.sym2.filter fun e => ¬ e.IsDiag
+
+theorem mem_offDiagPairs {n : ℕ} {T : Finset (Fin n)} {a b : Fin n} :
+    s(a, b) ∈ offDiagPairs T ↔ a ∈ T ∧ b ∈ T ∧ a ≠ b := by
+  simp [offDiagPairs, and_assoc]
+
+theorem not_isDiag_of_mem_offDiagPairs {n : ℕ} {T : Finset (Fin n)}
+    {e : Sym2 (Fin n)} (he : e ∈ offDiagPairs T) : ¬ e.IsDiag :=
+  (Finset.mem_filter.1 he).2
+
+/-- Two vertex sets share exactly the pairs drawn from their intersection. -/
+theorem offDiagPairs_inter {n : ℕ} (T₁ T₂ : Finset (Fin n)) :
+    offDiagPairs T₁ ∩ offDiagPairs T₂ = offDiagPairs (T₁ ∩ T₂) := by
+  ext e
+  induction e using Sym2.ind with
+  | _ a b => simp only [Finset.mem_inter, mem_offDiagPairs, Finset.mem_inter]; tauto
+
+/-- `T` spans `binom(#T, 2)` pairs of distinct vertices, in the additive form that avoids
+truncated subtraction: the diagonal accounts for the remaining `#T` members of `T.sym2`. -/
+theorem card_offDiagPairs_add {n : ℕ} (T : Finset (Fin n)) :
+    (offDiagPairs T).card + T.card = (T.card + 1).choose 2 := by
+  have hdiag : T.sym2.filter (fun e => e.IsDiag) = T.image Sym2.diag := by
+    ext e
+    induction e using Sym2.ind with
+    | _ a b =>
+      simp only [Finset.mem_filter, Finset.mk_mem_sym2_iff, Sym2.mk_isDiag_iff,
+        Finset.mem_image, Sym2.diag, Sym2.eq_iff]
+      constructor
+      · rintro ⟨⟨ha, _⟩, rfl⟩
+        exact ⟨a, ha, by tauto⟩
+      · rintro ⟨c, hc, h⟩
+        rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ <;> exact ⟨⟨hc, hc⟩, rfl⟩
+  have hinj : Function.Injective (Sym2.diag : Fin n → Sym2 (Fin n)) := by
+    intro a b h
+    simpa [Sym2.diag, Sym2.eq_iff] using h
+  have hsplit : (T.sym2.filter (fun e => e.IsDiag)).card + (offDiagPairs T).card = T.sym2.card :=
+    Finset.card_filter_add_card_filter_not _
+  rw [hdiag, Finset.card_image_of_injective _ hinj, Finset.card_sym2] at hsplit
+  omega
+
+/-- Requiring two sets of pairs is requiring their union. -/
+theorem setOf_subset_edgeSet_inter {n : ℕ} (S₁ S₂ : Finset (Sym2 (Fin n))) :
+    {G : SimpleGraph (Fin n) | ↑S₁ ⊆ G.edgeSet} ∩ {G : SimpleGraph (Fin n) | ↑S₂ ⊆ G.edgeSet}
+      = {G : SimpleGraph (Fin n) | ↑(S₁ ∪ S₂) ⊆ G.edgeSet} := by
+  ext G
+  simp [Set.union_subset_iff]
+
+/-- "Every pair in `S` is an edge" is a finite intersection of coordinate events, hence
+measurable. -/
+theorem measurableSet_setOf_subset_edgeSet {n : ℕ} (S : Finset (Sym2 (Fin n))) :
+    MeasurableSet {G : SimpleGraph (Fin n) | ↑S ⊆ G.edgeSet} := by
+  have h : {G : SimpleGraph (Fin n) | ↑S ⊆ G.edgeSet}
+      = ⋂ e ∈ S, {G : SimpleGraph (Fin n) | e ∈ G.edgeSet} := by
+    ext G; simp [Set.subset_def]
+  rw [h]
+  exact S.measurableSet_biInter fun e _ => measurable_edgeSet (measurableSet_mem e)
+
+/-- **`G(n, p)` contains a prescribed finite set of non-loop pairs with probability `p ^ #S`.**
+
+`binomialRandom` is `setBernoulli` read through `fromEdgeSet`, so the event becomes the cylinder
+`{R | ↑S ⊆ R}` of the underlying product of Bernoulli coordinates, and `Measure.infinitePi_pi`
+evaluates it as a product of `#S` copies of `p`. -/
+theorem binomialRandom_setOf_subset_edgeSet {n : ℕ} (p : I) (S : Finset (Sym2 (Fin n)))
+    (hS : ∀ e ∈ S, ¬ e.IsDiag) :
+    binomialRandom (Fin n) p {G : SimpleGraph (Fin n) | ↑S ⊆ G.edgeSet}
+      = (toNNReal p : ENNReal) ^ S.card := by
+  rw [binomialRandom_eq_map,
+    Measure.map_apply measurable_fromEdgeSet (measurableSet_setOf_subset_edgeSet S),
+    setBernoulli_apply']
+  have hpre : (fun f : Sym2 (Fin n) → Prop => {e | f e}) ⁻¹'
+      (fromEdgeSet ⁻¹' {G : SimpleGraph (Fin n) | ↑S ⊆ G.edgeSet})
+      = (↑S : Set (Sym2 (Fin n))).pi (fun _ => ({True} : Set Prop)) := by
+    ext f
+    simp only [Set.mem_preimage, edgeSet_fromEdgeSet, Set.mem_pi, Set.mem_singleton_iff,
+      Set.subset_def, Set.mem_ofPred_eq, Set.mem_sdiff, Finset.mem_coe]
+    exact ⟨fun h e he => eq_true (h e he).1,
+      fun h e he => ⟨of_eq_true (h e he), by simpa using hS e he⟩⟩
+  rw [hpre, Measure.infinitePi_pi _ (fun e _ => MeasurableSet.of_discrete),
+    Finset.prod_congr rfl (g := fun _ => (toNNReal p : ENNReal)) ?_, Finset.prod_const]
+  intro e he
+  have hne : e ∈ (Sym2.diagSetᶜ : Set (Sym2 (Fin n))) := by
+    simpa using hS e he
+  simp [Measure.dirac_apply', hne]
+
+/-- The event that `T` spans a triangle, in terms of its pairs. -/
+theorem setOf_forall_adj_eq_setOf_offDiagPairs {n : ℕ} (T : Finset (Fin n)) :
+    {H : SimpleGraph (Fin n) | ∀ a ∈ T, ∀ b ∈ T, a ≠ b → H.Adj a b}
+      = {G : SimpleGraph (Fin n) | ↑(offDiagPairs T) ⊆ G.edgeSet} := by
+  ext H
+  simp only [Set.mem_ofPred_eq, Set.subset_def, Finset.mem_coe]
+  constructor
+  · intro h e he
+    induction e using Sym2.ind with
+    | _ a b =>
+      obtain ⟨ha, hb, hab⟩ := mem_offDiagPairs.1 he
+      exact h a ha b hb hab
+  · intro h a ha b hb hab
+    exact h s(a, b) (mem_offDiagPairs.2 ⟨ha, hb, hab⟩)
+
+/-- The measurability of the same event, in the `∀ e ∈ E` spelling that `triangleCount`'s
+definition produces.  A thin wrapper over `measurableSet_setOf_subset_edgeSet` above; the two sets
+differ only by `Set.subset_def`. -/
 private theorem measurableSet_forall_mem_edgeSet {n : ℕ} (E : Finset (Sym2 (Fin n))) :
     MeasurableSet {G : SimpleGraph (Fin n) | ∀ e ∈ E, e ∈ G.edgeSet} := by
-  have hrw : {G : SimpleGraph (Fin n) | ∀ e ∈ E, e ∈ G.edgeSet}
-      = ⋂ e ∈ E, {G : SimpleGraph (Fin n) | e ∈ G.edgeSet} := by
-    ext G; simp
-  rw [hrw]
-  refine E.measurableSet_biInter fun e _ => ?_
-  induction e using Sym2.ind with
-  | _ u v =>
-      have : {G : SimpleGraph (Fin n) | s(u, v) ∈ G.edgeSet}
-          = {G : SimpleGraph (Fin n) | G.Adj u v} := by ext G; simp [mem_edgeSet]
-      rw [this]
-      measurability
+  simpa [Set.subset_def] using measurableSet_setOf_subset_edgeSet E
 
-/-- **A prescribed set of non-loop pairs is present with probability `p ^ |E|`.**  Under
-`binomialRandom_apply'` the event is a cylinder in the product of Bernoulli measures on
-`Sym2 (Fin n)`, so its probability is the product of the `|E|` factors it constrains. -/
+/-- The same probability in the `∀ e ∈ E` spelling.  A thin wrapper over
+`binomialRandom_setOf_subset_edgeSet` above. -/
 private theorem binomialRandom_forall_mem_edgeSet {n : ℕ} (p : I) (E : Finset (Sym2 (Fin n)))
     (hE : ∀ e ∈ E, ¬ e.IsDiag) :
     binomialRandom (Fin n) p {G : SimpleGraph (Fin n) | ∀ e ∈ E, e ∈ G.edgeSet}
       = (toNNReal p : ENNReal) ^ E.card := by
-  have himg : edgeSet '' {G : SimpleGraph (Fin n) | ∀ e ∈ E, e ∈ G.edgeSet}
-      = {t ∈ ({t : Set (Sym2 (Fin n)) | ∀ e ∈ E, e ∈ t}) | t ⊆ Sym2.diagSetᶜ} := by
-    ext t
-    constructor
-    · rintro ⟨G, hG, rfl⟩
-      exact ⟨hG, G.edgeSet_subset_compl_diagSet⟩
-    · rintro ⟨h1, h2⟩
-      have hd : Disjoint t Sym2.diagSet := Set.subset_compl_iff_disjoint_right.mp h2
-      refine ⟨fromEdgeSet t, ?_, ?_⟩
-      · intro e he
-        rw [edgeSet_fromEdgeSet, sdiff_eq_left.mpr hd]
-        exact h1 e he
-      · rw [edgeSet_fromEdgeSet, sdiff_eq_left.mpr hd]
-  have hpre : (fun f : Sym2 (Fin n) → Prop ↦ {i | f i}) ⁻¹'
-      {t : Set (Sym2 (Fin n)) | ∀ e ∈ E, e ∈ t}
-      = Set.pi (↑E) (fun _ ↦ ({True} : Set Prop)) := by
-    ext f
-    simp [Set.mem_pi, eq_iff_iff]
-  rw [binomialRandom_apply', himg, ← setBernoulli_apply_eq_apply_subsets, setBernoulli_apply',
-    hpre, Measure.infinitePi_pi _ fun _ _ ↦ MeasurableSet.of_discrete,
-    Finset.prod_congr rfl (g := fun _ ↦ (toNNReal p : ENNReal)) ?_, Finset.prod_const]
-  intro e he
-  have hmem : e ∈ Sym2.diagSetᶜ := by simpa [Sym2.mem_diagSet] using hE e he
-  simp [Measure.dirac_apply', eq_true hmem]
+  simpa [Set.subset_def] using binomialRandom_setOf_subset_edgeSet p E hE
 
 /-- **The first moment of the triangle count** (Zhao, the computation behind Proposition 4.1.2):
 `𝔼X = binom(n,3) p³`.
@@ -510,108 +588,6 @@ theorem integral_triangleCount (n : ℕ) (p : I) :
     Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
   rw [MeasureTheory.integral_indicator_const _ (key T hT).1, Measure.real, (key T hT).2,
     smul_eq_mul, mul_one, ENNReal.toReal_pow, ENNReal.coe_toReal, unitInterval.coe_toNNReal]
-
-/-- The unordered pairs of **distinct** vertices drawn from `T`: the edge set a triangle on `T`
-would have to contain. -/
-private def offDiagPairs {n : ℕ} (T : Finset (Fin n)) : Finset (Sym2 (Fin n)) :=
-  T.sym2.filter fun e => ¬ e.IsDiag
-
-private theorem mem_offDiagPairs {n : ℕ} {T : Finset (Fin n)} {a b : Fin n} :
-    s(a, b) ∈ offDiagPairs T ↔ a ∈ T ∧ b ∈ T ∧ a ≠ b := by
-  simp [offDiagPairs, and_assoc]
-
-private theorem not_isDiag_of_mem_offDiagPairs {n : ℕ} {T : Finset (Fin n)}
-    {e : Sym2 (Fin n)} (he : e ∈ offDiagPairs T) : ¬ e.IsDiag :=
-  (Finset.mem_filter.1 he).2
-
-/-- Two vertex sets share exactly the pairs drawn from their intersection. -/
-private theorem offDiagPairs_inter {n : ℕ} (T₁ T₂ : Finset (Fin n)) :
-    offDiagPairs T₁ ∩ offDiagPairs T₂ = offDiagPairs (T₁ ∩ T₂) := by
-  ext e
-  induction e using Sym2.ind with
-  | _ a b => simp only [Finset.mem_inter, mem_offDiagPairs, Finset.mem_inter]; tauto
-
-/-- `T` spans `binom(#T, 2)` pairs of distinct vertices, in the additive form that avoids
-truncated subtraction: the diagonal accounts for the remaining `#T` members of `T.sym2`. -/
-private theorem card_offDiagPairs_add {n : ℕ} (T : Finset (Fin n)) :
-    (offDiagPairs T).card + T.card = (T.card + 1).choose 2 := by
-  have hdiag : T.sym2.filter (fun e => e.IsDiag) = T.image Sym2.diag := by
-    ext e
-    induction e using Sym2.ind with
-    | _ a b =>
-      simp only [Finset.mem_filter, Finset.mk_mem_sym2_iff, Sym2.mk_isDiag_iff,
-        Finset.mem_image, Sym2.diag, Sym2.eq_iff]
-      constructor
-      · rintro ⟨⟨ha, _⟩, rfl⟩
-        exact ⟨a, ha, by tauto⟩
-      · rintro ⟨c, hc, h⟩
-        rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ <;> exact ⟨⟨hc, hc⟩, rfl⟩
-  have hinj : Function.Injective (Sym2.diag : Fin n → Sym2 (Fin n)) := by
-    intro a b h
-    simpa [Sym2.diag, Sym2.eq_iff] using h
-  have hsplit : (T.sym2.filter (fun e => e.IsDiag)).card + (offDiagPairs T).card = T.sym2.card :=
-    Finset.card_filter_add_card_filter_not _
-  rw [hdiag, Finset.card_image_of_injective _ hinj, Finset.card_sym2] at hsplit
-  omega
-
-/-- Requiring two sets of pairs is requiring their union. -/
-private theorem setOf_subset_edgeSet_inter {n : ℕ} (S₁ S₂ : Finset (Sym2 (Fin n))) :
-    {G : SimpleGraph (Fin n) | ↑S₁ ⊆ G.edgeSet} ∩ {G : SimpleGraph (Fin n) | ↑S₂ ⊆ G.edgeSet}
-      = {G : SimpleGraph (Fin n) | ↑(S₁ ∪ S₂) ⊆ G.edgeSet} := by
-  ext G
-  simp [Set.union_subset_iff]
-
-/-- "Every pair in `S` is an edge" is a finite intersection of coordinate events, hence
-measurable. -/
-private theorem measurableSet_setOf_subset_edgeSet {n : ℕ} (S : Finset (Sym2 (Fin n))) :
-    MeasurableSet {G : SimpleGraph (Fin n) | ↑S ⊆ G.edgeSet} := by
-  have h : {G : SimpleGraph (Fin n) | ↑S ⊆ G.edgeSet}
-      = ⋂ e ∈ S, {G : SimpleGraph (Fin n) | e ∈ G.edgeSet} := by
-    ext G; simp [Set.subset_def]
-  rw [h]
-  exact S.measurableSet_biInter fun e _ => measurable_edgeSet (measurableSet_mem e)
-
-/-- **`G(n, p)` contains a prescribed finite set of non-loop pairs with probability `p ^ #S`.**
-
-`binomialRandom` is `setBernoulli` read through `fromEdgeSet`, so the event becomes the cylinder
-`{R | ↑S ⊆ R}` of the underlying product of Bernoulli coordinates, and `Measure.infinitePi_pi`
-evaluates it as a product of `#S` copies of `p`. -/
-private theorem binomialRandom_setOf_subset_edgeSet {n : ℕ} (p : I) (S : Finset (Sym2 (Fin n)))
-    (hS : ∀ e ∈ S, ¬ e.IsDiag) :
-    binomialRandom (Fin n) p {G : SimpleGraph (Fin n) | ↑S ⊆ G.edgeSet}
-      = (toNNReal p : ENNReal) ^ S.card := by
-  rw [binomialRandom_eq_map,
-    Measure.map_apply measurable_fromEdgeSet (measurableSet_setOf_subset_edgeSet S),
-    setBernoulli_apply']
-  have hpre : (fun f : Sym2 (Fin n) → Prop => {e | f e}) ⁻¹'
-      (fromEdgeSet ⁻¹' {G : SimpleGraph (Fin n) | ↑S ⊆ G.edgeSet})
-      = (↑S : Set (Sym2 (Fin n))).pi (fun _ => ({True} : Set Prop)) := by
-    ext f
-    simp only [Set.mem_preimage, edgeSet_fromEdgeSet, Set.mem_pi, Set.mem_singleton_iff,
-      Set.subset_def, Set.mem_ofPred_eq, Set.mem_sdiff, Finset.mem_coe]
-    exact ⟨fun h e he => eq_true (h e he).1,
-      fun h e he => ⟨of_eq_true (h e he), by simpa using hS e he⟩⟩
-  rw [hpre, Measure.infinitePi_pi _ (fun e _ => MeasurableSet.of_discrete),
-    Finset.prod_congr rfl (g := fun _ => (toNNReal p : ENNReal)) ?_, Finset.prod_const]
-  intro e he
-  have hne : e ∈ (Sym2.diagSetᶜ : Set (Sym2 (Fin n))) := by
-    simpa using hS e he
-  simp [Measure.dirac_apply', hne]
-
-/-- The event that `T` spans a triangle, in terms of its pairs. -/
-private theorem setOf_forall_adj_eq_setOf_offDiagPairs {n : ℕ} (T : Finset (Fin n)) :
-    {H : SimpleGraph (Fin n) | ∀ a ∈ T, ∀ b ∈ T, a ≠ b → H.Adj a b}
-      = {G : SimpleGraph (Fin n) | ↑(offDiagPairs T) ⊆ G.edgeSet} := by
-  ext H
-  simp only [Set.mem_ofPred_eq, Set.subset_def, Finset.mem_coe]
-  constructor
-  · intro h e he
-    induction e using Sym2.ind with
-    | _ a b =>
-      obtain ⟨ha, hb, hab⟩ := mem_offDiagPairs.1 he
-      exact h a ha b hb hab
-  · intro h a ha b hb hab
-    exact h s(a, b) (mem_offDiagPairs.2 ⟨ha, hb, hab⟩)
 
 /-- **The variance of the triangle count** (Zhao, the second-moment half of Proposition 4.1.2),
 in the crude form the threshold argument needs.

@@ -4327,11 +4327,21 @@
       "file": "ProbMethodCombinatorics/SecondMoment.lean",
       "decl": "ProbMethodCombinatorics.variance_triangleCount_le",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "triangleCount"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "binomialRandom_setOf_subset_edgeSet",
+        "card_offDiagPairs_add",
+        "measurableSet_setOf_subset_edgeSet",
+        "not_isDiag_of_mem_offDiagPairs",
+        "offDiagPairs",
+        "offDiagPairs_inter",
+        "setOf_forall_adj_eq_setOf_offDiagPairs",
+        "setOf_subset_edgeSet_inter",
+        "variance_indicator_bound"
+      ]
     },
     "prob_no_triangle_of_mul_le": {
       "kind": "theorem",
@@ -4368,7 +4378,9 @@
       "statement": "formalized",
       "proof": "formalized",
       "uses": [],
-      "proof_uses": []
+      "proof_uses": [
+        "binomialRandom_setOf_subset_edgeSet"
+      ]
     },
     "measurableSet_forall_mem_edgeSet": {
       "kind": "theorem",
@@ -4377,7 +4389,9 @@
       "statement": "formalized",
       "proof": "formalized",
       "uses": [],
-      "proof_uses": []
+      "proof_uses": [
+        "measurableSet_setOf_subset_edgeSet"
+      ]
     },
     "integrable_triangleCount": {
       "kind": "theorem",
@@ -4434,6 +4448,101 @@
       "uses": [
         "triangleCount"
       ],
+      "proof_uses": []
+    },
+    "binomialRandom_setOf_subset_edgeSet": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.binomialRandom_setOf_subset_edgeSet",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "measurableSet_setOf_subset_edgeSet"
+      ]
+    },
+    "card_offDiagPairs_add": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.card_offDiagPairs_add",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "offDiagPairs"
+      ],
+      "proof_uses": []
+    },
+    "measurableSet_setOf_subset_edgeSet": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.measurableSet_setOf_subset_edgeSet",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "mem_offDiagPairs": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.mem_offDiagPairs",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "offDiagPairs"
+      ],
+      "proof_uses": []
+    },
+    "not_isDiag_of_mem_offDiagPairs": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.not_isDiag_of_mem_offDiagPairs",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "offDiagPairs"
+      ],
+      "proof_uses": []
+    },
+    "offDiagPairs": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.offDiagPairs",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "offDiagPairs_inter": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.offDiagPairs_inter",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "offDiagPairs"
+      ],
+      "proof_uses": []
+    },
+    "setOf_forall_adj_eq_setOf_offDiagPairs": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.setOf_forall_adj_eq_setOf_offDiagPairs",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "offDiagPairs"
+      ],
+      "proof_uses": [
+        "mem_offDiagPairs"
+      ]
+    },
+    "setOf_subset_edgeSet_inter": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.setOf_subset_edgeSet_inter",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
       "proof_uses": []
     }
   }
