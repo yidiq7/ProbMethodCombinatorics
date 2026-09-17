@@ -1178,8 +1178,15 @@ on the state, disjointness because the selection is order-first in `T`, and the 
 splitting the degree sum over `Av` at the retired set.
 
 `pick` and `kill` must be total; `exists_greedy_rule` encodes its order as an injective `ℕ` weight
-and selects with `Nat.sInf`, which keeps everything total without a `Decidable` instance, and the
-same scaffolding transposes here with `Ae`-degree in place of `G`-degree in `A`. -/
+and selects with `Nat.sInf`, which keeps everything total without a `Decidable` instance.
+
+**The weight does not transpose unchanged.**  `exists_greedy_rule` uses
+`n * (n - deg) + u`, which relies on a *graph* degree being at most `n`.  A hypergraph degree
+`#{e ∈ Ae | u ∈ e}` can reach `|Ae|`, so `n - deg` would truncate to `0` and the order would
+collapse.  Take the subtraction bound from `Ae` instead — `n * (Ae.card - deg) + u` — and the
+`% n` decode still works because `u < n`.  The monotonicity step is nonlinear in `n`, so it needs
+`by_contra` plus a `Nat.mul_le_mul` rather than a bare `omega`, exactly as in
+`exists_greedy_rule`. -/
 theorem exists_container_round (c d : ℝ) (hc : 0 < c) (hd : 0 < d) (n : ℕ) :
     ∃ (pick : Finset (Fin n) → Finset (Finset (Fin n)) → Finset (Fin n) → Fin n)
       (kill : Finset (Fin n) → Finset (Finset (Fin n)) → Fin n → Finset (Fin n)),

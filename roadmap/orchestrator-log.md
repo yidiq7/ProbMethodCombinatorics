@@ -3,6 +3,30 @@
 How to run the loop on this project.  Mine, not a worker's: `skills/` is force-loaded
 into every worker's context, so nothing here belongs there.
 
+## A long hold with no PR: run the diagnostic on your own prose first
+
+`#176` sat 2h47m with no PR while `#180` — a node I had sized as far larger, and which came back
+at 788 lines — landed in about forty minutes.  **That asymmetry is the signal**, more than the
+absolute hold time, and the operating order (statement, then route, then decomposition) found the
+cause on the second step.
+
+The statement was sound.  The *route I wrote in the prose* was not: I told the contributor that
+`exists_greedy_rule`'s `ord`/`decode` scaffolding transposes "with `Ae`-degree in place of
+`G`-degree".  It does not.  That weight is `n * (n - deg) + u` and depends on a graph degree being
+at most `n`; a hypergraph degree reaches `|Ae| ≈ C(n,3)`, so `n - deg` truncates to zero and the
+order collapses.  The fix is `n * (Ae.card - deg) + u`, which I verified compiles before sending
+it.
+
+Two things to carry forward:
+
+- **When a task stalls, re-derive your own hint before assuming the contributor is stuck on the
+  mathematics.**  A hint that names a specific existing proof to copy is exactly the kind that
+  goes stale or fails to generalize, and it is the cheapest thing to re-check.
+- **Compare hold times across nodes rather than against a threshold.**  `sync-leases` will not
+  reclaim at this age and the absolute number said nothing; the comparison with a larger node
+  finishing sooner is what made it worth looking.
+
+
 ## "Lemma X bridges this" — check the two forms match *syntactically* before writing it
 
 I proved `degree_fromEdgeSet` in the `univ.filter fun u => s(v, u) ∈ F` form, then stated
