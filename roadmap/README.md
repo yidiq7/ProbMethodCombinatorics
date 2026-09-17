@@ -33,7 +33,7 @@ group file has a "planned, not stated" section saying which and why.
 | [`janson`](janson.md) | 8 | **all proved** | — |
 | [`concentration`](concentration.md) | 9 | **all proved** | martingales, Talagrand, TSP |
 | [`entropy`](entropy.md) | 10 | **all proved** | Sidorenko, Kahn–Zhao, Steiner |
-| [`containers`](containers.md) | 11 | 3 open | 11.1.3, 11.1.5, supersaturation |
+| [`containers`](containers.md) | 11 | 2 open | 11.1.3, 11.1.5, supersaturation |
 
 **Ten of the eleven groups have every stated declaration proved.**  All remaining open work is in
 Chapter 11, and the counts in this table are derived from `graph.json` (nodes with
@@ -49,7 +49,6 @@ Chapter 11, and the counts in this table are derived from `graph.json` (nodes wi
 | Obligation | Task | What rests on it |
 |---|---|---|
 | `exists_container_round` | [#176](https://github.com/yidiq7/ProbMethodCombinatorics/issues/176) | §11.3's run, and through it Theorem 11.3.1 |
-| `exists_run_of_container_round` | [#179](https://github.com/yidiq7/ProbMethodCombinatorics/issues/179) | §11.3's first phase — the largest of its nodes |
 | `exists_containers_fingerprint_three_uniform` | **not published — held** | Theorem 11.3.1, via #172's reduction |
 
 It is 11.3.1's fingerprint form, and by its author's own account it carries all of that theorem's
@@ -98,6 +97,32 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   cases.
 
 ## Log
+
+- **2026-09-16 — §11.3's run is proved (#180), in full and with no obligations.  Two sorries left in the project.**
+  788 insertions, 28 new declarations, all `private`, no `choir-reduction` — the node I sized as
+  "the largest in the chapter" and sanctioned a nested reduction for came back as a complete
+  proof.  All four halting modes are handled, and the fourth is **refuted rather than handled**:
+  the accumulated potential makes running the round budget out impossible while both thresholds
+  are unmet, which is a cleaner argument than the case analysis I had in mind.
+
+  **The review found a real error in the docstring I authored, and it is the third of this kind.**
+  I wrote that vertices of `E`-degree above `2c√d` leave the alive set.  With that cut the degree
+  conjunct is **false**: a survivor at the threshold still gains a whole round's worth of pairs,
+  and a round adds up to `Δ₂ ≤ c√d` at a vertex, so survivors reach `3c√d`.  The cut has to sit a
+  full `c√d` below the conjunct — at `c√d` — and the handshake is then the factor-2-weaker
+  `|D| < 2|E|/(c√d)`, which costs nothing against two orders of magnitude of slack.  Corrected,
+  with the reason recorded next to it so the constraint is not re-broken.
+
+  **The statement was fine; only the prose describing the algorithm was wrong.**  That is the
+  pattern in all three of this session's prose defects — `degree_fromEdgeSet`'s form mismatch, the
+  `2c√d` cut, and the over-claimed constant — and it is worth naming: **a statement is checked by
+  the kernel and by `comparator`; the prose around it is checked by nobody.**  Every hour of
+  contributor time those three cost was spent on text no gate reads.
+
+  One caution for the composite, from the review and worth keeping: the covering conjunct is
+  nearly free on its own (`R := ∅` satisfies it), and in the `E`-heavy mode this proof's `R` can be
+  small, so the container is near-`univ` there.  The content is in covering *conjoined with* the
+  first disjunct — downstream must not assume a small container in that mode.
 
 - **2026-09-16 — §11.3's frontier is fully published (#179), and the hold on the composite now has a precise reason.**
   `exists_run_of_container_round` is stated and published, so the chapter's decomposition is

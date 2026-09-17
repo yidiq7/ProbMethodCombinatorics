@@ -1782,7 +1782,13 @@ round satisfying `IsContainerRound`, iterate it at most `⌊n / (2√d)⌋` time
 `Ae = H`, accumulating the selected vertices into `S`, the vertices retired by `kill` into the
 set whose complement `R` names, and the forbidden pairs into `E`: on selecting `u`, every pair
 `xy` with `uxy` an edge of the **alive** hypergraph joins `E`, vertices of `E`-degree above
-`2c√d` leave the alive set, and edges meeting a pair of `E` leave `Ae`.
+`c√d` leave the alive set, and edges meeting a pair of `E` leave `Ae`.
+
+**The deletion threshold is `c√d`, one factor of `c√d` below the degree conjunct, and it has to
+be.**  A survivor sitting at the threshold can still gain a whole round's worth of new pairs, and
+a round adds at most `Δ₂ ≤ c√d` at any one vertex.  Cutting at `K` therefore leaves survivors at
+`K + c√d`, so the conjunct `deg_E ≤ 2c√d` forces `K ≤ c√d`.  Cutting at `2c√d` instead would make
+that conjunct false.
 
 **Read `u x y ∈ E(A)`, not `E(H)`.**  The source's algorithm box says `E(H)`; with `E(H)` the
 degree invariant below is false, since a vertex would accumulate up to `|S| · Δ₂ = Θ(c · n)`
@@ -1801,8 +1807,8 @@ fingerprint through the same replay that gives stability, so a mode-dependent ch
 well-defined function.
 
 **The dichotomy follows from one handshake bound, in every mode.**  Writing `D` for the vertices
-deleted for forbidden-pair degree, summing degrees gives `|D| · 2c√d < 2|E|`, so
-`|D| < |E|/(c√d)`.  Then either `|E| ≥ n√d/(100M)` and the second disjunct holds, or `D` is small
+deleted for forbidden-pair degree, summing degrees gives `|D| · c√d < 2|E|`, so
+`|D| < 2|E|/(c√d)`.  Then either `|E| ≥ n√d/(100M)` and the second disjunct holds, or `D` is small
 and the first does: either enough vertices were retired, or `I` was exhausted, in which case
 `I ⊆ S ∪ D` and the complement of that container clears `n/(100M)` comfortably.  Covering needs no
 case split at all, because the retired vertices are disjoint from `I`.

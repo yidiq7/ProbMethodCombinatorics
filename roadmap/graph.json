@@ -3888,12 +3888,413 @@
       "file": "ProbMethodCombinatorics/Containers.lean",
       "decl": "ProbMethodCombinatorics.exists_run_of_container_round",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "IsContainerRound",
         "containers_maxCodegree"
       ],
+      "proof_uses": [
+        "card_filter_mem_le_codegree",
+        "card_highPairDeg_mul_le",
+        "highPairDeg",
+        "roundRun",
+        "roundRun_invariants",
+        "roundRun_replay"
+      ]
+    },
+    "card_filter_le_card_roundNewPairs": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.card_filter_le_card_roundNewPairs",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "roundNewPairs"
+      ],
+      "proof_uses": [
+        "pairVerts",
+        "pairVerts_mk"
+      ]
+    },
+    "card_filter_meets_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.card_filter_meets_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "containers_maxCodegree"
+      ],
+      "proof_uses": [
+        "card_filter_mem_le_codegree"
+      ]
+    },
+    "card_filter_mem_le_codegree": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.card_filter_mem_le_codegree",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "containers_maxCodegree"
+      ],
       "proof_uses": []
+    },
+    "card_filter_mem_roundNewPairs_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.card_filter_mem_roundNewPairs_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "containers_maxCodegree",
+        "roundNewPairs"
+      ],
+      "proof_uses": [
+        "card_filter_pairVerts_le_codegree",
+        "mem_pairVerts",
+        "mem_roundNewPairs",
+        "pairVerts",
+        "pairVerts_inj",
+        "pairVerts_mk"
+      ]
+    },
+    "card_filter_pairVerts_le_codegree": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.card_filter_pairVerts_le_codegree",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "containers_maxCodegree",
+        "pairVerts"
+      ],
+      "proof_uses": [
+        "card_filter_mem_eq_two"
+      ]
+    },
+    "card_filter_pairs_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.card_filter_pairs_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "containers_maxCodegree"
+      ],
+      "proof_uses": [
+        "card_filter_pairVerts_le_codegree",
+        "pairVerts",
+        "pairVerts_mk"
+      ]
+    },
+    "card_highPairDeg_mul_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.card_highPairDeg_mul_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "highPairDeg"
+      ],
+      "proof_uses": [
+        "sum_card_incident"
+      ]
+    },
+    "card_union_roundNewPairs": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.card_union_roundNewPairs",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "roundAliveE",
+        "roundNewPairs"
+      ],
+      "proof_uses": [
+        "card_filter_le_card_roundNewPairs",
+        "roundAliveV",
+        "roundNewPairs_disjoint"
+      ]
+    },
+    "filter_mem_roundNewPairs_eq_empty": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.filter_mem_roundNewPairs_eq_empty",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "roundAliveE",
+        "roundNewPairs"
+      ],
+      "proof_uses": [
+        "highPairDeg",
+        "mem_pairVerts",
+        "mem_roundNewPairs",
+        "pairVerts",
+        "roundAliveV"
+      ]
+    },
+    "highPairDeg": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.highPairDeg",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "mem_pairVerts": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.mem_pairVerts",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "pairVerts"
+      ],
+      "proof_uses": []
+    },
+    "mem_roundNewPairs": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.mem_roundNewPairs",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "pairVerts",
+        "roundNewPairs"
+      ],
+      "proof_uses": []
+    },
+    "notMem_roundNewPairs_of_indep": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.notMem_roundNewPairs_of_indep",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "roundNewPairs"
+      ],
+      "proof_uses": [
+        "mem_roundNewPairs",
+        "pairVerts",
+        "pairVerts_mk"
+      ]
+    },
+    "pairVerts": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.pairVerts",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "pairVerts_inj": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.pairVerts_inj",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "pairVerts"
+      ],
+      "proof_uses": [
+        "mem_pairVerts"
+      ]
+    },
+    "pairVerts_mk": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.pairVerts_mk",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "pairVerts"
+      ],
+      "proof_uses": []
+    },
+    "roundAliveE": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.roundAliveE",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "roundAliveV"
+      ]
+    },
+    "roundAliveV": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.roundAliveV",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "highPairDeg"
+      ]
+    },
+    "roundNewPairs": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.roundNewPairs",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "pairVerts"
+      ]
+    },
+    "roundNewPairs_disjoint": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.roundNewPairs_disjoint",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "roundAliveE",
+        "roundNewPairs"
+      ],
+      "proof_uses": [
+        "mem_roundNewPairs",
+        "pairVerts",
+        "pairVerts_mk",
+        "roundAliveV"
+      ]
+    },
+    "roundNewPairs_not_isDiag": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.roundNewPairs_not_isDiag",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "roundNewPairs"
+      ],
+      "proof_uses": [
+        "mem_roundNewPairs",
+        "pairVerts"
+      ]
+    },
+    "roundRun": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.roundRun",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "roundRun_grows": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.roundRun_grows",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "roundRun"
+      ],
+      "proof_uses": [
+        "roundAliveE",
+        "roundAliveV",
+        "roundNewPairs",
+        "roundStep"
+      ]
+    },
+    "roundRun_invariants": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.roundRun_invariants",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsContainerRound",
+        "containers_maxCodegree",
+        "highPairDeg",
+        "roundRun"
+      ],
+      "proof_uses": [
+        "card_highPairDeg_mul_le",
+        "card_union_roundNewPairs",
+        "maxCodegree_mono",
+        "notMem_roundNewPairs_of_indep",
+        "roundAliveE",
+        "roundAliveV",
+        "roundNewPairs",
+        "roundNewPairs_not_isDiag",
+        "roundStep",
+        "roundStep_degree",
+        "round_yield"
+      ]
+    },
+    "roundRun_replay": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.roundRun_replay",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "roundRun"
+      ],
+      "proof_uses": [
+        "roundAliveE",
+        "roundAliveV",
+        "roundNewPairs",
+        "roundRun_grows",
+        "roundStep"
+      ]
+    },
+    "roundStep": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.roundStep",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "roundAliveE",
+        "roundAliveV",
+        "roundNewPairs"
+      ]
+    },
+    "roundStep_degree": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.roundStep_degree",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "containers_maxCodegree",
+        "roundAliveE",
+        "roundNewPairs"
+      ],
+      "proof_uses": [
+        "card_filter_mem_roundNewPairs_le",
+        "filter_mem_roundNewPairs_eq_empty",
+        "mem_roundNewPairs",
+        "pairVerts",
+        "roundAliveV"
+      ]
+    },
+    "round_yield": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.round_yield",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "containers_maxCodegree",
+        "highPairDeg",
+        "roundAliveE"
+      ],
+      "proof_uses": [
+        "card_filter_meets_le",
+        "card_filter_pairs_le",
+        "roundAliveV"
+      ]
     }
   }
 }
