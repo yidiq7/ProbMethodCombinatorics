@@ -1,4 +1,5 @@
 import Mathlib.Combinatorics.SimpleGraph.Clique
+import Mathlib.Data.ZMod.Basic
 import Mathlib.Combinatorics.SimpleGraph.DegreeSum
 import Mathlib.Data.Fintype.Perm
 import Mathlib.Data.List.FinRange
@@ -306,6 +307,45 @@ theorem card_edgeFinset_le_of_cliqueFree (G : SimpleGraph V) [DecidableRel G.Adj
   nlinarith [h9]
 
 end IndependentSets
+
+/-! ### §2.2 Sum-free subsets
+
+Theorem 2.2.1 (Erdős 1965): every set of `n` nonzero integers has a sum-free subset of size at
+least `n/3`.  The source argues with `{aθ}` for a uniformly random real `θ`; the finite proof used
+here instead picks a prime `p` above `2 max |a|` and a uniformly random `x ∈ ZMod p`, keeping the
+whole chapter inside finite averaging as `skills/conventions.md` requires.  It needs only that
+some prime exceeds a given bound — `Nat.exists_infinite_primes` — and **not** Dirichlet's theorem
+on primes in arithmetic progressions.
+
+`sumFreeWindow p` is the middle third of `ZMod p`, which is the sum-free set the averaging runs
+against.
+-/
+
+/-- `A` is **sum-free** if no two of its elements (not necessarily distinct) sum into it. -/
+def IsSumFree {G : Type*} [Add G] (A : Set G) : Prop := ∀ a ∈ A, ∀ b ∈ A, a + b ∉ A
+
+/-- The middle third of `ZMod p`: the residues `k` with `p < 3k < 2p`. -/
+def sumFreeWindow (p : ℕ) [NeZero p] : Finset (ZMod p) :=
+  univ.filter fun k => p < 3 * k.val ∧ 3 * k.val < 2 * p
+
+/-- **The middle third of `ZMod p` is sum-free**, for every `p`.
+
+If `p < 3a` and `p < 3b` while both are below `2p`, then `2p < 3(a + b) < 4p`.  Reduced mod `p`
+that leaves either `3(a+b) > 2p` when no wraparound occurs, or `3(a+b-p) < p` when it does; each
+violates one of the window's two bounds.  No primality is needed. -/
+theorem isSumFree_sumFreeWindow (p : ℕ) [NeZero p] :
+    IsSumFree (↑(sumFreeWindow p) : Set (ZMod p)) := by
+  sorry
+
+/-- **The middle third has at least `(p-1)/3` elements**, provided `3 ∤ p`.
+
+`3 ∣ p` is a genuine exclusion, not bookkeeping: the window's inequalities are strict, so at
+`p = 3k` the residues `k` and `2k` are both lost and the count falls short — at `p = 3` the
+window is empty while `p - 1 = 2`.  Under `3 ∤ p` the bound holds and is **tight for every
+`p ≡ 1 mod 3`**, so nothing here can be relaxed. -/
+theorem card_sumFreeWindow (p : ℕ) [NeZero p] (h3 : ¬ (3 ∣ p)) :
+    p - 1 ≤ 3 * (sumFreeWindow p).card := by
+  sorry
 
 /-! ### §2.4 Bounding by sampling -/
 
