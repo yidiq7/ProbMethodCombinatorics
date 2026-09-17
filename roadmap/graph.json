@@ -4295,6 +4295,40 @@
         "card_filter_pairs_le",
         "roundAliveV"
       ]
+    },
+    "integral_triangleCount": {
+      "kind": "theorem",
+      "parent": "second_moment",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.integral_triangleCount",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "triangleCount"
+      ],
+      "proof_uses": []
+    },
+    "triangleCount": {
+      "kind": "definition",
+      "parent": "second_moment",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.triangleCount",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "variance_triangleCount_le": {
+      "kind": "theorem",
+      "parent": "second_moment",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.variance_triangleCount_le",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "triangleCount"
+      ],
+      "proof_uses": []
     }
   }
 }

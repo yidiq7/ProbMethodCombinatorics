@@ -1,3 +1,4 @@
+import Mathlib.Probability.Combinatorics.BinomialRandomGraph.Defs
 import Mathlib.Probability.Moments.Variance
 import Mathlib.Probability.Independence.Basic
 import Mathlib.Probability.Distributions.Bernoulli
@@ -17,7 +18,7 @@ theorem of §4.7 is Mathlib's `polynomialFunctions_closure_eq_top`; neither is r
 
 namespace ProbMethodCombinatorics
 
-open Finset MeasureTheory ProbabilityTheory
+open Finset MeasureTheory ProbabilityTheory unitInterval SimpleGraph
 
 variable {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
 
@@ -384,5 +385,49 @@ theorem le_card_of_distinctSubsetSums {n k : ℕ} (hk : 0 < k) (S : Finset ℕ)
       · push_cast at hr2 hpigR ⊢
         nlinarith [hr0, hr2, hpigR, hn0, sq_nonneg (r - 1), sq_nonneg (r - 2), sq_nonneg (r - 3),
           mul_nonneg hr0 (by linarith : (0:ℝ) ≤ (n:ℝ))]
+
+/-! ### §4.1 The triangle count in `G(n, p)` -/
+
+/-- **The number of triangles of `G`**, as a real number: one for each 3-element vertex set whose
+three pairs are all edges.
+
+Written with `Set.indicator` rather than a `Finset.filter` over a clique predicate because the
+measure ranges over *all* graphs on `Fin n`, where no `DecidableRel G.Adj` is available — and
+**this project declares no `Decidable` instances**.  The indicator is over a set of graphs, so
+the same expression is both a random variable and, integrated, the expected triangle count.
+
+Sanity: the empty graph has `triangleCount = 0`, since any 3-element `T` contains two distinct
+vertices and `⊥` makes them non-adjacent. -/
+noncomputable def triangleCount {n : ℕ} (G : SimpleGraph (Fin n)) : ℝ :=
+  ∑ T ∈ (univ : Finset (Fin n)).powersetCard 3,
+    ({H : SimpleGraph (Fin n) | ∀ a ∈ T, ∀ b ∈ T, a ≠ b → H.Adj a b}).indicator
+      (fun _ => (1 : ℝ)) G
+
+/-- **The first moment of the triangle count** (Zhao, the computation behind Proposition 4.1.2):
+`𝔼X = binom(n,3) p³`.
+
+Linearity over the `binom(n,3)` indicator terms, each of which is the probability that three
+prescribed pairs are all present — `p³`, since distinct pairs are independent under
+`binomialRandom`.  `binomialRandom_apply` reduces such an event to an `infinitePi` of Bernoulli
+factors, which is the route Chapter 7 already uses. -/
+theorem integral_triangleCount (n : ℕ) (p : I) :
+    ∫ G, triangleCount G ∂(binomialRandom (Fin n) p) = (n.choose 3 : ℝ) * (p : ℝ) ^ 3 := by
+  sorry
+
+/-- **The variance of the triangle count** (Zhao, the second-moment half of Proposition 4.1.2),
+in the crude form the threshold argument needs.
+
+Two triangles sharing at most one vertex use disjoint pairs and are independent, so they
+contribute nothing to the variance.  What is left is the diagonal — each indicator has variance at
+most its mean, giving at most `binom(n,3) p³ ≤ n³p³` — and the pairs sharing exactly one edge,
+of which there are at most `n⁴/2`, each contributing at most the probability `p⁵` that their five
+pairs are all present.
+
+The constants are deliberately generous: `n³` and `n⁴` rather than the exact binomials, so the
+bound can be proved without tracking them. -/
+theorem variance_triangleCount_le (n : ℕ) (p : I) :
+    variance triangleCount (binomialRandom (Fin n) p)
+      ≤ (n : ℝ) ^ 3 * (p : ℝ) ^ 3 + (n : ℝ) ^ 4 * (p : ℝ) ^ 5 := by
+  sorry
 
 end ProbMethodCombinatorics
