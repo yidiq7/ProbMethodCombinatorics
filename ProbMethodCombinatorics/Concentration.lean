@@ -1149,4 +1149,44 @@ theorem measure_abs_sub_integral_chromaticNumber_ge_le (n : ℕ) (hn : 2 ≤ n) 
 
 end VertexExposure
 
+/-! ### Edge exposure
+
+The companion to `graphOfExposure`.  Which exposure a bounded-differences argument uses is
+decided by what the random variable is Lipschitz in: `χ(G)` moves by at most one when a *vertex*
+is rewired, so Shamir–Spencer uses vertex exposure and `n - 1` coordinates; the maximum number of
+edge-disjoint `k`-cliques moves by at most one when a single *edge* changes, so §9.3's Lemma
+9.3.3 needs edge exposure and `binom(n,2)` coordinates.  Its bound `exp (-2 (𝔼Y)² / binom(n,2))`
+is exactly that coordinate count.
+-/
+
+section EdgeExposure
+
+open unitInterval SimpleGraph
+
+/-- A potential edge of `G(n, p)`: an unordered pair of distinct vertices. -/
+abbrev EdgeSlot (n : ℕ) : Type := {e : Sym2 (Fin n) // ¬ e.IsDiag}
+
+/-- The graph assembled from an assignment of booleans to the potential edges. -/
+def graphOfEdgeSlots {n : ℕ} (x : EdgeSlot n → Prop) : SimpleGraph (Fin n) :=
+  SimpleGraph.fromEdgeSet {e : Sym2 (Fin n) | ∃ h : ¬ e.IsDiag, x ⟨e, h⟩}
+
+/-- Each potential edge present independently with probability `p`. -/
+noncomputable def edgeSlotMeasure (n : ℕ) (p : I) : Measure (EdgeSlot n → Prop) :=
+  Measure.pi fun _ => (toNNReal p) • Measure.dirac True + (toNNReal (σ p)) • Measure.dirac False
+
+/-- **`G(n, p)` is the edge-exposure product.**
+
+There are `binom(n,2)` slots, one per unordered pair of distinct vertices, and a graph's mass is
+`p^{#E} (1-p)^{binom(n,2) - #E}` either way — which is `SimpleGraph.binomialRandom_singleton`.
+
+Unlike `binomialRandom_eq_map_graphOfExposure` there is no blocking structure here, so the
+coordinate set is flat and `graphOfEdgeSlots` is a bijection onto `SimpleGraph (Fin n)` with no
+ordering to respect. -/
+theorem binomialRandom_eq_map_graphOfEdgeSlots (n : ℕ) (p : I) :
+    SimpleGraph.binomialRandom (Fin n) p
+      = Measure.map graphOfEdgeSlots (edgeSlotMeasure n p) := by
+  sorry
+
+end EdgeExposure
+
 end ProbMethodCombinatorics
