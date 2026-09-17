@@ -1,3 +1,4 @@
+import Mathlib.Combinatorics.SimpleGraph.Finite
 import Mathlib.Probability.Combinatorics.BinomialRandomGraph.Defs
 import Mathlib.Probability.Moments.Variance
 import Mathlib.Probability.Independence.Basic
@@ -977,5 +978,69 @@ theorem prob_no_triangle_of_mul_le :
   rw [hSdef] at hfinal
   simp only [measureReal_def] at hfinal
   linarith
+
+/-! ### §4.2: thresholds for a fixed subgraph
+
+Definition 4.2.7 and the count the threshold is stated against.  `maxEdgeVertexRatio` is `m(H)`,
+whose reciprocal `n ^ (-1 / m H)` is the threshold of Theorem 4.2.10 (Bollobás 1981).
+-/
+
+section Subgraphs
+
+variable {V : Type*} [Fintype V]
+
+/-- The **edge-vertex ratio** `ρ(H') = e_{H'} / v_{H'}` of Definition 4.2.7, for `H'` the
+subgraph of `G` induced on `s`.  Half the average degree of that subgraph.
+
+`s = ∅` gives `0 / 0 = 0`, which is the value `maxEdgeVertexRatio` wants there anyway. -/
+noncomputable def edgeVertexRatio (G : SimpleGraph V) (s : Finset V) : ℝ :=
+  ({e ∈ G.edgeSet | ∀ v ∈ e, v ∈ s} : Set (Sym2 V)).ncard / s.card
+
+/-- The **maximum edge-vertex ratio over subgraphs**, `m(H)` of Definition 4.2.7.
+
+Zhao maximises over all subgraphs `H' ⊆ H`; the maximum is taken over vertex *subsets* here, and
+the two agree.  Within a fixed vertex set, adding an edge of `G` raises `e_{H'}` and leaves
+`v_{H'}` alone, so the densest subgraph on a given vertex set is the induced one, and every
+subgraph has a vertex set.  On Example 4.2.8 — `K₄` with a pendant edge — this gives
+`ρ(H) = 7/5` but `m(H) = ρ(K₄) = 3/2`, matching the source. -/
+noncomputable def maxEdgeVertexRatio (G : SimpleGraph V) : ℝ :=
+  (univ : Finset (Finset V)).sup' ⟨∅, mem_univ _⟩ (edgeVertexRatio G)
+
+theorem edgeVertexRatio_le_maxEdgeVertexRatio (G : SimpleGraph V) (s : Finset V) :
+    edgeVertexRatio G s ≤ maxEdgeVertexRatio G :=
+  le_sup' _ (mem_univ s)
+
+theorem maxEdgeVertexRatio_nonneg (G : SimpleGraph V) : 0 ≤ maxEdgeVertexRatio G :=
+  le_trans (by simp [edgeVertexRatio]) (le_sup' (edgeVertexRatio G) (mem_univ (∅ : Finset V)))
+
+variable [DecidableEq V]
+
+/-- The edges of `H` transported to `Fin n` along a labelling `f`. -/
+def transportedEdges (H : SimpleGraph V) [DecidableRel H.Adj] {n : ℕ} (f : V → Fin n) :
+    Finset (Sym2 (Fin n)) := H.edgeFinset.image (Sym2.map f)
+
+/-- The number of **labelled copies** of `H` in `G`: injections `V → Fin n` carrying every edge
+of `H` to an edge of `G`.
+
+Written with `Set.indicator` over sets of graphs for the same reason as `triangleCount` — the
+measure below ranges over all graphs on `Fin n`, where no `DecidableRel G.Adj` is available. -/
+noncomputable def copyCount (H : SimpleGraph V) [DecidableRel H.Adj] {n : ℕ}
+    (G : SimpleGraph (Fin n)) : ℝ :=
+  ∑ f ∈ (univ : Finset (V → Fin n)).filter Function.Injective,
+    ({K : SimpleGraph (Fin n) | ↑(transportedEdges H f) ⊆ K.edgeSet}).indicator (fun _ => 1) G
+
+/-- **The expected number of labelled copies of `H` in `G(n, p)`** is
+`n^{\underline{v_H}} · p^{e_H}`.
+
+Each of the `n.descFactorial v_H` injections contributes the probability that its `e_H`
+transported edges are all present, which is `p ^ e_H` by
+`binomialRandom_setOf_subset_edgeSet` — the transported edges are distinct, and none is a loop,
+because the labelling is injective. -/
+theorem integral_copyCount (H : SimpleGraph V) [DecidableRel H.Adj] (n : ℕ) (p : I) :
+    ∫ G, copyCount H G ∂(binomialRandom (Fin n) p)
+      = (n.descFactorial (Fintype.card V) : ℝ) * (p : ℝ) ^ H.edgeFinset.card := by
+  sorry
+
+end Subgraphs
 
 end ProbMethodCombinatorics
