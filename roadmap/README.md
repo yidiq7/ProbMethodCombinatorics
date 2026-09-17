@@ -169,6 +169,36 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   inline block now calls it, `1d33a6d`, fifteen lines shorter.  **Retiring duplicates stays
   orchestrator work** — a contributor cannot see the other three copies from inside one task.
 
+- **2026-09-17 — the whole "blocked on Mathlib" list re-derived; a fourth note was wrong.**
+  Theorem 8.1.10 is formalized in both regimes (#222/#224) and Theorem 8.1.6 in the `ε`–`N` idiom
+  (#221/#223), so §8.1 is complete.  With the reachable frontier thin, I re-derived every
+  remaining blocker instead of trusting the audit.
+
+  **Genuinely absent, confirmed by search:** Mertens (no sum of prime reciprocals anywhere, so
+  §4.5 stays blocked — `NumberTheory/Chebyshev.lean` exists but gives `π`, `θ`, `ψ`, not
+  `∑ 1/p`), Talagrand, isoperimetry, Euler's formula for planar graphs, graphons, and any central
+  limit theorem.  Those notes stand.
+
+  **Wrong:** §2.2's.  It claimed no Dirichlet — Mathlib has it in
+  `NumberTheory/LSeries/PrimesInAP.lean` — and, more importantly, **Theorem 2.2.1 never needed
+  Dirichlet.**  The finite proof takes a prime above `2 max |a|` and averages over `ZMod p`;
+  all it wants is `Nat.exists_infinite_primes`.  §2.2 is now open, with `IsSumFree` and
+  `sumFreeWindow` authored and #225 published.  **That is four stale blockers in one session, and
+  the one thing they had in common is that nobody re-ran the search.**
+
+  **The `3 ∤ p` hypothesis on `card_sumFreeWindow` was found by computing, not by reading.**  The
+  middle third of `ZMod p` is sum-free for every `p`, but `p - 1 ≤ 3|C|` **fails at every multiple
+  of 3** — at `p = 3` the window is empty against `p - 1 = 2`, because the strict inequalities
+  drop the two boundary residues.  Under `3 ∤ p` it holds and is tight for every `p ≡ 1 mod 3`.
+  Fourth hypothesis this session that the source or my first draft omitted.
+
+  Three more duplicates retired, all created by contributors doing the right thing locally:
+  `cube_div_twelve_le_choose_three` (my prose said "lift the proof from X", which is an
+  instruction to duplicate), `disjoint_offDiagPairs_of_notMem_triangleDependency`, and
+  `card_inter_eq_two_of_mem_triangleDependency`.  **The post-merge duplication sweep is a standing
+  duty, not an occasional one** — a contributor cannot see the other consumers from inside one
+  task.
+
 - **2026-09-17 — §8.1's question is answered, and I repeated a mistake this file already records.**
   `binomialRandom_no_triangle_le` (#215/#217) is `ℙ(G(n,p) triangle-free) ≤
   exp(-binom(n,3)p³ + n⁴p⁵/2)`, the finite inequality behind Theorem 8.1.6, on the back of
@@ -1401,9 +1431,12 @@ multiple round exposure (#152), §4.3 monotonicity (#153).
 whose analytic input is absent costs a contributor a day to discover.
 - §4.5 Hardy–Ramanujan, §4.5 Erdős–Kac — **no Mertens theorem** (`∑_{p≤n} 1/p = log log n + O(1)`);
   nothing in `Mathlib/NumberTheory/`.
-- §2.2 large sum-free subsets — **no `IsSumFree`** (`ThreeAPFree` is a different notion) *and*
-  **no primes in arithmetic progressions** (`PrimesCongruentOne` is `≡ 1 mod k` only; no
-  Dirichlet).
+- §2.2 large sum-free subsets — *both halves of this note were wrong, corrected 2026-09-17.*
+  Mathlib **does** have Dirichlet's theorem, in `NumberTheory/LSeries/PrimesInAP.lean`
+  (`Nat.forall_exists_prime_gt_and_eq_mod`).  And more to the point **Theorem 2.2.1 does not need
+  it**: the finite proof picks a prime above `2 max |a|` and averages over `x ∈ ZMod p`, needing
+  only `Nat.exists_infinite_primes`.  `IsSumFree` was a one-line orchestrator debt, now paid, with
+  the middle-third window and its two facts published as #225.
 - §2.5 unbalancing lights — needs a central limit estimate.
 - §2.6 crossing number — needs Euler's formula for planar graphs.
 - §10.3 Sidorenko — needs homomorphism counts and graphons; and its general case is **open
