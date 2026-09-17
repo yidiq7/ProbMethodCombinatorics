@@ -757,7 +757,7 @@ theorem variance_triangleCount_le (n : ℕ) (p : I) :
 /-- The event that every pair of distinct vertices of `T` is an edge: an intersection over the
 finitely many pairs drawn from `T` of the events `Adj a b`, each of which is measurable because
 the σ-algebra on `SimpleGraph V` is pulled back along `Adj`. -/
-private lemma measurableSet_setOf_forall_adj {n : ℕ} (T : Finset (Fin n)) :
+theorem measurableSet_setOf_forall_adj {n : ℕ} (T : Finset (Fin n)) :
     MeasurableSet {H : SimpleGraph (Fin n) | ∀ a ∈ T, ∀ b ∈ T, a ≠ b → H.Adj a b} := by
   have hrw : {H : SimpleGraph (Fin n) | ∀ a ∈ T, ∀ b ∈ T, a ≠ b → H.Adj a b}
       = ⋂ a ∈ T, ⋂ b ∈ T, {H : SimpleGraph (Fin n) | a ≠ b → H.Adj a b} := by
@@ -808,6 +808,41 @@ private lemma one_le_triangleCount_of_ne_zero {n : ℕ} {G : SimpleGraph (Fin n)
           ({H : SimpleGraph (Fin n) | ∀ a ∈ T, ∀ b ∈ T, a ≠ b → H.Adj a b}).indicator
             (fun _ => (1 : ℝ)) G)
         (fun _ _ => Set.indicator_nonneg (fun _ _ => zero_le_one) G) hT
+/-- **`triangleCount` is square-integrable.**
+
+Needed by `prob_eq_zero_le_variance_div_sq`, whose `MemLp X 2` hypothesis is what makes
+`Var[X]/𝔼[X]²` meaningful — so the supercritical half of any threshold argument wants this.
+Public, because the same fact is needed wherever Chebyshev is applied to a subgraph count.
+
+A finite sum of bounded indicators over a probability measure, so there is nothing to check
+beyond measurability of each event. -/
+theorem memLp_triangleCount {n : ℕ} (p : I) :
+    MemLp (triangleCount : SimpleGraph (Fin n) → ℝ) 2 (binomialRandom (Fin n) p) := by
+  unfold triangleCount
+  exact memLp_finsetSum _ fun T _ =>
+    memLp_indicator_const 2 (measurableSet_setOf_forall_adj T) 1 (Or.inr (measure_ne_top _ _))
+
+/-- **The supercritical half of the triangle threshold** (Zhao, Proposition 4.1.2): when `p·n` is
+large, `G(n, p)` contains a triangle with high probability.
+
+Together with `prob_no_triangle_of_mul_le` this is the threshold: `1/n` is where the triangle
+appears.
+
+**This half needs both a scale `M` and an `N`, unlike the subcritical one.**  Chebyshev's error is
+`Var/𝔼² ≤ 144/(p·n)³ + 144/(n·(p·n))` — using `binom(n,3) ≥ n³/12`, valid for `n ≥ 6` — and the
+two terms vanish for different reasons: the first once `p·n` is large, the second only once `n`
+is large *as well*.  No choice of `M` alone controls it, which is why the statement quantifies
+over both.  Take `M` with `144/M³ ≤ ε/2`, then `N ≥ 6` with `144/(N·M) ≤ ε/2`.
+
+The probability is written `Measure.real` rather than `(… ).toReal`, following the convention the
+subcritical node's review established; the ingredients are `memLp_triangleCount`,
+`integral_triangleCount`, `variance_triangleCount_le` and `prob_eq_zero_le_variance_div_sq`, all
+proved above. -/
+theorem prob_triangle_of_le_mul :
+    ∀ ε : ℝ, 0 < ε → ∃ M > 0, ∃ N : ℕ, ∀ (n : ℕ), N ≤ n → ∀ p : I, M ≤ (p : ℝ) * n →
+      1 - ε ≤ (binomialRandom (Fin n) p).real {G | triangleCount G ≠ 0} := by
+  sorry
+
 /-- **The subcritical half of the triangle threshold** (Zhao, Proposition 4.1.2): when `p·n` is
 small, `G(n, p)` has no triangle with high probability.
 

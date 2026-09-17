@@ -4408,6 +4408,7 @@
     },
     "measurableSet_setOf_forall_adj": {
       "kind": "theorem",
+      "parent": "second_moment",
       "file": "ProbMethodCombinatorics/SecondMoment.lean",
       "decl": "ProbMethodCombinatorics.measurableSet_setOf_forall_adj",
       "statement": "formalized",
@@ -4543,6 +4544,32 @@
       "statement": "formalized",
       "proof": "formalized",
       "uses": [],
+      "proof_uses": []
+    },
+    "memLp_triangleCount": {
+      "kind": "theorem",
+      "parent": "second_moment",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.memLp_triangleCount",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "triangleCount"
+      ],
+      "proof_uses": [
+        "measurableSet_setOf_forall_adj"
+      ]
+    },
+    "prob_triangle_of_le_mul": {
+      "kind": "theorem",
+      "parent": "second_moment",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.prob_triangle_of_le_mul",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "triangleCount"
+      ],
       "proof_uses": []
     }
   }
