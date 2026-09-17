@@ -773,24 +773,70 @@ theorem measurableSet_setOf_forall_adj {n : ℕ} (T : Finset (Fin n)) :
     rw [hset]
     measurability
 
+/-! ### A finite sum of indicators
+
+Both counting random variables in this file — `triangleCount` and `copyCount` — are finite sums
+of `Set.indicator … (fun _ => 1)`.  The four facts each of them needs are facts about that shape
+alone, so they are stated once here and the specialisations below are one-liners.
+
+The definitions are *not* unified: `triangleCount` sums over vertex triples and `copyCount` over
+injective labellings, and both appear in published statements.  Only the arguments are shared.
+-/
+
+section IndicatorSum
+
+variable {α : Type*} {ι : Type*}
+
+theorem sum_indicator_one_nonneg (s : Finset ι) (E : ι → Set α) (x : α) :
+    0 ≤ ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x :=
+  Finset.sum_nonneg fun _ _ => Set.indicator_nonneg (fun _ _ => zero_le_one) x
+
+/-- A finite sum of indicators takes no value strictly between `0` and `1`: if it is nonzero then
+some summand is `1`, and the rest are nonnegative.
+
+This is the integrality that turns Markov's inequality into a bound on `ℙ(X ≠ 0)`. -/
+theorem one_le_sum_indicator_one_of_ne_zero {s : Finset ι} {E : ι → Set α} {x : α}
+    (h : ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x ≠ 0) :
+    1 ≤ ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x := by
+  obtain ⟨i, hi, hne⟩ := Finset.exists_ne_zero_of_sum_ne_zero h
+  have hmem : x ∈ E i := by
+    by_contra hc
+    exact hne (Set.indicator_of_notMem hc _)
+  calc (1 : ℝ) = _ := (Set.indicator_of_mem hmem (fun _ => (1 : ℝ))).symm
+    _ ≤ _ := Finset.single_le_sum
+        (f := fun i => (E i).indicator (fun _ => (1 : ℝ)) x)
+        (fun _ _ => Set.indicator_nonneg (fun _ _ => zero_le_one) x) hi
+
+variable [MeasurableSpace α]
+
+theorem measurable_sum_indicator_one {s : Finset ι} {E : ι → Set α}
+    (hE : ∀ i ∈ s, MeasurableSet (E i)) :
+    Measurable fun x => ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x :=
+  Finset.measurable_sum _ fun i hi => measurable_const.indicator (hE i hi)
+
+theorem integrable_sum_indicator_one {μ : Measure α} [IsFiniteMeasure μ] {s : Finset ι}
+    {E : ι → Set α} (hE : ∀ i ∈ s, MeasurableSet (E i)) :
+    Integrable (fun x => ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x) μ :=
+  integrable_finsetSum _ fun i hi => (integrable_const (1 : ℝ)).indicator (hE i hi)
+
+end IndicatorSum
+
 /-- `triangleCount` is measurable: a finite sum of indicators of measurable events. -/
 private lemma measurable_triangleCount {n : ℕ} :
     Measurable (triangleCount : SimpleGraph (Fin n) → ℝ) := by
   unfold triangleCount
-  exact Finset.measurable_sum _ fun T _ =>
-    measurable_const.indicator (measurableSet_setOf_forall_adj T)
+  exact measurable_sum_indicator_one fun T _ => measurableSet_setOf_forall_adj T
 
 /-- `triangleCount` is integrable under `G(n, p)`: a finite sum of indicators of measurable
 events under a probability measure. -/
 private lemma integrable_triangleCount {n : ℕ} (p : I) :
     Integrable (triangleCount : SimpleGraph (Fin n) → ℝ) (binomialRandom (Fin n) p) := by
   unfold triangleCount
-  exact integrable_finsetSum _ fun T _ =>
-    (integrable_const (1 : ℝ)).indicator (measurableSet_setOf_forall_adj T)
+  exact integrable_sum_indicator_one fun T _ => measurableSet_setOf_forall_adj T
 
 /-- Every summand of `triangleCount` is an indicator, hence nonnegative. -/
 private lemma triangleCount_nonneg {n : ℕ} (G : SimpleGraph (Fin n)) : 0 ≤ triangleCount G :=
-  Finset.sum_nonneg fun _ _ => Set.indicator_nonneg (fun _ _ => zero_le_one) G
+  sum_indicator_one_nonneg _ _ G
 
 /-- `triangleCount` takes no value strictly between `0` and `1`: a nonzero value means some
 summand is the indicator value `1`, and the remaining summands are nonnegative.
@@ -799,16 +845,7 @@ This is the integrality that turns Markov's inequality into a bound on `ℙ(X �
 private lemma one_le_triangleCount_of_ne_zero {n : ℕ} {G : SimpleGraph (Fin n)}
     (h : triangleCount G ≠ 0) : 1 ≤ triangleCount G := by
   rw [triangleCount] at h ⊢
-  obtain ⟨T, hT, hne⟩ := Finset.exists_ne_zero_of_sum_ne_zero h
-  have hmem : G ∈ {H : SimpleGraph (Fin n) | ∀ a ∈ T, ∀ b ∈ T, a ≠ b → H.Adj a b} := by
-    by_contra hc
-    exact hne (Set.indicator_of_notMem hc _)
-  calc (1 : ℝ) = _ := (Set.indicator_of_mem hmem (fun _ => (1 : ℝ))).symm
-    _ ≤ _ := Finset.single_le_sum
-        (f := fun T : Finset (Fin n) =>
-          ({H : SimpleGraph (Fin n) | ∀ a ∈ T, ∀ b ∈ T, a ≠ b → H.Adj a b}).indicator
-            (fun _ => (1 : ℝ)) G)
-        (fun _ _ => Set.indicator_nonneg (fun _ _ => zero_le_one) G) hT
+  exact one_le_sum_indicator_one_of_ne_zero h
 /-- **`triangleCount` is square-integrable.**
 
 Needed by `prob_eq_zero_le_variance_div_sq`, whose `MemLp X 2` hypothesis is what makes
@@ -1080,21 +1117,19 @@ theorem integral_copyCount (H : SimpleGraph V) [DecidableRel H.Adj] (n : ℕ) (p
 private lemma measurable_copyCount (H : SimpleGraph V) [DecidableRel H.Adj] {n : ℕ} :
     Measurable fun G : SimpleGraph (Fin n) => copyCount H G := by
   unfold copyCount
-  exact Finset.measurable_sum _ fun f _ =>
-    measurable_const.indicator (measurableSet_setOf_subset_edgeSet _)
+  exact measurable_sum_indicator_one fun f _ => measurableSet_setOf_subset_edgeSet _
 
 /-- `copyCount` is integrable under `G(n, p)`: a finite sum of indicators of measurable events
 under a probability measure. -/
 private lemma integrable_copyCount (H : SimpleGraph V) [DecidableRel H.Adj] {n : ℕ} (p : I) :
     Integrable (fun G : SimpleGraph (Fin n) => copyCount H G) (binomialRandom (Fin n) p) := by
   unfold copyCount
-  exact integrable_finsetSum _ fun f _ =>
-    (integrable_const (1 : ℝ)).indicator (measurableSet_setOf_subset_edgeSet _)
+  exact integrable_sum_indicator_one fun f _ => measurableSet_setOf_subset_edgeSet _
 
 /-- Every summand of `copyCount` is an indicator, hence nonnegative. -/
 private lemma copyCount_nonneg (H : SimpleGraph V) [DecidableRel H.Adj] {n : ℕ}
     (G : SimpleGraph (Fin n)) : 0 ≤ copyCount H G :=
-  Finset.sum_nonneg fun _ _ => Set.indicator_nonneg (fun _ _ => zero_le_one) G
+  sum_indicator_one_nonneg _ _ G
 
 /-- `copyCount` takes no value strictly between `0` and `1`: a nonzero value means some summand
 is the indicator value `1`, and the remaining summands are nonnegative.
@@ -1103,16 +1138,7 @@ This is the integrality that turns Markov's inequality into a bound on `ℙ(coun
 private lemma one_le_copyCount_of_ne_zero (H : SimpleGraph V) [DecidableRel H.Adj] {n : ℕ}
     {G : SimpleGraph (Fin n)} (h : copyCount H G ≠ 0) : 1 ≤ copyCount H G := by
   rw [copyCount] at h ⊢
-  obtain ⟨f, hf, hne⟩ := Finset.exists_ne_zero_of_sum_ne_zero h
-  have hmem : G ∈ {K : SimpleGraph (Fin n) | ↑(transportedEdges H f) ⊆ K.edgeSet} := by
-    by_contra hc
-    exact hne (Set.indicator_of_notMem hc _)
-  calc (1 : ℝ) = _ := (Set.indicator_of_mem hmem (fun _ => (1 : ℝ))).symm
-    _ ≤ _ := Finset.single_le_sum
-        (f := fun f : V → Fin n =>
-          ({K : SimpleGraph (Fin n) | ↑(transportedEdges H f) ⊆ K.edgeSet}).indicator
-            (fun _ => (1 : ℝ)) G)
-        (fun _ _ => Set.indicator_nonneg (fun _ _ => zero_le_one) G) hf
+  exact one_le_sum_indicator_one_of_ne_zero h
 
 /-- **The 0-statement's engine** (Zhao, §4.2): `G(n, p)` contains a labelled copy of `H` with
 probability at most `n^{\underline{v_H}} p^{e_H}`.
