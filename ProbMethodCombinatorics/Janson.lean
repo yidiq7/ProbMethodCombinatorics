@@ -190,7 +190,33 @@ theorem jansonMu_triangleFamily (n : ℕ) (p : I) :
     jansonMu p (fun T : {T : Finset (Fin n) // T.card = 3} =>
         (↑(offDiagPairs (T : Finset (Fin n))) : Set (Sym2 (Fin n))))
       = (n.choose 3 : ℝ) * (p : ℝ) ^ 3 := by
-  sorry
+  -- A triple spans exactly three non-loop pairs: `#(offDiagPairs T) + 3 = binom(4,2) = 6`.
+  have hcard3 : ∀ T : {T : Finset (Fin n) // T.card = 3},
+      (offDiagPairs (T : Finset (Fin n))).card = 3 := by
+    intro T
+    have hT := T.2
+    have h := card_offDiagPairs_add (T : Finset (Fin n))
+    rw [hT] at h
+    norm_num [Nat.choose] at h
+    omega
+  -- The index type is the `3`-element subsets of `Fin n`, of which there are `binom(n,3)`.
+  have hcount : Fintype.card {T : Finset (Fin n) // T.card = 3} = n.choose 3 := by
+    rw [Fintype.card_subtype]
+    have hfilter : {T ∈ (Finset.univ : Finset (Finset (Fin n))) | T.card = 3}
+        = (Finset.univ : Finset (Fin n)).powersetCard 3 := by
+      ext T
+      simp
+    rw [hfilter, Finset.card_powersetCard, Finset.card_univ, Fintype.card_fin]
+  -- Each triple contributes the probability `p ^ 3` that its three pairs are all present.
+  have hterm : ∀ T : {T : Finset (Fin n) // T.card = 3},
+      (setBernoulli Set.univ p
+          {R : Set (Sym2 (Fin n)) | ↑(offDiagPairs (T : Finset (Fin n))) ⊆ R}).toReal
+        = (p : ℝ) ^ 3 := by
+    intro T
+    rw [setBernoulli_setOf_subset, hcard3 T, ENNReal.toReal_pow, ENNReal.coe_toReal,
+      unitInterval.coe_toNNReal]
+  rw [jansonMu, Finset.sum_congr rfl fun T _ => hterm T, Finset.sum_const, Finset.card_univ,
+    hcount, nsmul_eq_mul]
 
 /-- The conditioning step of the Boppana–Spencer proof of Janson's inequality.
 
