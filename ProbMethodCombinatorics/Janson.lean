@@ -831,19 +831,12 @@ private theorem disjoint_offDiagPairs_of_notMem_triangleDependency {n : ℕ}
     (hnotD : (A, B) ∉ triangleDependency n) :
     Disjoint (↑(offDiagPairs (A : Finset (Fin n))) : Set (Sym2 (Fin n)))
       (↑(offDiagPairs (B : Finset (Fin n))) : Set (Sym2 (Fin n))) := by
+  refine disjoint_offDiagPairs_of_card_inter_le_one _ _ ?_
   have hmem : ((A, B) ∈ triangleDependency n) ↔
       (A ≠ B ∧ 2 ≤ ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))).card) := by
     simp [triangleDependency]
-  have hle : ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))).card ≤ 1 := by
-    by_contra hcon
-    exact hnotD (hmem.2 ⟨hne, by omega⟩)
-  have h := card_offDiagPairs_add ((A : Finset (Fin n)) ∩ (B : Finset (Fin n)))
-  have hc : ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))).card = 0 ∨
-      ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))).card = 1 := by omega
-  have hempty : offDiagPairs ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))) = ∅ := by
-    rcases hc with hc | hc <;> rw [hc] at h <;> simpa [Nat.choose] using h
-  rw [Finset.disjoint_coe, Finset.disjoint_iff_inter_eq_empty, offDiagPairs_inter]
-  exact hempty
+  by_contra hcon
+  exact hnotD (hmem.2 ⟨hne, by omega⟩)
 
 /-- **`G(n, p)` is triangle-free with probability at most `exp (-binom(n,3) p³ + n⁴p⁵/2)`**
 (Zhao, Question 8.1.5, the finite form behind Theorem 8.1.6).

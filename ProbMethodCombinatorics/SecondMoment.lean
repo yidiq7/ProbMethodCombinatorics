@@ -552,6 +552,24 @@ theorem card_offDiagPairs_add {n : ℕ} (T : Finset (Fin n)) :
   rw [hdiag, Finset.card_image_of_injective _ hinj, Finset.card_sym2] at hsplit
   omega
 
+/-- **Vertex sets meeting in at most one vertex span disjoint edge sets.**  A shared edge would
+put two shared vertices in the intersection, and `offDiagPairs` of a set of size at most one is
+empty — `card_offDiagPairs_add` gives `binom(1,2) = 0` and `binom(2,2) = 1`.
+
+No element is ever named: `offDiagPairs_inter` turns the emptiness of `offDiagPairs (A ∩ B)`
+straight into disjointness.  This is the admissibility hypothesis every Janson family over
+cliques needs, at any clique size. -/
+theorem disjoint_offDiagPairs_of_card_inter_le_one {n : ℕ} (A B : Finset (Fin n))
+    (h : (A ∩ B).card ≤ 1) :
+    Disjoint (↑(offDiagPairs A) : Set (Sym2 (Fin n)))
+      (↑(offDiagPairs B) : Set (Sym2 (Fin n))) := by
+  have hcard := card_offDiagPairs_add (A ∩ B)
+  have hc : (A ∩ B).card = 0 ∨ (A ∩ B).card = 1 := by omega
+  have hempty : offDiagPairs (A ∩ B) = ∅ := by
+    rcases hc with hc | hc <;> rw [hc] at hcard <;> simpa [Nat.choose] using hcard
+  rw [Finset.disjoint_coe, Finset.disjoint_iff_inter_eq_empty, offDiagPairs_inter]
+  exact hempty
+
 /-- Requiring two sets of pairs is requiring their union. -/
 theorem setOf_subset_edgeSet_inter {n : ℕ} (S₁ S₂ : Finset (Sym2 (Fin n))) :
     {G : SimpleGraph (Fin n) | ↑S₁ ⊆ G.edgeSet} ∩ {G : SimpleGraph (Fin n) | ↑S₂ ⊆ G.edgeSet}
