@@ -1174,6 +1174,17 @@ def IsContainerRound {n : ℕ} (c d : ℝ)
         ≤ (n : ℝ) * ((Ae.filter fun e => pick Av Ae T ∈ e).card : ℝ)
           + (((kill Av Ae (pick Av Ae T)).card : ℝ) + 1) * (c * d))
 
+/-- A vertex's hypergraph degree is at most `Δ₁`. -/
+private theorem card_filter_mem_le_codegree {n : ℕ} (H : Finset (Finset (Fin n))) (v : Fin n) :
+    #{e ∈ H | v ∈ e} ≤ maxCodegree 1 H := by
+  unfold maxCodegree
+  have hmem : ({v} : Finset (Fin n)) ∈
+      Finset.filter (fun A : Finset (Fin n) => A.card = 1) univ := by simp
+  refine le_trans (le_of_eq (congrArg Finset.card ?_))
+    (Finset.le_sup (f := fun A : Finset (Fin n) => #{e ∈ H | A ⊆ e}) hmem)
+  ext e
+  simp [Finset.singleton_subset_iff]
+
 /-- **One round of the container algorithm, on a nonempty vertex type.**
 
 `pick Av Ae T` is the element of `T` of largest `Ae`-degree, ties broken by vertex index, and
@@ -1266,14 +1277,7 @@ private theorem exists_container_round_of_pos (c d : ℝ) (n : ℕ) (hn : 0 < n)
     have hKdef : kill Av Ae v = {u ∈ Av | ord Ae u < ord Ae v} := hkill Av Ae v
     have hdeg_le : ∀ u : Fin n, (#{e ∈ Ae | u ∈ e} : ℝ) ≤ c * d := by
       intro u
-      refine le_trans (Nat.cast_le.2 ?_) hcod
-      unfold maxCodegree
-      have hmem : ({u} : Finset (Fin n)) ∈
-          Finset.filter (fun A : Finset (Fin n) => A.card = 1) univ := by simp
-      refine le_trans (le_of_eq (congrArg Finset.card ?_))
-        (Finset.le_sup (f := fun A : Finset (Fin n) => #{e ∈ Ae | A ⊆ e}) hmem)
-      ext e
-      simp [Finset.singleton_subset_iff]
+      exact le_trans (Nat.cast_le.2 (card_filter_mem_le_codegree Ae u)) hcod
     have hcountN : ∑ u ∈ Av, #{e ∈ Ae | u ∈ e} = 3 * Ae.card := by
       have hswap : ∑ u ∈ Av, #{e ∈ Ae | u ∈ e} = ∑ e ∈ Ae, #{u ∈ Av | u ∈ e} := by
         simp only [Finset.card_filter]
@@ -1513,17 +1517,6 @@ private theorem pairVerts_inj {n : ℕ} {p q : Sym2 (Fin n)} (h : pairVerts p = 
     p = q :=
   Sym2.ext fun x => by
     rw [← mem_pairVerts, ← mem_pairVerts, h]
-
-/-- A vertex's hypergraph degree is at most `Δ₁`. -/
-private theorem card_filter_mem_le_codegree {n : ℕ} (H : Finset (Finset (Fin n))) (v : Fin n) :
-    #{e ∈ H | v ∈ e} ≤ maxCodegree 1 H := by
-  unfold maxCodegree
-  have hmem : ({v} : Finset (Fin n)) ∈
-      Finset.filter (fun A : Finset (Fin n) => A.card = 1) univ := by simp
-  refine le_trans (le_of_eq (congrArg Finset.card ?_))
-    (Finset.le_sup (f := fun A : Finset (Fin n) => #{e ∈ H | A ⊆ e}) hmem)
-  ext e
-  simp [Finset.singleton_subset_iff]
 
 /-- A pair's hypergraph codegree is at most `Δ₂`. -/
 private theorem card_filter_pairVerts_le_codegree {n : ℕ} (H : Finset (Finset (Fin n)))
