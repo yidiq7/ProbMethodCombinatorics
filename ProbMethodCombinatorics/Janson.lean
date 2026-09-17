@@ -738,43 +738,10 @@ theorem jansonDelta_triangleFamily (n : ℕ) (p : I) :
           (↑(offDiagPairs (T : Finset (Fin n))) : Set (Sym2 (Fin n))))
         (triangleDependency n)
       = (3 * n.choose 3 * (n - 3) : ℕ) * (p : ℝ) ^ 5 := by
-  -- A triple spans exactly three non-loop pairs: `#(offDiagPairs T) + 3 = binom(4,2) = 6`.
-  have hcard3 : ∀ T : {T : Finset (Fin n) // T.card = 3},
-      (offDiagPairs (T : Finset (Fin n))).card = 3 := by
-    intro T
-    have hT := T.2
-    have h := card_offDiagPairs_add (T : Finset (Fin n))
-    rw [hT] at h
-    norm_num [Nat.choose] at h
-    omega
-  have hinter2 := fun q (hq : q ∈ triangleDependency n) =>
-    card_inter_eq_two_of_mem_triangleDependency q hq
-  -- Two triples sharing an edge span `3 + 3 - 1 = 5` non-loop pairs.
-  have hcard5 : ∀ q ∈ triangleDependency n,
-      (offDiagPairs (q.1 : Finset (Fin n)) ∪ offDiagPairs (q.2 : Finset (Fin n))).card = 5 := by
-    intro q hq
-    have h2 := hinter2 q hq
-    have hone : (offDiagPairs ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n)))).card = 1 := by
-      have h := card_offDiagPairs_add ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n)))
-      rw [h2] at h
-      norm_num [Nat.choose] at h
-      omega
-    have h := Finset.card_union_add_card_inter
-      (offDiagPairs (q.1 : Finset (Fin n))) (offDiagPairs (q.2 : Finset (Fin n)))
-    rw [offDiagPairs_inter, hcard3 q.1, hcard3 q.2, hone] at h
-    omega
-  -- Each dependent pair contributes the probability `p ⁵` that its five pairs are all present.
-  have hterm : ∀ q ∈ triangleDependency n,
-      (setBernoulli Set.univ p {R : Set (Sym2 (Fin n)) |
-          (↑(offDiagPairs (q.1 : Finset (Fin n))) : Set (Sym2 (Fin n)))
-            ∪ (↑(offDiagPairs (q.2 : Finset (Fin n))) : Set (Sym2 (Fin n))) ⊆ R}).toReal
-        = (p : ℝ) ^ 5 := by
-    intro q hq
-    rw [← Finset.coe_union, setBernoulli_setOf_subset, hcard5 q hq, ENNReal.toReal_pow,
-      ENNReal.coe_toReal, unitInterval.coe_toNNReal]
-  rw [jansonDelta, Finset.sum_congr rfl hterm, Finset.sum_const, nsmul_eq_mul,
-    card_triangleDependency_exact]
-
+  have h : triangleDependency n = cliqueDependency n 3 := rfl
+  rw [h, jansonDelta_cliqueFamily n 3 p]
+  norm_num [Finset.sum_Ico_succ_top, Nat.choose]
+  exact Or.inl (Or.inl (mul_comm _ _))
 /-- The conditioning step of the Boppana–Spencer proof of Janson's inequality.
 
 If `i ∉ T` and every `S j` with `j ∈ T` outside `T₁` is disjoint from `S i`, then imposing the
