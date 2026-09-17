@@ -1422,6 +1422,35 @@ theorem binomialRandom_no_triangle_le_of_one_le (n : ℕ) (hn : 4 ≤ n) (p : I)
     fun _ _ he => not_isDiag_of_mem_offDiagPairs he]
   exact hmain
 
+/-- **The clique-free probability in the dense regime** (Zhao, Lemma 8.3.3, the finite form).
+
+Janson's second inequality on the `k`-clique family.  `jansonMu_cliqueFamily` and
+`jansonDelta_cliqueFamily` evaluate the two constants as `binom(n,k) p^{binom(k,2)}` and the
+graded sum over intersection sizes, so a caller rewrites with those and is left with arithmetic.
+
+They are left abstract in the statement rather than substituted because `Δ` appears three times —
+in both hypotheses and in a denominator — and spelling out the graded sum each time would make
+the statement unreadable without making it stronger.
+
+This is what §8.3's chromatic-number argument runs on: at `p = 1/2` and `k` near `2 log₂ n` it
+gives the `e^{-n^{2-o(1)}}` lower tail Bollobás' proof needs.  `binomialRandom_no_triangle_le_of_one_le`
+is the `k = 3` instance with the constants substituted. -/
+theorem binomialRandom_no_clique_le_of_mu_le (n k : ℕ) (p : I)
+    (hle : jansonMu p (fun S : {S : Finset (Fin n) // S.card = k} =>
+              (↑(offDiagPairs (S : Finset (Fin n))) : Set (Sym2 (Fin n))))
+           ≤ jansonDelta p (fun S : {S : Finset (Fin n) // S.card = k} =>
+              (↑(offDiagPairs (S : Finset (Fin n))) : Set (Sym2 (Fin n)))) (cliqueDependency n k))
+    (hpos : 0 < jansonDelta p (fun S : {S : Finset (Fin n) // S.card = k} =>
+              (↑(offDiagPairs (S : Finset (Fin n))) : Set (Sym2 (Fin n)))) (cliqueDependency n k)) :
+    (SimpleGraph.binomialRandom (Fin n) p).real
+        {G : SimpleGraph (Fin n) | ∀ S : {S : Finset (Fin n) // S.card = k},
+          ¬ (↑(offDiagPairs (S : Finset (Fin n))) ⊆ G.edgeSet)}
+      ≤ Real.exp (-(jansonMu p (fun S : {S : Finset (Fin n) // S.card = k} =>
+              (↑(offDiagPairs (S : Finset (Fin n))) : Set (Sym2 (Fin n))))) ^ 2
+          / (2 * jansonDelta p (fun S : {S : Finset (Fin n) // S.card = k} =>
+              (↑(offDiagPairs (S : Finset (Fin n))) : Set (Sym2 (Fin n)))) (cliqueDependency n k))) := by
+  sorry
+
 /-- The elementary bound `exp (-x) ≤ 1 - x + x ^ 2 / 2` for `x ≥ 0`.
 
 It follows from `1 + x + x ^ 2 / 2 ≤ exp x` because
