@@ -61,6 +61,29 @@ upper set of `Set ι`.  This is what makes Harris' inequality (Chapter 7) applic
 theorem isUpperSet_setOf_subset (s : Set ι) : IsUpperSet {R : Set ι | s ⊆ R} :=
   fun _ _ hle hmem => hmem.trans hle
 
+/-! ### Restricting the ground set
+
+Every theorem below is stated for `setBernoulli Set.univ p`, a random subset of all of `ι`.  The
+random objects the book applies Janson to are not of that shape: `G(n, p)` is
+`setBernoulli Sym2.diagSetᶜ p` pulled back along `SimpleGraph.edgeSet`, whose ground set omits the
+diagonal.  The lemma below is the transfer, and it is the only thing standing between this chapter
+and its applications in §8.1, §8.2 and §8.3.
+-/
+
+/-- Intersecting a `setBernoulli` sample with a set `u` gives a `setBernoulli` sample on the
+smaller ground set `v ∩ u`.
+
+Coordinatewise this is immediate: an element of `u` is kept exactly when the original sample kept
+it, and an element outside `u` is discarded, matching the coordinate of `setBer(v ∩ u, p)`, which
+is `dirac False` there.
+
+Specialised at `v = Set.univ` this transfers any event that depends only on the trace on `u` — in
+particular `{R | s ⊆ R}` for `s ⊆ u` — from `setBer(u, p)` to the `setBer(Set.univ, p)` of the
+statements below. -/
+theorem map_inter_setBernoulli (u v : Set ι) (p : I) :
+    (setBernoulli v p).map (· ∩ u) = setBernoulli (v ∩ u) p := by
+  sorry
+
 /-- The conditioning step of the Boppana–Spencer proof of Janson's inequality.
 
 If `i ∉ T` and every `S j` with `j ∈ T` outside `T₁` is disjoint from `S i`, then imposing the
