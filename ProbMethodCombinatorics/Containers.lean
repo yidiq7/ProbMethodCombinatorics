@@ -3275,6 +3275,34 @@ not stated: the source quotes it rather than proving it, and for `H = K₃` it i
 `card_triangleFreeGraphs_le`, which took §11.2 in full. -/
 theorem le_card_free_graphs (n : ℕ) {W : Type*} {H : SimpleGraph W} (hH : H ≠ ⊥) :
     2 ^ SimpleGraph.extremalNumber n H ≤ Nat.card {G : SimpleGraph (Fin n) // H.Free G} := by
-  sorry
+  obtain ⟨G₀, hdec, hG₀⟩ := SimpleGraph.exists_isExtremal_free (V := Fin n) hH
+  have hsub : ∀ F ∈ G₀.edgeFinset.powerset, (↑F : Set (Sym2 (Fin n))) ⊆ G₀.edgeSet := by
+    intro F hF e he
+    exact SimpleGraph.mem_edgeFinset.mp (Finset.mem_powerset.mp hF he)
+  -- no member of `G₀.edgeFinset` is a loop, so `fromEdgeSet` returns a subset unchanged
+  have hdiag : ∀ F ∈ G₀.edgeFinset.powerset,
+      (↑F : Set (Sym2 (Fin n))) \ Sym2.diagSet = ↑F := by
+    intro F hF
+    refine Set.ext fun e => ⟨fun he => he.1, fun he => ⟨he, ?_⟩⟩
+    simp only [Sym2.mem_diagSet]
+    exact G₀.not_isDiag_of_mem_edgeSet (hsub F hF he)
+  -- freeness is downward closed, and each such graph is a subgraph of the extremal `G₀`
+  have hfree : ∀ F ∈ G₀.edgeFinset.powerset,
+      H.Free (SimpleGraph.fromEdgeSet (↑F : Set (Sym2 (Fin n)))) := by
+    intro F hF hcon
+    refine hG₀.prop (hcon.mono_right ?_)
+    rw [SimpleGraph.fromEdgeSet_le, hdiag F hF]
+    exact hsub F hF
+  have hinj : Function.Injective fun F : G₀.edgeFinset.powerset =>
+      (⟨SimpleGraph.fromEdgeSet (↑(F : Finset (Sym2 (Fin n))) : Set (Sym2 (Fin n))),
+        hfree _ F.2⟩ : {G : SimpleGraph (Fin n) // H.Free G}) := by
+    intro F₁ F₂ h
+    have he := congrArg SimpleGraph.edgeSet (congrArg Subtype.val h)
+    rw [SimpleGraph.edgeSet_fromEdgeSet, SimpleGraph.edgeSet_fromEdgeSet,
+      hdiag _ F₁.2, hdiag _ F₂.2] at he
+    exact Subtype.ext (Finset.coe_injective he)
+  have hcount := Nat.card_le_card_of_injective _ hinj
+  rwa [Nat.card_eq_finsetCard, Finset.card_powerset,
+    SimpleGraph.card_edgeFinset_of_isExtremal_free hG₀, Fintype.card_fin] at hcount
 
 end ProbMethodCombinatorics
