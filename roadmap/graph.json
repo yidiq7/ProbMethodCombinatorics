@@ -611,18 +611,6 @@
       "uses": [],
       "proof_uses": []
     },
-    "triangle_threshold": {
-      "kind": "theorem",
-      "parent": "second_moment",
-      "doc": "second-moment.md#planned-not-stated",
-      "statement": "planned",
-      "proof": "planned",
-      "uses": [],
-      "proof_uses": [
-        "prob_zero_bound",
-        "variance_indicator_bound"
-      ]
-    },
     "subgraph_threshold": {
       "kind": "theorem",
       "parent": "second_moment",
@@ -960,17 +948,6 @@
         "uniform_coloring",
         "uniform_coloring_const",
         "uniform_coloring_indep"
-      ]
-    },
-    "independent_transversal": {
-      "kind": "theorem",
-      "parent": "local_lemma",
-      "doc": "local-lemma.md#not-stated",
-      "statement": "planned",
-      "proof": "planned",
-      "uses": [],
-      "proof_uses": [
-        "lll_general"
       ]
     },
     "directed_cycles": {
