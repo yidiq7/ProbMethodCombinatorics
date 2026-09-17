@@ -111,6 +111,24 @@ edge-count bound the book proves, so the edge-count bound stays a task.
 
 ## Log
 
+- **2026-09-17 — §4.1 is complete as a statement: Proposition 4.1.2's threshold is now both halves.**
+  `memLp_triangleCount` proved (the brick #187's review named as next missing — it is what
+  `prob_eq_zero_le_variance_div_sq`'s `MemLp X 2` hypothesis needs to make `Var/𝔼²` meaningful),
+  and with it plus `variance_triangleCount_le` the supercritical half is unblocked and published
+  as #189.  `measurableSet_setOf_forall_adj` promoted to public alongside it, since Chebyshev on
+  any subgraph count wants both.
+
+  **Why the supercritical half needs an `N` and the subcritical one does not**, recorded because
+  the asymmetry is the interesting part of the `whp` idiom in practice: Chebyshev's error is
+  `144/(p·n)³ + 144/(n·(p·n))`, and the two terms vanish for *different reasons* — the first once
+  `p·n` is large, the second only once `n` is large as well.  No choice of scale alone controls
+  it.  Markov's error on the other side is `(p·n)³/6`, uniform in `n`, so a `δ` depending on `ε`
+  alone suffices.  **The shape of the estimate decides whether the idiom needs its `N`**, and
+  stating both halves side by side makes that legible in a way an `o(1)` never would.
+
+  Verified before stating: the constants close (`M` from `ε`, then `N` from `ε` and `M`), and
+  `binom(n,3) ≥ n³/12` holds for every `n ≥ 6` with no exception.
+
 - **2026-09-17 — §4.1's first moment and subcritical threshold are both proved (#184, #186); 4 sorries left.**
   `integral_triangleCount` and `prob_no_triangle_of_mul_le` merged.  **The `whp` idiom worked
   first try**, and the reason is worth keeping: the explicit

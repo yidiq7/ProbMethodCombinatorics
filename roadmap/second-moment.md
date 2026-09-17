@@ -49,7 +49,12 @@ idempotent, so `Var X i ≤ 𝔼 X i`), and bound each remaining term by `ℙ(A 
 
 ## Planned, not stated
 
-- **`triangle_threshold`** — Proposition 4.1.2 and Theorem 4.1.11: `1/n` is the threshold
+- ~~**`triangle_threshold`**~~ — **stated 2026-09-17**, in both halves:
+  `prob_no_triangle_of_mul_le` (proved, #183) and `prob_triangle_of_le_mul` (#189), on the back of
+  `triangleCount` and its two moments.  The note below is kept because its diagnosis was right —
+  what §4.1 needed was a triangle count and a settled `whp` idiom, and both now exist.
+
+- **Proposition 4.1.2 and Theorem 4.1.11 as originally scoped**: `1/n` is the threshold
   for `G(n,p)` to contain a triangle.  **Assessed 2026-09-15: §4.1's non-asymptotic content is
   already complete.**  Corollary 4.1.7 *is* the proved `prob_eq_zero_le_variance_div_sq`,
   Chebyshev (4.1.5) is upstream as `meas_ge_le_variance_div_sq`, and Definition 4.1.3 is
