@@ -2198,6 +2198,43 @@ theorem exists_fingerprint_of_dense_pairs (c d : ℝ) (hc : 0 < c) (hd : 0 < d)
       one_div_le_one_div_of_le h4pos (by nlinarith [hM24, sq_nonneg M])
     nlinarith [mul_nonneg (sub_nonneg.mpr hle) hnR.le]
 
+/-- Every edge of an `I`-independent 3-uniform `H` contains a vertex outside `I`, and the triples
+through a fixed vertex number `(n-1).choose 2`, so `H` is covered by those. -/
+private theorem card_le_compl_mul_choose_two_aux {n : ℕ} (H : Finset (Finset (Fin n)))
+    (h3 : ∀ e ∈ H, e.card = 3) (I : Finset (Fin n)) (hI : ∀ e ∈ H, ¬ e ⊆ I) :
+    H.card ≤ (n - I.card) * ((n - 1).choose 2) := by
+  have key : H ⊆ (univ \ I).biUnion
+      (fun v => ((univ.erase v).powersetCard 2).image (fun s => insert v s)) := by
+    intro e he
+    obtain ⟨v, hve, hvI⟩ := Finset.not_subset.1 (hI e he)
+    refine Finset.mem_biUnion.2 ⟨v, ?_, ?_⟩
+    · simp [Finset.mem_sdiff, hvI]
+    · refine Finset.mem_image.2 ⟨e.erase v, ?_, Finset.insert_erase hve⟩
+      refine Finset.mem_powersetCard.2 ⟨?_, ?_⟩
+      · intro x hx
+        rw [Finset.mem_erase] at hx ⊢
+        exact ⟨hx.1, Finset.mem_univ x⟩
+      · rw [Finset.card_erase_of_mem hve, h3 e he]
+  have hb : ((univ \ I).biUnion
+      (fun v => ((univ.erase v).powersetCard 2).image (fun s => insert v s))).card
+      ≤ (univ \ I).card * ((n - 1).choose 2) := by
+    refine Finset.card_biUnion_le_card_mul _ _ _ ?_
+    intro v _
+    refine Finset.card_image_le.trans ?_
+    rw [Finset.card_powersetCard, Finset.card_erase_of_mem (Finset.mem_univ v),
+      Finset.card_univ, Fintype.card_fin]
+  have hsd : (univ \ I).card = n - I.card := by
+    rw [Finset.card_sdiff_of_subset (Finset.subset_univ I), Finset.card_univ, Fintype.card_fin]
+  rw [← hsd]
+  exact (Finset.card_le_card key).trans hb
+
+/-- `2 * binom(m, 2) ≤ m²`, the crude bound the container corner is read against. -/
+private theorem two_mul_choose_two_le_sq_aux (m : ℕ) : 2 * m.choose 2 ≤ m ^ 2 := by
+  rw [Nat.choose_two_right, Nat.mul_comm]
+  calc m * (m - 1) / 2 * 2 ≤ m * (m - 1) := Nat.div_mul_le_self _ _
+    _ ≤ m * m := Nat.mul_le_mul_left _ (Nat.sub_le m 1)
+    _ = m ^ 2 := by ring
+
 /-- **A dense 3-uniform hypergraph has no large independent set**: every `I` containing no edge of
 `H` satisfies `|I| ≤ n - 2d/(3n)`, where `d` is the average degree, `3|H| = d·n`.
 
@@ -2223,7 +2260,34 @@ theorem card_le_of_forall_not_subset {n : ℕ} (H : Finset (Finset (Fin n))) (d 
     (h3 : ∀ e ∈ H, e.card = 3) (hd : 3 * (H.card : ℝ) = d * n)
     (I : Finset (Fin n)) (hI : ∀ e ∈ H, ¬ e ⊆ I) :
     (I.card : ℝ) ≤ (n : ℝ) - 2 * d / (3 * n) := by
-  sorry
+  rcases Nat.eq_zero_or_pos n with hn | hn
+  · subst hn
+    have hI0 : I = ∅ := Finset.eq_empty_of_isEmpty I
+    simp [hI0]
+  have hIle : I.card ≤ n := by
+    have := Finset.card_le_card (Finset.subset_univ I)
+    rwa [Finset.card_univ, Fintype.card_fin] at this
+  have hN : (0 : ℝ) < n := by exact_mod_cast hn
+  have hIR : (I.card : ℝ) ≤ (n : ℝ) := by exact_mod_cast hIle
+  have hcard : (H.card : ℝ) ≤ ((n : ℝ) - I.card) * (((n - 1).choose 2 : ℕ) : ℝ) := by
+    have h' := (Nat.cast_le (α := ℝ)).2 (card_le_compl_mul_choose_two_aux H h3 I hI)
+    rwa [Nat.cast_mul, Nat.cast_sub hIle] at h'
+  have hchoose : 2 * (((n - 1).choose 2 : ℕ) : ℝ) ≤ (n : ℝ) ^ 2 := by
+    have hnat : 2 * (n - 1).choose 2 ≤ n ^ 2 :=
+      (two_mul_choose_two_le_sq_aux (n - 1)).trans (Nat.pow_le_pow_left (Nat.sub_le n 1) 2)
+    have := (Nat.cast_le (α := ℝ)).2 hnat
+    push_cast at this
+    linarith
+  have hkey : 2 * d / (3 * (n : ℝ)) ≤ (n : ℝ) - I.card := by
+    rw [div_le_iff₀ (by positivity : (0 : ℝ) < 3 * n)]
+    refine le_of_mul_le_mul_right ?_ hN
+    have h1 : 6 * (H.card : ℝ) ≤ 6 * (((n : ℝ) - I.card) * (((n - 1).choose 2 : ℕ) : ℝ)) := by
+      linarith only [hcard]
+    have h2 : 3 * ((n : ℝ) - I.card) * (2 * (((n - 1).choose 2 : ℕ) : ℝ))
+        ≤ 3 * ((n : ℝ) - I.card) * (n : ℝ) ^ 2 :=
+      mul_le_mul_of_nonneg_left hchoose (by linarith only [hIR])
+    linarith only [h1, h2, hd]
+  linarith only [hkey]
 
 /-- **The container theorem for 3-uniform hypergraphs, with fingerprints** (the fingerprint form
 of Zhao, Theorem 11.3.1).  This is to Theorem 11.3.1 what `exists_containers_fingerprint` is to
