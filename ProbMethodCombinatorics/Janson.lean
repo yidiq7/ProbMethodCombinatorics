@@ -1132,6 +1132,31 @@ theorem janson_prob_none_le_of_mu_le [Countable ι] (p : I) (S : κ → Set ι) 
 
 section LowerTail
 
+/-- **The dense regime of the triangle-free probability** (Zhao, Theorem 8.1.10's second half),
+from Janson's second inequality.
+
+Where `binomialRandom_no_triangle_le` is useful for `Δ < μ`, Janson II covers `μ ≤ Δ`, which for
+the triangle family is exactly `1 ≤ 3 (n - 3) p²` — the `p ≫ n^{-1/2}` regime.  There
+
+    μ² / (2Δ) = binom(n,3) p / (6 (n - 3)),
+
+using `jansonDelta_triangleFamily`'s exact value; an upper bound on `Δ` would be useless here,
+since `Δ` sits in a denominator and in the hypothesis.
+
+Since `binom(n,3)/(n-3) = n(n-1)(n-2)/(6(n-3))` grows like `n²/6`, the exponent is of order
+`n²p`, which is the `exp (-Θ(n²p))` the source reports — and, as Remark 8.1.9 notes, better than
+the first inequality can give once `p ≫ n^{-1/2}`.
+
+`4 ≤ n` keeps `n - 3` positive; `p > 0` is not assumed because the regime hypothesis forces
+it. -/
+theorem binomialRandom_no_triangle_le_of_one_le (n : ℕ) (hn : 4 ≤ n) (p : I)
+    (hp : 1 ≤ 3 * ((n : ℝ) - 3) * (p : ℝ) ^ 2) :
+    (SimpleGraph.binomialRandom (Fin n) p).real
+        {G : SimpleGraph (Fin n) | ∀ T : {T : Finset (Fin n) // T.card = 3},
+          ¬ (↑(offDiagPairs (T : Finset (Fin n))) ⊆ G.edgeSet)}
+      ≤ Real.exp (-((n.choose 3 : ℝ) * (p : ℝ) / (6 * ((n : ℝ) - 3)))) := by
+  sorry
+
 /-- The elementary bound `exp (-x) ≤ 1 - x + x ^ 2 / 2` for `x ≥ 0`.
 
 It follows from `1 + x + x ^ 2 / 2 ≤ exp x` because
