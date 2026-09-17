@@ -1,4 +1,5 @@
 import Mathlib.Combinatorics.SimpleGraph.Clique
+import Mathlib.Data.ZMod.Basic
 import Mathlib.Combinatorics.SimpleGraph.DegreeSum
 import Mathlib.Data.Fintype.Perm
 import Mathlib.Data.List.FinRange
@@ -307,6 +308,217 @@ theorem card_edgeFinset_le_of_cliqueFree (G : SimpleGraph V) [DecidableRel G.Adj
 
 end IndependentSets
 
+/-! ### §2.2 Sum-free subsets
+
+Theorem 2.2.1 (Erdős 1965): every set of `n` nonzero integers has a sum-free subset of size at
+least `n/3`.  The source argues with `{aθ}` for a uniformly random real `θ`; the finite proof used
+here instead picks a prime `p` above `2 max |a|` and a uniformly random `x ∈ ZMod p`, keeping the
+whole chapter inside finite averaging as `skills/conventions.md` requires.  It needs only that
+some prime exceeds a given bound — `Nat.exists_infinite_primes` — and **not** Dirichlet's theorem
+on primes in arithmetic progressions.
+
+`sumFreeWindow p` is the middle third of `ZMod p`, which is the sum-free set the averaging runs
+against.
+-/
+
+/-- `A` is **sum-free** if no two of its elements (not necessarily distinct) sum into it. -/
+def IsSumFree {G : Type*} [Add G] (A : Set G) : Prop := ∀ a ∈ A, ∀ b ∈ A, a + b ∉ A
+
+/-- The middle third of `ZMod p`: the residues `k` with `p < 3k < 2p`. -/
+def sumFreeWindow (p : ℕ) [NeZero p] : Finset (ZMod p) :=
+  univ.filter fun k => p < 3 * k.val ∧ 3 * k.val < 2 * p
+
+/-- **The middle third of `ZMod p` is sum-free**, for every `p`.
+
+If `p < 3a` and `p < 3b` while both are below `2p`, then `2p < 3(a + b) < 4p`.  Reduced mod `p`
+that leaves either `3(a+b) > 2p` when no wraparound occurs, or `3(a+b-p) < p` when it does; each
+violates one of the window's two bounds.  No primality is needed. -/
+theorem isSumFree_sumFreeWindow (p : ℕ) [NeZero p] :
+    IsSumFree (↑(sumFreeWindow p) : Set (ZMod p)) := by
+  intro a ha b hb hab
+  simp only [sumFreeWindow, coe_filter, Set.mem_ofPred_eq, mem_univ, true_and] at ha hb hab
+  -- `(a + b).val` is `a.val + b.val` reduced mod `p`, and `a.val + b.val < 2 * p`, so the
+  -- reduction subtracts `p` at most once.
+  rw [ZMod.val_add] at hab
+  have hap := ZMod.val_lt a
+  have hbp := ZMod.val_lt b
+  rcases lt_or_ge (a.val + b.val) p with h | h
+  · -- No wraparound: `3 * (a.val + b.val) > 2 * p` breaks the window's upper bound.
+    rw [Nat.mod_eq_of_lt h] at hab
+    omega
+  · -- Wraparound: `3 * (a.val + b.val - p) < 4 * p - 3 * p = p` breaks the lower bound.
+    rw [Nat.mod_eq_sub_mod h, Nat.mod_eq_of_lt (by omega)] at hab
+    omega
+
+/-- **The middle third has at least `(p-1)/3` elements**, provided `3 ∤ p`.
+
+`3 ∣ p` is a genuine exclusion, not bookkeeping: the window's inequalities are strict, so at
+`p = 3k` the residues `k` and `2k` are both lost and the count falls short — at `p = 3` the
+window is empty while `p - 1 = 2`.  Under `3 ∤ p` the bound holds and is **tight for every
+`p ≡ 1 mod 3`**, so nothing here can be relaxed. -/
+theorem card_sumFreeWindow (p : ℕ) [NeZero p] (h3 : ¬ (3 ∣ p)) :
+    p - 1 ≤ 3 * (sumFreeWindow p).card := by
+  have hp : 0 < p := Nat.pos_of_ne_zero (NeZero.ne p)
+  -- When `3 ∤ p` the window is exactly the image of `Ioc (p / 3) (2 * p / 3)` under
+  -- `Nat.cast`, which is injective there because that interval sits below `p`.
+  have key : (Finset.Ioc (p / 3) (2 * p / 3)).card ≤ (sumFreeWindow p).card := by
+    refine Finset.card_le_card_of_injOn (fun k => (k : ZMod p)) ?_ ?_
+    · intro k hk
+      simp only [coe_Ioc, Set.mem_Ioc] at hk
+      have hkp : k < p := by omega
+      simp only [sumFreeWindow, coe_filter, Set.mem_ofPred_eq, mem_univ, true_and,
+        ZMod.val_natCast_of_lt hkp]
+      omega
+    · intro k hk l hl hkl
+      simp only [coe_Ioc, Set.mem_Ioc] at hk hl
+      have hkp : k < p := by omega
+      have hlp : l < p := by omega
+      have := congrArg ZMod.val hkl
+      rwa [ZMod.val_natCast_of_lt hkp, ZMod.val_natCast_of_lt hlp] at this
+  rw [Nat.card_Ioc] at key
+  omega
+
+/-- A nonzero residue mod a prime is a unit.  This is what the averaging in
+`exists_sumFree_subset` needs primality for; there it is used once more, to turn `3 < p` into
+`3 ∤ p`. -/
+private theorem isUnit_zmod_of_ne_zero (p : ℕ) (hp : p.Prime) [NeZero p] {u : ZMod p}
+    (hu : u ≠ 0) : IsUnit u := by
+  have hval : ((u.val : ℕ) : ZMod p) = u := ZMod.natCast_rightInverse u
+  have hpos : 0 < u.val := by
+    rcases Nat.eq_zero_or_pos u.val with h0 | h0
+    · exact absurd (by rw [← hval, h0]; simp) hu
+    · exact h0
+  rw [← hval, ZMod.isUnit_iff_coprime, Nat.coprime_comm, hp.coprime_iff_not_dvd]
+  intro h
+  have := Nat.le_of_dvd hpos h
+  have := ZMod.val_lt u
+  omega
+
+/-- Multiplication by a unit permutes the nonzero residues, and `0` lies outside the middle third,
+so for each fixed unit `a` there are exactly `#(sumFreeWindow p)` nonzero `x` with `a * x` in the
+window. -/
+private theorem card_filter_mul_mem_window (p : ℕ) [NeZero p] {a : ZMod p} (ha : IsUnit a) :
+    ((univ \ {0} : Finset (ZMod p)).filter fun x => a * x ∈ sumFreeWindow p).card
+      = (sumFreeWindow p).card := by
+  have hzero : (0 : ZMod p) ∉ sumFreeWindow p := by simp [sumFreeWindow]
+  have hinv : a * a⁻¹ = 1 := ZMod.mul_inv_of_unit a ha
+  refine Finset.card_bij (fun x _ => a * x) ?_ ?_ ?_
+  · intro x hx
+    exact (mem_filter.1 hx).2
+  · intro x _ y _ h
+    exact ha.mul_left_cancel h
+  · intro y hy
+    have hy0 : y ≠ 0 := fun h => hzero (h ▸ hy)
+    have hxy : a * (a⁻¹ * y) = y := by rw [← mul_assoc, hinv, one_mul]
+    refine ⟨a⁻¹ * y, mem_filter.2 ⟨mem_sdiff.2 ⟨mem_univ _, ?_⟩, ?_⟩, hxy⟩
+    · simp only [mem_singleton]
+      intro h
+      rw [h, mul_zero] at hxy
+      exact hy0 hxy.symm
+    · rwa [hxy]
+
+/-- **Large sum-free subsets** (Zhao, Theorem 2.2.1; Erdős 1965): every finite set of nonzero
+integers has a sum-free subset of at least a third of its size.
+
+Stated as `A.card ≤ 3 * B.card` to stay in `ℕ`, as the rest of Chapter 2 does.
+
+**Proof by finite averaging, not by the source's `{aθ}` argument.**  Choose a prime `p` larger
+than every `|a|` and larger than `3`, so that every `a ∈ A` is a unit mod `p`.  For each
+`x ∈ ZMod p` with `x ≠ 0` set `A x = {a ∈ A | a * x ∈ sumFreeWindow p}`.  Summing over the `p - 1`
+nonzero `x` and exchanging the order of summation gives `∑ x, #(A x) = #A * #(sumFreeWindow p)`,
+because `x ↦ a * x` permutes the nonzero residues for each fixed `a`.  So some `x` attains
+`(p - 1) * #(A x) ≥ #A * #(sumFreeWindow p)`, and `card_sumFreeWindow` turns that into
+`#A ≤ 3 * #(A x)`.  Each `A x` is sum-free because `a + b = c` in `ℤ` would send three elements of
+`sumFreeWindow p` to a violation of `isSumFree_sumFreeWindow`.
+
+The source's proof takes `θ` uniform in `[0,1]` and keeps the `a` with `{aθ} ∈ (1/3, 2/3)`.  That
+route needs the equidistribution of `{aθ}` for nonzero integer `a`, which Mathlib does not have,
+and it would import measure theory into a chapter that has none.  Erdős' theorem needs only that
+some prime exceeds a bound — `Nat.exists_infinite_primes` — and **not** Dirichlet's theorem on
+primes in arithmetic progressions, contrary to what this project's roadmap recorded until
+2026-09-17. -/
+theorem exists_sumFree_subset (A : Finset ℤ) (h0 : (0 : ℤ) ∉ A) :
+    ∃ B ⊆ A, IsSumFree (↑B : Set ℤ) ∧ A.card ≤ 3 * B.card := by
+  obtain ⟨p, hple, hp⟩ := Nat.exists_infinite_primes (max (A.sup fun a => a.natAbs) 3 + 1)
+  have : NeZero p := ⟨hp.ne_zero⟩
+  have hsup : A.sup (fun a => a.natAbs) < p := by
+    have := le_max_left (A.sup fun a => a.natAbs) 3
+    omega
+  have hp3 : 3 < p := by
+    have := le_max_right (A.sup fun a => a.natAbs) 3
+    omega
+  -- `p` is a prime above `3`, so `3 ∤ p` and `card_sumFreeWindow` applies.
+  have h3p : ¬ (3 ∣ p) := fun h => by
+    have := (Nat.prime_dvd_prime_iff_eq Nat.prime_three hp).1 h
+    omega
+  -- Every `a ∈ A` is nonzero mod `p`, because `a ≠ 0` and `|a| < p`; primality then makes it a
+  -- unit, so `x ↦ (a : ZMod p) * x` permutes the nonzero residues.
+  have hunit : ∀ a ∈ A, IsUnit ((a : ℤ) : ZMod p) := by
+    intro a haA
+    refine isUnit_zmod_of_ne_zero p hp fun h => ?_
+    rw [ZMod.intCast_zmod_eq_zero_iff_dvd] at h
+    have hna : a.natAbs ≠ 0 := fun hz => h0 (Int.natAbs_eq_zero.1 hz ▸ haA)
+    have hdvd : p ∣ a.natAbs := by simpa using Int.natAbs_dvd_natAbs.2 h
+    have := Nat.le_of_dvd (Nat.pos_of_ne_zero hna) hdvd
+    have := Finset.le_sup (f := fun a : ℤ => a.natAbs) haA
+    omega
+  have hScard : ((univ \ {0} : Finset (ZMod p))).card = p - 1 := by
+    rw [card_sdiff_of_subset (subset_univ _), card_univ, ZMod.card, card_singleton]
+  have hSne : ((univ \ {0} : Finset (ZMod p))).Nonempty := by
+    refine ⟨1, mem_sdiff.2 ⟨mem_univ _, ?_⟩⟩
+    simp only [mem_singleton]
+    intro h
+    have := congrArg ZMod.val h
+    rw [ZMod.val_one_eq_one_mod, ZMod.val_zero, Nat.mod_eq_of_lt (by omega)] at this
+    omega
+  -- Double count: exchanging the order of summation over the nonzero `x` and over `a ∈ A`
+  -- replaces the total by one copy of the window for each `a ∈ A`.
+  have key : ∑ x ∈ (univ \ {0} : Finset (ZMod p)),
+        (A.filter fun a => ((a : ℤ) : ZMod p) * x ∈ sumFreeWindow p).card
+      = A.card * (sumFreeWindow p).card := by
+    calc ∑ x ∈ (univ \ {0} : Finset (ZMod p)),
+            (A.filter fun a => ((a : ℤ) : ZMod p) * x ∈ sumFreeWindow p).card
+        = ∑ x ∈ (univ \ {0} : Finset (ZMod p)), ∑ a ∈ A,
+            if ((a : ℤ) : ZMod p) * x ∈ sumFreeWindow p then 1 else 0 :=
+          Finset.sum_congr rfl fun x _ => Finset.card_filter _ _
+      _ = ∑ a ∈ A, ∑ x ∈ (univ \ {0} : Finset (ZMod p)),
+            if ((a : ℤ) : ZMod p) * x ∈ sumFreeWindow p then 1 else 0 := Finset.sum_comm
+      _ = ∑ a ∈ A, ((univ \ {0} : Finset (ZMod p)).filter fun x =>
+            ((a : ℤ) : ZMod p) * x ∈ sumFreeWindow p).card :=
+          Finset.sum_congr rfl fun a _ => (Finset.card_filter _ _).symm
+      _ = ∑ _a ∈ A, (sumFreeWindow p).card :=
+          Finset.sum_congr rfl fun a ha => card_filter_mul_mem_window p (hunit a ha)
+      _ = A.card * (sumFreeWindow p).card := by rw [Finset.sum_const, smul_eq_mul]
+  -- Some nonzero `x` does at least as well as the average.
+  obtain ⟨x, -, hx⟩ : ∃ x ∈ (univ \ {0} : Finset (ZMod p)),
+      A.card * (sumFreeWindow p).card ≤ ((univ \ {0} : Finset (ZMod p))).card *
+        (A.filter fun a => ((a : ℤ) : ZMod p) * x ∈ sumFreeWindow p).card := by
+    refine Finset.exists_le_of_sum_le hSne (le_of_eq ?_)
+    rw [Finset.sum_const, ← Finset.mul_sum, key, smul_eq_mul]
+  have hwin := card_sumFreeWindow p h3p
+  have hwpos : 0 < (sumFreeWindow p).card := by omega
+  refine ⟨A.filter fun a => ((a : ℤ) : ZMod p) * x ∈ sumFreeWindow p, filter_subset _ _, ?_, ?_⟩
+  · -- Sum-freeness transfers from the window along the ring hom `ℤ → ZMod p`.
+    intro a ha b hb hab
+    rw [mem_coe, mem_filter] at ha hb hab
+    refine isSumFree_sumFreeWindow p _ (mem_coe.2 ha.2) _ (mem_coe.2 hb.2) ?_
+    have h : ((a : ℤ) : ZMod p) * x + ((b : ℤ) : ZMod p) * x = ((a + b : ℤ) : ZMod p) * x := by
+      push_cast; ring
+    rw [h]
+    exact mem_coe.2 hab.2
+  · -- `(p - 1) * #(A x) ≥ #A * #(window)` against `p - 1 ≤ 3 * #(window)` gives the bound.
+    refine Nat.le_of_mul_le_mul_right ?_ hwpos
+    calc A.card * (sumFreeWindow p).card
+        ≤ ((univ \ {0} : Finset (ZMod p))).card *
+            (A.filter fun a => ((a : ℤ) : ZMod p) * x ∈ sumFreeWindow p).card := hx
+      _ = (p - 1) * (A.filter fun a => ((a : ℤ) : ZMod p) * x ∈ sumFreeWindow p).card := by
+          rw [hScard]
+      _ ≤ 3 * (sumFreeWindow p).card *
+            (A.filter fun a => ((a : ℤ) : ZMod p) * x ∈ sumFreeWindow p).card :=
+          Nat.mul_le_mul_right _ hwin
+      _ = 3 * (A.filter fun a => ((a : ℤ) : ZMod p) * x ∈ sumFreeWindow p).card *
+            (sumFreeWindow p).card := by ring
+
 /-! ### §2.4 Bounding by sampling -/
 
 /-- Every 3-element `e` lies in at least `n - 3` of the 4-element subsets of `Fin n`:
@@ -415,6 +627,195 @@ theorem card_le_of_tetrahedronFree {n : ℕ} (hn : 4 ≤ n) (H : Finset (Finset 
     _ = 3 * (n.choose 4 * 4) := by ring
     _ = 3 * (n.choose 3 * (n - 3)) := by rw [hid]
     _ = 3 * n.choose 3 * (n - 3) := by ring
+
+/-- The triples of `Fin 5` avoiding a vertex `v` are exactly the four triples inside the 4-set
+`univ.erase v`, and tetrahedron-freeness keeps one of those out of `H`. -/
+private theorem card_filter_notMem_le_three {H : Finset (Finset (Fin 5))}
+    (h3 : ∀ e ∈ H, e.card = 3)
+    (hfree : ∀ S : Finset (Fin 5), S.card = 4 → ∃ e ⊆ S, e.card = 3 ∧ e ∉ H) (v : Fin 5) :
+    (H.filter (fun e => v ∉ e)).card ≤ 3 := by
+  have hS : (Finset.univ.erase v).card = 4 := by
+    rw [Finset.card_erase_of_mem (Finset.mem_univ v), Finset.card_univ, Fintype.card_fin]
+  have heq : H.filter (fun e => v ∉ e) = H.filter (fun e => e ⊆ Finset.univ.erase v) := by
+    ext e
+    simp [Finset.subset_erase]
+  rw [heq]
+  exact card_filter_subset_le_three h3 hfree hS
+
+/-- **A five-vertex tetrahedron-free 3-graph has at most seven edges** (Zhao, Lemma 2.4.3).
+
+Complementation turns this into a statement about ordinary graphs.  Sending a triple `e ⊆ Fin 5`
+to its complement `eᶜ`, a pair, is a bijection from triples to pairs, and for `v : Fin 5` the
+four triples inside `univ.erase v` are exactly the four pairs through `v`.  So `H` contains a
+tetrahedron precisely when the complement graph has a vertex of degree `4`, and `H` is
+tetrahedron-free precisely when that graph has maximum degree at most `3`.  A five-vertex graph
+of maximum degree `3` has at most `⌊3 * 5 / 2⌋ = 7` edges, by handshaking.
+
+Tight: the bound `7` is attained. -/
+theorem card_le_seven_of_tetrahedronFree (H : Finset (Finset (Fin 5)))
+    (h3 : ∀ e ∈ H, e.card = 3)
+    (hfree : ∀ S : Finset (Fin 5), S.card = 4 → ∃ e ⊆ S, e.card = 3 ∧ e ∉ H) :
+    H.card ≤ 7 := by
+  -- Double count the pairs `(v, e)` with `v ∉ e`, `e ∈ H`.
+  have hswap : ∑ v : Fin 5, (H.filter (fun e => v ∉ e)).card
+      = ∑ e ∈ H, (Finset.univ.filter (fun v : Fin 5 => v ∉ e)).card := by
+    simp only [Finset.card_filter]
+    exact Finset.sum_comm
+  -- A triple omits exactly two of the five vertices, so the double count is `2 * |H|`.
+  have homit : ∀ e ∈ H, (Finset.univ.filter (fun v : Fin 5 => v ∉ e)).card = 2 := by
+    intro e he
+    have hcompl : Finset.univ.filter (fun v : Fin 5 => v ∉ e) = Finset.univ \ e := by
+      ext v; simp
+    rw [hcompl, Finset.card_sdiff, Finset.inter_univ, h3 e he, Finset.card_univ,
+      Fintype.card_fin]
+  -- Each of the five vertices is avoided by at most three edges.
+  have hhigh : ∑ v : Fin 5, (H.filter (fun e => v ∉ e)).card ≤ 15 :=
+    calc ∑ v : Fin 5, (H.filter (fun e => v ∉ e)).card
+        ≤ ∑ _v : Fin 5, 3 :=
+          Finset.sum_le_sum fun v _ => card_filter_notMem_le_three h3 hfree v
+      _ = 15 := by simp
+  rw [hswap, Finset.sum_congr rfl homit] at hhigh
+  simp only [Finset.sum_const, smul_eq_mul] at hhigh
+  omega
+
+/-- Every 3-element `e` lies in at least `binom(n-3, 2)` of the 5-element subsets of `Fin n`:
+adjoining any pair of vertices from outside `e` gives one, and distinct pairs give distinct
+sets. -/
+private theorem card_choose_two_le_card_filter_five_superset {n : ℕ} {e : Finset (Fin n)}
+    (he : e.card = 3) :
+    (n - 3).choose 2 ≤ ((Finset.univ.powersetCard 5).filter (fun S => e ⊆ S)).card := by
+  have hcard : ((Finset.univ \ e).powersetCard 2).card = (n - 3).choose 2 := by
+    rw [Finset.card_powersetCard, Finset.card_sdiff, Finset.inter_univ, he, Finset.card_univ,
+      Fintype.card_fin]
+  rw [← hcard]
+  refine Finset.card_le_card_of_injOn (fun t => t ∪ e) ?_ ?_
+  · intro t ht
+    simp only [Finset.mem_coe, Finset.mem_powersetCard] at ht
+    have hdisj : Disjoint t e :=
+      Finset.disjoint_left.2 fun a ha hae => (Finset.mem_sdiff.1 (ht.1 ha)).2 hae
+    simp only [Finset.mem_coe, Finset.mem_filter, Finset.mem_powersetCard]
+    refine ⟨⟨Finset.subset_univ _, ?_⟩, Finset.subset_union_right⟩
+    rw [Finset.card_union_of_disjoint hdisj, ht.2, he]
+  · have key : ∀ a b : Finset (Fin n), a ⊆ Finset.univ \ e → a ∪ e = b ∪ e → a ⊆ b := by
+      intro a b ha hab x hx
+      rcases Finset.mem_union.1 (hab ▸ Finset.mem_union_left e hx) with h | h
+      · exact h
+      · exact absurd h (Finset.mem_sdiff.1 (ha hx)).2
+    intro t ht u hu htu
+    simp only [Finset.mem_coe, Finset.mem_powersetCard] at ht hu
+    exact Finset.Subset.antisymm (key t u ht.1 htu) (key u t hu.1 htu.symm)
+
+/-- `card_le_seven_of_tetrahedronFree` transported from `Fin 5` to an arbitrary 5-element
+`S : Finset (Fin n)`.  The increasing enumeration `ι := S.orderEmbOfFin` has image `S`, so
+`t ↦ t.image ι` is a bijection from the 3-graph `H'` on `Fin 5` that it pulls back from `H` onto
+the edges of `H` inside `S`, and it carries every 4-subset of `Fin 5` to a 4-subset of `S`, which
+is what transfers tetrahedron-freeness. -/
+private theorem card_filter_subset_le_seven {n : ℕ} {H : Finset (Finset (Fin n))}
+    (h3 : ∀ e ∈ H, e.card = 3)
+    (hfree : ∀ S : Finset (Fin n), S.card = 4 → ∃ e ⊆ S, e.card = 3 ∧ e ∉ H)
+    {S : Finset (Fin n)} (hS : S.card = 5) :
+    (H.filter (fun e => e ⊆ S)).card ≤ 7 := by
+  set ι : Fin 5 → Fin n := fun i => S.orderEmbOfFin hS i
+  have hinj : Function.Injective ι := (S.orderEmbOfFin hS).injective
+  have himg : Finset.image ι Finset.univ = S := Finset.image_orderEmbOfFin_univ S hS
+  set H' : Finset (Finset (Fin 5)) := Finset.univ.filter (fun t => t.image ι ∈ H) with hH'def
+  have hmemH' : ∀ t : Finset (Fin 5), t ∈ H' ↔ t.image ι ∈ H := by
+    intro t; simp [hH'def]
+  have hbij : H'.image (fun t => t.image ι) = H.filter (fun e => e ⊆ S) := by
+    ext e
+    simp only [Finset.mem_image, Finset.mem_filter]
+    constructor
+    · rintro ⟨t, ht, rfl⟩
+      exact ⟨(hmemH' t).1 ht, himg ▸ Finset.image_subset_image (Finset.subset_univ t)⟩
+    · rintro ⟨heH, heS⟩
+      rw [← himg] at heS
+      obtain ⟨t, -, rfl⟩ := Finset.subset_image_iff.1 heS
+      exact ⟨t, (hmemH' t).2 heH, rfl⟩
+  have hcard : (H.filter (fun e => e ⊆ S)).card = H'.card := by
+    rw [← hbij, Finset.card_image_of_injective _ (Finset.image_injective hinj)]
+  rw [hcard]
+  refine card_le_seven_of_tetrahedronFree H' ?_ ?_
+  · intro t ht
+    have := h3 _ ((hmemH' t).1 ht)
+    rwa [Finset.card_image_of_injective _ hinj] at this
+  · intro T hT
+    obtain ⟨e, heT, hecard, heH⟩ :=
+      hfree (T.image ι) (by rw [Finset.card_image_of_injective _ hinj, hT])
+    obtain ⟨t, htT, rfl⟩ := Finset.subset_image_iff.1 heT
+    refine ⟨t, htT, ?_, ?_⟩
+    · rwa [Finset.card_image_of_injective _ hinj] at hecard
+    · exact fun h => heH ((hmemH' t).1 h)
+
+/-- `10 binom(n,5) = binom(n,3) binom(n-3,2)`: the count of pairs (3-set inside 5-set) read two
+ways.  Both sides vanish for `n < 5`, so no hypothesis on `n` is needed. -/
+private theorem ten_mul_choose_five_eq_mul_choose_two (n : ℕ) :
+    10 * n.choose 5 = n.choose 3 * (n - 3).choose 2 := by
+  have h4 : n.choose 5 * 5 = n.choose 4 * (n - 4) := Nat.choose_succ_right_eq n 4
+  have h3 : n.choose 4 * 4 = n.choose 3 * (n - 3) := Nat.choose_succ_right_eq n 3
+  have h2 : (n - 3).choose 2 * 2 = (n - 3) * (n - 4) := by
+    have h := Nat.choose_succ_right_eq (n - 3) 1
+    rw [Nat.choose_one_right] at h
+    have hsub : n - 3 - 1 = n - 4 := by omega
+    rwa [hsub] at h
+  have key : 2 * (10 * n.choose 5) = 2 * (n.choose 3 * (n - 3).choose 2) := by
+    calc 2 * (10 * n.choose 5) = n.choose 5 * 5 * 4 := by ring
+      _ = n.choose 4 * (n - 4) * 4 := by rw [h4]
+      _ = n.choose 4 * 4 * (n - 4) := by ring
+      _ = n.choose 3 * (n - 3) * (n - 4) := by rw [h3]
+      _ = n.choose 3 * ((n - 3) * (n - 4)) := by ring
+      _ = n.choose 3 * ((n - 3).choose 2 * 2) := by rw [h2]
+      _ = 2 * (n.choose 3 * (n - 3).choose 2) := by ring
+  omega
+
+/-- **Sampling five vertices instead of four** (Zhao, Proposition 2.4.4): a tetrahedron-free
+3-graph has at most `(7/10) binom(n,3)` edges.
+
+The proof is `card_le_of_tetrahedronFree` with the sample size raised from `4` to `5`: double
+count the pairs `(S, e)` with `|S| = 5`, `e ⊆ S` and `e ∈ H`, bound the inner count by
+`card_le_seven_of_tetrahedronFree`, and cancel using `10 binom(n,5) = binom(n,3) binom(n-3,2)`.
+
+**`5 ≤ n`, not `4 ≤ n` as the source prints it.**  At `n = 4` the claim is false: the 3-graph on
+four vertices missing exactly one triple is tetrahedron-free and has `3` edges, while
+`(7/10) binom(4,3) = 2.8`.  Four vertices cannot support an argument that samples five.  The
+bound is tight at `n = 5` and at `n = 6`, where the true maxima are `7` and `14` against
+`(7/10) binom(n,3) = 7` and `14`. -/
+theorem card_le_of_tetrahedronFree_sample_five {n : ℕ} (hn : 5 ≤ n)
+    (H : Finset (Finset (Fin n)))
+    (h3 : ∀ e ∈ H, e.card = 3)
+    (hfree : ∀ S : Finset (Fin n), S.card = 4 → ∃ e ⊆ S, e.card = 3 ∧ e ∉ H) :
+    10 * H.card ≤ 7 * n.choose 3 := by
+  have hPcard : (Finset.univ.powersetCard 5 : Finset (Finset (Fin n))).card = n.choose 5 := by
+    rw [Finset.card_powersetCard, Finset.card_univ, Fintype.card_fin]
+  -- Double count the pairs `(S, e)` with `|S| = 5`, `e ⊆ S`, `e ∈ H`.
+  have hswap : ∑ e ∈ H, ((Finset.univ.powersetCard 5).filter (fun S => e ⊆ S)).card
+      = ∑ S ∈ (Finset.univ.powersetCard 5 : Finset (Finset (Fin n))),
+          (H.filter (fun e => e ⊆ S)).card := by
+    simp only [Finset.card_filter]
+    exact Finset.sum_comm
+  have hlow : H.card * (n - 3).choose 2
+      ≤ ∑ e ∈ H, ((Finset.univ.powersetCard 5).filter (fun S => e ⊆ S)).card := by
+    have := Finset.card_nsmul_le_sum H
+      (fun e => ((Finset.univ.powersetCard 5).filter (fun S => e ⊆ S)).card) ((n - 3).choose 2)
+      (fun e he => card_choose_two_le_card_filter_five_superset (h3 e he))
+    simpa [smul_eq_mul] using this
+  have hhigh : ∑ S ∈ (Finset.univ.powersetCard 5 : Finset (Finset (Fin n))),
+      (H.filter (fun e => e ⊆ S)).card ≤ 7 * n.choose 5 := by
+    have := Finset.sum_le_card_nsmul (Finset.univ.powersetCard 5 : Finset (Finset (Fin n)))
+      (fun S => (H.filter (fun e => e ⊆ S)).card) 7
+      (fun S hS => card_filter_subset_le_seven h3 hfree (Finset.mem_powersetCard.1 hS).2)
+    rw [hPcard, smul_eq_mul] at this
+    omega
+  have hkey : H.card * (n - 3).choose 2 ≤ 7 * n.choose 5 := by
+    rw [hswap] at hlow
+    exact hlow.trans hhigh
+  -- `10 binom(n,5) = binom(n,3) binom(n-3,2)`, and `binom(n-3,2) ≥ 1` cancels; this is the
+  -- step that needs `5 ≤ n`, and at `n = 4` the factor `binom(n-3,2)` vanishes.
+  refine Nat.le_of_mul_le_mul_right ?_ (Nat.choose_pos (by omega : 2 ≤ n - 3))
+  calc 10 * H.card * (n - 3).choose 2 = 10 * (H.card * (n - 3).choose 2) := by ring
+    _ ≤ 10 * (7 * n.choose 5) := Nat.mul_le_mul le_rfl hkey
+    _ = 7 * (10 * n.choose 5) := by ring
+    _ = 7 * (n.choose 3 * (n - 3).choose 2) := by rw [ten_mul_choose_five_eq_mul_choose_two]
+    _ = 7 * n.choose 3 * (n - 3).choose 2 := by ring
 
 /-! ### §2.5 Unbalancing lights -/
 

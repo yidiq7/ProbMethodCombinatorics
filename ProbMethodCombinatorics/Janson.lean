@@ -1,4 +1,6 @@
 import ProbMethodCombinatorics.Correlation
+import ProbMethodCombinatorics.SecondMoment
+import Mathlib.Probability.Combinatorics.BinomialRandomGraph.Defs
 import Mathlib.Probability.Distributions.SetBernoulli
 import Mathlib.Analysis.SpecialFunctions.Exp
 
@@ -60,6 +62,467 @@ upper set of `Set ι`.  This is what makes Harris' inequality (Chapter 7) applic
 `A i` of Setup 8.1.1. -/
 theorem isUpperSet_setOf_subset (s : Set ι) : IsUpperSet {R : Set ι | s ⊆ R} :=
   fun _ _ hle hmem => hmem.trans hle
+
+/-! ### Restricting the ground set
+
+Every theorem below is stated for `setBernoulli Set.univ p`, a random subset of all of `ι`.  The
+random objects the book applies Janson to are not of that shape: `G(n, p)` is
+`setBernoulli Sym2.diagSetᶜ p` pulled back along `SimpleGraph.edgeSet`, whose ground set omits the
+diagonal.  The lemma below is the transfer, and it is the only thing standing between this chapter
+and its applications in §8.1, §8.2 and §8.3.
+-/
+
+/-- Intersecting a `setBernoulli` sample with a set `u` gives a `setBernoulli` sample on the
+smaller ground set `v ∩ u`.
+
+Coordinatewise this is immediate: an element of `u` is kept exactly when the original sample kept
+it, and an element outside `u` is discarded, matching the coordinate of `setBer(v ∩ u, p)`, which
+is `dirac False` there.
+
+Specialised at `v = Set.univ` this transfers any event that depends only on the trace on `u` — in
+particular `{R | s ⊆ R}` for `s ⊆ u` — from `setBer(u, p)` to the `setBer(Set.univ, p)` of the
+statements below. -/
+theorem map_inter_setBernoulli (u v : Set ι) (p : I) :
+    (setBernoulli v p).map (· ∩ u) = setBernoulli (v ∩ u) p := by
+  -- `fun_prop` cannot see through `Inter.inter` on `Set ι`; the membership coordinates can.
+  have hinter : Measurable (fun s : Set ι => s ∩ u) :=
+    measurable_set_iff.2 fun a => by
+      simp only [Set.mem_inter_iff]
+      exact (measurable_pi_apply a).and measurable_const
+  have hf : ∀ a : ι, Measurable (fun b : Prop => b ∧ a ∈ u) := fun a =>
+    measurable_id.and measurable_const
+  have hlam : Measurable (fun (x : ι → Prop) (a : ι) => x a ∧ a ∈ u) :=
+    measurable_pi_lambda _ fun a => (measurable_pi_apply a).and measurable_const
+  -- Along `MeasurableEquiv.setOfPred` the trace map becomes coordinatewise.
+  have hcomp : ((fun s : Set ι => s ∩ u) ∘ (fun x : ι → Prop => {i | x i}))
+      = (fun x : ι → Prop => {i | x i}) ∘ (fun (x : ι → Prop) (a : ι) => x a ∧ a ∈ u) := by
+    funext x; rfl
+  -- The single coordinate: an element of `u` is kept as before, one outside `u` is discarded.
+  have hcoord : ∀ a : ι,
+      Measure.map (fun b : Prop => b ∧ a ∈ u)
+          (toNNReal p • Measure.dirac (a ∈ v) + toNNReal (σ p) • Measure.dirac False)
+        = toNNReal p • Measure.dirac (a ∈ v ∩ u) + toNNReal (σ p) • Measure.dirac False := by
+    intro a
+    by_cases hau : a ∈ u
+    · have hid : (fun b : Prop => b ∧ a ∈ u) = id := by funext b; simp [hau]
+      have hv : (a ∈ v ∩ u) = (a ∈ v) := by simp [hau]
+      rw [hid, Measure.map_id, hv]
+    · have hc : (fun b : Prop => b ∧ a ∈ u) = (fun _ => False) := by funext b; simp [hau]
+      have hv : (a ∈ v ∩ u) = False := by simp [hau]
+      rw [hc, Measure.map_const, hv, ← add_smul]
+      simp
+  rw [setBernoulli_eq_map v p, Measure.map_map hinter measurable_setOfPred, hcomp,
+    ← Measure.map_map measurable_setOfPred hlam,
+    Measure.infinitePi_map_pi (f := fun (a : ι) (b : Prop) => b ∧ a ∈ u) _ hf,
+    setBernoulli_eq_map (v ∩ u) p]
+  simp_rw [hcoord]
+
+/-- **Janson's inequalities apply to `G(n, p)`.**  For a family of non-loop pair sets `S i`, the
+probability that `G(n, p)` contains none of them is the probability computed by the theorems
+below, which are stated over `setBernoulli Set.univ p`.
+
+This is the whole content of the transfer, and every asymptotic application in §8.1–§8.3 goes
+through it.  Two steps, neither of which is about Janson:
+
+* `binomialRandom_eq_map` reads `G(n, p)` as `setBer(Sym2.diagSetᶜ, p)` pushed along
+  `fromEdgeSet`, and `edgeSet_fromEdgeSet` says the edge set recovered that way is
+  `R \ Sym2.diagSet`.  Since no `e ∈ S i` is a loop, `↑(S i) ⊆ R \ Sym2.diagSet` and
+  `↑(S i) ⊆ R` say the same thing, so the event is unchanged.
+* `map_inter_setBernoulli` moves the ground set from `Sym2.diagSetᶜ` up to `Set.univ`, which is
+  legitimate for exactly the same reason: the event depends only on the trace off the diagonal.
+-/
+theorem binomialRandom_setOf_forall_not_subset {n : ℕ} (p : I)
+    (S : κ → Finset (Sym2 (Fin n))) (hS : ∀ i, ∀ e ∈ S i, ¬ e.IsDiag) :
+    SimpleGraph.binomialRandom (Fin n) p
+        {G : SimpleGraph (Fin n) | ∀ i, ¬ (↑(S i) ⊆ G.edgeSet)}
+      = setBernoulli Set.univ p {R : Set (Sym2 (Fin n)) | ∀ i, ¬ (↑(S i) ⊆ R)} := by
+  -- `S i` has no loop, so intersecting the sample with the complement of the diagonal
+  -- changes neither the events nor their conjunction.
+  have hdiag : ∀ (i : κ) (R : Set (Sym2 (Fin n))),
+      (↑(S i) ⊆ R ∩ (Sym2.diagSet)ᶜ ↔ ↑(S i) ⊆ R) := fun i R =>
+    ⟨fun h => h.trans Set.inter_subset_left, fun h _ hx =>
+      ⟨h hx, by simpa using hS i _ (Finset.mem_coe.1 hx)⟩⟩
+  have hmeasG : MeasurableSet {G : SimpleGraph (Fin n) | ∀ i, ¬ (↑(S i) ⊆ G.edgeSet)} :=
+    (Measurable.forall fun _ =>
+      (Measurable.subset measurable_const SimpleGraph.measurable_edgeSet).not).setOf
+  have hmeasR : MeasurableSet {R : Set (Sym2 (Fin n)) | ∀ i, ¬ (↑(S i) ⊆ R)} :=
+    (Measurable.forall fun _ =>
+      (Measurable.subset measurable_const measurable_id).not).setOf
+  have hinter : Measurable (fun R : Set (Sym2 (Fin n)) => R ∩ (Sym2.diagSet)ᶜ) :=
+    measurable_set_iff.2 fun a => by
+      simp only [Set.mem_inter_iff]
+      exact (measurable_pi_apply a).and measurable_const
+  -- `G(n, p)` is `setBer(Sym2.diagSetᶜ, p)` pushed along `fromEdgeSet`.
+  rw [SimpleGraph.binomialRandom_eq_map,
+    Measure.map_apply SimpleGraph.measurable_fromEdgeSet hmeasG]
+  have hpre : SimpleGraph.fromEdgeSet ⁻¹'
+        {G : SimpleGraph (Fin n) | ∀ i, ¬ (↑(S i) ⊆ G.edgeSet)}
+      = {R : Set (Sym2 (Fin n)) | ∀ i, ¬ (↑(S i) ⊆ R)} := by
+    ext R
+    simp only [Set.mem_preimage, Set.mem_ofPred_eq, SimpleGraph.edgeSet_fromEdgeSet,
+      Set.sdiff_eq, hdiag]
+  -- Raise the ground set from `Sym2.diagSetᶜ` to `Set.univ`.
+  rw [hpre, ← Set.univ_inter (Sym2.diagSetᶜ : Set (Sym2 (Fin n))),
+    ← map_inter_setBernoulli, Measure.map_apply hinter hmeasR]
+  congr 1
+  ext R
+  simp only [Set.mem_preimage, Set.mem_ofPred_eq, hdiag]
+
+/-! ### §8.1.5: the triangle family in `G(n, p)`
+
+Setup 8.1.1 instantiated at the question the chapter keeps returning to.  The ground set is the
+non-loop pairs of `Fin n`, the index set is the triples of vertices, and `S T` is the three edges
+of the triangle on `T`.  `μ` and `Δ` for this family are what Theorems 8.1.6, 8.1.8 and 8.1.10
+are stated against, and `binomialRandom_setOf_forall_not_subset` carries the resulting bounds
+over to `G(n, p)`.
+-/
+
+/-- **`μ` for the triangle family is `binom(n,3) p³`.**
+
+Each of the `binom(n,3)` triples contributes the probability that its three edges are all
+present, which is `p ³` by `setBernoulli_setOf_subset` — the triple spans exactly three non-loop
+pairs, since `card_offDiagPairs_add` gives `#(offDiagPairs T) + 3 = binom(4,2) = 6`.
+
+The same number as `integral_triangleCount` of Chapter 4, reached over a different sample space:
+there the count is a random variable on `SimpleGraph (Fin n)`, here it is a sum of event
+probabilities on `Set (Sym2 (Fin n))`. -/
+theorem jansonMu_triangleFamily (n : ℕ) (p : I) :
+    jansonMu p (fun T : {T : Finset (Fin n) // T.card = 3} =>
+        (↑(offDiagPairs (T : Finset (Fin n))) : Set (Sym2 (Fin n))))
+      = (n.choose 3 : ℝ) * (p : ℝ) ^ 3 := by
+  -- A triple spans exactly three non-loop pairs: `#(offDiagPairs T) + 3 = binom(4,2) = 6`.
+  have hcard3 : ∀ T : {T : Finset (Fin n) // T.card = 3},
+      (offDiagPairs (T : Finset (Fin n))).card = 3 := by
+    intro T
+    have hT := T.2
+    have h := card_offDiagPairs_add (T : Finset (Fin n))
+    rw [hT] at h
+    norm_num [Nat.choose] at h
+    omega
+  -- The index type is the `3`-element subsets of `Fin n`, of which there are `binom(n,3)`.
+  have hcount : Fintype.card {T : Finset (Fin n) // T.card = 3} = n.choose 3 := by
+    rw [Fintype.card_subtype]
+    have hfilter : {T ∈ (Finset.univ : Finset (Finset (Fin n))) | T.card = 3}
+        = (Finset.univ : Finset (Fin n)).powersetCard 3 := by
+      ext T
+      simp
+    rw [hfilter, Finset.card_powersetCard, Finset.card_univ, Fintype.card_fin]
+  -- Each triple contributes the probability `p ^ 3` that its three pairs are all present.
+  have hterm : ∀ T : {T : Finset (Fin n) // T.card = 3},
+      (setBernoulli Set.univ p
+          {R : Set (Sym2 (Fin n)) | ↑(offDiagPairs (T : Finset (Fin n))) ⊆ R}).toReal
+        = (p : ℝ) ^ 3 := by
+    intro T
+    rw [setBernoulli_setOf_subset, hcard3 T, ENNReal.toReal_pow, ENNReal.coe_toReal,
+      unitInterval.coe_toNNReal]
+  rw [jansonMu, Finset.sum_congr rfl fun T _ => hterm T, Finset.sum_const, Finset.card_univ,
+    hcount, nsmul_eq_mul]
+
+/-- The dependency set for the triangle family: two distinct triples are dependent exactly when
+they share an edge, which for triples means sharing two vertices.
+
+Triples meeting in at most one vertex span **disjoint** edge sets, so their events are genuinely
+independent and are correctly left out.  This `D` is therefore not merely admissible but minimal,
+and `A ≠ B` together with `2 ≤ #(A ∩ B)` forces `#(A ∩ B) = 2` exactly. -/
+def triangleDependency (n : ℕ) :
+    Finset ({T : Finset (Fin n) // T.card = 3} × {T : Finset (Fin n) // T.card = 3}) :=
+  Finset.univ.filter fun q =>
+    q.1 ≠ q.2 ∧ 2 ≤ ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n))).card
+
+/-- Two distinct triples that share at least two vertices share **exactly** two: a third shared
+vertex would exhaust both triples and make them equal. -/
+private theorem card_inter_eq_two_of_mem_triangleDependency {n : ℕ}
+    (q : {T : Finset (Fin n) // T.card = 3} × {T : Finset (Fin n) // T.card = 3})
+    (hq : q ∈ triangleDependency n) :
+    ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n))).card = 2 := by
+  obtain ⟨hne, hge⟩ := (Finset.mem_filter.1 hq).2
+  have hne' : (q.1 : Finset (Fin n)) ≠ (q.2 : Finset (Fin n)) := fun h => hne (Subtype.ext h)
+  have h3 : ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n))).card ≠ 3 := by
+    intro h
+    exact hne' ((Finset.eq_of_subset_of_card_le Finset.inter_subset_left
+      (by rw [q.1.2, h])).symm.trans
+      (Finset.eq_of_subset_of_card_le Finset.inter_subset_right (by rw [q.2.2, h])))
+  have hle := Finset.card_le_card
+    (Finset.inter_subset_left (s₁ := (q.1 : Finset (Fin n))) (s₂ := (q.2 : Finset (Fin n))))
+  rw [q.1.2] at hle
+  omega
+
+/-- **`Δ` for the triangle family is at most `n⁴p⁵`.**
+
+Two triples sharing an edge span `3 + 3 - 1 = 5` distinct non-loop pairs, so each dependent pair
+contributes `p ⁵`, and there are `3 binom(n,3) (n-3)` ordered dependent pairs — choose a triple,
+choose which two of its vertices are shared, choose the replacement vertex.  That count is
+`n(n-1)(n-2)(n-3)/2`, comfortably below `n⁴`.
+
+The constant is deliberately loose, as in `variance_triangleCount_le`: `Δ ≍ n⁴p⁵` is all the
+applications need, and tracking the exact binomial would cost the prover more than it buys. -/
+theorem jansonDelta_triangleFamily_le (n : ℕ) (p : I) :
+    jansonDelta p
+        (fun T : {T : Finset (Fin n) // T.card = 3} =>
+          (↑(offDiagPairs (T : Finset (Fin n))) : Set (Sym2 (Fin n))))
+        (triangleDependency n)
+      ≤ (n : ℝ) ^ 4 * (p : ℝ) ^ 5 := by
+  classical
+  -- A triple spans exactly three non-loop pairs: `#(offDiagPairs T) + 3 = binom(4,2) = 6`.
+  have hcard3 : ∀ T : {T : Finset (Fin n) // T.card = 3},
+      (offDiagPairs (T : Finset (Fin n))).card = 3 := by
+    intro T
+    have hT := T.2
+    have h := card_offDiagPairs_add (T : Finset (Fin n))
+    rw [hT] at h
+    norm_num [Nat.choose] at h
+    omega
+  have hinter2 := fun q (hq : q ∈ triangleDependency n) =>
+    card_inter_eq_two_of_mem_triangleDependency q hq
+  -- Two triples sharing an edge span `3 + 3 - 1 = 5` non-loop pairs.
+  have hcard5 : ∀ q ∈ triangleDependency n,
+      (offDiagPairs (q.1 : Finset (Fin n)) ∪ offDiagPairs (q.2 : Finset (Fin n))).card = 5 := by
+    intro q hq
+    have h2 := hinter2 q hq
+    have hone : (offDiagPairs ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n)))).card = 1 := by
+      have h := card_offDiagPairs_add ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n)))
+      rw [h2] at h
+      norm_num [Nat.choose] at h
+      omega
+    have h := Finset.card_union_add_card_inter
+      (offDiagPairs (q.1 : Finset (Fin n))) (offDiagPairs (q.2 : Finset (Fin n)))
+    rw [offDiagPairs_inter, hcard3 q.1, hcard3 q.2, hone] at h
+    omega
+  -- Each dependent pair contributes the probability `p ⁵` that its five pairs are all present.
+  have hterm : ∀ q ∈ triangleDependency n,
+      (setBernoulli Set.univ p {R : Set (Sym2 (Fin n)) |
+          (↑(offDiagPairs (q.1 : Finset (Fin n))) : Set (Sym2 (Fin n)))
+            ∪ (↑(offDiagPairs (q.2 : Finset (Fin n))) : Set (Sym2 (Fin n))) ⊆ R}).toReal
+        = (p : ℝ) ^ 5 := by
+    intro q hq
+    rw [← Finset.coe_union, setBernoulli_setOf_subset, hcard5 q hq, ENNReal.toReal_pow,
+      ENNReal.coe_toReal, unitInterval.coe_toNNReal]
+  -- `(a, b, x, y) ↦ ({x, a, b}, {y, a, b})` covers every dependent pair, so `#D ≤ n ⁴`.
+  have hDnat : (triangleDependency n).card ≤ n ^ 4 := by
+    have hinjimg : Function.Injective
+        (fun q : {T : Finset (Fin n) // T.card = 3} × {T : Finset (Fin n) // T.card = 3} =>
+          ((q.1 : Finset (Fin n)), (q.2 : Finset (Fin n)))) := by
+      intro q r h
+      exact Prod.ext (Subtype.ext (congrArg Prod.fst h)) (Subtype.ext (congrArg Prod.snd h))
+    have hsurj : Set.SurjOn
+        (fun v : Fin n × Fin n × Fin n × Fin n =>
+          (({v.2.2.1, v.1, v.2.1} : Finset (Fin n)), ({v.2.2.2, v.1, v.2.1} : Finset (Fin n))))
+        (↑(Finset.univ : Finset (Fin n × Fin n × Fin n × Fin n)))
+        (↑((triangleDependency n).image
+          (fun q : {T : Finset (Fin n) // T.card = 3} × {T : Finset (Fin n) // T.card = 3} =>
+            ((q.1 : Finset (Fin n)), (q.2 : Finset (Fin n)))))) := by
+      intro z hz
+      simp only [Finset.coe_image, Set.mem_image, Finset.mem_coe] at hz
+      obtain ⟨q, hq, rfl⟩ := hz
+      obtain ⟨a, b, hab, hintereq⟩ := Finset.card_eq_two.1 (hinter2 q hq)
+      have hd1 : ((q.1 : Finset (Fin n)) \ (q.2 : Finset (Fin n))).card = 1 := by
+        have := Finset.card_sdiff_add_card_inter
+          (q.1 : Finset (Fin n)) (q.2 : Finset (Fin n))
+        rw [q.1.2, hinter2 q hq] at this
+        omega
+      have hd2 : ((q.2 : Finset (Fin n)) \ (q.1 : Finset (Fin n))).card = 1 := by
+        have := Finset.card_sdiff_add_card_inter
+          (q.2 : Finset (Fin n)) (q.1 : Finset (Fin n))
+        rw [q.2.2, Finset.inter_comm, hinter2 q hq] at this
+        omega
+      obtain ⟨x, hx⟩ := Finset.card_eq_one.1 hd1
+      obtain ⟨y, hy⟩ := Finset.card_eq_one.1 hd2
+      refine ⟨(a, b, x, y), by simp, ?_⟩
+      have e1 : (q.1 : Finset (Fin n)) = {x, a, b} := by
+        rw [← Finset.sdiff_union_inter (q.1 : Finset (Fin n)) (q.2 : Finset (Fin n)), hx,
+          hintereq]
+        rfl
+      have e2 : (q.2 : Finset (Fin n)) = {y, a, b} := by
+        rw [← Finset.sdiff_union_inter (q.2 : Finset (Fin n)) (q.1 : Finset (Fin n)), hy,
+          Finset.inter_comm, hintereq]
+        rfl
+      exact Prod.ext e1.symm e2.symm
+    calc (triangleDependency n).card
+        = ((triangleDependency n).image
+            (fun q : {T : Finset (Fin n) // T.card = 3} × {T : Finset (Fin n) // T.card = 3} =>
+              ((q.1 : Finset (Fin n)), (q.2 : Finset (Fin n))))).card :=
+          (Finset.card_image_of_injective _ hinjimg).symm
+      _ ≤ (Finset.univ : Finset (Fin n × Fin n × Fin n × Fin n)).card :=
+          Finset.card_le_card_of_surjOn _ hsurj
+      _ = n ^ 4 := by simp [Finset.card_univ]; ring
+  have hDc : ((triangleDependency n).card : ℝ) ≤ (n : ℝ) ^ 4 := by
+    calc (((triangleDependency n).card : ℕ) : ℝ) ≤ ((n ^ 4 : ℕ) : ℝ) := Nat.cast_le.2 hDnat
+      _ = (n : ℝ) ^ 4 := by push_cast; ring
+  have hp0 : (0 : ℝ) ≤ (p : ℝ) := p.2.1
+  have h5 : (0 : ℝ) ≤ (p : ℝ) ^ 5 := by positivity
+  rw [jansonDelta, Finset.sum_congr rfl hterm, Finset.sum_const, nsmul_eq_mul]
+  gcongr
+
+/-- The exact number of ordered dependent pairs of triples: `3 binom(n,3) (n-3)`.
+
+The dependent pairs `(A, B)` are in bijection with the triples `(A, e, x)` where `e` is one of
+the three two-element subsets of `A` to be shared and `x ∉ A` is the replacement vertex, via
+`B = insert x e`.  Below `n = 4` both sides are `0`: there is no replacement vertex, and `Nat`
+truncation of `n - 3` agrees. -/
+private theorem card_triangleDependency_exact (n : ℕ) :
+    (triangleDependency n).card = 3 * n.choose 3 * (n - 3) := by
+  have hinter2 := fun q (hq : q ∈ triangleDependency n) =>
+    card_inter_eq_two_of_mem_triangleDependency q hq
+  -- The parameter set: a triple `A`, a two-element `e ⊆ A`, and a replacement vertex `x ∉ A`.
+  set E : Finset ((_ : {T : Finset (Fin n) // T.card = 3}) × (Finset (Fin n) × Fin n)) :=
+    (Finset.univ : Finset {T : Finset (Fin n) // T.card = 3}).sigma
+      fun A => ((A : Finset (Fin n)).powersetCard 2) ×ˢ (Finset.univ \ (A : Finset (Fin n)))
+    with hEdef
+  have hmemE : ∀ a : (_ : {T : Finset (Fin n) // T.card = 3}) × (Finset (Fin n) × Fin n),
+      a ∈ E → a.2.1 ⊆ (a.1 : Finset (Fin n)) ∧ a.2.1.card = 2 ∧
+        a.2.2 ∉ (a.1 : Finset (Fin n)) := by
+    intro a ha
+    rw [hEdef, Finset.mem_sigma, Finset.mem_product, Finset.mem_powersetCard,
+      Finset.mem_sdiff] at ha
+    exact ⟨ha.2.1.1, ha.2.1.2, ha.2.2.2⟩
+  -- `A ∩ insert x e = e` whenever `e ⊆ A` and `x ∉ A`.
+  have hinterins : ∀ (A e : Finset (Fin n)) (x : Fin n), e ⊆ A → x ∉ A →
+      A ∩ insert x e = e := by
+    intro A e x hsub hx
+    ext y
+    simp only [Finset.mem_inter, Finset.mem_insert]
+    constructor
+    · rintro ⟨hyA, rfl | hye⟩
+      · exact absurd hyA hx
+      · exact hye
+    · intro hye
+      exact ⟨hsub hye, Or.inr hye⟩
+  -- The map `(A, e, x) ↦ (A, insert x e)` lands in the triples.
+  have hins : ∀ a ∈ E, (insert a.2.2 a.2.1).card = 3 := by
+    intro a ha
+    obtain ⟨hsub, hcard2, hx⟩ := hmemE a ha
+    rw [Finset.card_insert_of_notMem fun h => hx (hsub h), hcard2]
+  have hcardE : E.card = 3 * n.choose 3 * (n - 3) := by
+    have hcount : Fintype.card {T : Finset (Fin n) // T.card = 3} = n.choose 3 := by
+      rw [Fintype.card_subtype]
+      have hfilter : {T ∈ (Finset.univ : Finset (Finset (Fin n))) | T.card = 3}
+          = (Finset.univ : Finset (Fin n)).powersetCard 3 := by
+        ext T
+        simp
+      rw [hfilter, Finset.card_powersetCard, Finset.card_univ, Fintype.card_fin]
+    have hfib : ∀ A : {T : Finset (Fin n) // T.card = 3},
+        (((A : Finset (Fin n)).powersetCard 2) ×ˢ
+            (Finset.univ \ (A : Finset (Fin n)) : Finset (Fin n))).card = 3 * (n - 3) := by
+      intro A
+      rw [Finset.card_product, Finset.card_powersetCard, A.2,
+        Finset.card_sdiff_of_subset (Finset.subset_univ _), Finset.card_univ, Fintype.card_fin, A.2]
+      norm_num [Nat.choose]
+    rw [hEdef, Finset.card_sigma, Finset.sum_congr rfl fun A _ => hfib A, Finset.sum_const,
+      Finset.card_univ, hcount, smul_eq_mul]
+    ring
+  rw [← hcardE]
+  refine (Finset.card_bij
+    (fun a ha => ((a.1, ⟨insert a.2.2 a.2.1, hins a ha⟩) :
+      {T : Finset (Fin n) // T.card = 3} × {T : Finset (Fin n) // T.card = 3}))
+    ?_ ?_ ?_).symm
+  · -- the image is a dependent pair
+    intro a ha
+    obtain ⟨hsub, hcard2, hx⟩ := hmemE a ha
+    have hAe := hinterins (a.1 : Finset (Fin n)) a.2.1 a.2.2 hsub hx
+    refine Finset.mem_filter.2 ⟨Finset.mem_univ _, ?_, ?_⟩
+    · intro h
+      exact hx (congrArg (fun T : {T : Finset (Fin n) // T.card = 3} => (T : Finset (Fin n))) h ▸
+        Finset.mem_insert_self a.2.2 a.2.1)
+    · simp only
+      rw [hAe, hcard2]
+  · -- injectivity
+    intro a₁ ha₁ a₂ ha₂ h
+    obtain ⟨hsub₁, hcard₁, hx₁⟩ := hmemE a₁ ha₁
+    obtain ⟨hsub₂, hcard₂, hx₂⟩ := hmemE a₂ ha₂
+    have hfst : a₁.1 = a₂.1 := congrArg Prod.fst h
+    have hsnd : insert a₁.2.2 a₁.2.1 = insert a₂.2.2 a₂.2.1 :=
+      congrArg (fun T : {T : Finset (Fin n) // T.card = 3} => (T : Finset (Fin n)))
+        (congrArg Prod.snd h)
+    have he : a₁.2.1 = a₂.2.1 := by
+      rw [← hinterins (a₁.1 : Finset (Fin n)) a₁.2.1 a₁.2.2 hsub₁ hx₁, hsnd, hfst,
+        hinterins (a₂.1 : Finset (Fin n)) a₂.2.1 a₂.2.2 hsub₂ hx₂]
+    have hxx : a₁.2.2 = a₂.2.2 := by
+      have hm : a₁.2.2 ∈ insert a₂.2.2 a₂.2.1 := hsnd ▸ Finset.mem_insert_self _ _
+      rcases Finset.mem_insert.1 hm with h' | h'
+      · exact h'
+      · exact absurd (hsub₁ (he ▸ h')) hx₁
+    obtain ⟨A₁, e₁, x₁⟩ := a₁
+    obtain ⟨A₂, e₂, x₂⟩ := a₂
+    subst hfst
+    subst he
+    subst hxx
+    rfl
+  · -- surjectivity
+    intro q hq
+    have h2 := hinter2 q hq
+    have hd2 : ((q.2 : Finset (Fin n)) \ (q.1 : Finset (Fin n))).card = 1 := by
+      have := Finset.card_sdiff_add_card_inter
+        (q.2 : Finset (Fin n)) (q.1 : Finset (Fin n))
+      rw [q.2.2, Finset.inter_comm, h2] at this
+      omega
+    obtain ⟨x, hx⟩ := Finset.card_eq_one.1 hd2
+    have hxmem : x ∈ (q.2 : Finset (Fin n)) \ (q.1 : Finset (Fin n)) := by
+      rw [hx]
+      exact Finset.mem_singleton_self x
+    have hxnot : x ∉ (q.1 : Finset (Fin n)) := (Finset.mem_sdiff.1 hxmem).2
+    have hBeq : insert x ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n)))
+        = (q.2 : Finset (Fin n)) := by
+      rw [Finset.inter_comm, ← Finset.singleton_union, ← hx,
+        Finset.sdiff_union_inter (q.2 : Finset (Fin n)) (q.1 : Finset (Fin n))]
+    refine ⟨⟨q.1, ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n)), x)⟩, ?_, ?_⟩
+    · rw [hEdef, Finset.mem_sigma, Finset.mem_product, Finset.mem_powersetCard,
+        Finset.mem_sdiff]
+      exact ⟨Finset.mem_univ _, ⟨Finset.inter_subset_left, h2⟩, Finset.mem_univ _, hxnot⟩
+    · exact Prod.ext rfl (Subtype.ext hBeq)
+
+/-- **`Δ` for the triangle family, exactly.**  There are `3 binom(n,3) (n-3)` ordered pairs of
+distinct triples sharing an edge — choose a triple, choose which two of its vertices are shared,
+choose the replacement vertex — and each contributes `p ⁵`.
+
+`jansonDelta_triangleFamily_le` relaxes this to `n⁴p⁵`, which is what the `Δ < μ` regime of
+§8.1 wants.  The exact value is what the **other** regime needs: Janson's second inequality
+(`janson_prob_none_le_of_mu_le`) is applied when `μ ≤ Δ`, and an upper bound on `Δ` cannot
+witness that.  The two forms are used in opposite directions and neither replaces the other.
+
+The formula is correct at every `n`: below `4` the count is `0`, since two distinct triples
+sharing two vertices need a fourth vertex, and `Nat` truncation of `n - 3` agrees. -/
+theorem jansonDelta_triangleFamily (n : ℕ) (p : I) :
+    jansonDelta p
+        (fun T : {T : Finset (Fin n) // T.card = 3} =>
+          (↑(offDiagPairs (T : Finset (Fin n))) : Set (Sym2 (Fin n))))
+        (triangleDependency n)
+      = (3 * n.choose 3 * (n - 3) : ℕ) * (p : ℝ) ^ 5 := by
+  -- A triple spans exactly three non-loop pairs: `#(offDiagPairs T) + 3 = binom(4,2) = 6`.
+  have hcard3 : ∀ T : {T : Finset (Fin n) // T.card = 3},
+      (offDiagPairs (T : Finset (Fin n))).card = 3 := by
+    intro T
+    have hT := T.2
+    have h := card_offDiagPairs_add (T : Finset (Fin n))
+    rw [hT] at h
+    norm_num [Nat.choose] at h
+    omega
+  have hinter2 := fun q (hq : q ∈ triangleDependency n) =>
+    card_inter_eq_two_of_mem_triangleDependency q hq
+  -- Two triples sharing an edge span `3 + 3 - 1 = 5` non-loop pairs.
+  have hcard5 : ∀ q ∈ triangleDependency n,
+      (offDiagPairs (q.1 : Finset (Fin n)) ∪ offDiagPairs (q.2 : Finset (Fin n))).card = 5 := by
+    intro q hq
+    have h2 := hinter2 q hq
+    have hone : (offDiagPairs ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n)))).card = 1 := by
+      have h := card_offDiagPairs_add ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n)))
+      rw [h2] at h
+      norm_num [Nat.choose] at h
+      omega
+    have h := Finset.card_union_add_card_inter
+      (offDiagPairs (q.1 : Finset (Fin n))) (offDiagPairs (q.2 : Finset (Fin n)))
+    rw [offDiagPairs_inter, hcard3 q.1, hcard3 q.2, hone] at h
+    omega
+  -- Each dependent pair contributes the probability `p ⁵` that its five pairs are all present.
+  have hterm : ∀ q ∈ triangleDependency n,
+      (setBernoulli Set.univ p {R : Set (Sym2 (Fin n)) |
+          (↑(offDiagPairs (q.1 : Finset (Fin n))) : Set (Sym2 (Fin n)))
+            ∪ (↑(offDiagPairs (q.2 : Finset (Fin n))) : Set (Sym2 (Fin n))) ⊆ R}).toReal
+        = (p : ℝ) ^ 5 := by
+    intro q hq
+    rw [← Finset.coe_union, setBernoulli_setOf_subset, hcard5 q hq, ENNReal.toReal_pow,
+      ENNReal.coe_toReal, unitInterval.coe_toNNReal]
+  rw [jansonDelta, Finset.sum_congr rfl hterm, Finset.sum_const, nsmul_eq_mul,
+    card_triangleDependency_exact]
 
 /-- The conditioning step of the Boppana–Spencer proof of Janson's inequality.
 
@@ -336,6 +799,108 @@ theorem janson_prob_none_le [Countable ι] (p : I) (S : κ → Set ι) (D : Fins
   rw [hP, h1, h2, h3] at huniv
   exact huniv
 
+/-- **Triples off the dependency set span disjoint edge sets.**  This is the hypothesis
+`janson_prob_none_le` and `janson_prob_none_le_of_mu_le` both ask for, at the triangle family.
+
+Distinct triples that are not dependent share at most one vertex, and `offDiagPairs` of a set of
+size at most one is empty — `card_offDiagPairs_add` gives `binom(1,2) = 0` and `binom(2,2) = 1`.
+`offDiagPairs_inter` then turns that emptiness into disjointness without naming any element. -/
+private theorem disjoint_offDiagPairs_of_notMem_triangleDependency {n : ℕ}
+    (A B : {T : Finset (Fin n) // T.card = 3}) (hne : A ≠ B)
+    (hnotD : (A, B) ∉ triangleDependency n) :
+    Disjoint (↑(offDiagPairs (A : Finset (Fin n))) : Set (Sym2 (Fin n)))
+      (↑(offDiagPairs (B : Finset (Fin n))) : Set (Sym2 (Fin n))) := by
+  have hmem : ((A, B) ∈ triangleDependency n) ↔
+      (A ≠ B ∧ 2 ≤ ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))).card) := by
+    simp [triangleDependency]
+  have hle : ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))).card ≤ 1 := by
+    by_contra hcon
+    exact hnotD (hmem.2 ⟨hne, by omega⟩)
+  have h := card_offDiagPairs_add ((A : Finset (Fin n)) ∩ (B : Finset (Fin n)))
+  have hc : ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))).card = 0 ∨
+      ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))).card = 1 := by omega
+  have hempty : offDiagPairs ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))) = ∅ := by
+    rcases hc with hc | hc <;> rw [hc] at h <;> simpa [Nat.choose] using h
+  rw [Finset.disjoint_coe, Finset.disjoint_iff_inter_eq_empty, offDiagPairs_inter]
+  exact hempty
+
+/-- **`G(n, p)` is triangle-free with probability at most `exp (-binom(n,3) p³ + n⁴p⁵/2)`**
+(Zhao, Question 8.1.5, the finite form behind Theorem 8.1.6).
+
+This is Janson's first inequality run on the triangle family: `μ` is `jansonMu_triangleFamily`
+exactly, `Δ` is bounded by `jansonDelta_triangleFamily_le`, and
+`binomialRandom_setOf_forall_not_subset` moves the resulting bound from `setBernoulli` to
+`G(n, p)`.
+
+Theorem 8.1.6 is the asymptotic reading: when `p = o(n^{-1/2})` the term `n⁴p⁵/2` is `o(n³p³)`,
+so the exponent is `-(1 + o(1)) μ`.  That asymptotic form is not stated here; this is the
+inequality it is read off. -/
+theorem binomialRandom_no_triangle_le (n : ℕ) (p : I) :
+    (SimpleGraph.binomialRandom (Fin n) p).real
+        {G : SimpleGraph (Fin n) | ∀ T : {T : Finset (Fin n) // T.card = 3},
+          ¬ (↑(offDiagPairs (T : Finset (Fin n))) ⊆ G.edgeSet)}
+      ≤ Real.exp (-((n.choose 3 : ℝ) * (p : ℝ) ^ 3) + (n : ℝ) ^ 4 * (p : ℝ) ^ 5 / 2) := by
+  -- Triples meeting in at most one vertex span disjoint edge sets: a shared edge would put two
+  -- shared vertices in the intersection, and `offDiagPairs` of a set of size `≤ 1` is empty.
+  have hD := disjoint_offDiagPairs_of_notMem_triangleDependency (n := n)
+  -- Janson's inequality on the triangle family, with `μ` substituted exactly.
+  have hmain := janson_prob_none_le p
+    (fun T : {T : Finset (Fin n) // T.card = 3} =>
+      (↑(offDiagPairs (T : Finset (Fin n))) : Set (Sym2 (Fin n))))
+    (triangleDependency n) hD
+  rw [jansonMu_triangleFamily] at hmain
+  -- Cross from `G(n, p)` to `setBernoulli`; the triangle edge sets contain no loop.
+  rw [measureReal_def, binomialRandom_setOf_forall_not_subset p
+    (fun T : {T : Finset (Fin n) // T.card = 3} => offDiagPairs (T : Finset (Fin n)))
+    fun _ _ he => not_isDiag_of_mem_offDiagPairs he]
+  -- `Δ` appears positively in the exponent, so relaxing it only weakens the bound.
+  refine hmain.trans (Real.exp_le_exp.2 ?_)
+  have hDelta := jansonDelta_triangleFamily_le n p
+  linarith
+
+/-- **Theorem 8.1.6**: when `p` is `o(n^{-1/2})`, `G(n, p)` is triangle-free with probability
+`exp (-(1 + o(1)) μ)`, where `μ = binom(n,3) p³`.
+
+Stated in the project's `ε`–`N` idiom rather than with `o(1)`, and in the upper-bound direction —
+the one Janson supplies.  Given `ε > 0` there are `δ > 0` and `N` such that `p √n ≤ δ` and
+`N ≤ n` force `ℙ(triangle-free) ≤ exp (-(1 - ε) μ)`.
+
+**The witnesses are `δ = √(ε/6)` and `N = 6`, and both are tight.**  From
+`binomialRandom_no_triangle_le` the exponent is `-μ + Δ/2` with `Δ ≤ n⁴p⁵`, so what is needed is
+`n⁴p⁵/2 ≤ ε μ`.  Using `n³/12 ≤ binom(n,3)` — which holds from `n = 6` and fails at `n = 5`,
+exactly as in `prob_triangle_of_le_mul` — that reduces to `n p² ≤ ε/6`, and `n p² = (p √n)²`.
+Sampling the inequality at the boundary leaves no slack: the constant `6` is forced, not chosen. -/
+theorem prob_no_triangle_le_of_mul_sqrt_le :
+    ∀ ε : ℝ, 0 < ε → ∃ δ > 0, ∃ N : ℕ, ∀ n : ℕ, N ≤ n → ∀ p : I,
+      (p : ℝ) * Real.sqrt n ≤ δ →
+        (SimpleGraph.binomialRandom (Fin n) p).real
+            {G : SimpleGraph (Fin n) | ∀ T : {T : Finset (Fin n) // T.card = 3},
+              ¬ (↑(offDiagPairs (T : Finset (Fin n))) ⊆ G.edgeSet)}
+          ≤ Real.exp (-(1 - ε) * ((n.choose 3 : ℝ) * (p : ℝ) ^ 3)) := by
+  intro ε hε
+  refine ⟨Real.sqrt (ε / 6), by positivity, 6, fun n hn p hp => ?_⟩
+  have hp0 : (0 : ℝ) ≤ (p : ℝ) := p.2.1
+  have hn6 : (6 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn
+  -- Squaring `p √n ≤ √(ε/6)` turns the scale hypothesis into `n p² ≤ ε/6`.
+  have hnp2 : (n : ℝ) * (p : ℝ) ^ 2 ≤ ε / 6 := by
+    have hsq : ((p : ℝ) * Real.sqrt n) ^ 2 ≤ Real.sqrt (ε / 6) ^ 2 :=
+      pow_le_pow_left₀ (by positivity) hp 2
+    rw [mul_pow, Real.sq_sqrt (Nat.cast_nonneg n),
+      Real.sq_sqrt (by positivity : (0 : ℝ) ≤ ε / 6)] at hsq
+    linarith only [hsq]
+  -- `binom(n,3) = n(n-1)(n-2)/6 ≥ n³/12`, which holds from `n = 6` up.
+  have hchoose := cube_div_twelve_le_choose_three hn
+  -- `Δ/2 ≤ n⁴p⁵/2 ≤ ε n³p³/12 ≤ ε μ`, the first step being exactly `n p² ≤ ε/6`.
+  have hmul : ((n : ℝ) ^ 3 * (p : ℝ) ^ 3) * ((n : ℝ) * (p : ℝ) ^ 2)
+      ≤ ((n : ℝ) ^ 3 * (p : ℝ) ^ 3) * (ε / 6) :=
+    mul_le_mul_of_nonneg_left hnp2 (by positivity)
+  have hstep : (n : ℝ) ^ 3 / 12 * (p : ℝ) ^ 3 ≤ (n.choose 3 : ℝ) * (p : ℝ) ^ 3 :=
+    mul_le_mul_of_nonneg_right hchoose (pow_nonneg hp0 3)
+  have hmu : ε * ((n : ℝ) ^ 3 / 12 * (p : ℝ) ^ 3) ≤ ε * ((n.choose 3 : ℝ) * (p : ℝ) ^ 3) :=
+    mul_le_mul_of_nonneg_left hstep hε.le
+  refine (binomialRandom_no_triangle_le n p).trans (Real.exp_le_exp.2 ?_)
+  linarith only [hmul, hmu]
+
 /-- The binomial weight of the subsets of `s` containing a fixed `K` sums to `q ^ #K`. -/
 private theorem sum_powerset_weight_eq {α : Type*} [DecidableEq α] (q : ℝ) (s K : Finset α)
     (hK : K ⊆ s) :
@@ -565,6 +1130,86 @@ theorem janson_prob_none_le_of_mu_le [Countable ι] (p : I) (S : κ → Set ι) 
   linarith
 
 section LowerTail
+
+/-- **The dense regime of the triangle-free probability** (Zhao, Theorem 8.1.10's second half),
+from Janson's second inequality.
+
+Where `binomialRandom_no_triangle_le` is useful for `Δ < μ`, Janson II covers `μ ≤ Δ`, which for
+the triangle family is exactly `1 ≤ 3 (n - 3) p²` — the `p ≫ n^{-1/2}` regime.  There
+
+    μ² / (2Δ) = binom(n,3) p / (6 (n - 3)),
+
+using `jansonDelta_triangleFamily`'s exact value; an upper bound on `Δ` would be useless here,
+since `Δ` sits in a denominator and in the hypothesis.
+
+Since `binom(n,3)/(n-3) = n(n-1)(n-2)/(6(n-3))` grows like `n²/6`, the exponent is of order
+`n²p`, which is the `exp (-Θ(n²p))` the source reports — and, as Remark 8.1.9 notes, better than
+the first inequality can give once `p ≫ n^{-1/2}`.
+
+`4 ≤ n` keeps `n - 3` positive; `p > 0` is not assumed because the regime hypothesis forces
+it. -/
+theorem binomialRandom_no_triangle_le_of_one_le (n : ℕ) (hn : 4 ≤ n) (p : I)
+    (hp : 1 ≤ 3 * ((n : ℝ) - 3) * (p : ℝ) ^ 2) :
+    (SimpleGraph.binomialRandom (Fin n) p).real
+        {G : SimpleGraph (Fin n) | ∀ T : {T : Finset (Fin n) // T.card = 3},
+          ¬ (↑(offDiagPairs (T : Finset (Fin n))) ⊆ G.edgeSet)}
+      ≤ Real.exp (-((n.choose 3 : ℝ) * (p : ℝ) / (6 * ((n : ℝ) - 3)))) := by
+  -- Triples meeting in at most one vertex span disjoint edge sets: a shared edge would put two
+  -- shared vertices in the intersection, and `offDiagPairs` of a set of size `≤ 1` is empty.
+  have hD := disjoint_offDiagPairs_of_notMem_triangleDependency (n := n)
+  -- Positivity of the three factors that the cancellation divides by.
+  have h3n : 3 ≤ n := by omega
+  have hnR : (4 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn
+  have hn3 : (0 : ℝ) < (n : ℝ) - 3 := by linarith
+  have hC : (0 : ℝ) < (n.choose 3 : ℝ) := by
+    exact_mod_cast Nat.choose_pos h3n
+  -- The regime hypothesis forces `p > 0`: at `p = 0` it reads `1 ≤ 0`.
+  have hp0 : (0 : ℝ) < (p : ℝ) := by
+    rcases eq_or_lt_of_le p.2.1 with h | h
+    · rw [← h] at hp; norm_num at hp
+    · exact h
+  -- `Δ`'s exact value carries a `Nat` subtraction; `4 ≤ n` makes it the real one.
+  have hcast : ((3 * n.choose 3 * (n - 3) : ℕ) : ℝ)
+      = 3 * (n.choose 3 : ℝ) * ((n : ℝ) - 3) := by
+    push_cast [Nat.cast_sub h3n]
+    ring
+  have hDpos : (0 : ℝ) < 3 * (n.choose 3 : ℝ) * ((n : ℝ) - 3) * (p : ℝ) ^ 5 :=
+    mul_pos (mul_pos (mul_pos (by norm_num) hC) hn3) (pow_pos hp0 5)
+  -- `μ ≤ Δ` is `hp` multiplied through by `binom(n,3) p³ ≥ 0`.
+  have hΔ : jansonMu p (fun T : {T : Finset (Fin n) // T.card = 3} =>
+        (↑(offDiagPairs (T : Finset (Fin n))) : Set (Sym2 (Fin n))))
+      ≤ jansonDelta p (fun T : {T : Finset (Fin n) // T.card = 3} =>
+          (↑(offDiagPairs (T : Finset (Fin n))) : Set (Sym2 (Fin n))))
+        (triangleDependency n) := by
+    rw [jansonMu_triangleFamily, jansonDelta_triangleFamily, hcast]
+    have hmul := mul_le_mul_of_nonneg_right hp
+      (show (0 : ℝ) ≤ (n.choose 3 : ℝ) * (p : ℝ) ^ 3 by positivity)
+    nlinarith only [hmul]
+  have hΔ0 : (0 : ℝ) < jansonDelta p (fun T : {T : Finset (Fin n) // T.card = 3} =>
+      (↑(offDiagPairs (T : Finset (Fin n))) : Set (Sym2 (Fin n)))) (triangleDependency n) := by
+    rw [jansonDelta_triangleFamily, hcast]
+    exact hDpos
+  -- Janson's second inequality on the triangle family, with `μ` and `Δ` substituted exactly.
+  have hmain := janson_prob_none_le_of_mu_le p
+    (fun T : {T : Finset (Fin n) // T.card = 3} =>
+      (↑(offDiagPairs (T : Finset (Fin n))) : Set (Sym2 (Fin n))))
+    (triangleDependency n) hD hΔ hΔ0
+  rw [jansonMu_triangleFamily, jansonDelta_triangleFamily, hcast] at hmain
+  -- `μ² / (2Δ) = binom(n,3)² p⁶ / (6 binom(n,3) (n - 3) p⁵) = binom(n,3) p / (6 (n - 3))`.
+  have hexp : -((n.choose 3 : ℝ) * (p : ℝ) ^ 3) ^ 2
+        / (2 * (3 * (n.choose 3 : ℝ) * ((n : ℝ) - 3) * (p : ℝ) ^ 5))
+      = -((n.choose 3 : ℝ) * (p : ℝ) / (6 * ((n : ℝ) - 3))) := by
+    have hC' : (n.choose 3 : ℝ) ≠ 0 := ne_of_gt hC
+    have hp' : (p : ℝ) ≠ 0 := ne_of_gt hp0
+    have hn3' : (n : ℝ) - 3 ≠ 0 := ne_of_gt hn3
+    field_simp
+    ring
+  rw [hexp] at hmain
+  -- Cross from `G(n, p)` to `setBernoulli`; the triangle edge sets contain no loop.
+  rw [measureReal_def, binomialRandom_setOf_forall_not_subset p
+    (fun T : {T : Finset (Fin n) // T.card = 3} => offDiagPairs (T : Finset (Fin n)))
+    fun _ _ he => not_isDiag_of_mem_offDiagPairs he]
+  exact hmain
 
 /-- The elementary bound `exp (-x) ≤ 1 - x + x ^ 2 / 2` for `x ≥ 0`.
 

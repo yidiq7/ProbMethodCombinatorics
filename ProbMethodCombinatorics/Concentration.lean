@@ -1,5 +1,7 @@
 import Mathlib.Probability.Moments.SubGaussian
 import Mathlib.Probability.Martingale.Basic
+import Mathlib.Combinatorics.SimpleGraph.Coloring.Vertex
+import Mathlib.Probability.Combinatorics.BinomialRandomGraph.Defs
 import Mathlib.MeasureTheory.Constructions.Pi
 
 /-!
@@ -477,6 +479,45 @@ theorem measure_sub_integral_ge_le {ι : Type*} [Fintype ι] {Ω : ι → Type*}
   field_simp
   ring
 
+/-- The two-sided bounded differences inequality: both tails carry the same exponential, so the
+union bound costs only a factor `2`.
+
+`-f` has the same bounded differences as `f` and mean `-∫ f`, so `measure_sub_integral_ge_le`
+applies to it and bounds the lower tail of `f`. -/
+private theorem measure_abs_sub_integral_ge_le {ι : Type*} [Fintype ι] {Ω : ι → Type*}
+    [∀ i, MeasurableSpace (Ω i)] (μ : ∀ i, Measure (Ω i)) [∀ i, IsProbabilityMeasure (μ i)]
+    (f : (∀ i, Ω i) → ℝ) (c : ι → ℝ) (hf : Measurable f)
+    (hc : ∀ i (x y : ∀ i, Ω i), (∀ j, j ≠ i → x j = y j) → |f x - f y| ≤ c i)
+    (hsum : 0 < ∑ i, c i ^ 2) {lam : ℝ} (hlam : 0 ≤ lam) :
+    (Measure.pi μ).real {x | lam ≤ |f x - ∫ y, f y ∂(Measure.pi μ)|}
+      ≤ 2 * Real.exp (-2 * lam ^ 2 / ∑ i, c i ^ 2) := by
+  have hcneg : ∀ i (x y : ∀ i, Ω i), (∀ j, j ≠ i → x j = y j) → |(-f) x - (-f) y| ≤ c i := by
+    intro i x y h
+    simp only [Pi.neg_apply, show -f x - -f y = f y - f x from by ring]
+    exact hc i y x fun j hj => (h j hj).symm
+  have hup := measure_sub_integral_ge_le μ f c hf hc hsum hlam
+  have hdown := measure_sub_integral_ge_le μ (-f) c hf.neg hcneg hsum hlam
+  have hsub : {x | lam ≤ |f x - ∫ y, f y ∂(Measure.pi μ)|}
+      ⊆ {x | lam ≤ f x - ∫ y, f y ∂(Measure.pi μ)}
+        ∪ {x | lam ≤ (-f) x - ∫ y, (-f) y ∂(Measure.pi μ)} := by
+    intro x hx
+    simp only [Set.mem_ofPred_eq] at hx
+    rcases abs_cases (f x - ∫ y, f y ∂(Measure.pi μ)) with ⟨heq, _⟩ | ⟨heq, _⟩
+    · exact Or.inl (by rw [heq] at hx; exact hx)
+    · refine Or.inr ?_
+      simp only [Set.mem_ofPred_eq, Pi.neg_apply, integral_neg]
+      rw [heq] at hx
+      linarith
+  calc (Measure.pi μ).real {x | lam ≤ |f x - ∫ y, f y ∂(Measure.pi μ)|}
+      ≤ (Measure.pi μ).real ({x | lam ≤ f x - ∫ y, f y ∂(Measure.pi μ)}
+          ∪ {x | lam ≤ (-f) x - ∫ y, (-f) y ∂(Measure.pi μ)}) := measureReal_mono hsub
+    _ ≤ (Measure.pi μ).real {x | lam ≤ f x - ∫ y, f y ∂(Measure.pi μ)}
+          + (Measure.pi μ).real {x | lam ≤ (-f) x - ∫ y, (-f) y ∂(Measure.pi μ)} :=
+        measureReal_union_le _ _
+    _ ≤ Real.exp (-2 * lam ^ 2 / ∑ i, c i ^ 2) + Real.exp (-2 * lam ^ 2 / ∑ i, c i ^ 2) :=
+        add_le_add hup hdown
+    _ = 2 * Real.exp (-2 * lam ^ 2 / ∑ i, c i ^ 2) := by ring
+
 /-! ### §9.2 Azuma's inequality
 
 The martingale route to concentration.  Note that `measure_sub_integral_ge_le` above — the
@@ -717,5 +758,395 @@ theorem measure_martingale_sub_ge_le {Ω : Type*} {m0 : MeasurableSpace Ω} {μ 
         rw [← Real.exp_add, Real.exp_eq_exp, htdef]
         field_simp
         ring
+
+/-! ### §9.3 The vertex-exposure product
+
+`measure_sub_integral_ge_le` bounds a function of *independent coordinates*, and applying it to
+`χ(G(n, p))` needs `G(n, p)` presented that way.  Which coordinates are chosen decides the
+strength of the result: exposing one edge at a time gives `C(n,2)` coordinates and the weak bound
+`exp (-2 λ² / C(n,2))`, while exposing one **vertex** at a time gives `n - 1` nonempty coordinates
+and Shamir–Spencer's `exp (-2 λ²)` (Theorem 9.3.1).  The difference is the whole point of the
+theorem, so the vertex decomposition is the one built here.
+-/
+
+section VertexExposure
+
+open unitInterval SimpleGraph
+
+/-- Coordinate `i` of the vertex-exposure product: the potential edges joining `i` to the
+vertices below it.  Coordinate `0` is empty, and the block sizes `0, 1, …, n-1` sum to `C(n,2)`,
+the number of potential edges. -/
+abbrev ExposureBlock (n : ℕ) (i : Fin n) : Type := {j : Fin n // j < i} → Prop
+
+/-- The graph assembled from a vertex-exposure sample: `a` and `b` are adjacent exactly when the
+block of the larger records the smaller.
+
+`SimpleGraph.fromRel` supplies symmetry and looplessness, and the guard `a < b` makes the
+underlying relation one-directional, so `fromRel` recovers the intended graph rather than a
+symmetrised version of something larger. -/
+def graphOfExposure {n : ℕ} (x : ∀ i, ExposureBlock n i) : SimpleGraph (Fin n) :=
+  SimpleGraph.fromRel fun a b => if h : a < b then x b ⟨a, h⟩ else False
+
+/-- The law of one vertex-exposure block: each potential edge down from `i` is present
+independently with probability `p`.  This is the coordinate measure of `setBernoulli`, carried
+over to the block. -/
+noncomputable def exposureMeasure (n : ℕ) (p : I) (i : Fin n) : Measure (ExposureBlock n i) :=
+  Measure.pi fun _ =>
+    (toNNReal p) • Measure.dirac True + (toNNReal (σ p)) • Measure.dirac False
+
+/-- Adjacency in the assembled graph, read off the block of the larger endpoint. -/
+private theorem adj_graphOfExposure_iff_of_lt {n : ℕ} (x : ∀ i, ExposureBlock n i) {a b : Fin n}
+    (h : a < b) : (graphOfExposure x).Adj a b ↔ x b ⟨a, h⟩ := by
+  simp only [graphOfExposure, SimpleGraph.fromRel_adj, ne_eq, dif_pos h, dif_neg (asymm h)]
+  simp [h.ne]
+
+/-- `graphOfExposure` is injective with an explicit inverse: the only sample assembling to `G`
+records, in block `i`, the neighbours of `i` below `i`. -/
+private theorem graphOfExposure_eq_iff_eq_adjBlocks {n : ℕ} (x : ∀ i, ExposureBlock n i)
+    (G : SimpleGraph (Fin n)) :
+    graphOfExposure x = G ↔ x = fun i (j : {j : Fin n // j < i}) => G.Adj j.1 i := by
+  constructor
+  · rintro rfl
+    funext i j
+    obtain ⟨j, hj⟩ := j
+    exact propext (adj_graphOfExposure_iff_of_lt x hj).symm
+  · rintro rfl
+    ext a b
+    rcases lt_trichotomy a b with h | rfl | h
+    · rw [adj_graphOfExposure_iff_of_lt _ h]
+    · simp [graphOfExposure]
+    · rw [SimpleGraph.adj_comm, adj_graphOfExposure_iff_of_lt _ h, SimpleGraph.adj_comm]
+
+private theorem measurable_graphOfExposure_blocks {n : ℕ} :
+    Measurable (graphOfExposure : (∀ i, ExposureBlock n i) → SimpleGraph (Fin n)) := by
+  rw [SimpleGraph.measurable_iff_adj]
+  intro a b
+  rcases lt_trichotomy a b with h | rfl | h
+  · have key : (fun x : ∀ i, ExposureBlock n i => (graphOfExposure x).Adj a b)
+        = fun x => x b ⟨a, h⟩ := by
+      funext x
+      exact propext (adj_graphOfExposure_iff_of_lt x h)
+    rw [key]
+    exact (measurable_pi_apply _).comp (measurable_pi_apply b)
+  · simp [graphOfExposure]
+  · have key : (fun x : ∀ i, ExposureBlock n i => (graphOfExposure x).Adj a b)
+        = fun x => x a ⟨b, h⟩ := by
+      funext x
+      exact propext ((SimpleGraph.adj_comm _ _ _).trans (adj_graphOfExposure_iff_of_lt x h))
+    rw [key]
+    exact (measurable_pi_apply _).comp (measurable_pi_apply a)
+
+private theorem measurableSet_simpleGraph_singleton {n : ℕ} (G : SimpleGraph (Fin n)) :
+    MeasurableSet ({G} : Set (SimpleGraph (Fin n))) := by
+  have h : ({G} : Set (SimpleGraph (Fin n))) = SimpleGraph.Adj ⁻¹' {G.Adj} := by
+    ext H
+    simp only [Set.mem_singleton_iff, Set.mem_preimage]
+    exact ⟨fun h => h ▸ rfl, fun h => SimpleGraph.ext h⟩
+  rw [h]
+  exact SimpleGraph.measurable_adj (measurableSet_singleton _)
+
+/-- The coordinate measure of `setBernoulli`, evaluated at a singleton of `Prop`. -/
+private theorem bernoulliProp_singleton (p : I) (P : Prop) [Decidable P] :
+    ((toNNReal p) • Measure.dirac True + (toNNReal (σ p)) • Measure.dirac False) {P}
+      = if P then (toNNReal p : ℝ≥0∞) else (toNNReal (σ p) : ℝ≥0∞) := by
+  by_cases h : P <;> simp [h, Set.indicator]
+
+/-- Every potential edge is recorded by at most one exposure coordinate. -/
+private theorem injective_sym2_ofExposureIndex {n : ℕ} :
+    Function.Injective fun e : Σ i : Fin n, {j : Fin n // j < i} => s(e.2.1, e.1) := by
+  rintro ⟨i₁, j₁, h₁⟩ ⟨i₂, j₂, h₂⟩ h
+  simp only [Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, Prod.swap_prod_mk] at h
+  obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := h
+  · rfl
+  · exact absurd (h₁.trans h₂) (lt_irrefl _)
+
+/-- Every potential edge is recorded by at least one exposure coordinate: the block of its
+larger endpoint. -/
+private theorem exists_exposureIndex_of_not_isDiag {n : ℕ} {e : Sym2 (Fin n)} (he : ¬ e.IsDiag) :
+    ∃ a : Σ i : Fin n, {j : Fin n // j < i}, s(a.2.1, a.1) = e := by
+  induction e with | _ a b
+  simp only [Sym2.mk_isDiag_iff] at he
+  rcases lt_or_gt_of_ne he with h | h
+  · exact ⟨⟨b, a, h⟩, rfl⟩
+  · exact ⟨⟨a, b, h⟩, Sym2.eq_swap⟩
+
+private theorem card_exposureBlock_univ {n : ℕ} (i : Fin n) :
+    (Finset.univ : Finset {j : Fin n // j < i}).card = (i : ℕ) := by
+  rw [Finset.card_univ, Fintype.card_subtype, ← Fin.card_Iio]
+  congr 1
+  ext j
+  simp
+
+/-- The block sizes `0, 1, …, n-1` sum to `C(n, 2)`, the number of potential edges. -/
+private theorem sum_val_univ_eq_choose_two (n : ℕ) : ∑ i : Fin n, (i : ℕ) = n.choose 2 := by
+  rw [Fin.sum_univ_eq_sum_range (fun i => i) n, Finset.sum_range_id, Nat.choose_two_right]
+
+/-- **`G(n, p)` is the vertex-exposure product.**  Assembling independent blocks, one per vertex,
+gives exactly the binomial random graph.
+
+This is what lets `measure_sub_integral_ge_le` reach `χ(G(n, p))`, and with it §9.3–§9.6.
+
+`graphOfExposure` is a bijection: for `a < b` the pair `{a, b}` is recorded by exactly one
+coordinate, namely `⟨a, _⟩` in block `b`, so the coordinates biject with the `C(n,2)` potential
+edges and the two product structures match term by term. -/
+theorem binomialRandom_eq_map_graphOfExposure (n : ℕ) (p : I) :
+    SimpleGraph.binomialRandom (Fin n) p
+      = Measure.map graphOfExposure (Measure.pi (exposureMeasure n p)) := by
+  classical
+  have hb : IsProbabilityMeasure
+      ((toNNReal p) • Measure.dirac True + (toNNReal (σ p)) • Measure.dirac False) := ⟨by simp⟩
+  have hpr : ∀ i : Fin n, IsProbabilityMeasure (exposureMeasure n p i) := fun i =>
+    inferInstanceAs (IsProbabilityMeasure (Measure.pi fun _ : {j : Fin n // j < i} =>
+      (toNNReal p) • Measure.dirac True + (toNNReal (σ p)) • Measure.dirac False))
+  refine Measure.ext_of_singleton fun G => ?_
+  rw [Measure.map_apply measurable_graphOfExposure_blocks (measurableSet_simpleGraph_singleton G)]
+  have hpre : graphOfExposure ⁻¹' ({G} : Set (SimpleGraph (Fin n)))
+      = {fun i (j : {j : Fin n // j < i}) => G.Adj j.1 i} := by
+    ext x
+    simp only [Set.mem_preimage, Set.mem_singleton_iff]
+    exact graphOfExposure_eq_iff_eq_adjBlocks x G
+  rw [hpre, Measure.pi_singleton, SimpleGraph.binomialRandom_singleton]
+  simp only [exposureMeasure, Measure.pi_singleton]
+  -- Block `i` contributes `p` for each neighbour of `i` below `i` and `σ p` for each non-neighbour.
+  have hblock : ∀ i : Fin n,
+      (∏ x : {j : Fin n // j < i},
+          ((toNNReal p) • Measure.dirac True + (toNNReal (σ p)) • Measure.dirac False)
+            {G.Adj x.1 i})
+        = (toNNReal p : ℝ≥0∞) ^
+              (Finset.univ.filter fun x : {j : Fin n // j < i} => G.Adj x.1 i).card
+            * (toNNReal (σ p) : ℝ≥0∞) ^
+              (Finset.univ.filter fun x : {j : Fin n // j < i} => ¬ G.Adj x.1 i).card := by
+    intro i
+    rw [Finset.prod_congr rfl fun x _ => bernoulliProp_singleton p (G.Adj x.1 i),
+      Finset.prod_ite, Finset.prod_const, Finset.prod_const]
+  -- The coordinates that record an edge biject with the edges, via `⟨i, ⟨j, _⟩⟩ ↦ s(j, i)`.
+  have hcount : (∑ i : Fin n,
+      (Finset.univ.filter fun x : {j : Fin n // j < i} => G.Adj x.1 i).card)
+        = G.edgeSet.toFinset.card := by
+    rw [← Finset.card_sigma]
+    refine Finset.card_bij (fun e _ => s(e.2.1, e.1)) ?_ ?_ ?_
+    · intro e he
+      simp only [Finset.mem_sigma, Finset.mem_filter, Finset.mem_univ, true_and] at he
+      simp [Set.mem_toFinset, he]
+    · intro e₁ _ e₂ _ h
+      exact injective_sym2_ofExposureIndex h
+    · intro e he
+      rw [Set.mem_toFinset] at he
+      obtain ⟨a, ha⟩ := exists_exposureIndex_of_not_isDiag (G.not_isDiag_of_mem_edgeSet he)
+      refine ⟨a, ?_, ha⟩
+      simp only [Finset.mem_sigma, Finset.mem_filter, Finset.mem_univ, true_and]
+      rw [← SimpleGraph.mem_edgeSet]
+      exact ha ▸ he
+  have hsplit : ∀ i : Fin n,
+      (Finset.univ.filter fun x : {j : Fin n // j < i} => G.Adj x.1 i).card
+        + (Finset.univ.filter fun x : {j : Fin n // j < i} => ¬ G.Adj x.1 i).card = (i : ℕ) :=
+    fun i => by rw [Finset.card_filter_add_card_filter_not, card_exposureBlock_univ]
+  have hsum : G.edgeSet.toFinset.card
+      + (∑ i : Fin n, (Finset.univ.filter fun x : {j : Fin n // j < i} => ¬ G.Adj x.1 i).card)
+      = n.choose 2 := by
+    rw [← hcount, ← Finset.sum_add_distrib, Finset.sum_congr rfl fun i _ => hsplit i]
+    exact sum_val_univ_eq_choose_two n
+  have hn : (Nat.card (Fin n)).choose 2 = n.choose 2 := by simp
+  rw [Finset.prod_congr rfl fun i _ => hblock i, Finset.prod_mul_distrib,
+    Finset.prod_pow_eq_pow_sum, Finset.prod_pow_eq_pow_sum, hcount,
+    Set.ncard_eq_toFinset_card' G.edgeSet, hn]
+  congr 1
+  congr 1
+  omega
+
+/-- Rewiring the edges at `v` costs at most one colour: a proper `k`-colouring of `G` becomes a
+proper `(k + 1)`-colouring of `G'` by moving `v` to the fresh colour `Fin.last k`.
+
+Every edge of `G'` avoiding `v` is an edge of `G` by `h`, so its endpoints keep distinct colours;
+every edge of `G'` at `v` has one endpoint on `Fin.last k` and the other in the image of
+`Fin.castSucc`. -/
+private theorem colorable_succ_of_adj_iff_off_vertex {n k : ℕ} {v : Fin n}
+    {G G' : SimpleGraph (Fin n)}
+    (h : ∀ a b : Fin n, a ≠ v → b ≠ v → (G.Adj a b ↔ G'.Adj a b)) (hG : G.Colorable k) :
+    G'.Colorable (k + 1) := by
+  classical
+  obtain ⟨c⟩ := hG
+  refine ⟨SimpleGraph.Coloring.mk
+    (fun u => if u = v then Fin.last k else (c u).castSucc) fun {a b} hab => ?_⟩
+  by_cases ha : a = v
+  · by_cases hb : b = v
+    · subst ha
+      subst hb
+      simp at hab
+    · simpa [ha, hb] using (Fin.castSucc_ne_last (c b)).symm
+  · by_cases hb : b = v
+    · simp [ha, hb]
+    · simpa [ha, hb, Fin.castSucc_inj] using c.valid ((h a b ha hb).mpr hab)
+
+/-- **Rewiring one vertex moves the chromatic number by at most one.**  If `G` and `G'` agree on
+every edge avoiding `v`, then `|χ(G) - χ(G')| ≤ 1`.
+
+Each direction is the same one-line construction: a proper colouring of `G` with `χ(G)` colours
+becomes a proper colouring of `G'` with `χ(G) + 1` by giving `v` a fresh colour.  Every edge of
+`G'` avoiding `v` is an edge of `G` and keeps its old colours; every edge of `G'` at `v` is safe
+because no other vertex wears the new colour.
+
+This is the bounded-differences input to Shamir–Spencer (Theorem 9.3.1), and it is the reason
+that theorem exposes one *vertex* at a time.  The analogous claim for exposing one edge is also
+true but weaker in aggregate: `C(n,2)` coordinates instead of `n - 1`.
+
+`ℕ∞.toNat` sends `⊤` to `0`, which would be a junk value — but `Fin n` is finite, so
+`SimpleGraph.colorable_of_fintype` puts every chromatic number here below `⊤` and the coercion
+is faithful. -/
+theorem abs_sub_chromaticNumber_le_one {n : ℕ} (v : Fin n) (G G' : SimpleGraph (Fin n))
+    (h : ∀ a b : Fin n, a ≠ v → b ≠ v → (G.Adj a b ↔ G'.Adj a b)) :
+    |(G.chromaticNumber.toNat : ℝ) - (G'.chromaticNumber.toNat : ℝ)| ≤ 1 := by
+  -- `Fin n` is finite, so both chromatic numbers are below `⊤` and `ENat.toNat` is faithful.
+  have hfin : ∀ K : SimpleGraph (Fin n), K.Colorable n := fun K => by
+    simpa using K.colorable_of_fintype
+  have htop : ∀ K : SimpleGraph (Fin n), K.chromaticNumber ≠ ⊤ := fun K =>
+    SimpleGraph.chromaticNumber_ne_top_iff_exists.mpr ⟨n, hfin K⟩
+  have hcolor : ∀ K : SimpleGraph (Fin n), K.Colorable K.chromaticNumber.toNat := fun K =>
+    SimpleGraph.chromaticNumber_le_iff_colorable.mp
+      (le_of_eq (ENat.natCast_toNat (htop K)).symm)
+  have hstep : ∀ K K' : SimpleGraph (Fin n),
+      (∀ a b : Fin n, a ≠ v → b ≠ v → (K.Adj a b ↔ K'.Adj a b)) →
+        K'.chromaticNumber.toNat ≤ K.chromaticNumber.toNat + 1 := fun K K' hKK' =>
+    ENat.toNat_le_of_le_natCast
+      (SimpleGraph.Colorable.chromaticNumber_le
+        (colorable_succ_of_adj_iff_off_vertex hKK' (hcolor K)))
+  have h₁ := hstep G G' h
+  have h₂ := hstep G' G fun a b ha hb => (h a b ha hb).symm
+  rw [abs_sub_le_iff]
+  constructor
+  · have : (G.chromaticNumber.toNat : ℝ) ≤ (G'.chromaticNumber.toNat : ℝ) + 1 := by
+      exact_mod_cast h₂
+    linarith
+  · have : (G'.chromaticNumber.toNat : ℝ) ≤ (G.chromaticNumber.toNat : ℝ) + 1 := by
+      exact_mod_cast h₁
+    linarith
+
+/-- Block `0` of the vertex-exposure product carries no information: its index type
+`{j : Fin n // j < 0}` is empty, so the block is a singleton type. -/
+private theorem eq_of_exposureBlock_bot {n : ℕ} {i : Fin n} (hi : (i : ℕ) = 0)
+    (a b : ExposureBlock n i) : a = b := by
+  have he : IsEmpty {j : Fin n // j < i} := by
+    refine ⟨fun j => ?_⟩
+    have hj := j.2
+    rw [Fin.lt_def, hi] at hj
+    omega
+  exact funext fun j => he.elim j
+
+/-- **Bounded differences for the chromatic number along vertex exposure.**  Changing block `i`
+alone rewires only the edges at vertex `i`, so `abs_sub_chromaticNumber_le_one` applies and the
+chromatic number moves by at most one; block `0` is a singleton type, so changing it alone
+changes nothing at all.
+
+The weight `0` at coordinate `0` is what makes `∑ i, c i ^ 2` equal `n - 1` rather than `n`. -/
+private theorem abs_sub_chromaticNumber_graphOfExposure_le {n : ℕ} (i : Fin n)
+    (x y : ∀ j, ExposureBlock n j) (h : ∀ j, j ≠ i → x j = y j) :
+    |((graphOfExposure x).chromaticNumber.toNat : ℝ)
+        - ((graphOfExposure y).chromaticNumber.toNat : ℝ)|
+      ≤ if (i : ℕ) = 0 then (0 : ℝ) else 1 := by
+  by_cases hi : (i : ℕ) = 0
+  · have hxy : x = y := by
+      funext j
+      rcases eq_or_ne j i with rfl | hj
+      · exact eq_of_exposureBlock_bot hi _ _
+      · exact h j hj
+    rw [hxy, if_pos hi]
+    simp
+  · rw [if_neg hi]
+    refine abs_sub_chromaticNumber_le_one i _ _ fun a b ha hb => ?_
+    rcases lt_trichotomy a b with hab | rfl | hab
+    · rw [adj_graphOfExposure_iff_of_lt x hab, adj_graphOfExposure_iff_of_lt y hab, h b hb]
+    · simp
+    · rw [SimpleGraph.adj_comm (graphOfExposure x), SimpleGraph.adj_comm (graphOfExposure y),
+        adj_graphOfExposure_iff_of_lt x hab, adj_graphOfExposure_iff_of_lt y hab, h a ha]
+
+/-- The vertex-exposure weights sum to `n - 1`: every block but the empty block `0` contributes
+`1`.  This is the `∑ i, c i ^ 2` of the bounded differences inequality, and the reason
+Shamir–Spencer has radius `lam √(n-1)`. -/
+private theorem sum_sq_exposureWeight (n : ℕ) (hn : 1 ≤ n) :
+    ∑ i : Fin n, (if (i : ℕ) = 0 then (0 : ℝ) else 1) ^ 2 = (n : ℝ) - 1 := by
+  obtain ⟨m, rfl⟩ : ∃ m, n = m + 1 := ⟨n - 1, by omega⟩
+  rw [Fin.sum_univ_succ]
+  simp
+
+/-- **The chromatic number of a random graph is concentrated in a window of width `O(√n)`**
+(Zhao, Theorem 9.3.1; Shamir and Spencer 1987).  For every `lam ≥ 0`,
+
+    ℙ(|χ(G(n, p)) - 𝔼χ(G(n, p))| ≥ lam √(n-1)) ≤ 2 exp (-2 lam²).
+
+The striking part, as the source puts it, is that this proves concentration *around the mean
+without knowing where the mean is*.
+
+**Vertex exposure is what makes the bound this strong.**  Through
+`binomialRandom_eq_map_graphOfExposure` the chromatic number becomes a function of `n`
+independent blocks, of which `n - 1` are nonempty, and `abs_sub_chromaticNumber_le_one` gives
+each of those a bounded difference of `1`.  So `∑ cᵢ² = n - 1`, and
+`measure_sub_integral_ge_le` at `lam √(n-1)` returns `exp (-2 lam²)` with the `n - 1` cancelling.
+Exposing one edge at a time would give `C(n,2)` coordinates and only `exp (-2 lam² / C(n,2))`.
+
+**`2 ≤ n` is load-bearing.**  At `n = 1` the radius `lam √(n-1)` is `0`, so the event is
+everything and the left side is `1`, while the right side drops below `1` as soon as
+`lam ≥ 1` — at `lam = 2` it is about `0.0007`.  The source states no hypothesis on `n`, its
+interest being asymptotic; the finite form needs one. -/
+theorem measure_abs_sub_integral_chromaticNumber_ge_le (n : ℕ) (hn : 2 ≤ n) (p : I)
+    (lam : ℝ) (hlam : 0 ≤ lam) :
+    (SimpleGraph.binomialRandom (Fin n) p).real
+        {G : SimpleGraph (Fin n) | lam * Real.sqrt ((n : ℝ) - 1)
+          ≤ |(G.chromaticNumber.toNat : ℝ)
+              - ∫ K, (K.chromaticNumber.toNat : ℝ)
+                  ∂(SimpleGraph.binomialRandom (Fin n) p)|}
+      ≤ 2 * Real.exp (-2 * lam ^ 2) := by
+  classical
+  have hb : IsProbabilityMeasure ((toNNReal p) • Measure.dirac True
+      + (toNNReal (σ p)) • Measure.dirac False) := ⟨by simp⟩
+  have hpr : ∀ i : Fin n, IsProbabilityMeasure (exposureMeasure n p i) := fun i =>
+    inferInstanceAs (IsProbabilityMeasure (Measure.pi fun _ : {j : Fin n // j < i} =>
+      (toNNReal p) • Measure.dirac True + (toNNReal (σ p)) • Measure.dirac False))
+  -- `SimpleGraph (Fin n)` is countable with measurable singletons, hence discrete: the event
+  -- and the chromatic number are measurable there.
+  have hcount : Countable (SimpleGraph (Fin n)) := SimpleGraph.adj_injective.countable
+  have hsingle : MeasurableSingletonClass (SimpleGraph (Fin n)) :=
+    ⟨measurableSet_simpleGraph_singleton⟩
+  have hchi : Measurable fun G : SimpleGraph (Fin n) => (G.chromaticNumber.toNat : ℝ) :=
+    Measurable.of_discrete
+  have hf : Measurable fun x : ∀ i : Fin n, ExposureBlock n i =>
+      ((graphOfExposure x).chromaticNumber.toNat : ℝ) :=
+    hchi.comp measurable_graphOfExposure_blocks
+  have hn1 : (0 : ℝ) < (n : ℝ) - 1 := by
+    have h2 : (2 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn
+    linarith
+  have hcsum : ∑ i : Fin n, (if (i : ℕ) = 0 then (0 : ℝ) else 1) ^ 2 = (n : ℝ) - 1 :=
+    sum_sq_exposureWeight n (by omega)
+  have hsum : 0 < ∑ i : Fin n, (if (i : ℕ) = 0 then (0 : ℝ) else 1) ^ 2 := hcsum ▸ hn1
+  have hlam' : 0 ≤ lam * Real.sqrt ((n : ℝ) - 1) := mul_nonneg hlam (Real.sqrt_nonneg _)
+  -- Move the event and the mean to the vertex-exposure product.
+  have hstep : (SimpleGraph.binomialRandom (Fin n) p).real
+      {G : SimpleGraph (Fin n) | lam * Real.sqrt ((n : ℝ) - 1)
+        ≤ |(G.chromaticNumber.toNat : ℝ)
+            - ∫ K, (K.chromaticNumber.toNat : ℝ)
+                ∂(SimpleGraph.binomialRandom (Fin n) p)|}
+      = (Measure.pi (exposureMeasure n p)).real
+          {x | lam * Real.sqrt ((n : ℝ) - 1)
+            ≤ |((graphOfExposure x).chromaticNumber.toNat : ℝ)
+                - ∫ y, ((graphOfExposure y).chromaticNumber.toNat : ℝ)
+                    ∂(Measure.pi (exposureMeasure n p))|} := by
+    rw [binomialRandom_eq_map_graphOfExposure n p,
+      integral_map measurable_graphOfExposure_blocks.aemeasurable hchi.aestronglyMeasurable,
+      map_measureReal_apply measurable_graphOfExposure_blocks MeasurableSet.of_discrete,
+      Set.preimage_ofPred_eq]
+  rw [hstep]
+  -- The bounded differences inequality, two-sided, at radius `lam √(n-1)`.
+  have hmain := measure_abs_sub_integral_ge_le (exposureMeasure n p)
+    (fun x => ((graphOfExposure x).chromaticNumber.toNat : ℝ))
+    (fun i : Fin n => if (i : ℕ) = 0 then (0 : ℝ) else 1) hf
+    (fun i x y h => abs_sub_chromaticNumber_graphOfExposure_le i x y h) hsum hlam'
+  -- `∑ i, c i ^ 2 = n - 1` cancels the radius: the bound is `exp (-2 lam ^ 2)`.
+  have hexp : -2 * (lam * Real.sqrt ((n : ℝ) - 1)) ^ 2
+      / ∑ i : Fin n, (if (i : ℕ) = 0 then (0 : ℝ) else 1) ^ 2 = -2 * lam ^ 2 := by
+    rw [hcsum, mul_pow, Real.sq_sqrt hn1.le]
+    field_simp
+  rw [hexp] at hmain
+  exact hmain
+
+end VertexExposure
 
 end ProbMethodCombinatorics

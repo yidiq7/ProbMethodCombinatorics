@@ -49,7 +49,12 @@ idempotent, so `Var X i ≤ 𝔼 X i`), and bound each remaining term by `ℙ(A 
 
 ## Planned, not stated
 
-- **`triangle_threshold`** — Proposition 4.1.2 and Theorem 4.1.11: `1/n` is the threshold
+- ~~**`triangle_threshold`**~~ — **stated 2026-09-17**, in both halves:
+  `prob_no_triangle_of_mul_le` (proved, #183) and `prob_triangle_of_le_mul` (#189), on the back of
+  `triangleCount` and its two moments.  The note below is kept because its diagnosis was right —
+  what §4.1 needed was a triangle count and a settled `whp` idiom, and both now exist.
+
+- **Proposition 4.1.2 and Theorem 4.1.11 as originally scoped**: `1/n` is the threshold
   for `G(n,p)` to contain a triangle.  **Assessed 2026-09-15: §4.1's non-asymptotic content is
   already complete.**  Corollary 4.1.7 *is* the proved `prob_eq_zero_le_variance_div_sq`,
   Chebyshev (4.1.5) is upstream as `meas_ge_le_variance_div_sq`, and Definition 4.1.3 is
@@ -58,10 +63,36 @@ idempotent, so `Var X i ≤ 𝔼 X i`), and bound each remaining term by `ℙ(A 
   variable over `binomialRandom` (an orchestrator-authored definition) and a settled `whp`
   idiom.  The natural first nodes are then the two finite moment computations,
   `𝔼X = binom(n,3) p³` and the variance bound; those are publishable the moment the count
-  exists.
+  exists.  **Both are stated and published as of 2026-09-17** — `integral_triangleCount` (#181)
+  and `variance_triangleCount_le` (#182) — on the back of `triangleCount`, authored centrally.
+
+  **`triangleCount` is written with `Set.indicator`, not a clique filter**, and that is forced:
+  the measure ranges over *all* graphs on `Fin n`, where no `DecidableRel G.Adj` is available,
+  and this project declares no `Decidable` instances.  The same expression is therefore both the
+  random variable and, integrated, the expected count.  Sanity-checked before publishing — the
+  empty graph on three vertices has count `0`.
+
+  What remains for the threshold itself is the **`whp` idiom**, which is still unsettled and is
+  the last blocker on §4.1, §4.2 and Theorem 11.1.5 alike.
 - **`subgraph_threshold`** — Theorem 4.2.10 (Bollobás 1981): `n^{-1/m(H)}` is the
   threshold for containing a fixed `H`, where `m(H)` is the maximum edge-vertex ratio over
-  subgraphs. Needs Definition 4.2.7 (`ρ`, `m`) as shared definitions first.
+  subgraphs.  **Definition 4.2.7 is authored as of 2026-09-17** — `edgeVertexRatio` (`ρ`) and
+  `maxEdgeVertexRatio` (`m`) — together with `copyCount`, the labelled-copy count the threshold
+  is stated against, and its first moment `integral_copyCount` (#195).
+
+  **`m(H)` maximises over vertex subsets, not over `SimpleGraph.Subgraph`, and that is an
+  equality rather than a simplification.**  Within a fixed vertex set, adding an edge raises
+  `e_{H'}` and leaves `v_{H'}` alone, so the densest subgraph on a given vertex set is the
+  induced one; and every subgraph has a vertex set.  Choosing subsets keeps the definition free
+  of `Subgraph` finiteness instances and of any `Decidable` hypothesis — `Set.ncard` needs
+  neither.  Verified against Example 4.2.8 before committing: for `K₄` with a pendant edge the
+  definition returns `ρ(H) = 7/5` and `m(H) = 3/2`, which is what the source states, and the
+  maximum over *all* subgraphs was computed separately and agrees.
+
+  What remains for the threshold itself is the second moment — `Δ*` of Setup 4.2.2 — and then
+  the two halves in the `whp` idiom, with the 0-statement running on the densest subgraph `H'`
+  rather than on `H` (Example 4.2.6 is the reason: the first moment of `H` alone gives the wrong
+  answer, `n^{-5/7}` instead of `n^{-2/3}`).
 - **`clique_number`** — §4.4, the clique number of a random graph.
 - **`hardy_ramanujan`** — §4.5. **Blocked on Mertens' theorem, which Mathlib does not have.**
   The earlier note here said the statement is expressible — `ArithmeticFunction.cardDistinctFactors`
