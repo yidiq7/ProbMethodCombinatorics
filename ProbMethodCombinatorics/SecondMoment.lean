@@ -527,6 +527,61 @@ theorem variance_triangleCount_le (n : ℕ) (p : I) :
       ≤ (n : ℝ) ^ 3 * (p : ℝ) ^ 3 + (n : ℝ) ^ 4 * (p : ℝ) ^ 5 := by
   sorry
 
+
+/-- The event that every pair of distinct vertices of `T` is an edge: an intersection over the
+finitely many pairs drawn from `T` of the events `Adj a b`, each of which is measurable because
+the σ-algebra on `SimpleGraph V` is pulled back along `Adj`. -/
+private lemma measurableSet_setOf_forall_adj {n : ℕ} (T : Finset (Fin n)) :
+    MeasurableSet {H : SimpleGraph (Fin n) | ∀ a ∈ T, ∀ b ∈ T, a ≠ b → H.Adj a b} := by
+  have hrw : {H : SimpleGraph (Fin n) | ∀ a ∈ T, ∀ b ∈ T, a ≠ b → H.Adj a b}
+      = ⋂ a ∈ T, ⋂ b ∈ T, {H : SimpleGraph (Fin n) | a ≠ b → H.Adj a b} := by
+    ext H; simp
+  rw [hrw]
+  refine T.measurableSet_biInter fun a _ => T.measurableSet_biInter fun b _ => ?_
+  by_cases hab : a = b
+  · simp [hab]
+  · have hset : {H : SimpleGraph (Fin n) | a ≠ b → H.Adj a b}
+        = {H : SimpleGraph (Fin n) | H.Adj a b} := by
+      ext H; simp [hab]
+    rw [hset]
+    measurability
+
+/-- `triangleCount` is measurable: a finite sum of indicators of measurable events. -/
+private lemma measurable_triangleCount {n : ℕ} :
+    Measurable (triangleCount : SimpleGraph (Fin n) → ℝ) := by
+  unfold triangleCount
+  exact Finset.measurable_sum _ fun T _ =>
+    measurable_const.indicator (measurableSet_setOf_forall_adj T)
+
+/-- `triangleCount` is integrable under `G(n, p)`: a finite sum of indicators of measurable
+events under a probability measure. -/
+private lemma integrable_triangleCount {n : ℕ} (p : I) :
+    Integrable (triangleCount : SimpleGraph (Fin n) → ℝ) (binomialRandom (Fin n) p) := by
+  unfold triangleCount
+  exact integrable_finsetSum _ fun T _ =>
+    (integrable_const (1 : ℝ)).indicator (measurableSet_setOf_forall_adj T)
+
+/-- Every summand of `triangleCount` is an indicator, hence nonnegative. -/
+private lemma triangleCount_nonneg {n : ℕ} (G : SimpleGraph (Fin n)) : 0 ≤ triangleCount G :=
+  Finset.sum_nonneg fun _ _ => Set.indicator_nonneg (fun _ _ => zero_le_one) G
+
+/-- `triangleCount` takes no value strictly between `0` and `1`: a nonzero value means some
+summand is the indicator value `1`, and the remaining summands are nonnegative.
+
+This is the integrality that turns Markov's inequality into a bound on `ℙ(X ≠ 0)`. -/
+private lemma one_le_triangleCount_of_ne_zero {n : ℕ} {G : SimpleGraph (Fin n)}
+    (h : triangleCount G ≠ 0) : 1 ≤ triangleCount G := by
+  rw [triangleCount] at h ⊢
+  obtain ⟨T, hT, hne⟩ := Finset.exists_ne_zero_of_sum_ne_zero h
+  have hmem : G ∈ {H : SimpleGraph (Fin n) | ∀ a ∈ T, ∀ b ∈ T, a ≠ b → H.Adj a b} := by
+    by_contra hc
+    exact hne (Set.indicator_of_notMem hc _)
+  calc (1 : ℝ) = _ := (Set.indicator_of_mem hmem (fun _ => (1 : ℝ))).symm
+    _ ≤ _ := Finset.single_le_sum
+        (f := fun T : Finset (Fin n) =>
+          ({H : SimpleGraph (Fin n) | ∀ a ∈ T, ∀ b ∈ T, a ≠ b → H.Adj a b}).indicator
+            (fun _ => (1 : ℝ)) G)
+        (fun _ _ => Set.indicator_nonneg (fun _ _ => zero_le_one) G) hT
 /-- **The subcritical half of the triangle threshold** (Zhao, Proposition 4.1.2): when `p·n` is
 small, `G(n, p)` has no triangle with high probability.
 
@@ -545,6 +600,49 @@ error `36/(n³p³) + 36/(n²p)` only vanishes once `n` is large as well — it w
 theorem prob_no_triangle_of_mul_le :
     ∀ ε : ℝ, 0 < ε → ∃ δ > 0, ∀ (n : ℕ) (p : I), (p : ℝ) * n ≤ δ →
       1 - ε ≤ (binomialRandom (Fin n) p {G | triangleCount G = 0}).toReal := by
-  sorry
+  intro ε hε
+  refine ⟨min 1 ε, lt_min one_pos hε, fun n p hpn => ?_⟩
+  set μ := binomialRandom (Fin n) p with hμ
+  set S : Set (SimpleGraph (Fin n)) := {G | triangleCount G = 0} with hSdef
+  have hmeasS : MeasurableSet S := measurable_triangleCount (measurableSet_singleton 0)
+  -- Markov: `triangleCount` dominates the indicator of `{X ≠ 0}`, since it is nonnegative and
+  -- at least `1` wherever it is nonzero.
+  have hmark : μ.real Sᶜ ≤ ∫ G, triangleCount G ∂μ := by
+    have hle : ∀ G, Sᶜ.indicator (fun _ => (1 : ℝ)) G ≤ triangleCount G := by
+      intro G
+      by_cases hG : G ∈ Sᶜ
+      · rw [Set.indicator_of_mem hG]
+        exact one_le_triangleCount_of_ne_zero hG
+      · rw [Set.indicator_of_notMem hG]
+        exact triangleCount_nonneg G
+    have h := integral_mono ((integrable_const (1 : ℝ)).indicator hmeasS.compl)
+      (integrable_triangleCount p) hle
+    rwa [integral_indicator_const _ hmeasS.compl, smul_eq_mul, mul_one] at h
+  have hp0 : (0 : ℝ) ≤ (p : ℝ) := p.2.1
+  -- `𝔼X = binom(n,3) p³ ≤ (p·n)³/6 ≤ δ³/6 ≤ ε`, uniformly in `n`.
+  have hexp : ∫ G, triangleCount G ∂μ ≤ ε := by
+    rw [hμ, integral_triangleCount n p]
+    have hchoose : (n.choose 3 : ℝ) ≤ (n : ℝ) ^ 3 / 6 := by
+      have := Nat.choose_le_pow_div (α := ℝ) 3 n
+      norm_num [Nat.factorial] at this ⊢
+      linarith
+    have hpn0 : (0 : ℝ) ≤ (p : ℝ) * n := by positivity
+    have h1 : (n.choose 3 : ℝ) * (p : ℝ) ^ 3 ≤ ((p : ℝ) * n) ^ 3 / 6 := by
+      have := mul_le_mul_of_nonneg_right hchoose (pow_nonneg hp0 3)
+      nlinarith only [this]
+    have h2 : ((p : ℝ) * n) ^ 3 ≤ min 1 ε ^ 3 := pow_le_pow_left₀ hpn0 hpn 3
+    have h3 : min 1 ε ^ 3 ≤ ε := by
+      have ha : min 1 ε ≤ 1 := min_le_left _ _
+      have hb : min 1 ε ≤ ε := min_le_right _ _
+      have hc : (0 : ℝ) < min 1 ε := lt_min one_pos hε
+      have hkey : (0 : ℝ) ≤ min 1 ε * (1 - min 1 ε) * (1 + min 1 ε) :=
+        mul_nonneg (mul_nonneg hc.le (by linarith)) (by linarith)
+      linarith only [hkey, hb]
+    linarith
+  have hcompl : μ.real Sᶜ = 1 - μ.real S := probReal_compl_eq_one_sub hmeasS
+  have hfinal : 1 - μ.real S ≤ ε := by rw [← hcompl]; linarith
+  rw [hSdef] at hfinal
+  simp only [measureReal_def] at hfinal
+  linarith
 
 end ProbMethodCombinatorics
