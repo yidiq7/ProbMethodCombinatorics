@@ -24,6 +24,69 @@ open Finset MeasureTheory ProbabilityTheory unitInterval SimpleGraph
 
 variable {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
 
+/-! ### A finite sum of indicators
+
+Both counting random variables in this file — `triangleCount` and `copyCount` — are finite sums
+of `Set.indicator … (fun _ => 1)`.  The four facts each of them needs are facts about that shape
+alone, so they are stated once here and the specialisations below are one-liners.
+
+The definitions are *not* unified: `triangleCount` sums over vertex triples and `copyCount` over
+injective labellings, and both appear in published statements.  Only the arguments are shared.
+-/
+
+section IndicatorSum
+
+variable {α : Type*} {ι : Type*}
+
+theorem sum_indicator_one_nonneg (s : Finset ι) (E : ι → Set α) (x : α) :
+    0 ≤ ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x :=
+  Finset.sum_nonneg fun _ _ => Set.indicator_nonneg (fun _ _ => zero_le_one) x
+
+/-- A finite sum of indicators takes no value strictly between `0` and `1`: if it is nonzero then
+some summand is `1`, and the rest are nonnegative.
+
+This is the integrality that turns Markov's inequality into a bound on `ℙ(X ≠ 0)`. -/
+theorem one_le_sum_indicator_one_of_ne_zero {s : Finset ι} {E : ι → Set α} {x : α}
+    (h : ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x ≠ 0) :
+    1 ≤ ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x := by
+  obtain ⟨i, hi, hne⟩ := Finset.exists_ne_zero_of_sum_ne_zero h
+  have hmem : x ∈ E i := by
+    by_contra hc
+    exact hne (Set.indicator_of_notMem hc _)
+  calc (1 : ℝ) = _ := (Set.indicator_of_mem hmem (fun _ => (1 : ℝ))).symm
+    _ ≤ _ := Finset.single_le_sum
+        (f := fun i => (E i).indicator (fun _ => (1 : ℝ)) x)
+        (fun _ _ => Set.indicator_nonneg (fun _ _ => zero_le_one) x) hi
+
+variable [MeasurableSpace α]
+
+theorem measurable_sum_indicator_one {s : Finset ι} {E : ι → Set α}
+    (hE : ∀ i ∈ s, MeasurableSet (E i)) :
+    Measurable fun x => ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x :=
+  Finset.measurable_sum _ fun i hi => measurable_const.indicator (hE i hi)
+
+theorem integrable_sum_indicator_one {μ : Measure α} [IsFiniteMeasure μ] {s : Finset ι}
+    {E : ι → Set α} (hE : ∀ i ∈ s, MeasurableSet (E i)) :
+    Integrable (fun x => ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x) μ :=
+  integrable_finsetSum _ fun i hi => (integrable_const (1 : ℝ)).indicator (hE i hi)
+
+theorem memLp_sum_indicator_one {μ : Measure α} [IsFiniteMeasure μ] {s : Finset ι}
+    {E : ι → Set α} (hE : ∀ i ∈ s, MeasurableSet (E i)) :
+    MemLp (fun x => ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x) 2 μ :=
+  memLp_finsetSum _ fun i hi =>
+    memLp_indicator_const 2 (hE i hi) 1 (Or.inr (measure_ne_top μ _))
+
+/-- The mean of a finite sum of indicators is the sum of the event probabilities. -/
+theorem integral_sum_indicator_one {μ : Measure α} [IsFiniteMeasure μ] {s : Finset ι}
+    {E : ι → Set α} (hE : ∀ i ∈ s, MeasurableSet (E i)) :
+    μ[fun x => ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x] = ∑ i ∈ s, (μ (E i)).toReal := by
+  rw [MeasureTheory.integral_finsetSum _ fun i hi =>
+    (integrable_const (1 : ℝ)).indicator (hE i hi)]
+  exact Finset.sum_congr rfl fun i hi => by
+    rw [integral_indicator_const _ (hE i hi), smul_eq_mul, mul_one, measureReal_def]
+
+end IndicatorSum
+
 /-- **Chebyshev bound on the probability of non-existence** (Zhao, Corollary 4.1.7): for any
 random variable `X`, `ℙ(X = 0) ≤ Var X / (𝔼 X) ^ 2`.
 
@@ -410,7 +473,16 @@ theorem prob_sum_indicator_eq_zero_le [IsProbabilityMeasure μ] {ι : Type*} [Fi
     (μ {ω | ∑ i, (A i).indicator (fun _ => (1 : ℝ)) ω = 0}).toReal
       ≤ ((∑ i, (μ (A i)).toReal) + ∑ q ∈ D, (μ (A q.1 ∩ A q.2)).toReal)
           / (∑ i, (μ (A i)).toReal) ^ 2 := by
-  sorry
+  have hmem : MemLp (fun ω => ∑ i, (A i).indicator (fun _ => (1 : ℝ)) ω) 2 μ :=
+    memLp_sum_indicator_one fun i _ => hA i
+  have hint : μ[fun ω => ∑ i, (A i).indicator (fun _ => (1 : ℝ)) ω]
+      = ∑ i, (μ (A i)).toReal := integral_sum_indicator_one fun i _ => hA i
+  -- Chebyshev, with the mean rewritten as `∑ i, ℙ(A i)`.
+  have hcheb := prob_eq_zero_le_variance_div_sq hmem (by rw [hint]; exact hmean)
+  rw [hint] at hcheb
+  -- The variance bound is exactly the claimed numerator, and the denominator is a square.
+  exact hcheb.trans
+    (div_le_div_of_nonneg_right (variance_sum_indicator_le A hA D hD) (sq_nonneg _))
 
 /-! ### §4.1 The triangle count in `G(n, p)` -/
 
@@ -798,68 +870,6 @@ theorem measurableSet_setOf_forall_adj {n : ℕ} (T : Finset (Fin n)) :
     rw [hset]
     measurability
 
-/-! ### A finite sum of indicators
-
-Both counting random variables in this file — `triangleCount` and `copyCount` — are finite sums
-of `Set.indicator … (fun _ => 1)`.  The four facts each of them needs are facts about that shape
-alone, so they are stated once here and the specialisations below are one-liners.
-
-The definitions are *not* unified: `triangleCount` sums over vertex triples and `copyCount` over
-injective labellings, and both appear in published statements.  Only the arguments are shared.
--/
-
-section IndicatorSum
-
-variable {α : Type*} {ι : Type*}
-
-theorem sum_indicator_one_nonneg (s : Finset ι) (E : ι → Set α) (x : α) :
-    0 ≤ ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x :=
-  Finset.sum_nonneg fun _ _ => Set.indicator_nonneg (fun _ _ => zero_le_one) x
-
-/-- A finite sum of indicators takes no value strictly between `0` and `1`: if it is nonzero then
-some summand is `1`, and the rest are nonnegative.
-
-This is the integrality that turns Markov's inequality into a bound on `ℙ(X ≠ 0)`. -/
-theorem one_le_sum_indicator_one_of_ne_zero {s : Finset ι} {E : ι → Set α} {x : α}
-    (h : ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x ≠ 0) :
-    1 ≤ ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x := by
-  obtain ⟨i, hi, hne⟩ := Finset.exists_ne_zero_of_sum_ne_zero h
-  have hmem : x ∈ E i := by
-    by_contra hc
-    exact hne (Set.indicator_of_notMem hc _)
-  calc (1 : ℝ) = _ := (Set.indicator_of_mem hmem (fun _ => (1 : ℝ))).symm
-    _ ≤ _ := Finset.single_le_sum
-        (f := fun i => (E i).indicator (fun _ => (1 : ℝ)) x)
-        (fun _ _ => Set.indicator_nonneg (fun _ _ => zero_le_one) x) hi
-
-variable [MeasurableSpace α]
-
-theorem measurable_sum_indicator_one {s : Finset ι} {E : ι → Set α}
-    (hE : ∀ i ∈ s, MeasurableSet (E i)) :
-    Measurable fun x => ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x :=
-  Finset.measurable_sum _ fun i hi => measurable_const.indicator (hE i hi)
-
-theorem integrable_sum_indicator_one {μ : Measure α} [IsFiniteMeasure μ] {s : Finset ι}
-    {E : ι → Set α} (hE : ∀ i ∈ s, MeasurableSet (E i)) :
-    Integrable (fun x => ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x) μ :=
-  integrable_finsetSum _ fun i hi => (integrable_const (1 : ℝ)).indicator (hE i hi)
-
-theorem memLp_sum_indicator_one {μ : Measure α} [IsFiniteMeasure μ] {s : Finset ι}
-    {E : ι → Set α} (hE : ∀ i ∈ s, MeasurableSet (E i)) :
-    MemLp (fun x => ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x) 2 μ :=
-  memLp_finsetSum _ fun i hi =>
-    memLp_indicator_const 2 (hE i hi) 1 (Or.inr (measure_ne_top μ _))
-
-/-- The mean of a finite sum of indicators is the sum of the event probabilities. -/
-theorem integral_sum_indicator_one {μ : Measure α} [IsFiniteMeasure μ] {s : Finset ι}
-    {E : ι → Set α} (hE : ∀ i ∈ s, MeasurableSet (E i)) :
-    μ[fun x => ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x] = ∑ i ∈ s, (μ (E i)).toReal := by
-  rw [MeasureTheory.integral_finsetSum _ fun i hi =>
-    (integrable_const (1 : ℝ)).indicator (hE i hi)]
-  exact Finset.sum_congr rfl fun i hi => by
-    rw [integral_indicator_const _ (hE i hi), smul_eq_mul, mul_one, measureReal_def]
-
-end IndicatorSum
 
 /-- `triangleCount` is measurable: a finite sum of indicators of measurable events. -/
 private lemma measurable_triangleCount {n : ℕ} :
@@ -1226,6 +1236,37 @@ separate node.  §8.3 uses the same bound in its exponential form. -/
 theorem prob_not_cliqueFree_le (n k : ℕ) (p : I) :
     (binomialRandom (Fin n) p).real {G : SimpleGraph (Fin n) | ¬ G.CliqueFree k}
       ≤ (n.choose k : ℝ) * (p : ℝ) ^ k.choose 2 := by
-  sorry
+  -- A `k`-subset spans `binom(k,2)` pairs of distinct vertices.
+  have hcard : ∀ S ∈ (univ : Finset (Fin n)).powersetCard k,
+      (offDiagPairs S).card = k.choose 2 := by
+    intro S hS
+    have h := card_offDiagPairs_add S
+    rw [(Finset.mem_powersetCard.1 hS).2, Nat.choose_succ_succ', Nat.choose_one_right] at h
+    simp only [Nat.reduceAdd] at h
+    omega
+  -- A graph with a `k`-clique lies in the event indexed by that clique's vertex set.
+  have hsub : {G : SimpleGraph (Fin n) | ¬ G.CliqueFree k}
+      ⊆ ⋃ S ∈ (univ : Finset (Fin n)).powersetCard k,
+          {G : SimpleGraph (Fin n) | ↑(offDiagPairs S) ⊆ G.edgeSet} := by
+    intro G hG
+    obtain ⟨S, hS⟩ : ∃ S, G.IsNClique k S := by
+      by_contra h
+      exact hG fun t ht => h ⟨t, ht⟩
+    refine Set.mem_iUnion₂.2 ⟨S, Finset.mem_powersetCard.2 ⟨Finset.subset_univ _, hS.2⟩, ?_⟩
+    rw [← setOf_forall_adj_eq_setOf_offDiagPairs]
+    exact fun a ha b hb hab => hS.1 ha hb hab
+  calc (binomialRandom (Fin n) p).real {G : SimpleGraph (Fin n) | ¬ G.CliqueFree k}
+      ≤ (binomialRandom (Fin n) p).real (⋃ S ∈ (univ : Finset (Fin n)).powersetCard k,
+          {G : SimpleGraph (Fin n) | ↑(offDiagPairs S) ⊆ G.edgeSet}) :=
+        measureReal_mono hsub (measure_ne_top _ _)
+    _ ≤ ∑ S ∈ (univ : Finset (Fin n)).powersetCard k, (binomialRandom (Fin n) p).real
+          {G : SimpleGraph (Fin n) | ↑(offDiagPairs S) ⊆ G.edgeSet} :=
+        measureReal_biUnion_finset_le _ _
+    _ = (n.choose k : ℝ) * (p : ℝ) ^ k.choose 2 := by
+        rw [Finset.sum_congr rfl fun S hS => ?_, Finset.sum_const, nsmul_eq_mul,
+          Finset.card_powersetCard, Finset.card_univ, Fintype.card_fin]
+        rw [Measure.real, binomialRandom_setOf_subset_edgeSet p _
+          fun _ he => not_isDiag_of_mem_offDiagPairs he, hcard S hS, ENNReal.toReal_pow,
+          ENNReal.coe_toReal, unitInterval.coe_toNNReal]
 
 end ProbMethodCombinatorics
