@@ -378,6 +378,30 @@ theorem card_sumFreeWindow (p : ℕ) [NeZero p] (h3 : ¬ (3 ∣ p)) :
   rw [Nat.card_Ioc] at key
   omega
 
+/-- **Large sum-free subsets** (Zhao, Theorem 2.2.1; Erdős 1965): every finite set of nonzero
+integers has a sum-free subset of at least a third of its size.
+
+Stated as `A.card ≤ 3 * B.card` to stay in `ℕ`, as the rest of Chapter 2 does.
+
+**Proof by finite averaging, not by the source's `{aθ}` argument.**  Choose a prime `p` larger
+than every `|a|` and larger than `3`, so that every `a ∈ A` is a unit mod `p`.  For each
+`x ∈ ZMod p` with `x ≠ 0` set `A x = {a ∈ A | a * x ∈ sumFreeWindow p}`.  Summing over the `p - 1`
+nonzero `x` and exchanging the order of summation gives `∑ x, #(A x) = #A * #(sumFreeWindow p)`,
+because `x ↦ a * x` permutes the nonzero residues for each fixed `a`.  So some `x` attains
+`(p - 1) * #(A x) ≥ #A * #(sumFreeWindow p)`, and `card_sumFreeWindow` turns that into
+`#A ≤ 3 * #(A x)`.  Each `A x` is sum-free because `a + b = c` in `ℤ` would send three elements of
+`sumFreeWindow p` to a violation of `isSumFree_sumFreeWindow`.
+
+The source's proof takes `θ` uniform in `[0,1]` and keeps the `a` with `{aθ} ∈ (1/3, 2/3)`.  That
+route needs the equidistribution of `{aθ}` for nonzero integer `a`, which Mathlib does not have,
+and it would import measure theory into a chapter that has none.  Erdős' theorem needs only that
+some prime exceeds a bound — `Nat.exists_infinite_primes` — and **not** Dirichlet's theorem on
+primes in arithmetic progressions, contrary to what this project's roadmap recorded until
+2026-09-17. -/
+theorem exists_sumFree_subset (A : Finset ℤ) (h0 : (0 : ℤ) ∉ A) :
+    ∃ B ⊆ A, IsSumFree (↑B : Set ℤ) ∧ A.card ≤ 3 * B.card := by
+  sorry
+
 /-! ### §2.4 Bounding by sampling -/
 
 /-- Every 3-element `e` lies in at least `n - 3` of the 4-element subsets of `Fin n`:
