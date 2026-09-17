@@ -2198,6 +2198,33 @@ theorem exists_fingerprint_of_dense_pairs (c d : ℝ) (hc : 0 < c) (hd : 0 < d)
       one_div_le_one_div_of_le h4pos (by nlinarith [hM24, sq_nonneg M])
     nlinarith [mul_nonneg (sub_nonneg.mpr hle) hnR.le]
 
+/-- **A dense 3-uniform hypergraph has no large independent set**: every `I` containing no edge of
+`H` satisfies `|I| ≤ n - 2d/(3n)`, where `d` is the average degree, `3|H| = d·n`.
+
+Every edge meets `Fin n \ I`, and a set of size `k` lies in at most `k · binom(n-1,2)` triples, so
+`d·n/3 = |H| ≤ (n - |I|) · n²/2`.
+
+**This is the necessary half of §11.3's open corner.**  The held
+`exists_containers_fingerprint_three_uniform` asks for containers missing a `δ` fraction of the
+vertices, and a container has to hold an entire independent set, so its conclusion is possible
+only if every independent set already misses `δn` vertices.  Read against this bound that is
+exactly `d ≥ (3/2) δ n²`, which the dense regime `d > n²/4` satisfies for every `δ ≤ 1/6`.
+
+So the corner's conclusion is **not** obstructed by some maximal independent set being too large,
+which was the first thing to rule out.  What remains is the *assignment* problem: with a
+one-vertex fingerprint budget the `n + 1` containers must be chosen so that each still misses
+`δn` vertices, and that is a degree-balancing question about the maximal independent sets rather
+than a counting one.  Checked by hand on two families — complete 3-uniform `H`, and all triples
+inside a half-sized set — and in both a regular tournament orientation of the conflicts works.
+Still open in general.
+
+At `n = 0` both sides are `0`. -/
+theorem card_le_of_forall_not_subset {n : ℕ} (H : Finset (Finset (Fin n))) (d : ℝ)
+    (h3 : ∀ e ∈ H, e.card = 3) (hd : 3 * (H.card : ℝ) = d * n)
+    (I : Finset (Fin n)) (hI : ∀ e ∈ H, ¬ e ⊆ I) :
+    (I.card : ℝ) ≤ (n : ℝ) - 2 * d / (3 * n) := by
+  sorry
+
 /-- **The container theorem for 3-uniform hypergraphs, with fingerprints** (the fingerprint form
 of Zhao, Theorem 11.3.1).  This is to Theorem 11.3.1 what `exists_containers_fingerprint` is to
 `exists_containers`: the refinement that the applications actually need, and — despite being
