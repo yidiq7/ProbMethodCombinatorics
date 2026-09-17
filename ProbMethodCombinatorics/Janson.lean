@@ -850,6 +850,27 @@ theorem binomialRandom_no_triangle_le (n : ℕ) (p : I) :
   have hDelta := jansonDelta_triangleFamily_le n p
   linarith
 
+/-- **Theorem 8.1.6**: when `p` is `o(n^{-1/2})`, `G(n, p)` is triangle-free with probability
+`exp (-(1 + o(1)) μ)`, where `μ = binom(n,3) p³`.
+
+Stated in the project's `ε`–`N` idiom rather than with `o(1)`, and in the upper-bound direction —
+the one Janson supplies.  Given `ε > 0` there are `δ > 0` and `N` such that `p √n ≤ δ` and
+`N ≤ n` force `ℙ(triangle-free) ≤ exp (-(1 - ε) μ)`.
+
+**The witnesses are `δ = √(ε/6)` and `N = 6`, and both are tight.**  From
+`binomialRandom_no_triangle_le` the exponent is `-μ + Δ/2` with `Δ ≤ n⁴p⁵`, so what is needed is
+`n⁴p⁵/2 ≤ ε μ`.  Using `n³/12 ≤ binom(n,3)` — which holds from `n = 6` and fails at `n = 5`,
+exactly as in `prob_triangle_of_le_mul` — that reduces to `n p² ≤ ε/6`, and `n p² = (p √n)²`.
+Sampling the inequality at the boundary leaves no slack: the constant `6` is forced, not chosen. -/
+theorem prob_no_triangle_le_of_mul_sqrt_le :
+    ∀ ε : ℝ, 0 < ε → ∃ δ > 0, ∃ N : ℕ, ∀ n : ℕ, N ≤ n → ∀ p : I,
+      (p : ℝ) * Real.sqrt n ≤ δ →
+        (SimpleGraph.binomialRandom (Fin n) p).real
+            {G : SimpleGraph (Fin n) | ∀ T : {T : Finset (Fin n) // T.card = 3},
+              ¬ (↑(offDiagPairs (T : Finset (Fin n))) ⊆ G.edgeSet)}
+          ≤ Real.exp (-(1 - ε) * ((n.choose 3 : ℝ) * (p : ℝ) ^ 3)) := by
+  sorry
+
 /-- The binomial weight of the subsets of `s` containing a fixed `K` sums to `q ^ #K`. -/
 private theorem sum_powerset_weight_eq {α : Type*} [DecidableEq α] (q : ℝ) (s K : Finset α)
     (hK : K ⊆ s) :
