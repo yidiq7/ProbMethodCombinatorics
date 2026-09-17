@@ -1226,6 +1226,37 @@ separate node.  §8.3 uses the same bound in its exponential form. -/
 theorem prob_not_cliqueFree_le (n k : ℕ) (p : I) :
     (binomialRandom (Fin n) p).real {G : SimpleGraph (Fin n) | ¬ G.CliqueFree k}
       ≤ (n.choose k : ℝ) * (p : ℝ) ^ k.choose 2 := by
-  sorry
+  -- A `k`-subset spans `binom(k,2)` pairs of distinct vertices.
+  have hcard : ∀ S ∈ (univ : Finset (Fin n)).powersetCard k,
+      (offDiagPairs S).card = k.choose 2 := by
+    intro S hS
+    have h := card_offDiagPairs_add S
+    rw [(Finset.mem_powersetCard.1 hS).2, Nat.choose_succ_succ', Nat.choose_one_right] at h
+    simp only [Nat.reduceAdd] at h
+    omega
+  -- A graph with a `k`-clique lies in the event indexed by that clique's vertex set.
+  have hsub : {G : SimpleGraph (Fin n) | ¬ G.CliqueFree k}
+      ⊆ ⋃ S ∈ (univ : Finset (Fin n)).powersetCard k,
+          {G : SimpleGraph (Fin n) | ↑(offDiagPairs S) ⊆ G.edgeSet} := by
+    intro G hG
+    obtain ⟨S, hS⟩ : ∃ S, G.IsNClique k S := by
+      by_contra h
+      exact hG fun t ht => h ⟨t, ht⟩
+    refine Set.mem_iUnion₂.2 ⟨S, Finset.mem_powersetCard.2 ⟨Finset.subset_univ _, hS.2⟩, ?_⟩
+    rw [← setOf_forall_adj_eq_setOf_offDiagPairs]
+    exact fun a ha b hb hab => hS.1 ha hb hab
+  calc (binomialRandom (Fin n) p).real {G : SimpleGraph (Fin n) | ¬ G.CliqueFree k}
+      ≤ (binomialRandom (Fin n) p).real (⋃ S ∈ (univ : Finset (Fin n)).powersetCard k,
+          {G : SimpleGraph (Fin n) | ↑(offDiagPairs S) ⊆ G.edgeSet}) :=
+        measureReal_mono hsub (measure_ne_top _ _)
+    _ ≤ ∑ S ∈ (univ : Finset (Fin n)).powersetCard k, (binomialRandom (Fin n) p).real
+          {G : SimpleGraph (Fin n) | ↑(offDiagPairs S) ⊆ G.edgeSet} :=
+        measureReal_biUnion_finset_le _ _
+    _ = (n.choose k : ℝ) * (p : ℝ) ^ k.choose 2 := by
+        rw [Finset.sum_congr rfl fun S hS => ?_, Finset.sum_const, nsmul_eq_mul,
+          Finset.card_powersetCard, Finset.card_univ, Fintype.card_fin]
+        rw [Measure.real, binomialRandom_setOf_subset_edgeSet p _
+          fun _ he => not_isDiag_of_mem_offDiagPairs he, hcard S hS, ENNReal.toReal_pow,
+          ENNReal.coe_toReal, unitInterval.coe_toNNReal]
 
 end ProbMethodCombinatorics
