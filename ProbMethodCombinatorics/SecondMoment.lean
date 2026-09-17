@@ -1076,6 +1076,44 @@ theorem integral_copyCount (H : SimpleGraph V) [DecidableRel H.Adj] (n : ℕ) (p
   rw [MeasureTheory.integral_indicator_const _ (key f hf).1, Measure.real, (key f hf).2,
     smul_eq_mul, mul_one, ENNReal.toReal_pow, ENNReal.coe_toReal, unitInterval.coe_toNNReal]
 
+/-- `copyCount` is measurable: a finite sum of indicators of measurable events. -/
+private lemma measurable_copyCount (H : SimpleGraph V) [DecidableRel H.Adj] {n : ℕ} :
+    Measurable fun G : SimpleGraph (Fin n) => copyCount H G := by
+  unfold copyCount
+  exact Finset.measurable_sum _ fun f _ =>
+    measurable_const.indicator (measurableSet_setOf_subset_edgeSet _)
+
+/-- `copyCount` is integrable under `G(n, p)`: a finite sum of indicators of measurable events
+under a probability measure. -/
+private lemma integrable_copyCount (H : SimpleGraph V) [DecidableRel H.Adj] {n : ℕ} (p : I) :
+    Integrable (fun G : SimpleGraph (Fin n) => copyCount H G) (binomialRandom (Fin n) p) := by
+  unfold copyCount
+  exact integrable_finsetSum _ fun f _ =>
+    (integrable_const (1 : ℝ)).indicator (measurableSet_setOf_subset_edgeSet _)
+
+/-- Every summand of `copyCount` is an indicator, hence nonnegative. -/
+private lemma copyCount_nonneg (H : SimpleGraph V) [DecidableRel H.Adj] {n : ℕ}
+    (G : SimpleGraph (Fin n)) : 0 ≤ copyCount H G :=
+  Finset.sum_nonneg fun _ _ => Set.indicator_nonneg (fun _ _ => zero_le_one) G
+
+/-- `copyCount` takes no value strictly between `0` and `1`: a nonzero value means some summand
+is the indicator value `1`, and the remaining summands are nonnegative.
+
+This is the integrality that turns Markov's inequality into a bound on `ℙ(count ≠ 0)`. -/
+private lemma one_le_copyCount_of_ne_zero (H : SimpleGraph V) [DecidableRel H.Adj] {n : ℕ}
+    {G : SimpleGraph (Fin n)} (h : copyCount H G ≠ 0) : 1 ≤ copyCount H G := by
+  rw [copyCount] at h ⊢
+  obtain ⟨f, hf, hne⟩ := Finset.exists_ne_zero_of_sum_ne_zero h
+  have hmem : G ∈ {K : SimpleGraph (Fin n) | ↑(transportedEdges H f) ⊆ K.edgeSet} := by
+    by_contra hc
+    exact hne (Set.indicator_of_notMem hc _)
+  calc (1 : ℝ) = _ := (Set.indicator_of_mem hmem (fun _ => (1 : ℝ))).symm
+    _ ≤ _ := Finset.single_le_sum
+        (f := fun f : V → Fin n =>
+          ({K : SimpleGraph (Fin n) | ↑(transportedEdges H f) ⊆ K.edgeSet}).indicator
+            (fun _ => (1 : ℝ)) G)
+        (fun _ _ => Set.indicator_nonneg (fun _ _ => zero_le_one) G) hf
+
 /-- **The 0-statement's engine** (Zhao, §4.2): `G(n, p)` contains a labelled copy of `H` with
 probability at most `n^{\underline{v_H}} p^{e_H}`.
 
@@ -1089,7 +1127,21 @@ against the **densest subgraph** `H'`, which is what `maxEdgeVertexRatio` is for
 theorem prob_copyCount_ne_zero_le (H : SimpleGraph V) [DecidableRel H.Adj] (n : ℕ) (p : I) :
     (binomialRandom (Fin n) p).real {G : SimpleGraph (Fin n) | copyCount H G ≠ 0}
       ≤ (n.descFactorial (Fintype.card V) : ℝ) * (p : ℝ) ^ H.edgeFinset.card := by
-  sorry
+  have hmeas : MeasurableSet {G : SimpleGraph (Fin n) | copyCount H G ≠ 0} :=
+    measurable_copyCount H (measurableSet_singleton (0 : ℝ)).compl
+  -- Markov: `copyCount` dominates the indicator of `{count ≠ 0}`, being nonnegative and at
+  -- least `1` wherever it is nonzero.
+  have hle : ∀ G, ({G : SimpleGraph (Fin n) | copyCount H G ≠ 0}).indicator (fun _ => (1 : ℝ)) G
+      ≤ copyCount H G := by
+    intro G
+    by_cases hG : G ∈ {G : SimpleGraph (Fin n) | copyCount H G ≠ 0}
+    · rw [Set.indicator_of_mem hG]
+      exact one_le_copyCount_of_ne_zero H hG
+    · rw [Set.indicator_of_notMem hG]
+      exact copyCount_nonneg H G
+  have h := integral_mono ((integrable_const (1 : ℝ)).indicator hmeas)
+    (integrable_copyCount H p) hle
+  rwa [integral_indicator_const _ hmeas, smul_eq_mul, mul_one, integral_copyCount H n p] at h
 
 end Subgraphs
 
