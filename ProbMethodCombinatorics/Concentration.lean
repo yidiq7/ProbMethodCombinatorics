@@ -1,5 +1,6 @@
 import Mathlib.Probability.Moments.SubGaussian
 import Mathlib.Probability.Martingale.Basic
+import Mathlib.Combinatorics.SimpleGraph.Coloring.Vertex
 import Mathlib.Probability.Combinatorics.BinomialRandomGraph.Defs
 import Mathlib.MeasureTheory.Constructions.Pi
 
@@ -913,6 +914,26 @@ theorem binomialRandom_eq_map_graphOfExposure (n : ℕ) (p : I) :
   congr 1
   congr 1
   omega
+
+/-- **Rewiring one vertex moves the chromatic number by at most one.**  If `G` and `G'` agree on
+every edge avoiding `v`, then `|χ(G) - χ(G')| ≤ 1`.
+
+Each direction is the same one-line construction: a proper colouring of `G` with `χ(G)` colours
+becomes a proper colouring of `G'` with `χ(G) + 1` by giving `v` a fresh colour.  Every edge of
+`G'` avoiding `v` is an edge of `G` and keeps its old colours; every edge of `G'` at `v` is safe
+because no other vertex wears the new colour.
+
+This is the bounded-differences input to Shamir–Spencer (Theorem 9.3.1), and it is the reason
+that theorem exposes one *vertex* at a time.  The analogous claim for exposing one edge is also
+true but weaker in aggregate: `C(n,2)` coordinates instead of `n - 1`.
+
+`ℕ∞.toNat` sends `⊤` to `0`, which would be a junk value — but `Fin n` is finite, so
+`SimpleGraph.colorable_of_fintype` puts every chromatic number here below `⊤` and the coercion
+is faithful. -/
+theorem abs_sub_chromaticNumber_le_one {n : ℕ} (v : Fin n) (G G' : SimpleGraph (Fin n))
+    (h : ∀ a b : Fin n, a ≠ v → b ≠ v → (G.Adj a b ↔ G'.Adj a b)) :
+    |(G.chromaticNumber.toNat : ℝ) - (G'.chromaticNumber.toNat : ℝ)| ≤ 1 := by
+  sorry
 
 end VertexExposure
 
