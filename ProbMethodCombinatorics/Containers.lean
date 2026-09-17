@@ -1174,6 +1174,46 @@ def IsContainerRound {n : ℕ} (c d : ℝ)
         ≤ (n : ℝ) * ((Ae.filter fun e => pick Av Ae T ∈ e).card : ℝ)
           + (((kill Av Ae (pick Av Ae T)).card : ℝ) + 1) * (c * d))
 
+/-- **A total order on the vertices by decreasing `Ae`-degree, with ties by vertex index.**
+
+Returned as an injective `ℕ`-valued weight `ord` together with a left inverse `decode`, so that
+an order-first selection can be made by `Nat.sInf` over the weights without declaring a
+`Decidable` instance — the device `exists_greedy_rule` uses for the graph case.
+
+**The weight is `n * (Ae.card - deg) + u`, not `exists_greedy_rule`'s `n * (n - deg) + u`.**  A
+hypergraph degree `#{e ∈ Ae | u ∈ e}` can reach `|Ae|`, so subtracting from `n` would truncate to
+`0` and collapse the order.  Subtracting from `Ae.card` instead keeps it injective, and the `% n`
+decode still works because `u < n`.
+
+`0 < n` is needed for `decode` to land in `Fin n` at all, not merely for the order to be
+sensible. -/
+theorem exists_degree_order (n : ℕ) (hn : 0 < n) :
+    ∃ (ord : Finset (Finset (Fin n)) → Fin n → ℕ) (decode : ℕ → Fin n),
+      (∀ (Ae : Finset (Finset (Fin n))) (u : Fin n), decode (ord Ae u) = u) ∧
+      ∀ (Ae : Finset (Finset (Fin n))) (u w : Fin n), ord Ae u ≤ ord Ae w →
+        #{e ∈ Ae | w ∈ e} ≤ #{e ∈ Ae | u ∈ e} := by
+  refine ⟨fun Ae u => n * (Ae.card - #{e ∈ Ae | u ∈ e}) + (u : ℕ),
+    fun m => ⟨m % n, Nat.mod_lt _ hn⟩, ?_, ?_⟩
+  · intro Ae u
+    refine Fin.ext ?_
+    show (n * (Ae.card - #{e ∈ Ae | u ∈ e}) + (u : ℕ)) % n = (u : ℕ)
+    rw [Nat.mul_add_mod, Nat.mod_eq_of_lt u.isLt]
+  · intro Ae u w huw
+    have huw' : n * (Ae.card - #{e ∈ Ae | u ∈ e}) + (u : ℕ)
+        ≤ n * (Ae.card - #{e ∈ Ae | w ∈ e}) + (w : ℕ) := huw
+    by_contra hcon
+    rw [not_le] at hcon
+    have hwn : #{e ∈ Ae | w ∈ e} ≤ Ae.card := Finset.card_filter_le _ _
+    have hstep : Ae.card - #{e ∈ Ae | w ∈ e} + 1 ≤ Ae.card - #{e ∈ Ae | u ∈ e} := by
+      omega
+    have hmul : n * (Ae.card - #{e ∈ Ae | w ∈ e}) + n
+        ≤ n * (Ae.card - #{e ∈ Ae | u ∈ e}) := by
+      calc n * (Ae.card - #{e ∈ Ae | w ∈ e}) + n
+          = n * (Ae.card - #{e ∈ Ae | w ∈ e} + 1) := by ring
+        _ ≤ n * (Ae.card - #{e ∈ Ae | u ∈ e}) := Nat.mul_le_mul le_rfl hstep
+    have hwlt : (w : ℕ) < n := w.isLt
+    omega
+
 /-- A vertex's hypergraph degree is at most `Δ₁`. -/
 private theorem card_filter_mem_le_codegree {n : ℕ} (H : Finset (Finset (Fin n))) (v : Fin n) :
     #{e ∈ H | v ∈ e} ≤ maxCodegree 1 H := by
@@ -1199,32 +1239,7 @@ private theorem exists_container_round_of_pos (c d : ℝ) (n : ℕ) (hn : 0 < n)
     ∃ (pick : Finset (Fin n) → Finset (Finset (Fin n)) → Finset (Fin n) → Fin n)
       (kill : Finset (Fin n) → Finset (Finset (Fin n)) → Fin n → Finset (Fin n)),
       IsContainerRound c d pick kill := by
-  obtain ⟨ord, decode, hdecode, hord_mono⟩ :
-      ∃ (ord : Finset (Finset (Fin n)) → Fin n → ℕ) (decode : ℕ → Fin n),
-        (∀ (Ae : Finset (Finset (Fin n))) (u : Fin n), decode (ord Ae u) = u) ∧
-        ∀ (Ae : Finset (Finset (Fin n))) (u w : Fin n), ord Ae u ≤ ord Ae w →
-          #{e ∈ Ae | w ∈ e} ≤ #{e ∈ Ae | u ∈ e} := by
-    refine ⟨fun Ae u => n * (Ae.card - #{e ∈ Ae | u ∈ e}) + (u : ℕ),
-      fun m => ⟨m % n, Nat.mod_lt _ hn⟩, ?_, ?_⟩
-    · intro Ae u
-      refine Fin.ext ?_
-      show (n * (Ae.card - #{e ∈ Ae | u ∈ e}) + (u : ℕ)) % n = (u : ℕ)
-      rw [Nat.mul_add_mod, Nat.mod_eq_of_lt u.isLt]
-    · intro Ae u w huw
-      have huw' : n * (Ae.card - #{e ∈ Ae | u ∈ e}) + (u : ℕ)
-          ≤ n * (Ae.card - #{e ∈ Ae | w ∈ e}) + (w : ℕ) := huw
-      by_contra hcon
-      rw [not_le] at hcon
-      have hwn : #{e ∈ Ae | w ∈ e} ≤ Ae.card := Finset.card_filter_le _ _
-      have hstep : Ae.card - #{e ∈ Ae | w ∈ e} + 1 ≤ Ae.card - #{e ∈ Ae | u ∈ e} := by
-        omega
-      have hmul : n * (Ae.card - #{e ∈ Ae | w ∈ e}) + n
-          ≤ n * (Ae.card - #{e ∈ Ae | u ∈ e}) := by
-        calc n * (Ae.card - #{e ∈ Ae | w ∈ e}) + n
-            = n * (Ae.card - #{e ∈ Ae | w ∈ e} + 1) := by ring
-          _ ≤ n * (Ae.card - #{e ∈ Ae | u ∈ e}) := Nat.mul_le_mul le_rfl hstep
-      have hwlt : (w : ℕ) < n := w.isLt
-      omega
+  obtain ⟨ord, decode, hdecode, hord_mono⟩ := exists_degree_order n hn
   have hord_inj : ∀ (Ae : Finset (Finset (Fin n))) (u w : Fin n),
       ord Ae u = ord Ae w → u = w := by
     intro Ae u w h
