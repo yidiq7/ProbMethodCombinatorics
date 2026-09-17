@@ -151,6 +151,22 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   reference node had to end in a `measureReal_def` dance purely because I wrote `.toReal`.  This
   is the template every later `whp` node copies, so it is worth getting right once.
 
+- **2026-09-17 — two blockers re-derived, two found stale, in one sitting.**
+  The lesson written into the #193 entry got tested within the hour, twice, and both times the
+  recorded blocker was wrong.
+
+  * **§2.4 "not yet assessed"** — it had been assessed and stated two days earlier, and the
+    proved theorem's own docstring already scoped the follow-up node.
+  * **§9.2 "Azuma itself is not [in Mathlib]; everything in §9.3–§9.6 is downstream of it"** —
+    Mathlib has since grown `measure_sum_ge_le_of_hasCondSubgaussianMGF`, and, more to the point,
+    **this project already proved Azuma** as `measure_martingale_sub_ge_le`.  Six sections were
+    recorded as blocked behind a theorem sitting sorry-free in the repository.
+
+  Both notes were true when written.  Neither was re-checked.  **A blocker note is a claim with
+  an expiry date, and the only way to read one safely is to re-derive it** — which costs minutes,
+  against the weeks each of these cost.  Audit bullets now carry the date they were resolved
+  rather than being deleted, so the staleness itself stays visible.
+
 - **2026-09-17 — Proposition 2.4.4 is false as the source prints it, and §4.2's definitions are paid.**
   Two pieces of authoring, and one erratum.
 
@@ -1298,8 +1314,11 @@ whose analytic input is absent costs a contributor a day to discover.
 
 **(c) Real work on infrastructure that does exist.**  Statable whenever there is capacity; these
 are the honest growth path.
-- §9.2 Azuma — `Martingale`, `Filtration` and `condExp` are all present; Azuma itself is not.
-  Everything in §9.3–§9.6 is downstream of it.
+- §9.2 Azuma — *stale note, resolved 2026-09-17*: Azuma **is** proved here, as
+  `measure_martingale_sub_ge_le` in `Concentration.lean`, and that file has no `sorry`.  The
+  conditional sub-Gaussian step its own docstring calls "the work" was done.  §9.3–§9.6 are
+  therefore **not blocked**, and §9.3 (chromatic number of `G(n,1/2)`) is the next node in
+  Chapter 9 — it needs a vertex-exposure martingale, not new analysis.
 - Chapter 8's five asymptotic results — *resolved 2026-09-17*: the blocker was never a missing
   `G(n,p)` API but the ground-set mismatch now isolated as `map_inter_setBernoulli` (#193).
 - §10.2 Kahn–Lovász — needs two orchestrator-authored definitions first (a count of perfect
