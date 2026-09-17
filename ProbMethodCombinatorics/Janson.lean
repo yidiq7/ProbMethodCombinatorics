@@ -239,6 +239,39 @@ theorem jansonMu_triangleFamily (n : ℕ) (p : I) :
         (↑(offDiagPairs (T : Finset (Fin n))) : Set (Sym2 (Fin n))))
       = (n.choose 3 : ℝ) * (p : ℝ) ^ 3 := by
   simpa using jansonMu_cliqueFamily n 3 p
+/-- The dependency set for the `k`-clique family: two distinct `k`-sets are dependent exactly
+when they share an edge, which means sharing at least two vertices.
+
+`triangleDependency` is the `k = 3` case, where "at least two" forces "exactly two"; for larger
+`k` the intersection ranges over `2, …, k-1` and the dependency is genuinely graded, which is
+what makes `jansonDelta_cliqueFamily` a sum rather than a single term. -/
+def cliqueDependency (n k : ℕ) :
+    Finset ({S : Finset (Fin n) // S.card = k} × {S : Finset (Fin n) // S.card = k}) :=
+  Finset.univ.filter fun q =>
+    q.1 ≠ q.2 ∧ 2 ≤ ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n))).card
+
+/-- **`Δ` for the `k`-clique family, exactly.**
+
+Grade the dependent pairs by `j = #(A ∩ B)`, which runs over `2, …, k-1`.  There are
+`binom(n,k) binom(k,j) binom(n-k,k-j)` ordered pairs at grade `j` — choose `A`, choose which `j`
+of its vertices are shared, choose the remaining `k - j` of `B` from outside `A` — and each
+spans `2 binom(k,2) - binom(j,2)` distinct pairs, the two cliques' edges minus the shared clique
+counted twice.
+
+The `k = 3` case collapses to the single term `3 binom(n,3) (n-3) p⁵` of
+`jansonDelta_triangleFamily`, since only `j = 2` survives.
+
+`k ≤ 1` gives an empty sum and no dependent pairs, which agrees. -/
+theorem jansonDelta_cliqueFamily (n k : ℕ) (p : I) :
+    jansonDelta p
+        (fun S : {S : Finset (Fin n) // S.card = k} =>
+          (↑(offDiagPairs (S : Finset (Fin n))) : Set (Sym2 (Fin n))))
+        (cliqueDependency n k)
+      = ∑ j ∈ Finset.Ico 2 k,
+          (n.choose k * k.choose j * (n - k).choose (k - j) : ℕ)
+            * (p : ℝ) ^ (2 * k.choose 2 - j.choose 2) := by
+  sorry
+
 /-- The dependency set for the triangle family: two distinct triples are dependent exactly when
 they share an edge, which for triples means sharing two vertices.
 
