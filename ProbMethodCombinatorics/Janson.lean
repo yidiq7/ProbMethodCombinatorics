@@ -244,7 +244,110 @@ theorem jansonDelta_triangleFamily_le (n : ℕ) (p : I) :
           (↑(offDiagPairs (T : Finset (Fin n))) : Set (Sym2 (Fin n))))
         (triangleDependency n)
       ≤ (n : ℝ) ^ 4 * (p : ℝ) ^ 5 := by
-  sorry
+  classical
+  -- A triple spans exactly three non-loop pairs: `#(offDiagPairs T) + 3 = binom(4,2) = 6`.
+  have hcard3 : ∀ T : {T : Finset (Fin n) // T.card = 3},
+      (offDiagPairs (T : Finset (Fin n))).card = 3 := by
+    intro T
+    have hT := T.2
+    have h := card_offDiagPairs_add (T : Finset (Fin n))
+    rw [hT] at h
+    norm_num [Nat.choose] at h
+    omega
+  -- On `triangleDependency n` the shared vertex set has exactly two elements: it has at least
+  -- two by definition, and three would force the two triples to be equal.
+  have hinter2 : ∀ q ∈ triangleDependency n,
+      ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n))).card = 2 := by
+    intro q hq
+    obtain ⟨hne, hge⟩ := (Finset.mem_filter.1 hq).2
+    have hne' : (q.1 : Finset (Fin n)) ≠ (q.2 : Finset (Fin n)) := fun h => hne (Subtype.ext h)
+    have h3 : ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n))).card ≠ 3 := by
+      intro h
+      exact hne' ((Finset.eq_of_subset_of_card_le Finset.inter_subset_left
+        (by rw [q.1.2, h])).symm.trans
+        (Finset.eq_of_subset_of_card_le Finset.inter_subset_right (by rw [q.2.2, h])))
+    have hle := Finset.card_le_card
+      (Finset.inter_subset_left (s₁ := (q.1 : Finset (Fin n))) (s₂ := (q.2 : Finset (Fin n))))
+    rw [q.1.2] at hle
+    omega
+  -- Two triples sharing an edge span `3 + 3 - 1 = 5` non-loop pairs.
+  have hcard5 : ∀ q ∈ triangleDependency n,
+      (offDiagPairs (q.1 : Finset (Fin n)) ∪ offDiagPairs (q.2 : Finset (Fin n))).card = 5 := by
+    intro q hq
+    have h2 := hinter2 q hq
+    have hone : (offDiagPairs ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n)))).card = 1 := by
+      have h := card_offDiagPairs_add ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n)))
+      rw [h2] at h
+      norm_num [Nat.choose] at h
+      omega
+    have h := Finset.card_union_add_card_inter
+      (offDiagPairs (q.1 : Finset (Fin n))) (offDiagPairs (q.2 : Finset (Fin n)))
+    rw [offDiagPairs_inter, hcard3 q.1, hcard3 q.2, hone] at h
+    omega
+  -- Each dependent pair contributes the probability `p ⁵` that its five pairs are all present.
+  have hterm : ∀ q ∈ triangleDependency n,
+      (setBernoulli Set.univ p {R : Set (Sym2 (Fin n)) |
+          (↑(offDiagPairs (q.1 : Finset (Fin n))) : Set (Sym2 (Fin n)))
+            ∪ (↑(offDiagPairs (q.2 : Finset (Fin n))) : Set (Sym2 (Fin n))) ⊆ R}).toReal
+        = (p : ℝ) ^ 5 := by
+    intro q hq
+    rw [← Finset.coe_union, setBernoulli_setOf_subset, hcard5 q hq, ENNReal.toReal_pow,
+      ENNReal.coe_toReal, unitInterval.coe_toNNReal]
+  -- `(a, b, x, y) ↦ ({x, a, b}, {y, a, b})` covers every dependent pair, so `#D ≤ n ⁴`.
+  have hDnat : (triangleDependency n).card ≤ n ^ 4 := by
+    have hinjimg : Function.Injective
+        (fun q : {T : Finset (Fin n) // T.card = 3} × {T : Finset (Fin n) // T.card = 3} =>
+          ((q.1 : Finset (Fin n)), (q.2 : Finset (Fin n)))) := by
+      intro q r h
+      exact Prod.ext (Subtype.ext (congrArg Prod.fst h)) (Subtype.ext (congrArg Prod.snd h))
+    have hsurj : Set.SurjOn
+        (fun v : Fin n × Fin n × Fin n × Fin n =>
+          (({v.2.2.1, v.1, v.2.1} : Finset (Fin n)), ({v.2.2.2, v.1, v.2.1} : Finset (Fin n))))
+        (↑(Finset.univ : Finset (Fin n × Fin n × Fin n × Fin n)))
+        (↑((triangleDependency n).image
+          (fun q : {T : Finset (Fin n) // T.card = 3} × {T : Finset (Fin n) // T.card = 3} =>
+            ((q.1 : Finset (Fin n)), (q.2 : Finset (Fin n)))))) := by
+      intro z hz
+      simp only [Finset.coe_image, Set.mem_image, Finset.mem_coe] at hz
+      obtain ⟨q, hq, rfl⟩ := hz
+      obtain ⟨a, b, hab, hintereq⟩ := Finset.card_eq_two.1 (hinter2 q hq)
+      have hd1 : ((q.1 : Finset (Fin n)) \ (q.2 : Finset (Fin n))).card = 1 := by
+        have := Finset.card_sdiff_add_card_inter
+          (q.1 : Finset (Fin n)) (q.2 : Finset (Fin n))
+        rw [q.1.2, hinter2 q hq] at this
+        omega
+      have hd2 : ((q.2 : Finset (Fin n)) \ (q.1 : Finset (Fin n))).card = 1 := by
+        have := Finset.card_sdiff_add_card_inter
+          (q.2 : Finset (Fin n)) (q.1 : Finset (Fin n))
+        rw [q.2.2, Finset.inter_comm, hinter2 q hq] at this
+        omega
+      obtain ⟨x, hx⟩ := Finset.card_eq_one.1 hd1
+      obtain ⟨y, hy⟩ := Finset.card_eq_one.1 hd2
+      refine ⟨(a, b, x, y), by simp, ?_⟩
+      have e1 : (q.1 : Finset (Fin n)) = {x, a, b} := by
+        rw [← Finset.sdiff_union_inter (q.1 : Finset (Fin n)) (q.2 : Finset (Fin n)), hx,
+          hintereq]
+        rfl
+      have e2 : (q.2 : Finset (Fin n)) = {y, a, b} := by
+        rw [← Finset.sdiff_union_inter (q.2 : Finset (Fin n)) (q.1 : Finset (Fin n)), hy,
+          Finset.inter_comm, hintereq]
+        rfl
+      exact Prod.ext e1.symm e2.symm
+    calc (triangleDependency n).card
+        = ((triangleDependency n).image
+            (fun q : {T : Finset (Fin n) // T.card = 3} × {T : Finset (Fin n) // T.card = 3} =>
+              ((q.1 : Finset (Fin n)), (q.2 : Finset (Fin n))))).card :=
+          (Finset.card_image_of_injective _ hinjimg).symm
+      _ ≤ (Finset.univ : Finset (Fin n × Fin n × Fin n × Fin n)).card :=
+          Finset.card_le_card_of_surjOn _ hsurj
+      _ = n ^ 4 := by simp [Finset.card_univ]; ring
+  have hDc : ((triangleDependency n).card : ℝ) ≤ (n : ℝ) ^ 4 := by
+    calc (((triangleDependency n).card : ℕ) : ℝ) ≤ ((n ^ 4 : ℕ) : ℝ) := Nat.cast_le.2 hDnat
+      _ = (n : ℝ) ^ 4 := by push_cast; ring
+  have hp0 : (0 : ℝ) ≤ (p : ℝ) := p.2.1
+  have h5 : (0 : ℝ) ≤ (p : ℝ) ^ 5 := by positivity
+  rw [jansonDelta, Finset.sum_congr rfl hterm, Finset.sum_const, nsmul_eq_mul]
+  gcongr
 
 /-- The conditioning step of the Boppana–Spencer proof of Janson's inequality.
 
