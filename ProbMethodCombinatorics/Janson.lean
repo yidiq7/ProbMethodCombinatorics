@@ -177,6 +177,54 @@ are stated against, and `binomialRandom_setOf_forall_not_subset` carries the res
 over to `G(n, p)`.
 -/
 
+/-- **`μ` for the `k`-clique family is `binom(n,k) p^{binom(k,2)}`.**
+
+The general form of `jansonMu_triangleFamily`, which is the case `k = 3`.  Each of the
+`binom(n,k)` vertex sets of size `k` contributes the probability that its `binom(k,2)` pairs are
+all present, by `setBernoulli_setOf_subset`; `card_offDiagPairs_add` turns `#S = k` into
+`#(offDiagPairs S) = binom(k,2)`.
+
+This is what §8.3's chromatic-number argument needs — it runs Janson on cliques of size about
+`2 log₂ n`, not on triangles — and it is the `setBernoulli` companion of
+`prob_not_cliqueFree_le` in `SecondMoment.lean`, which bounds the same quantity over `G(n, p)` by
+a union bound rather than computing it.
+
+`k = 0` and `k = 1` are real cases: `binom(k,2) = 0`, so every index contributes `1` and `μ` is
+`binom(n,k)`. -/
+theorem jansonMu_cliqueFamily (n k : ℕ) (p : I) :
+    jansonMu p (fun S : {S : Finset (Fin n) // S.card = k} =>
+        (↑(offDiagPairs (S : Finset (Fin n))) : Set (Sym2 (Fin n))))
+      = (n.choose k : ℝ) * (p : ℝ) ^ k.choose 2 := by
+  -- A `k`-set spans `binom(k,2)` non-loop pairs: `#(offDiagPairs S) + k = binom(k+1,2)`, and
+  -- `binom(k+1,2) = k + binom(k,2)`.
+  have hcardk : ∀ S : {S : Finset (Fin n) // S.card = k},
+      (offDiagPairs (S : Finset (Fin n))).card = k.choose 2 := by
+    intro S
+    have h := card_offDiagPairs_add (S : Finset (Fin n))
+    rw [S.2] at h
+    have hsucc : (k + 1).choose 2 = k + k.choose 2 := by
+      rw [Nat.choose_succ_succ' k 1, Nat.choose_one_right]
+    rw [hsucc] at h
+    omega
+  -- The index type is the `k`-element subsets of `Fin n`, of which there are `binom(n,k)`.
+  have hcount : Fintype.card {S : Finset (Fin n) // S.card = k} = n.choose k := by
+    rw [Fintype.card_subtype]
+    have hfilter : {S ∈ (Finset.univ : Finset (Finset (Fin n))) | S.card = k}
+        = (Finset.univ : Finset (Fin n)).powersetCard k := by
+      ext S
+      simp
+    rw [hfilter, Finset.card_powersetCard, Finset.card_univ, Fintype.card_fin]
+  -- Each `k`-set contributes the probability `p ^ binom(k,2)` that all its pairs are present.
+  have hterm : ∀ S : {S : Finset (Fin n) // S.card = k},
+      (setBernoulli Set.univ p
+          {R : Set (Sym2 (Fin n)) | ↑(offDiagPairs (S : Finset (Fin n))) ⊆ R}).toReal
+        = (p : ℝ) ^ k.choose 2 := by
+    intro S
+    rw [setBernoulli_setOf_subset, hcardk S, ENNReal.toReal_pow, ENNReal.coe_toReal,
+      unitInterval.coe_toNNReal]
+  rw [jansonMu, Finset.sum_congr rfl fun S _ => hterm S, Finset.sum_const, Finset.card_univ,
+    hcount, nsmul_eq_mul]
+
 /-- **`μ` for the triangle family is `binom(n,3) p³`.**
 
 Each of the `binom(n,3)` triples contributes the probability that its three edges are all
@@ -190,34 +238,7 @@ theorem jansonMu_triangleFamily (n : ℕ) (p : I) :
     jansonMu p (fun T : {T : Finset (Fin n) // T.card = 3} =>
         (↑(offDiagPairs (T : Finset (Fin n))) : Set (Sym2 (Fin n))))
       = (n.choose 3 : ℝ) * (p : ℝ) ^ 3 := by
-  -- A triple spans exactly three non-loop pairs: `#(offDiagPairs T) + 3 = binom(4,2) = 6`.
-  have hcard3 : ∀ T : {T : Finset (Fin n) // T.card = 3},
-      (offDiagPairs (T : Finset (Fin n))).card = 3 := by
-    intro T
-    have hT := T.2
-    have h := card_offDiagPairs_add (T : Finset (Fin n))
-    rw [hT] at h
-    norm_num [Nat.choose] at h
-    omega
-  -- The index type is the `3`-element subsets of `Fin n`, of which there are `binom(n,3)`.
-  have hcount : Fintype.card {T : Finset (Fin n) // T.card = 3} = n.choose 3 := by
-    rw [Fintype.card_subtype]
-    have hfilter : {T ∈ (Finset.univ : Finset (Finset (Fin n))) | T.card = 3}
-        = (Finset.univ : Finset (Fin n)).powersetCard 3 := by
-      ext T
-      simp
-    rw [hfilter, Finset.card_powersetCard, Finset.card_univ, Fintype.card_fin]
-  -- Each triple contributes the probability `p ^ 3` that its three pairs are all present.
-  have hterm : ∀ T : {T : Finset (Fin n) // T.card = 3},
-      (setBernoulli Set.univ p
-          {R : Set (Sym2 (Fin n)) | ↑(offDiagPairs (T : Finset (Fin n))) ⊆ R}).toReal
-        = (p : ℝ) ^ 3 := by
-    intro T
-    rw [setBernoulli_setOf_subset, hcard3 T, ENNReal.toReal_pow, ENNReal.coe_toReal,
-      unitInterval.coe_toNNReal]
-  rw [jansonMu, Finset.sum_congr rfl fun T _ => hterm T, Finset.sum_const, Finset.card_univ,
-    hcount, nsmul_eq_mul]
-
+  simpa using jansonMu_cliqueFamily n 3 p
 /-- The dependency set for the triangle family: two distinct triples are dependent exactly when
 they share an edge, which for triples means sharing two vertices.
 
@@ -246,26 +267,6 @@ private theorem card_inter_eq_two_of_mem_triangleDependency {n : ℕ}
     (Finset.inter_subset_left (s₁ := (q.1 : Finset (Fin n))) (s₂ := (q.2 : Finset (Fin n))))
   rw [q.1.2] at hle
   omega
-
-/-- **`μ` for the `k`-clique family is `binom(n,k) p^{binom(k,2)}`.**
-
-The general form of `jansonMu_triangleFamily`, which is the case `k = 3`.  Each of the
-`binom(n,k)` vertex sets of size `k` contributes the probability that its `binom(k,2)` pairs are
-all present, by `setBernoulli_setOf_subset`; `card_offDiagPairs_add` turns `#S = k` into
-`#(offDiagPairs S) = binom(k,2)`.
-
-This is what §8.3's chromatic-number argument needs — it runs Janson on cliques of size about
-`2 log₂ n`, not on triangles — and it is the `setBernoulli` companion of
-`prob_not_cliqueFree_le` in `SecondMoment.lean`, which bounds the same quantity over `G(n, p)` by
-a union bound rather than computing it.
-
-`k = 0` and `k = 1` are real cases: `binom(k,2) = 0`, so every index contributes `1` and `μ` is
-`binom(n,k)`. -/
-theorem jansonMu_cliqueFamily (n k : ℕ) (p : I) :
-    jansonMu p (fun S : {S : Finset (Fin n) // S.card = k} =>
-        (↑(offDiagPairs (S : Finset (Fin n))) : Set (Sym2 (Fin n))))
-      = (n.choose k : ℝ) * (p : ℝ) ^ k.choose 2 := by
-  sorry
 
 /-- **`Δ` for the triangle family is at most `n⁴p⁵`.**
 
