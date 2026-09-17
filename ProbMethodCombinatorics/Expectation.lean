@@ -378,6 +378,45 @@ theorem card_sumFreeWindow (p : ℕ) [NeZero p] (h3 : ¬ (3 ∣ p)) :
   rw [Nat.card_Ioc] at key
   omega
 
+/-- A nonzero residue mod a prime is a unit.  This is what the averaging in
+`exists_sumFree_subset` needs primality for; there it is used once more, to turn `3 < p` into
+`3 ∤ p`. -/
+private theorem isUnit_zmod_of_ne_zero (p : ℕ) (hp : p.Prime) [NeZero p] {u : ZMod p}
+    (hu : u ≠ 0) : IsUnit u := by
+  have hval : ((u.val : ℕ) : ZMod p) = u := ZMod.natCast_rightInverse u
+  have hpos : 0 < u.val := by
+    rcases Nat.eq_zero_or_pos u.val with h0 | h0
+    · exact absurd (by rw [← hval, h0]; simp) hu
+    · exact h0
+  rw [← hval, ZMod.isUnit_iff_coprime, Nat.coprime_comm, hp.coprime_iff_not_dvd]
+  intro h
+  have := Nat.le_of_dvd hpos h
+  have := ZMod.val_lt u
+  omega
+
+/-- Multiplication by a unit permutes the nonzero residues, and `0` lies outside the middle third,
+so for each fixed unit `a` there are exactly `#(sumFreeWindow p)` nonzero `x` with `a * x` in the
+window. -/
+private theorem card_filter_mul_mem_window (p : ℕ) [NeZero p] {a : ZMod p} (ha : IsUnit a) :
+    ((univ \ {0} : Finset (ZMod p)).filter fun x => a * x ∈ sumFreeWindow p).card
+      = (sumFreeWindow p).card := by
+  have hzero : (0 : ZMod p) ∉ sumFreeWindow p := by simp [sumFreeWindow]
+  have hinv : a * a⁻¹ = 1 := ZMod.mul_inv_of_unit a ha
+  refine Finset.card_bij (fun x _ => a * x) ?_ ?_ ?_
+  · intro x hx
+    exact (mem_filter.1 hx).2
+  · intro x _ y _ h
+    exact ha.mul_left_cancel h
+  · intro y hy
+    have hy0 : y ≠ 0 := fun h => hzero (h ▸ hy)
+    have hxy : a * (a⁻¹ * y) = y := by rw [← mul_assoc, hinv, one_mul]
+    refine ⟨a⁻¹ * y, mem_filter.2 ⟨mem_sdiff.2 ⟨mem_univ _, ?_⟩, ?_⟩, hxy⟩
+    · simp only [mem_singleton]
+      intro h
+      rw [h, mul_zero] at hxy
+      exact hy0 hxy.symm
+    · rwa [hxy]
+
 /-- **Large sum-free subsets** (Zhao, Theorem 2.2.1; Erdős 1965): every finite set of nonzero
 integers has a sum-free subset of at least a third of its size.
 
@@ -400,7 +439,85 @@ primes in arithmetic progressions, contrary to what this project's roadmap recor
 2026-09-17. -/
 theorem exists_sumFree_subset (A : Finset ℤ) (h0 : (0 : ℤ) ∉ A) :
     ∃ B ⊆ A, IsSumFree (↑B : Set ℤ) ∧ A.card ≤ 3 * B.card := by
-  sorry
+  obtain ⟨p, hple, hp⟩ := Nat.exists_infinite_primes (max (A.sup fun a => a.natAbs) 3 + 1)
+  have : NeZero p := ⟨hp.ne_zero⟩
+  have hsup : A.sup (fun a => a.natAbs) < p := by
+    have := le_max_left (A.sup fun a => a.natAbs) 3
+    omega
+  have hp3 : 3 < p := by
+    have := le_max_right (A.sup fun a => a.natAbs) 3
+    omega
+  -- `p` is a prime above `3`, so `3 ∤ p` and `card_sumFreeWindow` applies.
+  have h3p : ¬ (3 ∣ p) := fun h => by
+    have := (Nat.prime_dvd_prime_iff_eq Nat.prime_three hp).1 h
+    omega
+  -- Every `a ∈ A` is nonzero mod `p`, because `a ≠ 0` and `|a| < p`; primality then makes it a
+  -- unit, so `x ↦ (a : ZMod p) * x` permutes the nonzero residues.
+  have hunit : ∀ a ∈ A, IsUnit ((a : ℤ) : ZMod p) := by
+    intro a haA
+    refine isUnit_zmod_of_ne_zero p hp fun h => ?_
+    rw [ZMod.intCast_zmod_eq_zero_iff_dvd] at h
+    have hna : a.natAbs ≠ 0 := fun hz => h0 (Int.natAbs_eq_zero.1 hz ▸ haA)
+    have hdvd : p ∣ a.natAbs := by simpa using Int.natAbs_dvd_natAbs.2 h
+    have := Nat.le_of_dvd (Nat.pos_of_ne_zero hna) hdvd
+    have := Finset.le_sup (f := fun a : ℤ => a.natAbs) haA
+    omega
+  have hScard : ((univ \ {0} : Finset (ZMod p))).card = p - 1 := by
+    rw [card_sdiff_of_subset (subset_univ _), card_univ, ZMod.card, card_singleton]
+  have hSne : ((univ \ {0} : Finset (ZMod p))).Nonempty := by
+    refine ⟨1, mem_sdiff.2 ⟨mem_univ _, ?_⟩⟩
+    simp only [mem_singleton]
+    intro h
+    have := congrArg ZMod.val h
+    rw [ZMod.val_one_eq_one_mod, ZMod.val_zero, Nat.mod_eq_of_lt (by omega)] at this
+    omega
+  -- Double count: exchanging the order of summation over the nonzero `x` and over `a ∈ A`
+  -- replaces the total by one copy of the window for each `a ∈ A`.
+  have key : ∑ x ∈ (univ \ {0} : Finset (ZMod p)),
+        (A.filter fun a => ((a : ℤ) : ZMod p) * x ∈ sumFreeWindow p).card
+      = A.card * (sumFreeWindow p).card := by
+    calc ∑ x ∈ (univ \ {0} : Finset (ZMod p)),
+            (A.filter fun a => ((a : ℤ) : ZMod p) * x ∈ sumFreeWindow p).card
+        = ∑ x ∈ (univ \ {0} : Finset (ZMod p)), ∑ a ∈ A,
+            if ((a : ℤ) : ZMod p) * x ∈ sumFreeWindow p then 1 else 0 :=
+          Finset.sum_congr rfl fun x _ => Finset.card_filter _ _
+      _ = ∑ a ∈ A, ∑ x ∈ (univ \ {0} : Finset (ZMod p)),
+            if ((a : ℤ) : ZMod p) * x ∈ sumFreeWindow p then 1 else 0 := Finset.sum_comm
+      _ = ∑ a ∈ A, ((univ \ {0} : Finset (ZMod p)).filter fun x =>
+            ((a : ℤ) : ZMod p) * x ∈ sumFreeWindow p).card :=
+          Finset.sum_congr rfl fun a _ => (Finset.card_filter _ _).symm
+      _ = ∑ _a ∈ A, (sumFreeWindow p).card :=
+          Finset.sum_congr rfl fun a ha => card_filter_mul_mem_window p (hunit a ha)
+      _ = A.card * (sumFreeWindow p).card := by rw [Finset.sum_const, smul_eq_mul]
+  -- Some nonzero `x` does at least as well as the average.
+  obtain ⟨x, -, hx⟩ : ∃ x ∈ (univ \ {0} : Finset (ZMod p)),
+      A.card * (sumFreeWindow p).card ≤ ((univ \ {0} : Finset (ZMod p))).card *
+        (A.filter fun a => ((a : ℤ) : ZMod p) * x ∈ sumFreeWindow p).card := by
+    refine Finset.exists_le_of_sum_le hSne (le_of_eq ?_)
+    rw [Finset.sum_const, ← Finset.mul_sum, key, smul_eq_mul]
+  have hwin := card_sumFreeWindow p h3p
+  have hwpos : 0 < (sumFreeWindow p).card := by omega
+  refine ⟨A.filter fun a => ((a : ℤ) : ZMod p) * x ∈ sumFreeWindow p, filter_subset _ _, ?_, ?_⟩
+  · -- Sum-freeness transfers from the window along the ring hom `ℤ → ZMod p`.
+    intro a ha b hb hab
+    rw [mem_coe, mem_filter] at ha hb hab
+    refine isSumFree_sumFreeWindow p _ (mem_coe.2 ha.2) _ (mem_coe.2 hb.2) ?_
+    have h : ((a : ℤ) : ZMod p) * x + ((b : ℤ) : ZMod p) * x = ((a + b : ℤ) : ZMod p) * x := by
+      push_cast; ring
+    rw [h]
+    exact mem_coe.2 hab.2
+  · -- `(p - 1) * #(A x) ≥ #A * #(window)` against `p - 1 ≤ 3 * #(window)` gives the bound.
+    refine Nat.le_of_mul_le_mul_right ?_ hwpos
+    calc A.card * (sumFreeWindow p).card
+        ≤ ((univ \ {0} : Finset (ZMod p))).card *
+            (A.filter fun a => ((a : ℤ) : ZMod p) * x ∈ sumFreeWindow p).card := hx
+      _ = (p - 1) * (A.filter fun a => ((a : ℤ) : ZMod p) * x ∈ sumFreeWindow p).card := by
+          rw [hScard]
+      _ ≤ 3 * (sumFreeWindow p).card *
+            (A.filter fun a => ((a : ℤ) : ZMod p) * x ∈ sumFreeWindow p).card :=
+          Nat.mul_le_mul_right _ hwin
+      _ = 3 * (A.filter fun a => ((a : ℤ) : ZMod p) * x ∈ sumFreeWindow p).card *
+            (sumFreeWindow p).card := by ring
 
 /-! ### §2.4 Bounding by sampling -/
 
