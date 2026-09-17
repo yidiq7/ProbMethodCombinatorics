@@ -82,7 +82,38 @@ particular `{R | s ⊆ R}` for `s ⊆ u` — from `setBer(u, p)` to the `setBer(
 statements below. -/
 theorem map_inter_setBernoulli (u v : Set ι) (p : I) :
     (setBernoulli v p).map (· ∩ u) = setBernoulli (v ∩ u) p := by
-  sorry
+  -- `fun_prop` cannot see through `Inter.inter` on `Set ι`; the membership coordinates can.
+  have hinter : Measurable (fun s : Set ι => s ∩ u) :=
+    measurable_set_iff.2 fun a => by
+      simp only [Set.mem_inter_iff]
+      exact (measurable_pi_apply a).and measurable_const
+  have hf : ∀ a : ι, Measurable (fun b : Prop => b ∧ a ∈ u) := fun a =>
+    measurable_id.and measurable_const
+  have hlam : Measurable (fun (x : ι → Prop) (a : ι) => x a ∧ a ∈ u) :=
+    measurable_pi_lambda _ fun a => (measurable_pi_apply a).and measurable_const
+  -- Along `MeasurableEquiv.setOfPred` the trace map becomes coordinatewise.
+  have hcomp : ((fun s : Set ι => s ∩ u) ∘ (fun x : ι → Prop => {i | x i}))
+      = (fun x : ι → Prop => {i | x i}) ∘ (fun (x : ι → Prop) (a : ι) => x a ∧ a ∈ u) := by
+    funext x; rfl
+  -- The single coordinate: an element of `u` is kept as before, one outside `u` is discarded.
+  have hcoord : ∀ a : ι,
+      Measure.map (fun b : Prop => b ∧ a ∈ u)
+          (toNNReal p • Measure.dirac (a ∈ v) + toNNReal (σ p) • Measure.dirac False)
+        = toNNReal p • Measure.dirac (a ∈ v ∩ u) + toNNReal (σ p) • Measure.dirac False := by
+    intro a
+    by_cases hau : a ∈ u
+    · have hid : (fun b : Prop => b ∧ a ∈ u) = id := by funext b; simp [hau]
+      have hv : (a ∈ v ∩ u) = (a ∈ v) := by simp [hau]
+      rw [hid, Measure.map_id, hv]
+    · have hc : (fun b : Prop => b ∧ a ∈ u) = (fun _ => False) := by funext b; simp [hau]
+      have hv : (a ∈ v ∩ u) = False := by simp [hau]
+      rw [hc, Measure.map_const, hv, ← add_smul]
+      simp
+  rw [setBernoulli_eq_map v p, Measure.map_map hinter measurable_setOfPred, hcomp,
+    ← Measure.map_map measurable_setOfPred hlam,
+    Measure.infinitePi_map_pi (f := fun (a : ι) (b : Prop) => b ∧ a ∈ u) _ hf,
+    setBernoulli_eq_map (v ∩ u) p]
+  simp_rw [hcoord]
 
 /-- The conditioning step of the Boppana–Spencer proof of Janson's inequality.
 
