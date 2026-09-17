@@ -3,6 +3,43 @@
 How to run the loop on this project.  Mine, not a worker's: `skills/` is force-loaded
 into every worker's context, so nothing here belongs there.
 
+## "Read its lease and sync the labels" is not the whole instruction — read the comment
+
+**The worst process failure of this session.** A `choir-defect` report landed on #176 at 22:40
+saying `exists_container_round` was false, with a kernel-checked counterexample.  The poller
+reported `task #176 commented on — read its lease and sync the labels`.  I ran `sync-leases` and
+moved on.  **I did not read it until 01:28, two hours and forty-eight minutes later.**
+
+What that cost: two further nodes published on top of a broken interface, a long "correction"
+sent to the contributor about an encoding hint they had never reached, and a statement repair
+that then had to be threaded back through a *merged* proof.  The contributor had done everything
+right — flagged it immediately, in the prescribed form, with a refutation that compiled.
+
+The poller's wording is the trap.  It names the lease because that is the part it can act on,
+but `ORCHESTRATOR.md` is explicit that a comment may be a `choir-defect` and that reading those
+is part of the loop.  **On every "commented on", read the comment body, not just the lease block.**
+It is one `gh issue view --json comments` and it is the difference between a five-minute fix and
+three hours of building on sand.
+
+Cheap detector, worth running on every such event:
+
+    gh issue view <n> --repo <repo> --json comments \
+      --jq '.comments[-1] | select(.body | test("choir-defect")) | .body'
+
+## Verify the frame, not just the parts
+
+`exists_container_round` was false because its double-count clause rests on
+`3|Ae| = ∑_{v ∈ Av} deg_{Ae}(v)`, and that identity is really `∑_{e ∈ Ae} |e|` — equal to `3|Ae|`
+only under 3-uniformity, which the clause did not require.  When I sketched satisfiability I
+checked the three bounds in the split and never checked the quantity being split.  The bounds
+were all correct and bounded the wrong left-hand side.
+
+This is the same shape as the `2c√d` cut and the `degree_fromEdgeSet` form mismatch: **the
+individual steps were right and the thing joining them was not.**  When writing a statement,
+state the identity the argument turns on explicitly and check *it*, not only the estimates hanging
+off it.
+
+
 ## A long hold with no PR: run the diagnostic on your own prose first
 
 `#176` sat 2h47m with no PR while `#180` — a node I had sized as far larger, and which came back

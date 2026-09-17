@@ -98,6 +98,30 @@ edge-count bound the book proves, so the edge-count bound stays a task.
 
 ## Log
 
+- **2026-09-16 — `exists_container_round` was FALSE as I stated it; repaired, and #176 re-pinned to `348f7d3`.**
+  The contributor holding #176 refuted it with a kernel-checked counterexample instead of grinding
+  on an impossible task.  The double-count clause rests on `3|Ae| = ∑_{v ∈ Av} deg_{Ae}(v)`, which
+  is really `∑_{e ∈ Ae} |e|` and equals `3|Ae|` only under 3-uniformity.  At `n = 1`, `c = d = 1`,
+  `Ae = {∅}` the other clauses pin everything and the clause demands `3 ≤ 1`.  **I reproduced
+  their refutation against `main` before touching anything** — it compiled clean with no `sorryAx`.
+
+  Fixed by adding `(∀ e ∈ Ae, e.card = 3)` to that clause alone.  Verified both directions: the
+  refutation no longer elaborates, failing exactly where it must now supply the hypothesis, and
+  `(∅ : Finset (Fin 1)).card = 3` is false by `decide`.  `exists_run_of_container_round`'s merged
+  proof needed one extra argument at its single call site, from hypotheses it already had.
+
+  **This is the fourth false statement this chapter has produced, and the first I authored from
+  scratch rather than transcribed.**  Its cause is the same as the `2c√d` cut and the
+  `degree_fromEdgeSet` mismatch earlier today: the individual estimates were right and the
+  identity joining them was never checked.  Recorded in `orchestrator-log.md` as *verify the
+  frame, not just the parts*.
+
+  **The process failure is the more expensive half, and it was entirely mine.**  The defect was
+  filed at 22:40; I read it at 01:28.  The poller had said "task #176 commented on — read its
+  lease and sync the labels" and I synced the labels only.  In those three hours I published two
+  more nodes on the broken interface and sent the contributor a correction to a hint they had
+  never reached.  **On every "commented on", read the comment body.**
+
 - **2026-09-16 — §11.3's run is proved (#180), in full and with no obligations.  Two sorries left in the project.**
   788 insertions, 28 new declarations, all `private`, no `choir-reduction` — the node I sized as
   "the largest in the chapter" and sanctioned a nested reduction for came back as a complete
