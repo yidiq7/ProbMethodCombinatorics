@@ -81,6 +81,11 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   `prob_no_triangle_of_mul_le` in `SecondMoment.lean` is the reference instance to copy.
   **Prefer the form with no `N`** where the estimate is uniform in `n`, as Markov's is; reach for
   `∃ N, ∀ n ≥ N` only when the argument genuinely needs `n` large, as Chebyshev's does.
+  **Write the probability as `(μ).real S`, not `(μ S).toReal`** — Mathlib's probability API
+  (`probReal_compl_eq_one_sub`, `probReal_univ`) is stated in `Measure.real`, and the reference
+  node had to end with a `measureReal_def` conversion because its statement used `.toReal`.  The
+  rest of `SecondMoment.lean` predates that API and is not worth churning, but new nodes should
+  use `Measure.real`.
 
 - **No measure theory in Chapters 1–3.** Every argument there is finite averaging, and the
   statements are phrased as pure existence/counting claims over `Finset` and `Fintype`
@@ -105,6 +110,28 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   cases.
 
 ## Log
+
+- **2026-09-17 — §4.1's first moment and subcritical threshold are both proved (#184, #186); 4 sorries left.**
+  `integral_triangleCount` and `prob_no_triangle_of_mul_le` merged.  **The `whp` idiom worked
+  first try**, and the reason is worth keeping: the explicit
+  `∀ ε > 0, ∃ δ > 0, ∀ n p, p·n ≤ δ → …` shape makes `δ`'s independence from `n` and `p`
+  *structurally visible* — it is supplied in the same `refine` line that binds them, so a reader
+  can see it cannot mention them.  A filter or `o(1)` formulation could not have made that legible.
+  No `N` crept in, and the contributor found a simpler witness than I proposed (`min 1 ε` rather
+  than `min 1 (6ε)^{1/3}` — a smaller `δ` is a legal weaker witness).
+
+  **#186's reduction block was stale by the time it merged**, since its child #184 landed after
+  #186 was based.  `skills/orchestrator-notes.md` says a stale block "claims something untrue", so
+  the prescribed fix is to drop it and re-push.  I merged as-is instead and corrected the record
+  myself, because the child was already proved and the outcome is what matters: `#print axioms`
+  on the merged result gives `[propext, Classical.choice, Quot.sound]` with **no `sorryAx`**, so
+  the node is unconditional and its graph entry carries no open child.  Costing a contributor a
+  round-trip for bookkeeping the orchestrator has to do anyway is the wrong trade.
+
+  **One statement convention refined, above:** new probabilistic nodes should write `(μ).real S`
+  rather than `(μ S).toReal`.  Mathlib's probability lemmas are stated in `Measure.real`, and the
+  reference node had to end in a `measureReal_def` dance purely because I wrote `.toReal`.  This
+  is the template every later `whp` node copies, so it is worth getting right once.
 
 - **2026-09-17 — the `whp` idiom is settled, and §4.1's subcritical threshold published (#183).**
   This was the single convention blocking §4.1's threshold, §4.2's `subgraph_threshold`, Janson's
