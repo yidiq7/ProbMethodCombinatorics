@@ -403,6 +403,53 @@ noncomputable def triangleCount {n : ℕ} (G : SimpleGraph (Fin n)) : ℝ :=
     ({H : SimpleGraph (Fin n) | ∀ a ∈ T, ∀ b ∈ T, a ≠ b → H.Adj a b}).indicator
       (fun _ => (1 : ℝ)) G
 
+/-- The event that a prescribed finite set of pairs are all edges is measurable. -/
+private theorem measurableSet_forall_mem_edgeSet {n : ℕ} (E : Finset (Sym2 (Fin n))) :
+    MeasurableSet {G : SimpleGraph (Fin n) | ∀ e ∈ E, e ∈ G.edgeSet} := by
+  have hrw : {G : SimpleGraph (Fin n) | ∀ e ∈ E, e ∈ G.edgeSet}
+      = ⋂ e ∈ E, {G : SimpleGraph (Fin n) | e ∈ G.edgeSet} := by
+    ext G; simp
+  rw [hrw]
+  refine E.measurableSet_biInter fun e _ => ?_
+  induction e using Sym2.ind with
+  | _ u v =>
+      have : {G : SimpleGraph (Fin n) | s(u, v) ∈ G.edgeSet}
+          = {G : SimpleGraph (Fin n) | G.Adj u v} := by ext G; simp [mem_edgeSet]
+      rw [this]
+      measurability
+
+/-- **A prescribed set of non-loop pairs is present with probability `p ^ |E|`.**  Under
+`binomialRandom_apply'` the event is a cylinder in the product of Bernoulli measures on
+`Sym2 (Fin n)`, so its probability is the product of the `|E|` factors it constrains. -/
+private theorem binomialRandom_forall_mem_edgeSet {n : ℕ} (p : I) (E : Finset (Sym2 (Fin n)))
+    (hE : ∀ e ∈ E, ¬ e.IsDiag) :
+    binomialRandom (Fin n) p {G : SimpleGraph (Fin n) | ∀ e ∈ E, e ∈ G.edgeSet}
+      = (toNNReal p : ENNReal) ^ E.card := by
+  have himg : edgeSet '' {G : SimpleGraph (Fin n) | ∀ e ∈ E, e ∈ G.edgeSet}
+      = {t ∈ ({t : Set (Sym2 (Fin n)) | ∀ e ∈ E, e ∈ t}) | t ⊆ Sym2.diagSetᶜ} := by
+    ext t
+    constructor
+    · rintro ⟨G, hG, rfl⟩
+      exact ⟨hG, G.edgeSet_subset_compl_diagSet⟩
+    · rintro ⟨h1, h2⟩
+      have hd : Disjoint t Sym2.diagSet := Set.subset_compl_iff_disjoint_right.mp h2
+      refine ⟨fromEdgeSet t, ?_, ?_⟩
+      · intro e he
+        rw [edgeSet_fromEdgeSet, sdiff_eq_left.mpr hd]
+        exact h1 e he
+      · rw [edgeSet_fromEdgeSet, sdiff_eq_left.mpr hd]
+  have hpre : (fun f : Sym2 (Fin n) → Prop ↦ {i | f i}) ⁻¹'
+      {t : Set (Sym2 (Fin n)) | ∀ e ∈ E, e ∈ t}
+      = Set.pi (↑E) (fun _ ↦ ({True} : Set Prop)) := by
+    ext f
+    simp [Set.mem_pi, eq_iff_iff]
+  rw [binomialRandom_apply', himg, ← setBernoulli_apply_eq_apply_subsets, setBernoulli_apply',
+    hpre, Measure.infinitePi_pi _ fun _ _ ↦ MeasurableSet.of_discrete,
+    Finset.prod_congr rfl (g := fun _ ↦ (toNNReal p : ENNReal)) ?_, Finset.prod_const]
+  intro e he
+  have hmem : e ∈ Sym2.diagSetᶜ := by simpa [Sym2.mem_diagSet] using hE e he
+  simp [Measure.dirac_apply', eq_true hmem]
+
 /-- **The first moment of the triangle count** (Zhao, the computation behind Proposition 4.1.2):
 `𝔼X = binom(n,3) p³`.
 
@@ -412,7 +459,57 @@ prescribed pairs are all present — `p³`, since distinct pairs are independent
 factors, which is the route Chapter 7 already uses. -/
 theorem integral_triangleCount (n : ℕ) (p : I) :
     ∫ G, triangleCount G ∂(binomialRandom (Fin n) p) = (n.choose 3 : ℝ) * (p : ℝ) ^ 3 := by
-  sorry
+  have key : ∀ T ∈ (univ : Finset (Fin n)).powersetCard 3,
+      MeasurableSet {H : SimpleGraph (Fin n) | ∀ a ∈ T, ∀ b ∈ T, a ≠ b → H.Adj a b} ∧
+      binomialRandom (Fin n) p {H : SimpleGraph (Fin n) | ∀ a ∈ T, ∀ b ∈ T, a ≠ b → H.Adj a b}
+        = (toNNReal p : ENNReal) ^ 3 := by
+    intro T hT
+    have hcard : T.card = 3 := Finset.mem_powersetCard_univ.mp hT
+    obtain ⟨a, b, c, hab, hac, hbc, rfl⟩ := Finset.card_eq_three.mp hcard
+    set E : Finset (Sym2 (Fin n)) := {s(a, b), s(a, c), s(b, c)} with hEdef
+    have hEd : ∀ e ∈ E, ¬ e.IsDiag := by
+      intro e he
+      simp only [hEdef, Finset.mem_insert, Finset.mem_singleton] at he
+      rcases he with rfl | rfl | rfl <;> simp [Sym2.mk_isDiag_iff, hab, hac, hbc]
+    have hEcard : E.card = 3 := by
+      simp only [hEdef]
+      rw [Finset.card_insert_of_notMem (by simp [hab, hac, hbc]),
+        Finset.card_insert_of_notMem (by simp [hab, hac]), Finset.card_singleton]
+    have hset : {H : SimpleGraph (Fin n) |
+          ∀ x ∈ ({a, b, c} : Finset (Fin n)), ∀ y ∈ ({a, b, c} : Finset (Fin n)),
+            x ≠ y → H.Adj x y}
+        = {G : SimpleGraph (Fin n) | ∀ e ∈ E, e ∈ G.edgeSet} := by
+      ext G
+      constructor
+      · intro h e he
+        simp only [hEdef, Finset.mem_insert, Finset.mem_singleton] at he
+        rcases he with rfl | rfl | rfl <;> simp only [mem_edgeSet]
+        · exact h a (by simp) b (by simp) hab
+        · exact h a (by simp) c (by simp) hac
+        · exact h b (by simp) c (by simp) hbc
+      · intro h x hx y hy hxy
+        have h1 : G.Adj a b := by simpa [mem_edgeSet] using h s(a, b) (by simp [hEdef])
+        have h2 : G.Adj a c := by simpa [mem_edgeSet] using h s(a, c) (by simp [hEdef])
+        have h3 : G.Adj b c := by simpa [mem_edgeSet] using h s(b, c) (by simp [hEdef])
+        simp only [Finset.mem_insert, Finset.mem_singleton] at hx hy
+        rcases hx with rfl | rfl | rfl <;> rcases hy with rfl | rfl | rfl <;>
+          first
+            | exact absurd rfl hxy
+            | assumption
+            | exact h1.symm
+            | exact h2.symm
+            | exact h3.symm
+    rw [hset]
+    exact ⟨measurableSet_forall_mem_edgeSet E,
+      by rw [binomialRandom_forall_mem_edgeSet p E hEd, hEcard]⟩
+  simp only [triangleCount]
+  rw [MeasureTheory.integral_finsetSum _ fun T hT =>
+    memLp_one_iff_integrable.mp
+      (memLp_indicator_const 1 (key T hT).1 1 (Or.inr (measure_ne_top _ _)))]
+  rw [Finset.sum_congr rfl fun T hT => ?_, Finset.sum_const, Finset.card_powersetCard,
+    Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
+  rw [MeasureTheory.integral_indicator_const _ (key T hT).1, Measure.real, (key T hT).2,
+    smul_eq_mul, mul_one, ENNReal.toReal_pow, ENNReal.coe_toReal, unitInterval.coe_toNNReal]
 
 /-- **The variance of the triangle count** (Zhao, the second-moment half of Proposition 4.1.2),
 in the crude form the threshold argument needs.
