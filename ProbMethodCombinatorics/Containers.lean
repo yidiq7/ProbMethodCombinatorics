@@ -1173,6 +1173,160 @@ def IsContainerRound {n : ℕ} (c d : ℝ)
         ≤ (n : ℝ) * ((Ae.filter fun e => pick Av Ae T ∈ e).card : ℝ)
           + (((kill Av Ae (pick Av Ae T)).card : ℝ) + 1) * (c * d))
 
+/-- **One round of the container algorithm, on a nonempty vertex type.**
+
+`pick Av Ae T` is the element of `T` of largest `Ae`-degree, ties broken by vertex index, and
+`kill Av Ae v` is the set of vertices of `Av` that precede `v` in that order.  The order is
+carried by the injective weight `ord Ae u = n * (#Ae - deg_{Ae} u) + u`, with `u` recovered from
+it as `ord Ae u % n`, and the selection is `Nat.sInf` over the weights of `T`; this keeps both
+maps total with no `Decidable` instance beyond the ones the definitions already carry.
+
+Positivity of `n` is what makes the witnesses exist: `pick` returns an element of `Fin n` on
+every state, including the empty one. -/
+private theorem exists_container_round_of_pos (c d : ℝ) (n : ℕ) (hn : 0 < n) :
+    ∃ (pick : Finset (Fin n) → Finset (Finset (Fin n)) → Finset (Fin n) → Fin n)
+      (kill : Finset (Fin n) → Finset (Finset (Fin n)) → Fin n → Finset (Fin n)),
+      IsContainerRound c d pick kill := by
+  obtain ⟨ord, decode, hdecode, hord_mono⟩ :
+      ∃ (ord : Finset (Finset (Fin n)) → Fin n → ℕ) (decode : ℕ → Fin n),
+        (∀ (Ae : Finset (Finset (Fin n))) (u : Fin n), decode (ord Ae u) = u) ∧
+        ∀ (Ae : Finset (Finset (Fin n))) (u w : Fin n), ord Ae u ≤ ord Ae w →
+          #{e ∈ Ae | w ∈ e} ≤ #{e ∈ Ae | u ∈ e} := by
+    refine ⟨fun Ae u => n * (Ae.card - #{e ∈ Ae | u ∈ e}) + (u : ℕ),
+      fun m => ⟨m % n, Nat.mod_lt _ hn⟩, ?_, ?_⟩
+    · intro Ae u
+      refine Fin.ext ?_
+      show (n * (Ae.card - #{e ∈ Ae | u ∈ e}) + (u : ℕ)) % n = (u : ℕ)
+      rw [Nat.mul_add_mod, Nat.mod_eq_of_lt u.isLt]
+    · intro Ae u w huw
+      have huw' : n * (Ae.card - #{e ∈ Ae | u ∈ e}) + (u : ℕ)
+          ≤ n * (Ae.card - #{e ∈ Ae | w ∈ e}) + (w : ℕ) := huw
+      by_contra hcon
+      rw [not_le] at hcon
+      have hwn : #{e ∈ Ae | w ∈ e} ≤ Ae.card := Finset.card_filter_le _ _
+      have hstep : Ae.card - #{e ∈ Ae | w ∈ e} + 1 ≤ Ae.card - #{e ∈ Ae | u ∈ e} := by
+        omega
+      have hmul : n * (Ae.card - #{e ∈ Ae | w ∈ e}) + n
+          ≤ n * (Ae.card - #{e ∈ Ae | u ∈ e}) := by
+        calc n * (Ae.card - #{e ∈ Ae | w ∈ e}) + n
+            = n * (Ae.card - #{e ∈ Ae | w ∈ e} + 1) := by ring
+          _ ≤ n * (Ae.card - #{e ∈ Ae | u ∈ e}) := Nat.mul_le_mul le_rfl hstep
+      have hwlt : (w : ℕ) < n := w.isLt
+      omega
+  have hord_inj : ∀ (Ae : Finset (Finset (Fin n))) (u w : Fin n),
+      ord Ae u = ord Ae w → u = w := by
+    intro Ae u w h
+    rw [← hdecode Ae u, ← hdecode Ae w, h]
+  obtain ⟨pick, hpick_mem, hpick_min⟩ :
+      ∃ pick : Finset (Fin n) → Finset (Finset (Fin n)) → Finset (Fin n) → Fin n,
+        (∀ (Av : Finset (Fin n)) (Ae : Finset (Finset (Fin n))) (T : Finset (Fin n)),
+            T.Nonempty → pick Av Ae T ∈ T) ∧
+        ∀ (Av : Finset (Fin n)) (Ae : Finset (Finset (Fin n))) (T : Finset (Fin n)) (u : Fin n),
+          u ∈ T → ord Ae (pick Av Ae T) ≤ ord Ae u := by
+    refine ⟨fun _ Ae T => decode (sInf {m | ∃ u ∈ T, ord Ae u = m}), ?_, ?_⟩
+    · intro Av Ae T hT
+      obtain ⟨u, hu, hum⟩ := Nat.sInf_mem (s := {m | ∃ u ∈ T, ord Ae u = m})
+        (by obtain ⟨u, hu⟩ := hT; exact ⟨ord Ae u, u, hu, rfl⟩)
+      show decode (sInf {m | ∃ u ∈ T, ord Ae u = m}) ∈ T
+      rw [← hum, hdecode]
+      exact hu
+    · intro Av Ae T u hu
+      obtain ⟨w, hw, hwm⟩ := Nat.sInf_mem (s := {m | ∃ u ∈ T, ord Ae u = m})
+        ⟨ord Ae u, u, hu, rfl⟩
+      show ord Ae (decode (sInf {m | ∃ u ∈ T, ord Ae u = m})) ≤ ord Ae u
+      rw [← hwm, hdecode, hwm]
+      exact Nat.sInf_le ⟨u, hu, rfl⟩
+  have hpick_eq : ∀ (Av : Finset (Fin n)) (Ae : Finset (Finset (Fin n))) (T : Finset (Fin n))
+      (v : Fin n), v ∈ T → (∀ u ∈ T, ord Ae v ≤ ord Ae u) → pick Av Ae T = v :=
+    fun Av Ae T v hv hmin =>
+      hord_inj Ae _ _
+        (le_antisymm (hpick_min Av Ae T v hv) (hmin _ (hpick_mem Av Ae T ⟨v, hv⟩)))
+  obtain ⟨kill, hkill⟩ :
+      ∃ kill : Finset (Fin n) → Finset (Finset (Fin n)) → Fin n → Finset (Fin n),
+        ∀ (Av : Finset (Fin n)) (Ae : Finset (Finset (Fin n))) (v : Fin n),
+          kill Av Ae v = {u ∈ Av | ord Ae u < ord Ae v} :=
+    ⟨fun Av Ae v => {u ∈ Av | ord Ae u < ord Ae v}, fun _ _ _ => rfl⟩
+  refine ⟨pick, kill, hpick_mem, ?_, ?_, ?_, ?_⟩
+  · intro Av Ae T T' hsub hmem
+    exact hpick_eq Av Ae T' (pick Av Ae T) hmem fun u hu => hpick_min Av Ae T u (hsub hu)
+  · intro Av Ae v
+    refine ⟨by rw [hkill]; exact Finset.filter_subset _ _, ?_⟩
+    rw [hkill, Finset.mem_filter]
+    simp
+  · intro Av Ae T hT
+    rw [Finset.disjoint_left]
+    intro u hu huT
+    rw [hkill, Finset.mem_filter] at hu
+    exact absurd (hpick_min Av Ae T u huT) (not_le.2 hu.2)
+  · intro Av Ae T hTAv hT hsub h3 hcod
+    set v := pick Av Ae T
+    have hvT : v ∈ T := hpick_mem Av Ae T hT
+    have hvAv : v ∈ Av := hTAv hvT
+    have hKdef : kill Av Ae v = {u ∈ Av | ord Ae u < ord Ae v} := hkill Av Ae v
+    have hdeg_le : ∀ u : Fin n, (#{e ∈ Ae | u ∈ e} : ℝ) ≤ c * d := by
+      intro u
+      refine le_trans (Nat.cast_le.2 ?_) hcod
+      unfold maxCodegree
+      have hmem : ({u} : Finset (Fin n)) ∈
+          Finset.filter (fun A : Finset (Fin n) => A.card = 1) univ := by simp
+      refine le_trans (le_of_eq (congrArg Finset.card ?_))
+        (Finset.le_sup (f := fun A : Finset (Fin n) => #{e ∈ Ae | A ⊆ e}) hmem)
+      ext e
+      simp [Finset.singleton_subset_iff]
+    have hcountN : ∑ u ∈ Av, #{e ∈ Ae | u ∈ e} = 3 * Ae.card := by
+      have hswap : ∑ u ∈ Av, #{e ∈ Ae | u ∈ e} = ∑ e ∈ Ae, #{u ∈ Av | u ∈ e} := by
+        simp only [Finset.card_filter]
+        rw [Finset.sum_comm]
+      have hfib : ∀ e ∈ Ae, #{u ∈ Av | u ∈ e} = 3 := by
+        intro e he
+        have hfil : {u ∈ Av | u ∈ e} = e := by
+          ext x
+          simp only [Finset.mem_filter]
+          exact ⟨fun h => h.2, fun h => ⟨hsub e he h, h⟩⟩
+        rw [hfil, h3 e he]
+      rw [hswap, Finset.sum_congr rfl hfib, Finset.sum_const, smul_eq_mul, mul_comm]
+    have hcount : ∑ u ∈ Av, (#{e ∈ Ae | u ∈ e} : ℝ) = 3 * (Ae.card : ℝ) := by
+      rw [← Nat.cast_sum, hcountN]
+      push_cast
+      ring
+    have hKsub : kill Av Ae v ⊆ Av := by rw [hKdef]; exact Finset.filter_subset _ _
+    have hvK : v ∉ kill Av Ae v := by rw [hKdef]; simp
+    have hins : insert v (kill Av Ae v) ⊆ Av := Finset.insert_subset hvAv hKsub
+    have hsplit : ∑ u ∈ Av \ insert v (kill Av Ae v), (#{e ∈ Ae | u ∈ e} : ℝ)
+        + ∑ u ∈ insert v (kill Av Ae v), (#{e ∈ Ae | u ∈ e} : ℝ)
+        = ∑ u ∈ Av, (#{e ∈ Ae | u ∈ e} : ℝ) := Finset.sum_sdiff hins
+    have hcardins : (#(insert v (kill Av Ae v)) : ℝ) = (#(kill Av Ae v) : ℝ) + 1 := by
+      rw [Finset.card_insert_of_notMem hvK]
+      push_cast
+      ring
+    have h1 : ∑ u ∈ insert v (kill Av Ae v), (#{e ∈ Ae | u ∈ e} : ℝ)
+        ≤ ((#(kill Av Ae v) : ℝ) + 1) * (c * d) := by
+      calc ∑ u ∈ insert v (kill Av Ae v), (#{e ∈ Ae | u ∈ e} : ℝ)
+          ≤ ∑ _u ∈ insert v (kill Av Ae v), c * d := Finset.sum_le_sum fun u _ => hdeg_le u
+        _ = (#(insert v (kill Av Ae v)) : ℝ) * (c * d) := by rw [Finset.sum_const, nsmul_eq_mul]
+        _ = ((#(kill Av Ae v) : ℝ) + 1) * (c * d) := by rw [hcardins]
+    have h2 : ∑ u ∈ Av \ insert v (kill Av Ae v), (#{e ∈ Ae | u ∈ e} : ℝ)
+        ≤ (n : ℝ) * (#{e ∈ Ae | v ∈ e} : ℝ) := by
+      have hsurv : ∀ u ∈ Av \ insert v (kill Av Ae v),
+          (#{e ∈ Ae | u ∈ e} : ℝ) ≤ (#{e ∈ Ae | v ∈ e} : ℝ) := by
+        intro u hu
+        rw [Finset.mem_sdiff, Finset.mem_insert] at hu
+        have hnot : ¬ ord Ae u < ord Ae v := fun hlt =>
+          hu.2 (Or.inr (by rw [hKdef, Finset.mem_filter]; exact ⟨hu.1, hlt⟩))
+        exact Nat.cast_le.2 (hord_mono Ae v u (not_lt.1 hnot))
+      have hcard : (#(Av \ insert v (kill Av Ae v)) : ℝ) ≤ (n : ℝ) := by
+        have h := Finset.card_le_univ (Av \ insert v (kill Av Ae v))
+        simp only [Fintype.card_fin] at h
+        exact Nat.cast_le.2 h
+      calc ∑ u ∈ Av \ insert v (kill Av Ae v), (#{e ∈ Ae | u ∈ e} : ℝ)
+          ≤ ∑ _u ∈ Av \ insert v (kill Av Ae v), (#{e ∈ Ae | v ∈ e} : ℝ) :=
+            Finset.sum_le_sum hsurv
+        _ = (#(Av \ insert v (kill Av Ae v)) : ℝ) * (#{e ∈ Ae | v ∈ e} : ℝ) := by
+            rw [Finset.sum_const, nsmul_eq_mul]
+        _ ≤ (n : ℝ) * (#{e ∈ Ae | v ∈ e} : ℝ) :=
+            mul_le_mul_of_nonneg_right hcard (by positivity)
+    linarith
+
 /-- **Such a round exists** — the hypergraph analogue of `exists_greedy_rule`.
 
 Take the order on `Av` given by decreasing `Ae`-degree with ties by vertex index, let
@@ -1195,7 +1349,10 @@ theorem exists_container_round (c d : ℝ) (hc : 0 < c) (hd : 0 < d) (n : ℕ) :
     ∃ (pick : Finset (Fin n) → Finset (Finset (Fin n)) → Finset (Fin n) → Fin n)
       (kill : Finset (Fin n) → Finset (Finset (Fin n)) → Fin n → Finset (Fin n)),
       IsContainerRound c d pick kill := by
-  sorry
+  rcases Nat.eq_zero_or_pos n with rfl | hn
+  · -- `Finset (Fin 0)` is inhabited while `Fin 0` is empty, so `pick` cannot be total here.
+    sorry
+  · exact exists_container_round_of_pos c d n hn
 
 /-- The two vertices of an unordered pair, as a `Finset`. -/
 private def pairVerts {n : ℕ} (p : Sym2 (Fin n)) : Finset (Fin n) :=
