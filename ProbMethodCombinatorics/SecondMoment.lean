@@ -823,6 +823,24 @@ theorem memLp_triangleCount {n : ℕ} (p : I) :
   exact memLp_finsetSum _ fun T _ =>
     memLp_indicator_const 2 (measurableSet_setOf_forall_adj T) 1 (Or.inr (measure_ne_top _ _))
 
+/-- `n³/12 ≤ binom(n,3)` for `6 ≤ n`.
+
+Equivalent to `n² - 6n + 4 ≥ 0`, so **`6` is exactly the threshold**: at `n = 5` the claim is
+`10.417 ≤ 10`, which is false.  Both halves of §4.1's triangle threshold and Theorem 8.1.6's
+`ε`–`N` form spend this bound at the same place, which is why it has a name. -/
+theorem cube_div_twelve_le_choose_three {n : ℕ} (hn : 6 ≤ n) :
+    (n : ℝ) ^ 3 / 12 ≤ (n.choose 3 : ℝ) := by
+  have hn6 : (6 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn
+  have hnat : 6 * n.choose 3 = n * (n - 1) * (n - 2) := by
+    have h := Nat.descFactorial_eq_factorial_mul_choose n 3
+    simp only [Nat.descFactorial, Nat.factorial, Nat.sub_zero, mul_one] at h
+    rw [← h]; ring
+  have hc : (6 : ℝ) * (n.choose 3 : ℝ) = (n : ℝ) * ((n : ℝ) - 1) * ((n : ℝ) - 2) := by
+    have h := congrArg (fun k : ℕ => (k : ℝ)) hnat
+    push_cast [Nat.cast_sub (by omega : 1 ≤ n), Nat.cast_sub (by omega : 2 ≤ n)] at h
+    linarith only [h]
+  nlinarith only [hc, hn6]
+
 /-- **The supercritical half of the triangle threshold** (Zhao, Proposition 4.1.2): when `p·n` is
 large, `G(n, p)` contains a triangle with high probability.
 
@@ -857,16 +875,7 @@ theorem prob_triangle_of_le_mul :
     · exact h
     · rw [← h, zero_mul] at ht1; linarith
   -- `binom(n,3) = n(n-1)(n-2)/6 ≥ n³/12`, which holds from `n = 6` up.
-  have hchoose : (n : ℝ) ^ 3 / 12 ≤ (n.choose 3 : ℝ) := by
-    have hnat : 6 * n.choose 3 = n * (n - 1) * (n - 2) := by
-      have h := Nat.descFactorial_eq_factorial_mul_choose n 3
-      simp only [Nat.descFactorial, Nat.factorial, Nat.sub_zero, mul_one] at h
-      rw [← h]; ring
-    have hc : (6 : ℝ) * (n.choose 3 : ℝ) = (n : ℝ) * ((n : ℝ) - 1) * ((n : ℝ) - 2) := by
-      have h := congrArg (fun k : ℕ => (k : ℝ)) hnat
-      push_cast [Nat.cast_sub (by omega : 1 ≤ n), Nat.cast_sub (by omega : 2 ≤ n)] at h
-      linarith only [h]
-    nlinarith only [hc, hn6]
+  have hchoose := cube_div_twelve_le_choose_three hn
   have hmean : ∫ G, triangleCount G ∂(binomialRandom (Fin n) p)
       = (n.choose 3 : ℝ) * (p : ℝ) ^ 3 := integral_triangleCount n p
   have hEpos : 0 < (n.choose 3 : ℝ) * (p : ℝ) ^ 3 := by

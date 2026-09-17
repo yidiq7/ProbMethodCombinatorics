@@ -881,16 +881,7 @@ theorem prob_no_triangle_le_of_mul_sqrt_le :
       Real.sq_sqrt (by positivity : (0 : ℝ) ≤ ε / 6)] at hsq
     linarith only [hsq]
   -- `binom(n,3) = n(n-1)(n-2)/6 ≥ n³/12`, which holds from `n = 6` up.
-  have hchoose : (n : ℝ) ^ 3 / 12 ≤ (n.choose 3 : ℝ) := by
-    have hnat : 6 * n.choose 3 = n * (n - 1) * (n - 2) := by
-      have h := Nat.descFactorial_eq_factorial_mul_choose n 3
-      simp only [Nat.descFactorial, Nat.factorial, Nat.sub_zero, mul_one] at h
-      rw [← h]; ring
-    have hc : (6 : ℝ) * (n.choose 3 : ℝ) = (n : ℝ) * ((n : ℝ) - 1) * ((n : ℝ) - 2) := by
-      have h := congrArg (fun k : ℕ => (k : ℝ)) hnat
-      push_cast [Nat.cast_sub (by omega : 1 ≤ n), Nat.cast_sub (by omega : 2 ≤ n)] at h
-      linarith only [h]
-    nlinarith only [hc, hn6]
+  have hchoose := cube_div_twelve_le_choose_three hn
   -- `Δ/2 ≤ n⁴p⁵/2 ≤ ε n³p³/12 ≤ ε μ`, the first step being exactly `n p² ≤ ε/6`.
   have hmul : ((n : ℝ) ^ 3 * (p : ℝ) ^ 3) * ((n : ℝ) * (p : ℝ) ^ 2)
       ≤ ((n : ℝ) ^ 3 * (p : ℝ) ^ 3) * (ε / 6) :=
