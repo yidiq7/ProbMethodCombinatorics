@@ -479,6 +479,45 @@ theorem measure_sub_integral_ge_le {ι : Type*} [Fintype ι] {Ω : ι → Type*}
   field_simp
   ring
 
+/-- The two-sided bounded differences inequality: both tails carry the same exponential, so the
+union bound costs only a factor `2`.
+
+`-f` has the same bounded differences as `f` and mean `-∫ f`, so `measure_sub_integral_ge_le`
+applies to it and bounds the lower tail of `f`. -/
+private theorem measure_abs_sub_integral_ge_le {ι : Type*} [Fintype ι] {Ω : ι → Type*}
+    [∀ i, MeasurableSpace (Ω i)] (μ : ∀ i, Measure (Ω i)) [∀ i, IsProbabilityMeasure (μ i)]
+    (f : (∀ i, Ω i) → ℝ) (c : ι → ℝ) (hf : Measurable f)
+    (hc : ∀ i (x y : ∀ i, Ω i), (∀ j, j ≠ i → x j = y j) → |f x - f y| ≤ c i)
+    (hsum : 0 < ∑ i, c i ^ 2) {lam : ℝ} (hlam : 0 ≤ lam) :
+    (Measure.pi μ).real {x | lam ≤ |f x - ∫ y, f y ∂(Measure.pi μ)|}
+      ≤ 2 * Real.exp (-2 * lam ^ 2 / ∑ i, c i ^ 2) := by
+  have hcneg : ∀ i (x y : ∀ i, Ω i), (∀ j, j ≠ i → x j = y j) → |(-f) x - (-f) y| ≤ c i := by
+    intro i x y h
+    simp only [Pi.neg_apply, show -f x - -f y = f y - f x from by ring]
+    exact hc i y x fun j hj => (h j hj).symm
+  have hup := measure_sub_integral_ge_le μ f c hf hc hsum hlam
+  have hdown := measure_sub_integral_ge_le μ (-f) c hf.neg hcneg hsum hlam
+  have hsub : {x | lam ≤ |f x - ∫ y, f y ∂(Measure.pi μ)|}
+      ⊆ {x | lam ≤ f x - ∫ y, f y ∂(Measure.pi μ)}
+        ∪ {x | lam ≤ (-f) x - ∫ y, (-f) y ∂(Measure.pi μ)} := by
+    intro x hx
+    simp only [Set.mem_ofPred_eq] at hx
+    rcases abs_cases (f x - ∫ y, f y ∂(Measure.pi μ)) with ⟨heq, _⟩ | ⟨heq, _⟩
+    · exact Or.inl (by rw [heq] at hx; exact hx)
+    · refine Or.inr ?_
+      simp only [Set.mem_ofPred_eq, Pi.neg_apply, integral_neg]
+      rw [heq] at hx
+      linarith
+  calc (Measure.pi μ).real {x | lam ≤ |f x - ∫ y, f y ∂(Measure.pi μ)|}
+      ≤ (Measure.pi μ).real ({x | lam ≤ f x - ∫ y, f y ∂(Measure.pi μ)}
+          ∪ {x | lam ≤ (-f) x - ∫ y, (-f) y ∂(Measure.pi μ)}) := measureReal_mono hsub
+    _ ≤ (Measure.pi μ).real {x | lam ≤ f x - ∫ y, f y ∂(Measure.pi μ)}
+          + (Measure.pi μ).real {x | lam ≤ (-f) x - ∫ y, (-f) y ∂(Measure.pi μ)} :=
+        measureReal_union_le _ _
+    _ ≤ Real.exp (-2 * lam ^ 2 / ∑ i, c i ^ 2) + Real.exp (-2 * lam ^ 2 / ∑ i, c i ^ 2) :=
+        add_le_add hup hdown
+    _ = 2 * Real.exp (-2 * lam ^ 2 / ∑ i, c i ^ 2) := by ring
+
 /-! ### §9.2 Azuma's inequality
 
 The martingale route to concentration.  Note that `measure_sub_integral_ge_le` above — the
@@ -982,6 +1021,53 @@ theorem abs_sub_chromaticNumber_le_one {n : ℕ} (v : Fin n) (G G' : SimpleGraph
       exact_mod_cast h₁
     linarith
 
+/-- Block `0` of the vertex-exposure product carries no information: its index type
+`{j : Fin n // j < 0}` is empty, so the block is a singleton type. -/
+private theorem eq_of_exposureBlock_bot {n : ℕ} {i : Fin n} (hi : (i : ℕ) = 0)
+    (a b : ExposureBlock n i) : a = b := by
+  have he : IsEmpty {j : Fin n // j < i} := by
+    refine ⟨fun j => ?_⟩
+    have hj := j.2
+    rw [Fin.lt_def, hi] at hj
+    omega
+  exact funext fun j => he.elim j
+
+/-- **Bounded differences for the chromatic number along vertex exposure.**  Changing block `i`
+alone rewires only the edges at vertex `i`, so `abs_sub_chromaticNumber_le_one` applies and the
+chromatic number moves by at most one; block `0` is a singleton type, so changing it alone
+changes nothing at all.
+
+The weight `0` at coordinate `0` is what makes `∑ i, c i ^ 2` equal `n - 1` rather than `n`. -/
+private theorem abs_sub_chromaticNumber_graphOfExposure_le {n : ℕ} (i : Fin n)
+    (x y : ∀ j, ExposureBlock n j) (h : ∀ j, j ≠ i → x j = y j) :
+    |((graphOfExposure x).chromaticNumber.toNat : ℝ)
+        - ((graphOfExposure y).chromaticNumber.toNat : ℝ)|
+      ≤ if (i : ℕ) = 0 then (0 : ℝ) else 1 := by
+  by_cases hi : (i : ℕ) = 0
+  · have hxy : x = y := by
+      funext j
+      rcases eq_or_ne j i with rfl | hj
+      · exact eq_of_exposureBlock_bot hi _ _
+      · exact h j hj
+    rw [hxy, if_pos hi]
+    simp
+  · rw [if_neg hi]
+    refine abs_sub_chromaticNumber_le_one i _ _ fun a b ha hb => ?_
+    rcases lt_trichotomy a b with hab | rfl | hab
+    · rw [adj_graphOfExposure_iff_of_lt x hab, adj_graphOfExposure_iff_of_lt y hab, h b hb]
+    · simp
+    · rw [SimpleGraph.adj_comm (graphOfExposure x), SimpleGraph.adj_comm (graphOfExposure y),
+        adj_graphOfExposure_iff_of_lt x hab, adj_graphOfExposure_iff_of_lt y hab, h a ha]
+
+/-- The vertex-exposure weights sum to `n - 1`: every block but the empty block `0` contributes
+`1`.  This is the `∑ i, c i ^ 2` of the bounded differences inequality, and the reason
+Shamir–Spencer has radius `lam √(n-1)`. -/
+private theorem sum_sq_exposureWeight (n : ℕ) (hn : 1 ≤ n) :
+    ∑ i : Fin n, (if (i : ℕ) = 0 then (0 : ℝ) else 1) ^ 2 = (n : ℝ) - 1 := by
+  obtain ⟨m, rfl⟩ : ∃ m, n = m + 1 := ⟨n - 1, by omega⟩
+  rw [Fin.sum_univ_succ]
+  simp
+
 /-- **The chromatic number of a random graph is concentrated in a window of width `O(√n)`**
 (Zhao, Theorem 9.3.1; Shamir and Spencer 1987).  For every `lam ≥ 0`,
 
@@ -1009,7 +1095,57 @@ theorem measure_abs_sub_integral_chromaticNumber_ge_le (n : ℕ) (hn : 2 ≤ n) 
               - ∫ K, (K.chromaticNumber.toNat : ℝ)
                   ∂(SimpleGraph.binomialRandom (Fin n) p)|}
       ≤ 2 * Real.exp (-2 * lam ^ 2) := by
-  sorry
+  classical
+  have hb : IsProbabilityMeasure ((toNNReal p) • Measure.dirac True
+      + (toNNReal (σ p)) • Measure.dirac False) := ⟨by simp⟩
+  have hpr : ∀ i : Fin n, IsProbabilityMeasure (exposureMeasure n p i) := fun i =>
+    inferInstanceAs (IsProbabilityMeasure (Measure.pi fun _ : {j : Fin n // j < i} =>
+      (toNNReal p) • Measure.dirac True + (toNNReal (σ p)) • Measure.dirac False))
+  -- `SimpleGraph (Fin n)` is countable with measurable singletons, hence discrete: the event
+  -- and the chromatic number are measurable there.
+  have hcount : Countable (SimpleGraph (Fin n)) := SimpleGraph.adj_injective.countable
+  have hsingle : MeasurableSingletonClass (SimpleGraph (Fin n)) :=
+    ⟨measurableSet_simpleGraph_singleton⟩
+  have hchi : Measurable fun G : SimpleGraph (Fin n) => (G.chromaticNumber.toNat : ℝ) :=
+    Measurable.of_discrete
+  have hf : Measurable fun x : ∀ i : Fin n, ExposureBlock n i =>
+      ((graphOfExposure x).chromaticNumber.toNat : ℝ) :=
+    hchi.comp measurable_graphOfExposure_blocks
+  have hn1 : (0 : ℝ) < (n : ℝ) - 1 := by
+    have h2 : (2 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn
+    linarith
+  have hcsum : ∑ i : Fin n, (if (i : ℕ) = 0 then (0 : ℝ) else 1) ^ 2 = (n : ℝ) - 1 :=
+    sum_sq_exposureWeight n (by omega)
+  have hsum : 0 < ∑ i : Fin n, (if (i : ℕ) = 0 then (0 : ℝ) else 1) ^ 2 := hcsum ▸ hn1
+  have hlam' : 0 ≤ lam * Real.sqrt ((n : ℝ) - 1) := mul_nonneg hlam (Real.sqrt_nonneg _)
+  -- Move the event and the mean to the vertex-exposure product.
+  have hstep : (SimpleGraph.binomialRandom (Fin n) p).real
+      {G : SimpleGraph (Fin n) | lam * Real.sqrt ((n : ℝ) - 1)
+        ≤ |(G.chromaticNumber.toNat : ℝ)
+            - ∫ K, (K.chromaticNumber.toNat : ℝ)
+                ∂(SimpleGraph.binomialRandom (Fin n) p)|}
+      = (Measure.pi (exposureMeasure n p)).real
+          {x | lam * Real.sqrt ((n : ℝ) - 1)
+            ≤ |((graphOfExposure x).chromaticNumber.toNat : ℝ)
+                - ∫ y, ((graphOfExposure y).chromaticNumber.toNat : ℝ)
+                    ∂(Measure.pi (exposureMeasure n p))|} := by
+    rw [binomialRandom_eq_map_graphOfExposure n p,
+      integral_map measurable_graphOfExposure_blocks.aemeasurable hchi.aestronglyMeasurable,
+      map_measureReal_apply measurable_graphOfExposure_blocks MeasurableSet.of_discrete,
+      Set.preimage_ofPred_eq]
+  rw [hstep]
+  -- The bounded differences inequality, two-sided, at radius `lam √(n-1)`.
+  have hmain := measure_abs_sub_integral_ge_le (exposureMeasure n p)
+    (fun x => ((graphOfExposure x).chromaticNumber.toNat : ℝ))
+    (fun i : Fin n => if (i : ℕ) = 0 then (0 : ℝ) else 1) hf
+    (fun i x y h => abs_sub_chromaticNumber_graphOfExposure_le i x y h) hsum hlam'
+  -- `∑ i, c i ^ 2 = n - 1` cancels the radius: the bound is `exp (-2 lam ^ 2)`.
+  have hexp : -2 * (lam * Real.sqrt ((n : ℝ) - 1)) ^ 2
+      / ∑ i : Fin n, (if (i : ℕ) = 0 then (0 : ℝ) else 1) ^ 2 = -2 * lam ^ 2 := by
+    rw [hcsum, mul_pow, Real.sq_sqrt hn1.le]
+    field_simp
+  rw [hexp] at hmain
+  exact hmain
 
 end VertexExposure
 
