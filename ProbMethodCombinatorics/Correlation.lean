@@ -279,8 +279,12 @@ section SetBernoulliHarris
 variable {ι : Type*}
 
 /-- The probability that a `p`-random subset of `ι` contains every element of `J` and no element
-of the disjoint finite set `K`. -/
-private theorem setBernoulli_cylinder (p : I) (J K : Finset ι) (hJK : Disjoint J K) :
+of the disjoint finite set `K`.
+
+Public: Chapter 8's applications of Janson's inequalities need cylinder probabilities, and this
+computes them in one step.  Chapter 4 reaches the same numbers through
+`binomialRandom_setOf_subset_edgeSet`, which is the `G(n,p)` face of the same fact. -/
+theorem setBernoulli_cylinder (p : I) (J K : Finset ι) (hJK : Disjoint J K) :
     setBernoulli Set.univ p {R : Set ι | (∀ i ∈ J, i ∈ R) ∧ ∀ i ∈ K, i ∉ R}
       = (toNNReal p : ℝ≥0∞) ^ J.card * (toNNReal (σ p) : ℝ≥0∞) ^ K.card := by
   classical
@@ -328,6 +332,15 @@ private theorem measurableSet_setOf_coe_subset (J : Finset ι) :
     ext R; simp [Set.subset_def]
   rw [this]
   exact J.measurableSet_biInter fun i _ ↦ measurableSet_mem i
+
+/-- **A `p`-random subset of `ι` contains a prescribed finite `J` with probability `p ^ #J`.**
+
+The `K = ∅` case of `setBernoulli_cylinder`, and the form Janson's inequalities consume: the
+events of Setup 8.1.1 are exactly `{R | ↑(S i) ⊆ R}`. -/
+theorem setBernoulli_setOf_subset (p : I) (J : Finset ι) :
+    setBernoulli Set.univ p {R : Set ι | ↑J ⊆ R} = (toNNReal p : ℝ≥0∞) ^ J.card := by
+  have h := setBernoulli_cylinder p J ∅ (by simp)
+  simpa [Set.subset_def] using h
 
 /-- A `p`-random subset contains a fixed finite set `J` with probability `p ^ #J`. -/
 private theorem setBernoulli_setOf_coe_subset [Countable ι] (p : I) (J : Finset ι) :

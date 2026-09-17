@@ -1,4 +1,5 @@
 import ProbMethodCombinatorics.Correlation
+import ProbMethodCombinatorics.SecondMoment
 import Mathlib.Probability.Combinatorics.BinomialRandomGraph.Defs
 import Mathlib.Probability.Distributions.SetBernoulli
 import Mathlib.Analysis.SpecialFunctions.Exp
@@ -166,6 +167,30 @@ theorem binomialRandom_setOf_forall_not_subset {n : ℕ} (p : I)
   congr 1
   ext R
   simp only [Set.mem_preimage, Set.mem_ofPred_eq, hdiag]
+
+/-! ### §8.1.5: the triangle family in `G(n, p)`
+
+Setup 8.1.1 instantiated at the question the chapter keeps returning to.  The ground set is the
+non-loop pairs of `Fin n`, the index set is the triples of vertices, and `S T` is the three edges
+of the triangle on `T`.  `μ` and `Δ` for this family are what Theorems 8.1.6, 8.1.8 and 8.1.10
+are stated against, and `binomialRandom_setOf_forall_not_subset` carries the resulting bounds
+over to `G(n, p)`.
+-/
+
+/-- **`μ` for the triangle family is `binom(n,3) p³`.**
+
+Each of the `binom(n,3)` triples contributes the probability that its three edges are all
+present, which is `p ³` by `setBernoulli_setOf_subset` — the triple spans exactly three non-loop
+pairs, since `card_offDiagPairs_add` gives `#(offDiagPairs T) + 3 = binom(4,2) = 6`.
+
+The same number as `integral_triangleCount` of Chapter 4, reached over a different sample space:
+there the count is a random variable on `SimpleGraph (Fin n)`, here it is a sum of event
+probabilities on `Set (Sym2 (Fin n))`. -/
+theorem jansonMu_triangleFamily (n : ℕ) (p : I) :
+    jansonMu p (fun T : {T : Finset (Fin n) // T.card = 3} =>
+        (↑(offDiagPairs (T : Finset (Fin n))) : Set (Sym2 (Fin n))))
+      = (n.choose 3 : ℝ) * (p : ℝ) ^ 3 := by
+  sorry
 
 /-- The conditioning step of the Boppana–Spencer proof of Janson's inequality.
 
