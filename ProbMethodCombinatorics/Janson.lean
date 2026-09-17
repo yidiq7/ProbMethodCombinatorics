@@ -1124,7 +1124,79 @@ theorem binomialRandom_no_triangle_le_of_one_le (n : ℕ) (hn : 4 ≤ n) (p : I)
         {G : SimpleGraph (Fin n) | ∀ T : {T : Finset (Fin n) // T.card = 3},
           ¬ (↑(offDiagPairs (T : Finset (Fin n))) ⊆ G.edgeSet)}
       ≤ Real.exp (-((n.choose 3 : ℝ) * (p : ℝ) / (6 * ((n : ℝ) - 3)))) := by
-  sorry
+  -- Triples meeting in at most one vertex span disjoint edge sets: a shared edge would put two
+  -- shared vertices in the intersection, and `offDiagPairs` of a set of size `≤ 1` is empty.
+  have hD : ∀ A B : {T : Finset (Fin n) // T.card = 3}, A ≠ B →
+      (A, B) ∉ triangleDependency n →
+      Disjoint (↑(offDiagPairs (A : Finset (Fin n))) : Set (Sym2 (Fin n)))
+        (↑(offDiagPairs (B : Finset (Fin n))) : Set (Sym2 (Fin n))) := by
+    intro A B hne hnotD
+    have hmem : ((A, B) ∈ triangleDependency n) ↔
+        (A ≠ B ∧ 2 ≤ ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))).card) := by
+      simp [triangleDependency]
+    have hle : ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))).card ≤ 1 := by
+      by_contra hcon
+      exact hnotD (hmem.2 ⟨hne, by omega⟩)
+    have h := card_offDiagPairs_add ((A : Finset (Fin n)) ∩ (B : Finset (Fin n)))
+    have hc : ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))).card = 0 ∨
+        ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))).card = 1 := by omega
+    have hempty : offDiagPairs ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))) = ∅ := by
+      rcases hc with hc | hc <;> rw [hc] at h <;> simpa [Nat.choose] using h
+    rw [Finset.disjoint_coe, Finset.disjoint_iff_inter_eq_empty, offDiagPairs_inter]
+    exact hempty
+  -- Positivity of the three factors that the cancellation divides by.
+  have h3n : 3 ≤ n := by omega
+  have hnR : (4 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn
+  have hn3 : (0 : ℝ) < (n : ℝ) - 3 := by linarith
+  have hC : (0 : ℝ) < (n.choose 3 : ℝ) := by
+    exact_mod_cast Nat.choose_pos h3n
+  -- The regime hypothesis forces `p > 0`: at `p = 0` it reads `1 ≤ 0`.
+  have hp0 : (0 : ℝ) < (p : ℝ) := by
+    rcases eq_or_lt_of_le p.2.1 with h | h
+    · rw [← h] at hp; norm_num at hp
+    · exact h
+  -- `Δ`'s exact value carries a `Nat` subtraction; `4 ≤ n` makes it the real one.
+  have hcast : ((3 * n.choose 3 * (n - 3) : ℕ) : ℝ)
+      = 3 * (n.choose 3 : ℝ) * ((n : ℝ) - 3) := by
+    push_cast [Nat.cast_sub h3n]
+    ring
+  have hDpos : (0 : ℝ) < 3 * (n.choose 3 : ℝ) * ((n : ℝ) - 3) * (p : ℝ) ^ 5 :=
+    mul_pos (mul_pos (mul_pos (by norm_num) hC) hn3) (pow_pos hp0 5)
+  -- `μ ≤ Δ` is `hp` multiplied through by `binom(n,3) p³ ≥ 0`.
+  have hΔ : jansonMu p (fun T : {T : Finset (Fin n) // T.card = 3} =>
+        (↑(offDiagPairs (T : Finset (Fin n))) : Set (Sym2 (Fin n))))
+      ≤ jansonDelta p (fun T : {T : Finset (Fin n) // T.card = 3} =>
+          (↑(offDiagPairs (T : Finset (Fin n))) : Set (Sym2 (Fin n))))
+        (triangleDependency n) := by
+    rw [jansonMu_triangleFamily, jansonDelta_triangleFamily, hcast]
+    have hmul := mul_le_mul_of_nonneg_right hp
+      (show (0 : ℝ) ≤ (n.choose 3 : ℝ) * (p : ℝ) ^ 3 by positivity)
+    nlinarith only [hmul]
+  have hΔ0 : (0 : ℝ) < jansonDelta p (fun T : {T : Finset (Fin n) // T.card = 3} =>
+      (↑(offDiagPairs (T : Finset (Fin n))) : Set (Sym2 (Fin n)))) (triangleDependency n) := by
+    rw [jansonDelta_triangleFamily, hcast]
+    exact hDpos
+  -- Janson's second inequality on the triangle family, with `μ` and `Δ` substituted exactly.
+  have hmain := janson_prob_none_le_of_mu_le p
+    (fun T : {T : Finset (Fin n) // T.card = 3} =>
+      (↑(offDiagPairs (T : Finset (Fin n))) : Set (Sym2 (Fin n))))
+    (triangleDependency n) hD hΔ hΔ0
+  rw [jansonMu_triangleFamily, jansonDelta_triangleFamily, hcast] at hmain
+  -- `μ² / (2Δ) = binom(n,3)² p⁶ / (6 binom(n,3) (n - 3) p⁵) = binom(n,3) p / (6 (n - 3))`.
+  have hexp : -((n.choose 3 : ℝ) * (p : ℝ) ^ 3) ^ 2
+        / (2 * (3 * (n.choose 3 : ℝ) * ((n : ℝ) - 3) * (p : ℝ) ^ 5))
+      = -((n.choose 3 : ℝ) * (p : ℝ) / (6 * ((n : ℝ) - 3))) := by
+    have hC' : (n.choose 3 : ℝ) ≠ 0 := ne_of_gt hC
+    have hp' : (p : ℝ) ≠ 0 := ne_of_gt hp0
+    have hn3' : (n : ℝ) - 3 ≠ 0 := ne_of_gt hn3
+    field_simp
+    ring
+  rw [hexp] at hmain
+  -- Cross from `G(n, p)` to `setBernoulli`; the triangle edge sets contain no loop.
+  rw [measureReal_def, binomialRandom_setOf_forall_not_subset p
+    (fun T : {T : Finset (Fin n) // T.card = 3} => offDiagPairs (T : Finset (Fin n)))
+    fun _ _ he => not_isDiag_of_mem_offDiagPairs he]
+  exact hmain
 
 /-- The elementary bound `exp (-x) ≤ 1 - x + x ^ 2 / 2` for `x ≥ 0`.
 
