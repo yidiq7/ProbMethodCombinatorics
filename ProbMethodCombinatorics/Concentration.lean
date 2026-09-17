@@ -1286,6 +1286,61 @@ def IsEdgeDisjointCliqueFamily (k : ℕ) {n : ℕ} (G : SimpleGraph (Fin n))
 noncomputable def edgeDisjointCliqueNumber (k : ℕ) {n : ℕ} (G : SimpleGraph (Fin n)) : ℕ :=
   sSup {m | ∃ F : Finset (Finset (Fin n)), IsEdgeDisjointCliqueFamily k G F ∧ F.card = m}
 
+/-- The family cards are bounded: a family is a `Finset` of subsets of `Fin n`, so it has at most
+`2 ^ n` members.  This has to be said out loud — `Nat.sSup` returns the junk value `0` on an
+unbounded set, which would make `edgeDisjointCliqueNumber` meaningless rather than large. -/
+private theorem bddAbove_setOf_card_isEdgeDisjointCliqueFamily (k : ℕ) {n : ℕ}
+    (G : SimpleGraph (Fin n)) :
+    BddAbove
+      {m | ∃ F : Finset (Finset (Fin n)), IsEdgeDisjointCliqueFamily k G F ∧ F.card = m} :=
+  ⟨Fintype.card (Finset (Fin n)), fun m hm => by
+    obtain ⟨F, -, rfl⟩ := hm
+    simpa using F.card_le_univ⟩
+
+/-- The empty family is edge-disjoint vacuously, so `0` is always attained. -/
+private theorem nonempty_setOf_card_isEdgeDisjointCliqueFamily (k : ℕ) {n : ℕ}
+    (G : SimpleGraph (Fin n)) :
+    Set.Nonempty
+      {m | ∃ F : Finset (Finset (Fin n)), IsEdgeDisjointCliqueFamily k G F ∧ F.card = m} :=
+  ⟨0, ∅, ⟨by simp, by simp⟩, by simp⟩
+
+/-- Every edge-disjoint family of `k`-cliques is at most as large as `Y(G)`. -/
+private theorem card_le_edgeDisjointCliqueNumber {k n : ℕ} {G : SimpleGraph (Fin n)}
+    {F : Finset (Finset (Fin n))} (hF : IsEdgeDisjointCliqueFamily k G F) :
+    F.card ≤ edgeDisjointCliqueNumber k G :=
+  le_csSup (bddAbove_setOf_card_isEdgeDisjointCliqueFamily k G) ⟨F, hF, rfl⟩
+
+/-- The one-directional bound, stated once and applied twice.  Given an edge-disjoint family `F`
+of `k`-cliques of `G'`, at most one member has `e` among its pairs — two such members would share
+`e`, contradicting pairwise disjointness — and every other member is still a clique of `G`, since
+`G` and `G'` agree off `e`.  Discarding that single member leaves a family for `G`. -/
+private theorem edgeDisjointCliqueNumber_le_succ_of_edgeSet_agree (k : ℕ) {n : ℕ}
+    (e : Sym2 (Fin n)) (G G' : SimpleGraph (Fin n))
+    (h : ∀ f : Sym2 (Fin n), f ≠ e → (f ∈ G.edgeSet ↔ f ∈ G'.edgeSet)) :
+    edgeDisjointCliqueNumber k G' ≤ edgeDisjointCliqueNumber k G + 1 := by
+  refine csSup_le (nonempty_setOf_card_isEdgeDisjointCliqueFamily k G') ?_
+  rintro m ⟨F, ⟨hcl, hdj⟩, rfl⟩
+  -- Two distinct members both containing `e` would not be edge-disjoint.
+  have hone : (F.filter fun S => e ∈ offDiagPairs S).card ≤ 1 := by
+    refine Finset.card_le_one.2 fun S hS T hT => ?_
+    obtain ⟨hSF, hSe⟩ := Finset.mem_filter.1 hS
+    obtain ⟨hTF, hTe⟩ := Finset.mem_filter.1 hT
+    by_contra hne
+    exact Finset.disjoint_left.1 (hdj S hSF T hTF hne) hSe hTe
+  have hsplit : (F.filter fun S => e ∈ offDiagPairs S).card
+      + (F.filter fun S => ¬ e ∈ offDiagPairs S).card = F.card :=
+    Finset.card_filter_add_card_filter_not _
+  -- The members missing `e` span only pairs on which `G` and `G'` agree.
+  have hfam : IsEdgeDisjointCliqueFamily k G (F.filter fun S => ¬ e ∈ offDiagPairs S) := by
+    refine ⟨fun S hS => ?_, fun S hS T hT hne =>
+      hdj S (Finset.mem_of_mem_filter S hS) T (Finset.mem_of_mem_filter T hT) hne⟩
+    obtain ⟨hSF, hSe⟩ := Finset.mem_filter.1 hS
+    refine ⟨(hcl S hSF).1, fun f hf => ?_⟩
+    have hfe : f ≠ e := fun hfe => hSe (hfe ▸ Finset.mem_coe.1 hf)
+    exact (h f hfe).mpr ((hcl S hSF).2 hf)
+  have := card_le_edgeDisjointCliqueNumber hfam
+  omega
+
 /-- **Changing one edge moves `Y` by at most one.**
 
 Deleting an edge destroys at most one member of an edge-disjoint family, since the members are
@@ -1299,7 +1354,16 @@ theorem abs_sub_edgeDisjointCliqueNumber_le_one (k : ℕ) {n : ℕ} (e : Sym2 (F
     (G G' : SimpleGraph (Fin n))
     (h : ∀ f : Sym2 (Fin n), f ≠ e → (f ∈ G.edgeSet ↔ f ∈ G'.edgeSet)) :
     |(edgeDisjointCliqueNumber k G : ℝ) - (edgeDisjointCliqueNumber k G' : ℝ)| ≤ 1 := by
-  sorry
+  have h₁ := edgeDisjointCliqueNumber_le_succ_of_edgeSet_agree k e G G' h
+  have h₂ := edgeDisjointCliqueNumber_le_succ_of_edgeSet_agree k e G' G fun f hf => (h f hf).symm
+  rw [abs_sub_le_iff]
+  refine ⟨?_, ?_⟩
+  · have : (edgeDisjointCliqueNumber k G : ℝ) ≤ (edgeDisjointCliqueNumber k G' : ℝ) + 1 := by
+      exact_mod_cast h₂
+    linarith
+  · have : (edgeDisjointCliqueNumber k G' : ℝ) ≤ (edgeDisjointCliqueNumber k G : ℝ) + 1 := by
+      exact_mod_cast h₁
+    linarith
 
 end EdgeDisjointCliques
 
