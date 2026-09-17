@@ -4302,11 +4302,14 @@
       "file": "ProbMethodCombinatorics/SecondMoment.lean",
       "decl": "ProbMethodCombinatorics.integral_triangleCount",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "triangleCount"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "binomialRandom_forall_mem_edgeSet",
+        "measurableSet_forall_mem_edgeSet"
+      ]
     },
     "triangleCount": {
       "kind": "definition",
@@ -4336,11 +4339,17 @@
       "file": "ProbMethodCombinatorics/SecondMoment.lean",
       "decl": "ProbMethodCombinatorics.prob_no_triangle_of_mul_le",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "triangleCount"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "integrable_triangleCount",
+        "integral_triangleCount",
+        "measurable_triangleCount",
+        "one_le_triangleCount_of_ne_zero",
+        "triangleCount_nonneg"
+      ]
     },
     "exists_independent_transversal": {
       "kind": "theorem",
@@ -4350,6 +4359,81 @@
       "statement": "formalized",
       "proof": "planned",
       "uses": [],
+      "proof_uses": []
+    },
+    "binomialRandom_forall_mem_edgeSet": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.binomialRandom_forall_mem_edgeSet",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "measurableSet_forall_mem_edgeSet": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.measurableSet_forall_mem_edgeSet",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "integrable_triangleCount": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.integrable_triangleCount",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "triangleCount"
+      ],
+      "proof_uses": [
+        "measurableSet_setOf_forall_adj"
+      ]
+    },
+    "measurableSet_setOf_forall_adj": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.measurableSet_setOf_forall_adj",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "measurable_triangleCount": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.measurable_triangleCount",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "triangleCount"
+      ],
+      "proof_uses": [
+        "measurableSet_setOf_forall_adj"
+      ]
+    },
+    "one_le_triangleCount_of_ne_zero": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.one_le_triangleCount_of_ne_zero",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "triangleCount"
+      ],
+      "proof_uses": []
+    },
+    "triangleCount_nonneg": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.triangleCount_nonneg",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "triangleCount"
+      ],
       "proof_uses": []
     }
   }
