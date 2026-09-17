@@ -247,6 +247,26 @@ private theorem card_inter_eq_two_of_mem_triangleDependency {n : ℕ}
   rw [q.1.2] at hle
   omega
 
+/-- **`μ` for the `k`-clique family is `binom(n,k) p^{binom(k,2)}`.**
+
+The general form of `jansonMu_triangleFamily`, which is the case `k = 3`.  Each of the
+`binom(n,k)` vertex sets of size `k` contributes the probability that its `binom(k,2)` pairs are
+all present, by `setBernoulli_setOf_subset`; `card_offDiagPairs_add` turns `#S = k` into
+`#(offDiagPairs S) = binom(k,2)`.
+
+This is what §8.3's chromatic-number argument needs — it runs Janson on cliques of size about
+`2 log₂ n`, not on triangles — and it is the `setBernoulli` companion of
+`prob_not_cliqueFree_le` in `SecondMoment.lean`, which bounds the same quantity over `G(n, p)` by
+a union bound rather than computing it.
+
+`k = 0` and `k = 1` are real cases: `binom(k,2) = 0`, so every index contributes `1` and `μ` is
+`binom(n,k)`. -/
+theorem jansonMu_cliqueFamily (n k : ℕ) (p : I) :
+    jansonMu p (fun S : {S : Finset (Fin n) // S.card = k} =>
+        (↑(offDiagPairs (S : Finset (Fin n))) : Set (Sym2 (Fin n))))
+      = (n.choose k : ℝ) * (p : ℝ) ^ k.choose 2 := by
+  sorry
+
 /-- **`Δ` for the triangle family is at most `n⁴p⁵`.**
 
 Two triples sharing an edge span `3 + 3 - 1 = 5` distinct non-loop pairs, so each dependent pair
