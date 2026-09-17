@@ -862,6 +862,32 @@ theorem lt_ramseyNumber_of_local_lemma (n k : ℕ) (hk : 2 ≤ k)
       hmem.mono (Nat.not_lt.1 hlt) (fun i j => x {i, j}) hsymm
     exact hno S hcard hmono
 
+/-- **Non-uniform hypergraphs are 2-colourable under a local weighted condition**
+(Zhao, Theorem 6.2.4).  Where `twoColorable_of_inter_card_le` caps how many edges each edge
+*meets*, this weights each neighbour by its own size, so a hypergraph with a few small edges and
+many large ones can still qualify.
+
+The bad event for an edge `f` is that `f` is monochromatic, of probability `2 ^ (1 - |f|)`, which
+is the `1 / 2 ^ (f.card - 1)` appearing in the sum.  `lovasz_local_lemma_of_sum_le` is the form to
+apply — the asymmetric one — rather than the symmetric form, which cannot see the individual
+sizes.
+
+**`3 ≤ e.card` is not decoration.**  `lovasz_local_lemma_of_sum_le` requires every bad event to
+have probability below `1/2`, and a 2-element edge is monochromatic with probability exactly
+`1/2`.  So edges of size 2 are excluded, and they must be: a hypergraph containing `{u, v}` and
+`{u, w}` and `{v, w}` is not 2-colourable at all.
+
+In the uniform case this is *weaker* than `twoColorable_of_inter_card_le` — it permits
+`d ≤ 2^(k-1)/4` against that theorem's `d + 1 ≤ 2^(k-1)/e` — because the sum form's `1/4` is
+cruder than the symmetric form's `e`.  Its value is the non-uniform case, which the other cannot
+state. -/
+theorem twoColorable_of_sum_inv_two_pow_le {H : Finset (Finset α)}
+    (hsize : ∀ e ∈ H, 3 ≤ e.card)
+    (hsum : ∀ e ∈ H, ∑ f ∈ (H.erase e).filter (fun f => (e ∩ f).Nonempty),
+        (1 : ℝ) / 2 ^ (f.card - 1) ≤ 1 / 4) :
+    TwoColorable H := by
+  sorry
+
 /-- **Independent transversals** (Zhao, §6.3): a graph of maximum degree `Δ` whose vertices are
 partitioned into parts, each larger than `2eΔ`, has an independent set containing exactly one
 vertex from every part.

@@ -4571,6 +4571,18 @@
         "triangleCount"
       ],
       "proof_uses": []
+    },
+    "twoColorable_of_sum_inv_two_pow_le": {
+      "kind": "theorem",
+      "parent": "local_lemma",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.twoColorable_of_sum_inv_two_pow_le",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "two_colorable"
+      ],
+      "proof_uses": []
     }
   }
 }
