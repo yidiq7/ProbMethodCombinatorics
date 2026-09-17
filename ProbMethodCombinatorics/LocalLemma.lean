@@ -1,5 +1,6 @@
 import Mathlib.Combinatorics.SimpleGraph.Finite
 import Mathlib.Probability.Independence.Basic
+import Mathlib.Probability.UniformOn
 import Mathlib.Analysis.SpecialFunctions.Exp
 import Mathlib.Analysis.Complex.ExponentialBounds
 import ProbMethodCombinatorics.PropertyB
@@ -520,35 +521,53 @@ theorem uniformColoring_const (T : Finset κ) (b : Bool) :
   rw [Finset.prod_congr rfl (fun a _ => hrew a), Finset.prod_ite_mem, Finset.univ_inter,
     Finset.prod_const]
 
+/-- **Events determined by disjoint sets of coordinates are independent** (Setup 6.1.5), for an
+arbitrary finite product of probability measures.
+
+`S₁` may depend only on the coordinates in `T`, and `S₂` only on those outside it.  The two
+uniform measures this chapter uses — `uniformColoring` on `κ → Bool` and the choice measure on
+`ι → Fin n` — are both instances, and both call it rather than repeating the argument.
+
+Finiteness of the fibres is what makes every set measurable, which is what
+`IndepFun.measure_inter_preimage_eq_mul` needs; `S₁` and `S₂` therefore carry no measurability
+hypothesis. -/
+theorem measure_pi_inter_eq_mul {ι : Type*} [Fintype ι] [DecidableEq ι] {α : ι → Type*}
+    [∀ i, MeasurableSpace (α i)] [∀ i, Finite (α i)] [∀ i, MeasurableSingletonClass (α i)]
+    (ν : ∀ i, Measure (α i)) [∀ i, IsProbabilityMeasure (ν i)]
+    (T : Finset ι) (S₁ S₂ : Set (∀ i, α i))
+    (h₁ : ∀ x y : ∀ i, α i, (∀ a ∈ T, x a = y a) → (x ∈ S₁ ↔ y ∈ S₁))
+    (h₂ : ∀ x y : ∀ i, α i, (∀ a ∉ T, x a = y a) → (x ∈ S₂ ↔ y ∈ S₂)) :
+    Measure.pi ν (S₁ ∩ S₂) = Measure.pi ν S₁ * Measure.pi ν S₂ := by
+  have hindep : iIndepFun (fun (a : ι) (x : ∀ i, α i) => x a) (Measure.pi ν) :=
+    ProbabilityTheory.iIndepFun_pi (μ := ν) (X := fun i => (id : α i → α i))
+      (fun _ => aemeasurable_id)
+  have hind := hindep.indepFun_finset T Tᶜ disjoint_compl_right
+    (fun a => measurable_pi_apply a)
+  have e₁ : (fun (x : ∀ i, α i) (w : { a // a ∈ T }) => x (w : ι)) ⁻¹'
+      ((fun (x : ∀ i, α i) (w : { a // a ∈ T }) => x (w : ι)) '' S₁) = S₁ := by
+    refine Set.Subset.antisymm ?_ (Set.subset_preimage_image _ _)
+    rintro x ⟨y, hy, hxy⟩
+    exact (h₁ y x (fun a ha => congrFun hxy ⟨a, ha⟩)).1 hy
+  have e₂ : (fun (x : ∀ i, α i) (w : { a // a ∈ Tᶜ }) => x (w : ι)) ⁻¹'
+      ((fun (x : ∀ i, α i) (w : { a // a ∈ Tᶜ }) => x (w : ι)) '' S₂) = S₂ := by
+    refine Set.Subset.antisymm ?_ (Set.subset_preimage_image _ _)
+    rintro x ⟨y, hy, hxy⟩
+    exact (h₂ y x (fun a ha => congrFun hxy ⟨a, Finset.mem_compl.2 ha⟩)).1 hy
+  have hmul := hind.measure_inter_preimage_eq_mul
+    ((fun (x : ∀ i, α i) (w : { a // a ∈ T }) => x (w : ι)) '' S₁)
+    ((fun (x : ∀ i, α i) (w : { a // a ∈ Tᶜ }) => x (w : ι)) '' S₂)
+    (Set.toFinite _).measurableSet (Set.toFinite _).measurableSet
+  rw [e₁, e₂] at hmul
+  exact hmul
+
 /-- **Events determined by disjoint sets of coordinates are independent.**  This is Setup 6.1.5
 specialized to a uniform two-colouring: `S₁` may depend only on the coordinates in `T`, and `S₂`
 only on those outside it. -/
 theorem uniformColoring_inter_eq_mul (T : Finset κ) (S₁ S₂ : Set (κ → Bool))
     (h₁ : ∀ x y : κ → Bool, (∀ a ∈ T, x a = y a) → (x ∈ S₁ ↔ y ∈ S₁))
     (h₂ : ∀ x y : κ → Bool, (∀ a ∉ T, x a = y a) → (x ∈ S₂ ↔ y ∈ S₂)) :
-    uniformColoring κ (S₁ ∩ S₂) = uniformColoring κ S₁ * uniformColoring κ S₂ := by
-  have hindep : iIndepFun (fun (a : κ) (x : κ → Bool) => x a) (uniformColoring κ) := by
-    rw [uniformColoring]
-    exact ProbabilityTheory.iIndepFun_pi (μ := fun _ : κ => fairCoin)
-      (X := fun _ : κ => (id : Bool → Bool)) (fun _ => aemeasurable_id)
-  have hind := hindep.indepFun_finset T Tᶜ disjoint_compl_right
-    (fun a => measurable_pi_apply a)
-  have e₁ : (fun (x : κ → Bool) (u : { a // a ∈ T }) => x (u : κ)) ⁻¹'
-      ((fun (x : κ → Bool) (u : { a // a ∈ T }) => x (u : κ)) '' S₁) = S₁ := by
-    refine Set.Subset.antisymm ?_ (Set.subset_preimage_image _ _)
-    rintro x ⟨y, hy, hxy⟩
-    exact (h₁ y x (fun a ha => congrFun hxy ⟨a, ha⟩)).1 hy
-  have e₂ : (fun (x : κ → Bool) (u : { a // a ∈ Tᶜ }) => x (u : κ)) ⁻¹'
-      ((fun (x : κ → Bool) (u : { a // a ∈ Tᶜ }) => x (u : κ)) '' S₂) = S₂ := by
-    refine Set.Subset.antisymm ?_ (Set.subset_preimage_image _ _)
-    rintro x ⟨y, hy, hxy⟩
-    exact (h₂ y x (fun a ha => congrFun hxy ⟨a, Finset.mem_compl.2 ha⟩)).1 hy
-  have hmul := hind.measure_inter_preimage_eq_mul
-    ((fun (x : κ → Bool) (u : { a // a ∈ T }) => x (u : κ)) '' S₁)
-    ((fun (x : κ → Bool) (u : { a // a ∈ Tᶜ }) => x (u : κ)) '' S₂)
-    (Set.toFinite _).measurableSet (Set.toFinite _).measurableSet
-  rw [e₁, e₂] at hmul
-  exact hmul
+    uniformColoring κ (S₁ ∩ S₂) = uniformColoring κ S₁ * uniformColoring κ S₂ :=
+  measure_pi_inter_eq_mul (fun _ : κ => fairCoin) T S₁ S₂ h₁ h₂
 
 end UniformColoring
 
@@ -990,7 +1009,87 @@ theorem twoColorable_of_sum_inv_two_pow_le {H : Finset (Finset α)}
     by_contra hne
     exact hcon ⟨u, hu, v, hv, hne⟩
 
-/-- **Independent transversals** (Zhao, §6.3): a graph of maximum degree `Δ` whose vertices are
+/-!
+### The uniform random transversal
+
+The independent-transversal argument of Theorem 6.3.1 picks one vertex uniformly at random out
+of each finset of a family `Q`, independently across the family.  The measure lives on choice
+functions and is the product of the uniform measures on the `Q j`; the three facts needed about
+it are the probability of fixing two coordinates, that the choice functions selecting inside
+every `Q j` carry full measure, and independence of events reading disjoint sets of coordinates.
+-/
+
+/-- One vertex chosen uniformly at random from each `Q j`, independently across `j`. -/
+private noncomputable def unifChoice {n : ℕ} {ι : Type*} [Fintype ι] (Q : ι → Finset (Fin n)) :
+    Measure (ι → Fin n) :=
+  Measure.pi fun j => uniformOn (Q j : Set (Fin n))
+
+private theorem isProbabilityMeasure_unifChoice {n : ℕ} {ι : Type*} [Fintype ι]
+    {Q : ι → Finset (Fin n)} (hQ : ∀ j, (Q j).Nonempty) :
+    IsProbabilityMeasure (unifChoice Q) := by
+  have : ∀ j, IsProbabilityMeasure (uniformOn (Q j : Set (Fin n))) := fun j =>
+    isProbabilityMeasure_uniformOn (Set.toFinite _) (Finset.coe_nonempty.2 (hQ j))
+  rw [unifChoice]
+  infer_instance
+
+/-- Two distinct coordinates take two prescribed values with probability `|Q j|⁻¹ |Q k|⁻¹`. -/
+private theorem unifChoice_pair {n : ℕ} {ι : Type*} [Fintype ι] [DecidableEq ι]
+    {Q : ι → Finset (Fin n)} (hQ : ∀ j, (Q j).Nonempty) {j k : ι} (hjk : j ≠ k) {u v : Fin n}
+    (hu : u ∈ Q j) (hv : v ∈ Q k) :
+    unifChoice Q {c : ι → Fin n | c j = u ∧ c k = v}
+      = ((Q j).card : ENNReal)⁻¹ * ((Q k).card : ENNReal)⁻¹ := by
+  have hprob : ∀ j, IsProbabilityMeasure (uniformOn (Q j : Set (Fin n))) := fun j =>
+    isProbabilityMeasure_uniformOn (Set.toFinite _) (Finset.coe_nonempty.2 (hQ j))
+  have hsing : ∀ (s : Finset (Fin n)) (w : Fin n), w ∈ s →
+      uniformOn (s : Set (Fin n)) {w} = (s.card : ENNReal)⁻¹ := by
+    intro s w hw
+    have hcoe : ((({w} : Finset (Fin n)) : Set (Fin n))) = ({w} : Set (Fin n)) := by simp
+    rw [← hcoe, uniformOn_apply_finset, Finset.inter_singleton_of_mem hw,
+      Finset.card_singleton, Nat.cast_one, one_div]
+  have hset : {c : ι → Fin n | c j = u ∧ c k = v}
+      = Set.univ.pi (fun a => if a = j then ({u} : Set (Fin n))
+          else if a = k then ({v} : Set (Fin n)) else Set.univ) := by
+    ext c
+    simp only [Set.mem_univ_pi]
+    show (c j = u ∧ c k = v) ↔ _
+    constructor
+    · intro ⟨h1, h2⟩ a
+      by_cases ha : a = j
+      · subst ha; simpa using h1
+      · by_cases ha' : a = k
+        · subst ha'; simp [ha, h2]
+        · simp [ha, ha']
+    · intro h
+      refine ⟨?_, ?_⟩
+      · have := h j; simpa using this
+      · have := h k; simp [hjk.symm] at this; exact this
+  rw [hset, unifChoice, Measure.pi_pi]
+  refine Finset.prod_eq_mul_of_mem j k (Finset.mem_univ _) (Finset.mem_univ _) hjk ?_ |>.trans ?_
+  · intro a _ ha
+    simp [ha.1, ha.2]
+  · rw [if_pos rfl, if_neg hjk.symm, if_pos rfl, hsing _ _ hu, hsing _ _ hv]
+
+/-- Almost every choice function selects inside every `Q j`. -/
+private theorem unifChoice_pi_self {n : ℕ} {ι : Type*} [Fintype ι] {Q : ι → Finset (Fin n)}
+    (hQ : ∀ j, (Q j).Nonempty) :
+    unifChoice Q (Set.univ.pi fun j => (Q j : Set (Fin n))) = 1 := by
+  rw [unifChoice, Measure.pi_pi]
+  refine Finset.prod_eq_one fun j _ => ?_
+  exact uniformOn_self (Set.toFinite _) (Finset.coe_nonempty.2 (hQ j))
+
+/-- **Events determined by disjoint sets of coordinates are independent.**  This is Setup 6.1.5
+for a uniform random choice: `S₁` may depend only on the coordinates in `T`, and `S₂` only on
+those outside it. -/
+private theorem unifChoice_inter_eq_mul {n : ℕ} {ι : Type*} [Fintype ι] [DecidableEq ι]
+    {Q : ι → Finset (Fin n)} (hQ : ∀ j, (Q j).Nonempty) (T : Finset ι) (S₁ S₂ : Set (ι → Fin n))
+    (h₁ : ∀ x y : ι → Fin n, (∀ a ∈ T, x a = y a) → (x ∈ S₁ ↔ y ∈ S₁))
+    (h₂ : ∀ x y : ι → Fin n, (∀ a ∉ T, x a = y a) → (x ∈ S₂ ↔ y ∈ S₂)) :
+    unifChoice Q (S₁ ∩ S₂) = unifChoice Q S₁ * unifChoice Q S₂ := by
+  have hprob : ∀ j, IsProbabilityMeasure (uniformOn (Q j : Set (Fin n))) := fun j =>
+    isProbabilityMeasure_uniformOn (Set.toFinite _) (Finset.coe_nonempty.2 (hQ j))
+  exact measure_pi_inter_eq_mul (fun j => uniformOn (Q j : Set (Fin n))) T S₁ S₂ h₁ h₂
+
+/-- **Independent transversals** (Zhao, §6.3): a graph of degree at most `Δ` whose vertices are
 partitioned into parts, each larger than `2eΔ`, has an independent set containing exactly one
 vertex from every part.
 
@@ -1000,22 +1099,249 @@ chosen vertices form an independent transversal.
 
 **The size hypothesis is strict, and that is a repair rather than a transcription.**  The source
 asks for parts of size `≥ 2eΔ`.  At `Δ = 0` that reads `0 ≤ |part|`, which permits an **empty**
-part — and then no transversal exists and the statement is false.  Strict `<` forces every part
-nonempty at every `Δ`, and costs nothing above `Δ = 0` since the bound is already far from tight:
-Haxell's theorem gets by with parts of size `2Δ`, so `2eΔ ≈ 5.44Δ` has room to spare.
+part — and then no transversal exists and the statement is false.  Strict `<` is the minimal
+repair, and it is minimal in a precise sense: for `Δ ≥ 1` the number `2eΔ` is irrational, so it
+is never equal to a part size, and `≤` and `<` are *logically equivalent* hypotheses there.  The
+two forms differ at exactly one point, `Δ = 0`, which is exactly where the non-strict form fails.
+No margin is being spent, and there is none to trade.
 
-**Route.**  Choose one vertex uniformly at random from each part, independently.  For each edge
-whose endpoints lie in *different* parts, let its bad event be that both endpoints were chosen;
-its probability is at most `1/(2eΔ)²`.  Two bad events are dependent only when their edges meet a
-common part, which bounds the dependency degree, and `lovasz_local_lemma_symmetric` then gives a
-positive probability that no bad event occurs.  Edges inside a single part need no event: at most
-one vertex per part is ever chosen. -/
+**Route.**  Pass first to subsets `Q j` of a **common size** `m`, discarding surplus vertices;
+every part has more than `2eΔ` vertices, so `m` may be taken to be any natural number with
+`2eΔ < m`.  This step is load-bearing rather than tidying: with heterogeneous parts the bad event
+for an edge between parts `j` and `k` has probability `1/(|Q j| · |Q k|)`, bounded only by
+`1/m²` for the *minimum* size, while the dependency degree scales with the *maximum*, and the
+local lemma's condition fails once the parts are far apart in size.
+
+Then choose one vertex uniformly at random from each `Q j`, independently.  For each edge whose
+endpoints lie in different parts, its bad event is that both endpoints were chosen, of
+probability `1/m²`.  Two bad events are dependent only when their edges meet a common part, which
+gives dependency degree `d = 2mΔ - 1`, and `lovasz_local_lemma_symmetric` applies because
+`e · (1/m²) · (d + 1) = 2eΔ/m ≤ 1`.
+
+**The `- 1` is load-bearing too.**  With `d = 2mΔ` the condition reads `2eΔ/m + e/m² ≤ 1`, which
+fails at `Δ = 2, m = 11` — the smallest `m` the hypothesis allows, since `2eΔ = 10.873…` — where
+it evaluates to `1.0109`.  The hypothesis leaves about `1.2%` of room and the spurious `+1`
+costs `2.2%`.
+
+Edges inside a single part need no event: at most one vertex per part is ever chosen. -/
 theorem exists_independent_transversal {n : ℕ} {ι : Type*} [Fintype ι] [DecidableEq ι]
     (G : SimpleGraph (Fin n)) [DecidableRel G.Adj] (Δ : ℕ) (part : Fin n → ι)
     (hdeg : ∀ v, G.degree v ≤ Δ)
     (hsize : ∀ j : ι, 2 * Real.exp 1 * Δ < ((univ.filter fun v => part v = j).card : ℝ)) :
     ∃ f : ι → Fin n, (∀ j, part (f j) = j) ∧ ∀ j k, j ≠ k → ¬ G.Adj (f j) (f k) := by
-  sorry
+  classical
+  -- Strictness of the size hypothesis makes every part nonempty.
+  have hPne : ∀ j : ι, (univ.filter fun v => part v = j).Nonempty := by
+    intro j
+    rw [← Finset.card_pos]
+    have h0 : (0:ℝ) ≤ 2 * Real.exp 1 * Δ := by positivity
+    have hlt : (0:ℝ) < ((univ.filter fun v => part v = j).card : ℝ) :=
+      lt_of_le_of_lt h0 (hsize j)
+    exact_mod_cast hlt
+  rcases isEmpty_or_nonempty ι with hι | hι
+  · exact ⟨fun j => isEmptyElim j, fun j => isEmptyElim j, fun j => isEmptyElim j⟩
+  -- With `Δ = 0` the graph has no edges at all and any transversal works.
+  rcases Nat.eq_zero_or_pos Δ with hΔ | hΔ
+  · choose f hf using hPne
+    refine ⟨f, fun j => by simpa using hf j, fun j k _ hadj => ?_⟩
+    have hdpos := (G.degree_pos_iff_exists_adj (f j)).2 ⟨f k, hadj⟩
+    have hdle := hdeg (f j)
+    omega
+  -- Shrinking every part to the size `m` of the smallest one makes the probability of a bad
+  -- event the same for all of them, which is what the symmetric form needs.
+  obtain ⟨j₀, hj₀⟩ := Finite.exists_min (fun j : ι => (univ.filter fun v => part v = j).card)
+  set m := (univ.filter fun v => part v = j₀).card
+  have hmle : ∀ j, m ≤ (univ.filter fun v => part v = j).card := hj₀
+  have hmlt : 2 * Real.exp 1 * Δ < m := hsize j₀
+  have hm1 : 1 ≤ m := by
+    have h0 : (0:ℝ) ≤ 2 * Real.exp 1 * Δ := by positivity
+    have hpos : (0:ℝ) < m := lt_of_le_of_lt h0 hmlt
+    have : 0 < m := by exact_mod_cast hpos
+    omega
+  choose Q hQP hQcard using fun j : ι => Finset.exists_subset_card_eq (hmle j)
+  have hQne : ∀ j, (Q j).Nonempty := fun j => Finset.card_pos.1 (by rw [hQcard j]; omega)
+  have hQpart : ∀ (j : ι) (v : Fin n), v ∈ Q j → part v = j := by
+    intro j v hv
+    have := hQP j hv
+    simpa using this
+  -- An edge carries a bad event exactly when it joins two distinct parts inside the shrunken
+  -- family; listing the vertices of an edge in increasing order names each such edge once.
+  obtain ⟨R, hR⟩ : ∃ R : Fin n × Fin n → Prop, ∀ e : Fin n × Fin n,
+      (R e ↔ e.1 < e.2 ∧ G.Adj e.1 e.2 ∧ part e.1 ≠ part e.2 ∧
+        e.1 ∈ Q (part e.1) ∧ e.2 ∈ Q (part e.2)) := ⟨_, fun _ => Iff.rfl⟩
+  -- The bad event of an edge: both of its endpoints are chosen.
+  obtain ⟨A, hA⟩ : ∃ A : Fin n × Fin n → Set (ι → Fin n), ∀ (e : Fin n × Fin n) (c : ι → Fin n),
+      (c ∈ A e ↔ R e ∧ c (part e.1) = e.1 ∧ c (part e.2) = e.2) := ⟨_, fun _ _ => Iff.rfl⟩
+  -- Two bad events are joined when their edges meet a common part.
+  obtain ⟨N, hN⟩ : ∃ N : Fin n × Fin n → Finset (Fin n × Fin n), ∀ e w,
+      (w ∈ N e ↔ R e ∧ R w ∧ w ≠ e ∧ (part w.1 = part e.1 ∨ part w.1 = part e.2 ∨
+        part w.2 = part e.1 ∨ part w.2 = part e.2)) :=
+    ⟨fun e => univ.filter fun w => R e ∧ R w ∧ w ≠ e ∧ (part w.1 = part e.1 ∨
+      part w.1 = part e.2 ∨ part w.2 = part e.1 ∨ part w.2 = part e.2), by
+      intro e w; simp⟩
+  have hprob : IsProbabilityMeasure (unifChoice Q) := isProbabilityMeasure_unifChoice hQne
+  have hAmeas : ∀ i, MeasurableSet (A i) := fun _ => (Set.toFinite _).measurableSet
+  -- A pair that carries no bad event contributes nothing, neither to the dependency graph nor
+  -- to the probability bound.
+  have hAempty : ∀ e, ¬ R e → A e = ∅ := by
+    intro e he
+    ext c
+    simp [hA, he]
+  -- A bad event reads only the two coordinates indexed by the parts of its edge.
+  have hAinv : ∀ (e : Fin n × Fin n) (x y : ι → Fin n),
+      (∀ a ∈ ({part e.1, part e.2} : Finset ι), x a = y a) → (x ∈ A e ↔ y ∈ A e) := by
+    intro e x y hxy
+    rw [hA, hA, hxy (part e.1) (by simp), hxy (part e.2) (by simp)]
+  have hdep : IsDependencyGraph (unifChoice Q) A N := by
+    intro i s hs g
+    by_cases hRi : R i
+    · refine unifChoice_inter_eq_mul hQne ({part i.1, part i.2} : Finset ι) (A i)
+        (pattern A s g) (hAinv i) ?_
+      intro x y hxy
+      have hj : ∀ j ∈ s,
+          (x ∈ (if g j then A j else (A j)ᶜ) ↔ y ∈ (if g j then A j else (A j)ᶜ)) := by
+        intro j hjs
+        obtain ⟨hjne, hjN⟩ := hs j hjs
+        have hiff : x ∈ A j ↔ y ∈ A j := by
+          by_cases hRj : R j
+          · have hshare : ¬ (part j.1 = part i.1 ∨ part j.1 = part i.2 ∨
+                part j.2 = part i.1 ∨ part j.2 = part i.2) := fun hc =>
+              hjN ((hN i j).2 ⟨hRi, hRj, hjne, hc⟩)
+            refine hAinv j x y ?_
+            intro a ha
+            simp only [Finset.mem_insert, Finset.mem_singleton] at ha
+            refine hxy a ?_
+            simp only [Finset.mem_insert, Finset.mem_singleton]
+            rcases ha with ha | ha <;> subst ha <;> tauto
+          · rw [hAempty j hRj]; simp
+        by_cases hg : g j
+        · rw [if_pos hg]; exact hiff
+        · rw [if_neg hg]; exact not_congr hiff
+      simp only [pattern, Set.mem_iInter]
+      exact ⟨fun h j hjs => (hj j hjs).1 (h j hjs), fun h j hjs => (hj j hjs).2 (h j hjs)⟩
+    · rw [hAempty i hRi]
+      simp
+  -- Each bad event asks for one prescribed vertex in each of two distinct parts.
+  have hp : ∀ i, ((unifChoice Q) (A i)).toReal ≤ ((m:ℝ))⁻¹ * ((m:ℝ))⁻¹ := by
+    intro i
+    by_cases hRi : R i
+    · obtain ⟨h12, hadj, hpart, hu, hv⟩ := (hR i).1 hRi
+      have hset : A i = {c : ι → Fin n | c (part i.1) = i.1 ∧ c (part i.2) = i.2} := by
+        ext c
+        rw [hA]
+        simp [hRi]
+      rw [hset, unifChoice_pair hQne hpart hu hv, hQcard, hQcard, ENNReal.toReal_mul,
+        ENNReal.toReal_inv]
+      simp
+    · rw [hAempty i hRi]
+      simp
+      positivity
+  -- Every edge joined to `i` has an endpoint among the `2 m` vertices chosen from the two parts
+  -- of `i`, and the edge of `i` itself is one of the edges so counted but not one of its
+  -- neighbours.
+  have hd : ∀ i, (N i).card ≤ 2 * m * Δ - 1 := by
+    intro i
+    by_cases hRi : R i
+    · obtain ⟨h12, hadj, hpart, hu, hv⟩ := (hR i).1 hRi
+      set T := Q (part i.1) ∪ Q (part i.2)
+      set D := T.biUnion fun x => (G.neighborFinset x).image fun y => (min x y, max x y)
+      have hDmem : ∀ (z : Fin n × Fin n) (x : Fin n), x ∈ T → ∀ y, G.Adj x y →
+          z = (min x y, max x y) → z ∈ D := by
+        intro z x hx y hxy hz
+        exact Finset.mem_biUnion.2 ⟨x, hx, Finset.mem_image.2 ⟨y, by simpa using hxy, hz.symm⟩⟩
+      have hiD : i ∈ D := hDmem i i.1 (Finset.mem_union_left _ hu) i.2 hadj
+        (by rw [min_eq_left h12.le, max_eq_right h12.le])
+      have hDcard : D.card ≤ 2 * m * Δ := by
+        calc D.card
+            ≤ ∑ x ∈ T, ((G.neighborFinset x).image fun y => (min x y, max x y)).card :=
+              Finset.card_biUnion_le
+          _ ≤ ∑ _x ∈ T, Δ := Finset.sum_le_sum fun x _ =>
+              le_trans Finset.card_image_le (hdeg x)
+          _ = T.card * Δ := by rw [Finset.sum_const, smul_eq_mul]
+          _ ≤ 2 * m * Δ := by
+              refine Nat.mul_le_mul_right _ ?_
+              calc T.card ≤ (Q (part i.1)).card + (Q (part i.2)).card := Finset.card_union_le _ _
+                _ = 2 * m := by rw [hQcard, hQcard]; ring
+      have hsub : N i ⊆ D.erase i := by
+        intro w hw
+        rw [hN] at hw
+        obtain ⟨-, hRw, hwne, hshare⟩ := hw
+        obtain ⟨hw12, hwadj, hwpart, hwu, hwv⟩ := (hR w).1 hRw
+        refine Finset.mem_erase.2 ⟨hwne, ?_⟩
+        have hend : w.1 ∈ T ∨ w.2 ∈ T := by
+          rcases hshare with h | h | h | h
+          · exact Or.inl (Finset.mem_union_left _ (h ▸ hwu))
+          · exact Or.inl (Finset.mem_union_right _ (h ▸ hwu))
+          · exact Or.inr (Finset.mem_union_left _ (h ▸ hwv))
+          · exact Or.inr (Finset.mem_union_right _ (h ▸ hwv))
+        rcases hend with h | h
+        · exact hDmem w w.1 h w.2 hwadj (by rw [min_eq_left hw12.le, max_eq_right hw12.le])
+        · exact hDmem w w.2 h w.1 hwadj.symm
+            (by rw [min_eq_right hw12.le, max_eq_left hw12.le])
+      calc (N i).card ≤ (D.erase i).card := Finset.card_le_card hsub
+        _ = D.card - 1 := Finset.card_erase_of_mem hiD
+        _ ≤ 2 * m * Δ - 1 := Nat.sub_le_sub_right hDcard 1
+    · have hNempty : N i = ∅ := by
+        ext w
+        simp [hN, hRi]
+      simp [hNempty]
+  have hmR : (0:ℝ) < m := by exact_mod_cast hm1
+  -- `e · m⁻² · 2 m Δ ≤ 1` is exactly `2 e Δ ≤ m`.
+  have hcond : Real.exp 1 * (((m:ℝ))⁻¹ * ((m:ℝ))⁻¹) * (((2 * m * Δ - 1 : ℕ) : ℝ) + 1) ≤ 1 := by
+    have h1 : 1 ≤ 2 * m * Δ := by
+      have h2m : 1 ≤ 2 * m := by omega
+      calc 1 = 1 * 1 := by norm_num
+        _ ≤ (2 * m) * Δ := Nat.mul_le_mul h2m hΔ
+    have hcast : (((2 * m * Δ - 1 : ℕ) : ℝ) + 1) = 2 * m * Δ := by
+      rw [Nat.cast_sub h1]
+      push_cast
+      ring
+    rw [hcast, show Real.exp 1 * (((m:ℝ))⁻¹ * ((m:ℝ))⁻¹) * (2 * (m:ℝ) * Δ)
+      = (2 * Real.exp 1 * Δ) / m from by field_simp, div_le_one hmR]
+    exact hmlt.le
+  have hpos := lovasz_local_lemma_symmetric A hAmeas N hdep hp hd hcond
+  -- A choice function avoiding every bad event and selecting inside every `Q j` exists.
+  have hfull : unifChoice Q (Set.univ.pi fun j => (Q j : Set (Fin n))) = 1 :=
+    unifChoice_pi_self hQne
+  have hcompl : unifChoice Q ((Set.univ.pi fun j => (Q j : Set (Fin n)))ᶜ) = 0 := by
+    rw [measure_compl (Set.toFinite _).measurableSet (measure_ne_top _ _), hfull]
+    simp
+  have hne : ((⋂ i, (A i)ᶜ) ∩ Set.univ.pi fun j => (Q j : Set (Fin n))).Nonempty := by
+    rcases Set.eq_empty_or_nonempty
+      ((⋂ i, (A i)ᶜ) ∩ Set.univ.pi fun j => (Q j : Set (Fin n))) with hempty | h
+    · exfalso
+      have hle := measure_le_inter_add_sdiff (unifChoice Q) (⋂ i, (A i)ᶜ)
+        (Set.univ.pi fun j => (Q j : Set (Fin n)))
+      rw [hempty, measure_empty] at hle
+      have hzero : unifChoice Q ((⋂ i, (A i)ᶜ) \ Set.univ.pi fun j => (Q j : Set (Fin n))) = 0 :=
+        measure_mono_null (fun x hx => hx.2) hcompl
+      rw [hzero] at hle
+      simp only [zero_add, nonpos_iff_eq_zero] at hle
+      rw [hle] at hpos
+      simp at hpos
+    · exact h
+  obtain ⟨c, hc, hcQ⟩ := hne
+  have hcQ' : ∀ a, c a ∈ Q a := fun a => by
+    have := hcQ a (Set.mem_univ a)
+    simpa using this
+  simp only [Set.mem_iInter, Set.mem_compl_iff] at hc
+  refine ⟨c, fun j => hQpart j _ (hcQ' j), fun j k hjk hadj => ?_⟩
+  have hjpart : part (c j) = j := hQpart j _ (hcQ' j)
+  have hkpart : part (c k) = k := hQpart k _ (hcQ' k)
+  have hne' : c j ≠ c k := fun h => hjk (by rw [← hjpart, ← hkpart, h])
+  rcases lt_or_gt_of_ne hne' with hlt | hlt
+  · refine hc (c j, c k) ((hA _ c).2 ⟨(hR _).2 ⟨hlt, hadj, ?_, ?_, ?_⟩, ?_, ?_⟩)
+    · simpa [hjpart, hkpart] using hjk
+    · simpa [hjpart] using hcQ' j
+    · simpa [hkpart] using hcQ' k
+    · simp [hjpart]
+    · simp [hkpart]
+  · refine hc (c k, c j) ((hA _ c).2 ⟨(hR _).2 ⟨hlt, hadj.symm, ?_, ?_, ?_⟩, ?_, ?_⟩)
+    · simpa [hjpart, hkpart] using hjk.symm
+    · simpa [hkpart] using hcQ' k
+    · simpa [hjpart] using hcQ' j
+    · simp [hkpart]
+    · simp [hjpart]
 
 end Applications
 
