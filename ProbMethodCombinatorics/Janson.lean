@@ -349,24 +349,6 @@ theorem jansonDelta_triangleFamily_le (n : ℕ) (p : I) :
   rw [jansonDelta, Finset.sum_congr rfl hterm, Finset.sum_const, nsmul_eq_mul]
   gcongr
 
-/-- **`G(n, p)` is triangle-free with probability at most `exp (-binom(n,3) p³ + n⁴p⁵/2)`**
-(Zhao, Question 8.1.5, the finite form behind Theorem 8.1.6).
-
-This is Janson's first inequality run on the triangle family: `μ` is `jansonMu_triangleFamily`
-exactly, `Δ` is bounded by `jansonDelta_triangleFamily_le`, and
-`binomialRandom_setOf_forall_not_subset` moves the resulting bound from `setBernoulli` to
-`G(n, p)`.
-
-Theorem 8.1.6 is the asymptotic reading: when `p = o(n^{-1/2})` the term `n⁴p⁵/2` is `o(n³p³)`,
-so the exponent is `-(1 + o(1)) μ`.  That asymptotic form is not stated here; this is the
-inequality it is read off. -/
-theorem binomialRandom_no_triangle_le (n : ℕ) (p : I) :
-    (SimpleGraph.binomialRandom (Fin n) p).real
-        {G : SimpleGraph (Fin n) | ∀ T : {T : Finset (Fin n) // T.card = 3},
-          ¬ (↑(offDiagPairs (T : Finset (Fin n))) ⊆ G.edgeSet)}
-      ≤ Real.exp (-((n.choose 3 : ℝ) * (p : ℝ) ^ 3) + (n : ℝ) ^ 4 * (p : ℝ) ^ 5 / 2) := by
-  sorry
-
 /-- The conditioning step of the Boppana–Spencer proof of Janson's inequality.
 
 If `i ∉ T` and every `S j` with `j ∈ T` outside `T₁` is disjoint from `S i`, then imposing the
@@ -641,6 +623,57 @@ theorem janson_prob_none_le [Countable ι] (p : I) (S : κ → Set ι) (D : Fins
     exact Finset.sum_congr rfl fun q _ => hb q.1 q.2
   rw [hP, h1, h2, h3] at huniv
   exact huniv
+
+/-- **`G(n, p)` is triangle-free with probability at most `exp (-binom(n,3) p³ + n⁴p⁵/2)`**
+(Zhao, Question 8.1.5, the finite form behind Theorem 8.1.6).
+
+This is Janson's first inequality run on the triangle family: `μ` is `jansonMu_triangleFamily`
+exactly, `Δ` is bounded by `jansonDelta_triangleFamily_le`, and
+`binomialRandom_setOf_forall_not_subset` moves the resulting bound from `setBernoulli` to
+`G(n, p)`.
+
+Theorem 8.1.6 is the asymptotic reading: when `p = o(n^{-1/2})` the term `n⁴p⁵/2` is `o(n³p³)`,
+so the exponent is `-(1 + o(1)) μ`.  That asymptotic form is not stated here; this is the
+inequality it is read off. -/
+theorem binomialRandom_no_triangle_le (n : ℕ) (p : I) :
+    (SimpleGraph.binomialRandom (Fin n) p).real
+        {G : SimpleGraph (Fin n) | ∀ T : {T : Finset (Fin n) // T.card = 3},
+          ¬ (↑(offDiagPairs (T : Finset (Fin n))) ⊆ G.edgeSet)}
+      ≤ Real.exp (-((n.choose 3 : ℝ) * (p : ℝ) ^ 3) + (n : ℝ) ^ 4 * (p : ℝ) ^ 5 / 2) := by
+  -- Triples meeting in at most one vertex span disjoint edge sets: a shared edge would put two
+  -- shared vertices in the intersection, and `offDiagPairs` of a set of size `≤ 1` is empty.
+  have hD : ∀ A B : {T : Finset (Fin n) // T.card = 3}, A ≠ B →
+      (A, B) ∉ triangleDependency n →
+      Disjoint (↑(offDiagPairs (A : Finset (Fin n))) : Set (Sym2 (Fin n)))
+        (↑(offDiagPairs (B : Finset (Fin n))) : Set (Sym2 (Fin n))) := by
+    intro A B hne hnotD
+    have hmem : ((A, B) ∈ triangleDependency n) ↔
+        (A ≠ B ∧ 2 ≤ ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))).card) := by
+      simp [triangleDependency]
+    have hle : ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))).card ≤ 1 := by
+      by_contra hcon
+      exact hnotD (hmem.2 ⟨hne, by omega⟩)
+    have h := card_offDiagPairs_add ((A : Finset (Fin n)) ∩ (B : Finset (Fin n)))
+    have hc : ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))).card = 0 ∨
+        ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))).card = 1 := by omega
+    have hempty : offDiagPairs ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))) = ∅ := by
+      rcases hc with hc | hc <;> rw [hc] at h <;> simpa [Nat.choose] using h
+    rw [Finset.disjoint_coe, Finset.disjoint_iff_inter_eq_empty, offDiagPairs_inter]
+    exact hempty
+  -- Janson's inequality on the triangle family, with `μ` substituted exactly.
+  have hmain := janson_prob_none_le p
+    (fun T : {T : Finset (Fin n) // T.card = 3} =>
+      (↑(offDiagPairs (T : Finset (Fin n))) : Set (Sym2 (Fin n))))
+    (triangleDependency n) hD
+  rw [jansonMu_triangleFamily] at hmain
+  -- Cross from `G(n, p)` to `setBernoulli`; the triangle edge sets contain no loop.
+  rw [measureReal_def, binomialRandom_setOf_forall_not_subset p
+    (fun T : {T : Finset (Fin n) // T.card = 3} => offDiagPairs (T : Finset (Fin n)))
+    fun _ _ he => not_isDiag_of_mem_offDiagPairs he]
+  -- `Δ` appears positively in the exponent, so relaxing it only weakens the bound.
+  refine hmain.trans (Real.exp_le_exp.2 ?_)
+  have hDelta := jansonDelta_triangleFamily_le n p
+  linarith
 
 /-- The binomial weight of the subsets of `s` containing a fixed `K` sums to `q ^ #K`. -/
 private theorem sum_powerset_weight_eq {α : Type*} [DecidableEq α] (q : ℝ) (s K : Finset α)
