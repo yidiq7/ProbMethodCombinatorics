@@ -89,12 +89,25 @@ and making the predicate reducible means it does not have to.
   of `G(n, p)` has at most `(1/4 + o(1)) p n²` edges. Statable — it would combine
   `container_triangle_free` with the Chapter 5 Chernoff bound and the `binomialRandom` of
   Chapter 7 — but it needs a settled idiom for "whp" on top of the `ε`–`N` one, and the source
-  proves only the weaker `p ≫ n^{-1/2} log n`. Revisit once something else in the project needs
-  a whp idiom.
+  proves only the weaker `p ≫ n^{-1/2} log n`.  **The `whp` idiom was settled 2026-09-17**, so
+  that half of the blocker is gone; what remains is `container_triangle_free`.
 - **Theorem 11.1.2 (Erdős–Stone–Simonovits)** and **Theorem 11.1.3 (counting `H`-free graphs as
-  `2^((1+o(1)) ex(n,H))`)**: both are quoted by the source rather than proved, and both need
-  `ex(n, H)` as a definition, which the project does not have. Conjecture 11.1.4 is **open
-  mathematics** and must not be stated as a theorem.
+  `2^((1+o(1)) ex(n,H))`)**: both are quoted by the source rather than proved.  Conjecture 11.1.4
+  is **open mathematics** and must not be stated as a theorem.
+
+  **"needs `ex(n, H)`, which the project does not have" was stale, corrected 2026-09-17.**
+  Mathlib has `SimpleGraph.extremalNumber n H`, and an entire `Combinatorics/SimpleGraph/Extremal/`
+  directory besides — `Turan`, `TuranDensity` (with `turanDensity`, `tendsto_turanDensity` and
+  `isEquivalent_extremalNumber`), `ErdosStoneSimonovits`, `Zarankiewicz`.  Theorem 11.1.2 is
+  therefore largely a citation rather than a formalization, and 11.1.3 is statable.
+
+  **11.1.3's easy half is stated** as `le_card_free_graphs` (#203): `2 ^ ex(n,H)` graphs on `n`
+  labelled vertices are `H`-free, the general-`H` version of the proved
+  `le_card_triangleFreeGraphs`.  It carries `H ≠ ⊥`, and that hypothesis is load-bearing:
+  `extremalNumber` is a `sup` over the `H`-free graphs and is `0` when there are none, so without
+  it the claim reads `1 ≤ 0`.  Verified over all graphs on `n ≤ 5` for `H ∈ {K₂, K₃, K₄}`, 15/15,
+  tight for `K₂` at every `n`.  The matching upper bound stays unstated: it is the container
+  theorem's payoff, and for `H = K₃` it took all of §11.2.
 - **Triangle supersaturation**, the missing input to `container_triangle_free` — **and it is
   reachable from Mathlib**, contrary to what this file said until 2026-09-15. PR #146 found the
   route: `SimpleGraph.CliqueFree.card_edgeFinset_le` at `r = 2` is Mantel, which makes an

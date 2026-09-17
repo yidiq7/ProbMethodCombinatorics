@@ -1039,7 +1039,33 @@ because the labelling is injective. -/
 theorem integral_copyCount (H : SimpleGraph V) [DecidableRel H.Adj] (n : ℕ) (p : I) :
     ∫ G, copyCount H G ∂(binomialRandom (Fin n) p)
       = (n.descFactorial (Fintype.card V) : ℝ) * (p : ℝ) ^ H.edgeFinset.card := by
-  sorry
+  have key : ∀ f ∈ (univ : Finset (V → Fin n)).filter Function.Injective,
+      MeasurableSet {K : SimpleGraph (Fin n) | ↑(transportedEdges H f) ⊆ K.edgeSet} ∧
+      binomialRandom (Fin n) p {K : SimpleGraph (Fin n) | ↑(transportedEdges H f) ⊆ K.edgeSet}
+        = (toNNReal p : ENNReal) ^ H.edgeFinset.card := by
+    intro f hf
+    have hinj : Function.Injective f := (Finset.mem_filter.1 hf).2
+    have hnd : ∀ e ∈ transportedEdges H f, ¬ e.IsDiag := by
+      intro e he
+      obtain ⟨e', he', rfl⟩ := Finset.mem_image.1 he
+      rw [Sym2.isDiag_map hinj]
+      exact H.not_isDiag_of_mem_edgeSet (mem_edgeFinset.1 he')
+    have hcard : (transportedEdges H f).card = H.edgeFinset.card :=
+      Finset.card_image_of_injective _ (Sym2.map.injective hinj)
+    exact ⟨measurableSet_setOf_subset_edgeSet _,
+      by rw [binomialRandom_setOf_subset_edgeSet p _ hnd, hcard]⟩
+  have hcount : ((univ : Finset (V → Fin n)).filter Function.Injective).card
+      = n.descFactorial (Fintype.card V) := by
+    rw [← Fintype.card_subtype,
+      Fintype.card_congr (Equiv.subtypeInjectiveEquivEmbedding V (Fin n)),
+      Fintype.card_embedding_eq, Fintype.card_fin]
+  simp only [copyCount]
+  rw [MeasureTheory.integral_finsetSum _ fun f hf =>
+    memLp_one_iff_integrable.mp
+      (memLp_indicator_const 1 (key f hf).1 1 (Or.inr (measure_ne_top _ _)))]
+  rw [Finset.sum_congr rfl fun f hf => ?_, Finset.sum_const, nsmul_eq_mul, hcount]
+  rw [MeasureTheory.integral_indicator_const _ (key f hf).1, Measure.real, (key f hf).2,
+    smul_eq_mul, mul_one, ENNReal.toReal_pow, ENNReal.coe_toReal, unitInterval.coe_toNNReal]
 
 end Subgraphs
 

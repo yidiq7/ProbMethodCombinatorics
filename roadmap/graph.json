@@ -4616,7 +4616,11 @@
       "uses": [
         "copyCount"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "binomialRandom_setOf_subset_edgeSet",
+        "measurableSet_setOf_subset_edgeSet",
+        "transportedEdges"
+      ]
     },
     "map_inter_setBernoulli": {
       "kind": "theorem",
@@ -4672,6 +4676,90 @@
       "proof_uses": [
         "uniform_coloring_const"
       ]
+    },
+    "ExposureBlock": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.ExposureBlock",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "binomialRandom_eq_map_graphOfExposure": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.binomialRandom_eq_map_graphOfExposure",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "ExposureBlock",
+        "exposureMeasure",
+        "graphOfExposure"
+      ],
+      "proof_uses": []
+    },
+    "binomialRandom_setOf_forall_not_subset": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.binomialRandom_setOf_forall_not_subset",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
+    },
+    "card_filter_notMem_le_three": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Expectation.lean",
+      "decl": "ProbMethodCombinatorics.card_filter_notMem_le_three",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "card_filter_subset_le_three"
+      ]
+    },
+    "card_le_of_tetrahedronFree_sample_five": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Expectation.lean",
+      "decl": "ProbMethodCombinatorics.card_le_of_tetrahedronFree_sample_five",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
+    },
+    "card_le_seven_of_tetrahedronFree": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Expectation.lean",
+      "decl": "ProbMethodCombinatorics.card_le_seven_of_tetrahedronFree",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "card_filter_notMem_le_three"
+      ]
+    },
+    "exposureMeasure": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.exposureMeasure",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "ExposureBlock"
+      ],
+      "proof_uses": []
+    },
+    "graphOfExposure": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.graphOfExposure",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "ExposureBlock"
+      ],
+      "proof_uses": []
     }
   }
 }

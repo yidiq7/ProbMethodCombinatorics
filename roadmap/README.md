@@ -151,12 +151,33 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   reference node had to end in a `measureReal_def` dance purely because I wrote `.toReal`.  This
   is the template every later `whp` node copies, so it is worth getting right once.
 
-- **2026-09-17 — two blockers re-derived, two found stale, in one sitting.**
+- **2026-09-17 — six merges, and the board saturated for the first time.**
+  `prob_triangle_of_le_mul` (#191) closes §4.1's threshold in both directions; Zhao 6.2.4 (#192);
+  `map_inter_setBernoulli` (#194); `integral_copyCount` (#197), §4.2's first moment; Lemma 2.4.3
+  (#199).  Every task published this session was claimed within minutes and three returned a PR
+  inside ten.
+
+  **Two contributor proofs reused existing vocabulary instead of copying it**, which is the habit
+  the consolidation notes have been trying to buy.  #199's `card_filter_notMem_le_three` is a
+  thin adapter onto Proposition 2.4.2's existing `card_filter_subset_le_three` — for `|e| = 3` in
+  `Fin 5`, `v ∉ e` and `e ⊆ univ.erase v` are the same condition — so the "a 4-set carries at most
+  three edges" argument still has one home.  #197 added no declarations at all.
+
+  Against that, #192 *did* land a fourth copy of an argument, and the fix was mine rather than
+  the contributor's: `twoColorable_of_inter_card_le` had inlined the monochromatic-edge
+  probability, so `uniformColoring_monochromatic_toReal_le` moved above both consumers and the
+  inline block now calls it, `1d33a6d`, fifteen lines shorter.  **Retiring duplicates stays
+  orchestrator work** — a contributor cannot see the other three copies from inside one task.
+
+- **2026-09-17 — three blockers re-derived, three found stale, in one sitting.**
   The lesson written into the #193 entry got tested within the hour, twice, and both times the
   recorded blocker was wrong.
 
   * **§2.4 "not yet assessed"** — it had been assessed and stated two days earlier, and the
     proved theorem's own docstring already scoped the follow-up node.
+  * **§11.1 "needs `ex(n, H)`, which the project does not have"** — Mathlib has
+    `SimpleGraph.extremalNumber`, plus `Turan`, `TuranDensity`, `ErdosStoneSimonovits` and
+    `Zarankiewicz`.  Theorem 11.1.2 is closer to a citation than a formalization.
   * **§9.2 "Azuma itself is not [in Mathlib]; everything in §9.3–§9.6 is downstream of it"** —
     Mathlib has since grown `measure_sum_ge_le_of_hasCondSubgaussianMGF`, and, more to the point,
     **this project already proved Azuma** as `measure_martingale_sub_ge_le`.  Six sections were
@@ -1327,8 +1348,8 @@ are the honest growth path.
 - §4.3 Bollobás–Thomason, §4.1/§4.2 thresholds, §4.4 clique number — all need an `ε`–`N` or
   `whp` idiom plus, for §4.2, a definition of `m(H)`.  *(The `whp` idiom was settled 2026-09-17;
   what remains of this bullet is `m(H)` and `ρ`.)*
-- §11.1.3 / §11.1.5 — need `ex(n, H)` and a `whp` idiom.  *(`whp` settled 2026-09-17; `ex(n, H)`
-  remains.)*
+- §11.1.3 / §11.1.5 — *both halves resolved 2026-09-17*: `whp` is settled, and `ex(n, H)` is
+  Mathlib's `SimpleGraph.extremalNumber`.  11.1.3's lower bound is stated as #203.
 - §2.4 hypergraph Turán sampling — *stale note, resolved*: assessed and stated 2026-09-15 as
   `card_le_of_tetrahedronFree`, with Lemma 2.4.3 and Proposition 2.4.4 stated 2026-09-17.
 
