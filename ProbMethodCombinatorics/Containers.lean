@@ -1140,7 +1140,10 @@ The state a round sees is an alive vertex set `Av` together with an alive hyperg
 * the **double count**, stated raw rather than solved for the selected vertex's degree:
   summing `Ae`-degrees over `Av` counts each edge three times, the retired vertices and the
   selection contribute at most `(|kill| + 1) * Δ₁(Ae)`, and every surviving vertex has degree at
-  most the selection's.
+  most the selection's.  **Its 3-uniformity hypothesis is load-bearing**: the identity it rests on
+  is `∑_{v ∈ Av} deg_{Ae}(v) = ∑_{e ∈ Ae} |e|`, which is `3|Ae|` only when every edge has three
+  vertices and undershoots otherwise.  Without it the clause is false — `Ae = {∅}` on one vertex
+  pins every other quantity to zero and demands `3 ≤ c * d`.
 
 The forbidden-pair graph does not appear here.  Zhao's round also adds pairs to it and deletes
 edges meeting one, but those actions are determined by the state rather than chosen, so they
@@ -1164,7 +1167,8 @@ def IsContainerRound {n : ℕ} (c d : ℝ)
   (∀ (Av : Finset (Fin n)) (Ae : Finset (Finset (Fin n))) (T : Finset (Fin n)),
       T.Nonempty → Disjoint (kill Av Ae (pick Av Ae T)) T) ∧
   (∀ (Av : Finset (Fin n)) (Ae : Finset (Finset (Fin n))) (T : Finset (Fin n)),
-      T ⊆ Av → T.Nonempty → (∀ e ∈ Ae, e ⊆ Av) → (maxCodegree 1 Ae : ℝ) ≤ c * d →
+      T ⊆ Av → T.Nonempty → (∀ e ∈ Ae, e ⊆ Av) → (∀ e ∈ Ae, e.card = 3) →
+      (maxCodegree 1 Ae : ℝ) ≤ c * d →
       3 * (Ae.card : ℝ)
         ≤ (n : ℝ) * ((Ae.filter fun e => pick Av Ae T ∈ e).card : ℝ)
           + (((kill Av Ae (pick Av Ae T)).card : ℝ) + 1) * (c * d))
@@ -1735,7 +1739,8 @@ private theorem roundRun_invariants {n : ℕ} {c d : ℝ}
         ≤ (n : ℝ) * (#{e ∈ roundAliveE K H X S E | u ∈ e} : ℝ)
           + ((#(kill (roundAliveV K X S E) (roundAliveE K H X S E) u) : ℝ) + 1) * (c * d) := by
       have h := hcount (roundAliveV K X S E) (roundAliveE K H X S E)
-        (I ∩ roundAliveV K X S E) Finset.inter_subset_right h4 hAesub hcod1Ae
+        (I ∩ roundAliveV K X S E) Finset.inter_subset_right h4 hAesub
+        (fun e he => h3 e (hAeH he)) hcod1Ae
       rw [← hudef] at h
       exact h
     have hyield : 4 / 5 * (n : ℝ) * d
