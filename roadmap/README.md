@@ -151,6 +151,31 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   reference node had to end in a `measureReal_def` dance purely because I wrote `.toReal`.  This
   is the template every later `whp` node copies, so it is worth getting right once.
 
+- **2026-09-17 — Proposition 2.4.4 is false as the source prints it, and §4.2's definitions are paid.**
+  Two pieces of authoring, and one erratum.
+
+  **§2.4.** Zhao states Proposition 2.4.4 for `n ≥ 4`: a tetrahedron-free 3-graph has at most
+  `(7/10) binom(n,3)` edges.  At `n = 4` that is false — the 3-graph missing exactly one triple
+  is tetrahedron-free with `3` edges against a bound of `2.8` — and the hypothesis has to be
+  `5 ≤ n`, which is what an argument sampling five vertices can actually support.  Exhaustive
+  search over all 3-graphs on `n ≤ 6` gives maxima `3, 7, 14`: false at `4`, tight at `5` and
+  `6`.  Lemma 2.4.3 (`card_le_seven_of_tetrahedronFree`, #196) is published; 2.4.4 is stated and
+  **held** until it lands, rather than published against a `sorry`.
+
+  **This is the second source erratum, after §6.3's `≤` versus `<`, and both were found the same
+  way: compute the small cases before stating the theorem.**  Neither would have surfaced by
+  reading the proof — in both the proof is right and only the quantifier range is wrong.  The
+  habit is now cheap and has paid twice; it stays.
+
+  **§4.2.** Definition 4.2.7 is authored as `edgeVertexRatio` and `maxEdgeVertexRatio`, together
+  with `copyCount` and its first moment `integral_copyCount` (#195).  `m(H)` maximises over
+  vertex *subsets* rather than over `SimpleGraph.Subgraph`, which is an equality and not a
+  weakening: within a fixed vertex set the densest subgraph is the induced one, and every
+  subgraph has a vertex set.  It also keeps the definition free of `Subgraph` finiteness
+  instances and of any `Decidable` hypothesis, since `Set.ncard` needs neither.  Checked against
+  Example 4.2.8 (`ρ = 7/5`, `m = 3/2`) and, for `integral_copyCount`, by brute force over all
+  graphs on `n ≤ 4` vertices against five shapes for `H`: 80/80.
+
 - **2026-09-17 — Chapter 8's real blocker was a ground set, not a missing API (#193).**
   `janson.md` had recorded the five unstated asymptotic results of §8.1–§8.3 as needing "a settled
   `whp` convention plus a worked `G(n,p)` API".  With the `whp` convention settled, I went to build
@@ -1285,8 +1310,8 @@ are the honest growth path.
   what remains of this bullet is `m(H)` and `ρ`.)*
 - §11.1.3 / §11.1.5 — need `ex(n, H)` and a `whp` idiom.  *(`whp` settled 2026-09-17; `ex(n, H)`
   remains.)*
-- §2.4 hypergraph Turán sampling — not yet assessed; the most likely of Chapter 2's four to be
-  tractable.
+- §2.4 hypergraph Turán sampling — *stale note, resolved*: assessed and stated 2026-09-15 as
+  `card_le_of_tetrahedronFree`, with Lemma 2.4.3 and Proposition 2.4.4 stated 2026-09-17.
 
 **The standing rule this audit enforces:** a "not in Mathlib" note has a shelf life, and a
 "Mathlib has the vocabulary" note is not evidence of tractability.  Re-check before publishing,

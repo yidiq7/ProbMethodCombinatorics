@@ -16,7 +16,9 @@ Two of the chapter's six sections are stated so far.  The other four are unstate
 - **§2.4 (sampling bounds for the hypergraph Turán problem)** — **assessed and stated
   2026-09-15** as `card_le_of_tetrahedronFree` (Proposition 2.4.2).  Fully tractable: finite,
   entirely in `ℕ`, a self-contained double count, no missing Mathlib input.  Tight at `n = 4`.
-  Lemma 2.4.3 and the five-vertex refinement are separate nodes, not yet stated; Question 2.4.1
+  Lemma 2.4.3 and the five-vertex refinement are **both stated 2026-09-17** —
+  `card_le_seven_of_tetrahedronFree` (#196) and `card_le_of_tetrahedronFree_sample_five`, the
+  latter held until the former is proved.  Question 2.4.1
   itself is a **notorious open problem** and must never be stated.
 - **§2.5 (unbalancing lights)** — **stated 2026-09-15** as `exists_signs_sum_ge`.  My earlier
   note here ("needs a central limit estimate") was wrong twice over: Mathlib *does* have a CLT
@@ -83,6 +85,19 @@ convention.  The identity that closes it is `4 binom(n,4) = binom(n,3) (n-3)`.
 
 Verified tight at `n = 4`, and brute force at `n = 5` reproduces Zhao's Lemma 2.4.3 (maximum 7)
 exactly — a useful cross-check that the encoding of "tetrahedron-free" is the intended one.
+
+**Proposition 2.4.4 needs `5 ≤ n`; the source prints `n ≥ 4`, and at `n = 4` it is false.**
+The 3-graph on four vertices missing exactly one triple is tetrahedron-free — the only 4-set is
+`univ`, and it is not covered — and has `3` edges, while `(7/10) binom(4,3) = 2.8`.  An argument
+that samples five vertices cannot say anything about four, so the printed hypothesis is simply
+one too weak.  Exhaustive search over all 3-graphs on `n ≤ 6` vertices gives true maxima
+`3, 7, 14` at `n = 4, 5, 6`, against `(7/10) binom(n,3) = 2.8, 7, 14`: false at `4`, and tight at
+both `5` and `6`.  `card_le_of_tetrahedronFree_sample_five` is stated with `5 ≤ n` accordingly.
+
+This is the second source erratum this project has had to repair, after the `≤`/`<` in §6.3.
+Both were found the same way — **compute the small cases before stating the theorem** — and
+neither would have been caught by reading the proof, because in both the proof is correct and
+only the quantifier range is wrong.
 
 
 ## §2.5 Unbalancing lights
