@@ -513,6 +513,12 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   memory-heavy work yourself.  Repeated `lake build`s in this checkout are what tightens memory, so
   start the poller when you are otherwise idle and skip it while you are building.
 
+  Under *sustained* pressure — several contributors building at once — the poller is killed
+  repeatedly, and that is fine rather than a failure: each kill wakes the orchestrator, so the
+  cycle degrades into a periodic check at whatever cadence memory allows.  Restart it and let it
+  be killed.  Reach for `poll --once` only when you want a single reading without occupying a
+  process.
+
   **When the board is empty, the bottleneck is usually the orchestrator, not the contributors.**
   A poller finds nothing while the next move is authoring an interface or publishing a node, and
   waiting on it looks like patience when it is idleness.  Check what the plan says is ready before
