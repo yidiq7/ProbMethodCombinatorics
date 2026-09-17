@@ -123,9 +123,12 @@ the empty set is `0`.
 
 ## Not stated
 
-§6.3 (independent transversals), §6.4 (directed cycles of length divisible by `k`),
-§6.5 (the lopsided local lemma) and §6.6 (the algorithmic local lemma, Moser–Tardos) are
-planned. §6.5 needs the general form's proof refactored so that step (6.3) uses a
+**§6.3 is stated** as `exists_independent_transversal` (#185), and **Theorem 6.2.4** as
+`twoColorable_of_sum_inv_two_pow_le` (#190) — the short follow-on this section predicted.  What
+remains:
+
+§6.4 (directed cycles of length divisible by `k`),
+§6.5 (the lopsided local lemma) and §6.6 (the algorithmic local lemma, Moser–Tardos). §6.5 needs the general form's proof refactored so that step (6.3) uses a
 correlation inequality rather than independence — worth doing only once the general form is
 proved. §6.6 is an algorithmic result whose statement needs a model of the resampling
 process; it is the largest single item in the chapter.

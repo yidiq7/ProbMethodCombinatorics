@@ -557,6 +557,40 @@ section Applications
 
 variable {α : Type*} [Fintype α] [DecidableEq α]
 
+/-- A uniform random two-colouring makes a nonempty set `e` monochromatic with probability at
+most `2 ^ (1 - |e|)`: the event is covered by the two constant patterns on `e`, each of
+probability `2 ^ -|e|`. -/
+private theorem uniformColoring_monochromatic_toReal_le (e : Finset α) (he : 1 ≤ e.card) :
+    (uniformColoring α {x : α → Bool | ∀ u ∈ e, ∀ v ∈ e, x u = x v}).toReal
+      ≤ 1 / 2 ^ (e.card - 1) := by
+  obtain ⟨u₀, hu₀⟩ : e.Nonempty := Finset.card_pos.1 he
+  have hsub : {x : α → Bool | ∀ u ∈ e, ∀ v ∈ e, x u = x v}
+      ⊆ {x : α → Bool | ∀ u ∈ e, x u = true} ∪ {x : α → Bool | ∀ u ∈ e, x u = false} := by
+    intro x hx
+    cases hb : x u₀
+    · right; intro u hu; rw [hx u hu u₀ hu₀, hb]
+    · left; intro u hu; rw [hx u hu u₀ hu₀, hb]
+  have hle : uniformColoring α {x : α → Bool | ∀ u ∈ e, ∀ v ∈ e, x u = x v}
+      ≤ 2 * (2 : ENNReal)⁻¹ ^ e.card :=
+    calc uniformColoring α {x : α → Bool | ∀ u ∈ e, ∀ v ∈ e, x u = x v}
+        ≤ uniformColoring α ({x : α → Bool | ∀ u ∈ e, x u = true}
+            ∪ {x : α → Bool | ∀ u ∈ e, x u = false}) := measure_mono hsub
+      _ ≤ uniformColoring α {x : α → Bool | ∀ u ∈ e, x u = true}
+            + uniformColoring α {x : α → Bool | ∀ u ∈ e, x u = false} := measure_union_le _ _
+      _ = 2 * (2 : ENNReal)⁻¹ ^ e.card := by
+          rw [uniformColoring_const _ true, uniformColoring_const _ false]; ring
+  have htop : (2 : ENNReal) * (2 : ENNReal)⁻¹ ^ e.card ≠ ⊤ :=
+    ENNReal.mul_ne_top (by norm_num) (ENNReal.pow_ne_top (by norm_num))
+  have hreal : (uniformColoring α {x : α → Bool | ∀ u ∈ e, ∀ v ∈ e, x u = x v}).toReal
+      ≤ 2 * ((2 : ℝ)⁻¹) ^ e.card := by simpa using ENNReal.toReal_mono htop hle
+  have hsplit : (2 : ℝ) ^ e.card = 2 ^ (e.card - 1) * 2 := by
+    rw [← pow_succ]; congr 1; omega
+  have hval : 2 * ((2 : ℝ)⁻¹) ^ e.card = 1 / 2 ^ (e.card - 1) := by
+    have hpos : (0 : ℝ) < 2 ^ (e.card - 1) := by positivity
+    rw [inv_pow, hsplit]
+    field_simp
+  rwa [hval] at hreal
+
 /-- **Local condition for 2-colourability** (Zhao, Theorem 6.2.1): a `k`-uniform hypergraph in
 which every edge meets at most `d` other edges is 2-colourable as soon as
 `e * (d + 1) ≤ 2 ^ (k - 1)`.
@@ -605,30 +639,15 @@ theorem twoColorable_of_inter_card_le {k : ℕ} (hk : 2 ≤ k) {H : Finset (Fins
   -- Each bad event has probability at most `2 ^ (1 - k)`.
   have hp : ∀ i, (uniformColoring α (A i)).toReal ≤ 2 * ((2 : ℝ)⁻¹) ^ k := by
     intro i
-    have hne : (i : Finset α).Nonempty := by
-      rw [← Finset.card_pos, huniform _ i.2]; omega
-    obtain ⟨u₀, hu₀⟩ := hne
-    have hsub : A i ⊆ {x : α → Bool | ∀ u ∈ (i : Finset α), x u = true}
-        ∪ {x : α → Bool | ∀ u ∈ (i : Finset α), x u = false} := by
-      intro x hx
-      rw [hAdef] at hx
-      cases hb : x u₀
-      · right; intro u hu; rw [hx u hu u₀ hu₀, hb]
-      · left; intro u hu; rw [hx u hu u₀ hu₀, hb]
-    have hle : uniformColoring α (A i) ≤ 2 * (2 : ENNReal)⁻¹ ^ k := by
-      calc uniformColoring α (A i)
-          ≤ uniformColoring α ({x : α → Bool | ∀ u ∈ (i : Finset α), x u = true}
-              ∪ {x : α → Bool | ∀ u ∈ (i : Finset α), x u = false}) := measure_mono hsub
-        _ ≤ uniformColoring α {x : α → Bool | ∀ u ∈ (i : Finset α), x u = true}
-              + uniformColoring α {x : α → Bool | ∀ u ∈ (i : Finset α), x u = false} :=
-              measure_union_le _ _
-        _ = 2 * (2 : ENNReal)⁻¹ ^ k := by
-            rw [uniformColoring_const _ true, uniformColoring_const _ false, huniform _ i.2]
-            ring
-    have htop : (2 : ENNReal) * (2 : ENNReal)⁻¹ ^ k ≠ ⊤ :=
-      ENNReal.mul_ne_top (by norm_num) (ENNReal.pow_ne_top (by norm_num))
-    have := ENNReal.toReal_mono htop hle
-    simpa using this
+    have hcard : (i : Finset α).card = k := huniform _ i.2
+    have hAeq : A i = {x : α → Bool | ∀ u ∈ (i : Finset α), ∀ v ∈ (i : Finset α), x u = x v} :=
+      Set.ext fun x => hAdef i x
+    rw [hAeq]
+    refine (uniformColoring_monochromatic_toReal_le _ (by omega)).trans (le_of_eq ?_)
+    have hsplit : (2 : ℝ) ^ k = 2 ^ (k - 1) * 2 := by rw [← pow_succ]; congr 1; omega
+    rw [hcard, inv_pow, hsplit]
+    have hpos : (0 : ℝ) < 2 ^ (k - 1) := by positivity
+    field_simp
   have hdcard : ∀ i, (N i).card ≤ d := by
     intro i
     refine le_trans (Finset.card_le_card_of_injOn (fun f => (f : Finset α)) ?_ ?_) (hd i i.2)
@@ -862,6 +881,115 @@ theorem lt_ramseyNumber_of_local_lemma (n k : ℕ) (hk : 2 ≤ k)
     obtain ⟨S, hcard, hmono⟩ :=
       hmem.mono (Nat.not_lt.1 hlt) (fun i j => x {i, j}) hsymm
     exact hno S hcard hmono
+
+/-- **Non-uniform hypergraphs are 2-colourable under a local weighted condition**
+(Zhao, Theorem 6.2.4).  Where `twoColorable_of_inter_card_le` caps how many edges each edge
+*meets*, this weights each neighbour by its own size, so a hypergraph with a few small edges and
+many large ones can still qualify.
+
+The bad event for an edge `f` is that `f` is monochromatic, of probability `2 ^ (1 - |f|)`, which
+is the `1 / 2 ^ (f.card - 1)` appearing in the sum.  `lovasz_local_lemma_of_sum_le` is the form to
+apply — the asymmetric one — rather than the symmetric form, which cannot see the individual
+sizes.
+
+**`3 ≤ e.card` is not decoration.**  `lovasz_local_lemma_of_sum_le` requires every bad event to
+have probability below `1/2`, and a 2-element edge is monochromatic with probability exactly
+`1/2`.  So edges of size 2 are excluded, and they must be: a hypergraph containing `{u, v}` and
+`{u, w}` and `{v, w}` is not 2-colourable at all.
+
+In the uniform case this is *weaker* than `twoColorable_of_inter_card_le` — it permits
+`d ≤ 2^(k-1)/4` against that theorem's `d + 1 ≤ 2^(k-1)/e` — because the sum form's `1/4` is
+cruder than the symmetric form's `e`.  Its value is the non-uniform case, which the other cannot
+state. -/
+theorem twoColorable_of_sum_inv_two_pow_le {H : Finset (Finset α)}
+    (hsize : ∀ e ∈ H, 3 ≤ e.card)
+    (hsum : ∀ e ∈ H, ∑ f ∈ (H.erase e).filter (fun f => (e ∩ f).Nonempty),
+        (1 : ℝ) / 2 ^ (f.card - 1) ≤ 1 / 4) :
+    TwoColorable H := by
+  -- The bad events and their dependency graph.
+  obtain ⟨A, hAdef⟩ : ∃ A : { e // e ∈ H } → Set (α → Bool), ∀ e x,
+      (x ∈ A e ↔ ∀ u ∈ (e : Finset α), ∀ v ∈ (e : Finset α), x u = x v) :=
+    ⟨_, fun _ _ => Iff.rfl⟩
+  obtain ⟨N, hNdef⟩ : ∃ N : { e // e ∈ H } → Finset { e // e ∈ H }, ∀ e f,
+      (f ∈ N e ↔ f ≠ e ∧ ((e : Finset α) ∩ (f : Finset α)).Nonempty) :=
+    ⟨fun e => Finset.univ.filter fun f => f ≠ e ∧ ((e : Finset α) ∩ (f : Finset α)).Nonempty,
+      by simp⟩
+  have hAmeas : ∀ i, MeasurableSet (A i) := fun _ => (Set.toFinite _).measurableSet
+  -- Two colourings agreeing on an edge agree on whether that edge is monochromatic.
+  have hAinv : ∀ (j : { e // e ∈ H }) (x y : α → Bool),
+      (∀ a ∈ (j : Finset α), x a = y a) → (x ∈ A j ↔ y ∈ A j) := by
+    intro j x y hxy
+    rw [hAdef, hAdef]
+    constructor
+    · intro hx u hu v hv; rw [← hxy u hu, ← hxy v hv]; exact hx u hu v hv
+    · intro hy u hu v hv; rw [hxy u hu, hxy v hv]; exact hy u hu v hv
+  have hNdep : IsDependencyGraph (uniformColoring α) A N := by
+    intro i s hs g
+    refine uniformColoring_inter_eq_mul (i : Finset α) (A i) (pattern A s g) (hAinv i) ?_
+    intro x y hxy
+    have hj : ∀ j ∈ s, (x ∈ (if g j then A j else (A j)ᶜ) ↔ y ∈ (if g j then A j else (A j)ᶜ)) := by
+      intro j hjs
+      obtain ⟨hjne, hjN⟩ := hs j hjs
+      have hdisj : Disjoint (i : Finset α) (j : Finset α) := by
+        by_contra hcon
+        exact hjN ((hNdef i j).2 ⟨hjne, Finset.not_disjoint_iff_nonempty_inter.1 hcon⟩)
+      have hiff := hAinv j x y fun a ha =>
+        hxy a fun hai => (Finset.disjoint_left.1 hdisj hai) ha
+      by_cases hg : g j
+      · rw [if_pos hg]; exact hiff
+      · rw [if_neg hg]; exact not_congr hiff
+    simp only [pattern, Set.mem_iInter]
+    exact ⟨fun h j hjs => (hj j hjs).1 (h j hjs), fun h j hjs => (hj j hjs).2 (h j hjs)⟩
+  -- The bad event for `f` has probability at most `1 / 2 ^ (|f| - 1)`, the weight in `hsum`.
+  have hp : ∀ i : { e // e ∈ H },
+      (uniformColoring α (A i)).toReal ≤ 1 / 2 ^ ((i : Finset α).card - 1) := by
+    intro i
+    have hAeq : A i = {x : α → Bool | ∀ u ∈ (i : Finset α), ∀ v ∈ (i : Finset α), x u = x v} :=
+      Set.ext fun x => hAdef i x
+    rw [hAeq]
+    exact uniformColoring_monochromatic_toReal_le _ (by have := hsize _ i.2; omega)
+  -- An edge of at least three vertices is monochromatic with probability at most `1 / 4`.
+  have hhalf : ∀ i, (uniformColoring α (A i)).toReal < 1 / 2 := by
+    intro i
+    have h3 := hsize _ i.2
+    have hmono : (4 : ℝ) ≤ 2 ^ ((i : Finset α).card - 1) :=
+      calc (4 : ℝ) = 2 ^ 2 := by norm_num
+        _ ≤ 2 ^ ((i : Finset α).card - 1) := pow_le_pow_right₀ (by norm_num) (by omega)
+    have hquarter : (1 : ℝ) / 2 ^ ((i : Finset α).card - 1) ≤ 1 / 4 :=
+      one_div_le_one_div_of_le (by norm_num) hmono
+    linarith [hp i]
+  -- The neighbourhood sum is the hypothesis, reindexed along the coercion out of the subtype.
+  have hsumN : ∀ i, ∑ j ∈ N i, (uniformColoring α (A j)).toReal ≤ 1 / 4 := by
+    intro i
+    have himg : (N i).image (fun f : { e // e ∈ H } => (f : Finset α))
+        = (H.erase (i : Finset α)).filter (fun f => ((i : Finset α) ∩ f).Nonempty) := by
+      ext g
+      simp only [Finset.mem_image, Finset.mem_filter, Finset.mem_erase]
+      constructor
+      · rintro ⟨f, hf, rfl⟩
+        rw [hNdef] at hf
+        exact ⟨⟨fun h => hf.1 (Subtype.ext h), f.2⟩, hf.2⟩
+      · rintro ⟨⟨hne, hgH⟩, hint⟩
+        exact ⟨⟨g, hgH⟩,
+          (hNdef i ⟨g, hgH⟩).2 ⟨fun h => hne (congrArg Subtype.val h), hint⟩, rfl⟩
+    calc ∑ j ∈ N i, (uniformColoring α (A j)).toReal
+        ≤ ∑ j ∈ N i, (1 : ℝ) / 2 ^ ((j : Finset α).card - 1) :=
+          Finset.sum_le_sum fun j _ => hp j
+      _ = ∑ f ∈ (H.erase (i : Finset α)).filter (fun f => ((i : Finset α) ∩ f).Nonempty),
+            (1 : ℝ) / 2 ^ (f.card - 1) := by
+          rw [← himg, Finset.sum_image
+            (Function.Injective.injOn fun a b h => Subtype.ext h)]
+      _ ≤ 1 / 4 := hsum _ i.2
+  have hpos := lovasz_local_lemma_of_sum_le A hAmeas N hNdep hhalf hsumN
+  -- A colouring avoiding every bad event exists.
+  rcases Set.eq_empty_or_nonempty (⋂ i, (A i)ᶜ) with hempty | ⟨x, hx⟩
+  · rw [hempty] at hpos; simp at hpos
+  · refine ⟨x, fun e he => ?_⟩
+    simp only [Set.mem_iInter, Set.mem_compl_iff] at hx
+    by_contra hcon
+    refine hx ⟨e, he⟩ ((hAdef ⟨e, he⟩ x).2 fun u hu v hv => ?_)
+    by_contra hne
+    exact hcon ⟨u, hu, v, hv, hne⟩
 
 /-!
 ### The uniform random transversal

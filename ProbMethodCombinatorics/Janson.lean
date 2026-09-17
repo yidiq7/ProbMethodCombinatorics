@@ -1,4 +1,5 @@
 import ProbMethodCombinatorics.Correlation
+import Mathlib.Probability.Combinatorics.BinomialRandomGraph.Defs
 import Mathlib.Probability.Distributions.SetBernoulli
 import Mathlib.Analysis.SpecialFunctions.Exp
 
@@ -60,6 +61,111 @@ upper set of `Set ι`.  This is what makes Harris' inequality (Chapter 7) applic
 `A i` of Setup 8.1.1. -/
 theorem isUpperSet_setOf_subset (s : Set ι) : IsUpperSet {R : Set ι | s ⊆ R} :=
   fun _ _ hle hmem => hmem.trans hle
+
+/-! ### Restricting the ground set
+
+Every theorem below is stated for `setBernoulli Set.univ p`, a random subset of all of `ι`.  The
+random objects the book applies Janson to are not of that shape: `G(n, p)` is
+`setBernoulli Sym2.diagSetᶜ p` pulled back along `SimpleGraph.edgeSet`, whose ground set omits the
+diagonal.  The lemma below is the transfer, and it is the only thing standing between this chapter
+and its applications in §8.1, §8.2 and §8.3.
+-/
+
+/-- Intersecting a `setBernoulli` sample with a set `u` gives a `setBernoulli` sample on the
+smaller ground set `v ∩ u`.
+
+Coordinatewise this is immediate: an element of `u` is kept exactly when the original sample kept
+it, and an element outside `u` is discarded, matching the coordinate of `setBer(v ∩ u, p)`, which
+is `dirac False` there.
+
+Specialised at `v = Set.univ` this transfers any event that depends only on the trace on `u` — in
+particular `{R | s ⊆ R}` for `s ⊆ u` — from `setBer(u, p)` to the `setBer(Set.univ, p)` of the
+statements below. -/
+theorem map_inter_setBernoulli (u v : Set ι) (p : I) :
+    (setBernoulli v p).map (· ∩ u) = setBernoulli (v ∩ u) p := by
+  -- `fun_prop` cannot see through `Inter.inter` on `Set ι`; the membership coordinates can.
+  have hinter : Measurable (fun s : Set ι => s ∩ u) :=
+    measurable_set_iff.2 fun a => by
+      simp only [Set.mem_inter_iff]
+      exact (measurable_pi_apply a).and measurable_const
+  have hf : ∀ a : ι, Measurable (fun b : Prop => b ∧ a ∈ u) := fun a =>
+    measurable_id.and measurable_const
+  have hlam : Measurable (fun (x : ι → Prop) (a : ι) => x a ∧ a ∈ u) :=
+    measurable_pi_lambda _ fun a => (measurable_pi_apply a).and measurable_const
+  -- Along `MeasurableEquiv.setOfPred` the trace map becomes coordinatewise.
+  have hcomp : ((fun s : Set ι => s ∩ u) ∘ (fun x : ι → Prop => {i | x i}))
+      = (fun x : ι → Prop => {i | x i}) ∘ (fun (x : ι → Prop) (a : ι) => x a ∧ a ∈ u) := by
+    funext x; rfl
+  -- The single coordinate: an element of `u` is kept as before, one outside `u` is discarded.
+  have hcoord : ∀ a : ι,
+      Measure.map (fun b : Prop => b ∧ a ∈ u)
+          (toNNReal p • Measure.dirac (a ∈ v) + toNNReal (σ p) • Measure.dirac False)
+        = toNNReal p • Measure.dirac (a ∈ v ∩ u) + toNNReal (σ p) • Measure.dirac False := by
+    intro a
+    by_cases hau : a ∈ u
+    · have hid : (fun b : Prop => b ∧ a ∈ u) = id := by funext b; simp [hau]
+      have hv : (a ∈ v ∩ u) = (a ∈ v) := by simp [hau]
+      rw [hid, Measure.map_id, hv]
+    · have hc : (fun b : Prop => b ∧ a ∈ u) = (fun _ => False) := by funext b; simp [hau]
+      have hv : (a ∈ v ∩ u) = False := by simp [hau]
+      rw [hc, Measure.map_const, hv, ← add_smul]
+      simp
+  rw [setBernoulli_eq_map v p, Measure.map_map hinter measurable_setOfPred, hcomp,
+    ← Measure.map_map measurable_setOfPred hlam,
+    Measure.infinitePi_map_pi (f := fun (a : ι) (b : Prop) => b ∧ a ∈ u) _ hf,
+    setBernoulli_eq_map (v ∩ u) p]
+  simp_rw [hcoord]
+
+/-- **Janson's inequalities apply to `G(n, p)`.**  For a family of non-loop pair sets `S i`, the
+probability that `G(n, p)` contains none of them is the probability computed by the theorems
+below, which are stated over `setBernoulli Set.univ p`.
+
+This is the whole content of the transfer, and every asymptotic application in §8.1–§8.3 goes
+through it.  Two steps, neither of which is about Janson:
+
+* `binomialRandom_eq_map` reads `G(n, p)` as `setBer(Sym2.diagSetᶜ, p)` pushed along
+  `fromEdgeSet`, and `edgeSet_fromEdgeSet` says the edge set recovered that way is
+  `R \ Sym2.diagSet`.  Since no `e ∈ S i` is a loop, `↑(S i) ⊆ R \ Sym2.diagSet` and
+  `↑(S i) ⊆ R` say the same thing, so the event is unchanged.
+* `map_inter_setBernoulli` moves the ground set from `Sym2.diagSetᶜ` up to `Set.univ`, which is
+  legitimate for exactly the same reason: the event depends only on the trace off the diagonal.
+-/
+theorem binomialRandom_setOf_forall_not_subset {n : ℕ} (p : I)
+    (S : κ → Finset (Sym2 (Fin n))) (hS : ∀ i, ∀ e ∈ S i, ¬ e.IsDiag) :
+    SimpleGraph.binomialRandom (Fin n) p
+        {G : SimpleGraph (Fin n) | ∀ i, ¬ (↑(S i) ⊆ G.edgeSet)}
+      = setBernoulli Set.univ p {R : Set (Sym2 (Fin n)) | ∀ i, ¬ (↑(S i) ⊆ R)} := by
+  -- `S i` has no loop, so intersecting the sample with the complement of the diagonal
+  -- changes neither the events nor their conjunction.
+  have hdiag : ∀ (i : κ) (R : Set (Sym2 (Fin n))),
+      (↑(S i) ⊆ R ∩ (Sym2.diagSet)ᶜ ↔ ↑(S i) ⊆ R) := fun i R =>
+    ⟨fun h => h.trans Set.inter_subset_left, fun h _ hx =>
+      ⟨h hx, by simpa using hS i _ (Finset.mem_coe.1 hx)⟩⟩
+  have hmeasG : MeasurableSet {G : SimpleGraph (Fin n) | ∀ i, ¬ (↑(S i) ⊆ G.edgeSet)} :=
+    (Measurable.forall fun _ =>
+      (Measurable.subset measurable_const SimpleGraph.measurable_edgeSet).not).setOf
+  have hmeasR : MeasurableSet {R : Set (Sym2 (Fin n)) | ∀ i, ¬ (↑(S i) ⊆ R)} :=
+    (Measurable.forall fun _ =>
+      (Measurable.subset measurable_const measurable_id).not).setOf
+  have hinter : Measurable (fun R : Set (Sym2 (Fin n)) => R ∩ (Sym2.diagSet)ᶜ) :=
+    measurable_set_iff.2 fun a => by
+      simp only [Set.mem_inter_iff]
+      exact (measurable_pi_apply a).and measurable_const
+  -- `G(n, p)` is `setBer(Sym2.diagSetᶜ, p)` pushed along `fromEdgeSet`.
+  rw [SimpleGraph.binomialRandom_eq_map,
+    Measure.map_apply SimpleGraph.measurable_fromEdgeSet hmeasG]
+  have hpre : SimpleGraph.fromEdgeSet ⁻¹'
+        {G : SimpleGraph (Fin n) | ∀ i, ¬ (↑(S i) ⊆ G.edgeSet)}
+      = {R : Set (Sym2 (Fin n)) | ∀ i, ¬ (↑(S i) ⊆ R)} := by
+    ext R
+    simp only [Set.mem_preimage, Set.mem_ofPred_eq, SimpleGraph.edgeSet_fromEdgeSet,
+      Set.sdiff_eq, hdiag]
+  -- Raise the ground set from `Sym2.diagSetᶜ` to `Set.univ`.
+  rw [hpre, ← Set.univ_inter (Sym2.diagSetᶜ : Set (Sym2 (Fin n))),
+    ← map_inter_setBernoulli, Measure.map_apply hinter hmeasR]
+  congr 1
+  ext R
+  simp only [Set.mem_preimage, Set.mem_ofPred_eq, hdiag]
 
 /-- The conditioning step of the Boppana–Spencer proof of Janson's inequality.
 

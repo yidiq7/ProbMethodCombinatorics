@@ -611,18 +611,6 @@
       "uses": [],
       "proof_uses": []
     },
-    "triangle_threshold": {
-      "kind": "theorem",
-      "parent": "second_moment",
-      "doc": "second-moment.md#planned-not-stated",
-      "statement": "planned",
-      "proof": "planned",
-      "uses": [],
-      "proof_uses": [
-        "prob_zero_bound",
-        "variance_indicator_bound"
-      ]
-    },
     "subgraph_threshold": {
       "kind": "theorem",
       "parent": "second_moment",
@@ -917,8 +905,8 @@
         "is_dependency_graph",
         "lll_symmetric",
         "pattern",
+        "uniformColoring_monochromatic_toReal_le",
         "uniform_coloring",
-        "uniform_coloring_const",
         "uniform_coloring_indep"
       ]
     },
@@ -960,17 +948,6 @@
         "uniform_coloring",
         "uniform_coloring_const",
         "uniform_coloring_indep"
-      ]
-    },
-    "independent_transversal": {
-      "kind": "theorem",
-      "parent": "local_lemma",
-      "doc": "local-lemma.md#not-stated",
-      "statement": "planned",
-      "proof": "planned",
-      "uses": [],
-      "proof_uses": [
-        "lll_general"
       ]
     },
     "directed_cycles": {
@@ -4327,11 +4304,21 @@
       "file": "ProbMethodCombinatorics/SecondMoment.lean",
       "decl": "ProbMethodCombinatorics.variance_triangleCount_le",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "triangleCount"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "binomialRandom_setOf_subset_edgeSet",
+        "card_offDiagPairs_add",
+        "measurableSet_setOf_subset_edgeSet",
+        "not_isDiag_of_mem_offDiagPairs",
+        "offDiagPairs",
+        "offDiagPairs_inter",
+        "setOf_forall_adj_eq_setOf_offDiagPairs",
+        "setOf_subset_edgeSet_inter",
+        "variance_indicator_bound"
+      ]
     },
     "prob_no_triangle_of_mul_le": {
       "kind": "theorem",
@@ -4368,7 +4355,9 @@
       "statement": "formalized",
       "proof": "formalized",
       "uses": [],
-      "proof_uses": []
+      "proof_uses": [
+        "binomialRandom_setOf_subset_edgeSet"
+      ]
     },
     "measurableSet_forall_mem_edgeSet": {
       "kind": "theorem",
@@ -4377,7 +4366,9 @@
       "statement": "formalized",
       "proof": "formalized",
       "uses": [],
-      "proof_uses": []
+      "proof_uses": [
+        "measurableSet_setOf_subset_edgeSet"
+      ]
     },
     "integrable_triangleCount": {
       "kind": "theorem",
@@ -4394,6 +4385,7 @@
     },
     "measurableSet_setOf_forall_adj": {
       "kind": "theorem",
+      "parent": "second_moment",
       "file": "ProbMethodCombinatorics/SecondMoment.lean",
       "decl": "ProbMethodCombinatorics.measurableSet_setOf_forall_adj",
       "statement": "formalized",
@@ -4433,6 +4425,339 @@
       "proof": "formalized",
       "uses": [
         "triangleCount"
+      ],
+      "proof_uses": []
+    },
+    "binomialRandom_setOf_subset_edgeSet": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.binomialRandom_setOf_subset_edgeSet",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "measurableSet_setOf_subset_edgeSet"
+      ]
+    },
+    "card_offDiagPairs_add": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.card_offDiagPairs_add",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "offDiagPairs"
+      ],
+      "proof_uses": []
+    },
+    "measurableSet_setOf_subset_edgeSet": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.measurableSet_setOf_subset_edgeSet",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "mem_offDiagPairs": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.mem_offDiagPairs",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "offDiagPairs"
+      ],
+      "proof_uses": []
+    },
+    "not_isDiag_of_mem_offDiagPairs": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.not_isDiag_of_mem_offDiagPairs",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "offDiagPairs"
+      ],
+      "proof_uses": []
+    },
+    "offDiagPairs": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.offDiagPairs",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "offDiagPairs_inter": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.offDiagPairs_inter",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "offDiagPairs"
+      ],
+      "proof_uses": []
+    },
+    "setOf_forall_adj_eq_setOf_offDiagPairs": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.setOf_forall_adj_eq_setOf_offDiagPairs",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "offDiagPairs"
+      ],
+      "proof_uses": [
+        "mem_offDiagPairs"
+      ]
+    },
+    "setOf_subset_edgeSet_inter": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.setOf_subset_edgeSet_inter",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "memLp_triangleCount": {
+      "kind": "theorem",
+      "parent": "second_moment",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.memLp_triangleCount",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "triangleCount"
+      ],
+      "proof_uses": [
+        "measurableSet_setOf_forall_adj"
+      ]
+    },
+    "prob_triangle_of_le_mul": {
+      "kind": "theorem",
+      "parent": "second_moment",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.prob_triangle_of_le_mul",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "triangleCount"
+      ],
+      "proof_uses": [
+        "integral_triangleCount",
+        "measurable_triangleCount",
+        "memLp_triangleCount",
+        "prob_zero_bound",
+        "variance_triangleCount_le"
+      ]
+    },
+    "twoColorable_of_sum_inv_two_pow_le": {
+      "kind": "theorem",
+      "parent": "local_lemma",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.twoColorable_of_sum_inv_two_pow_le",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "two_colorable"
+      ],
+      "proof_uses": [
+        "instIsProbabilityMeasureForallBoolUniformColoring",
+        "is_dependency_graph",
+        "lll_sum",
+        "pattern",
+        "uniformColoring_monochromatic_toReal_le",
+        "uniform_coloring",
+        "uniform_coloring_indep"
+      ]
+    },
+    "copyCount": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.copyCount",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "transportedEdges"
+      ]
+    },
+    "edgeVertexRatio": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.edgeVertexRatio",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "edgeVertexRatio_le_maxEdgeVertexRatio": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.edgeVertexRatio_le_maxEdgeVertexRatio",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "edgeVertexRatio",
+        "maxEdgeVertexRatio"
+      ],
+      "proof_uses": []
+    },
+    "integral_copyCount": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.integral_copyCount",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "copyCount"
+      ],
+      "proof_uses": [
+        "binomialRandom_setOf_subset_edgeSet",
+        "measurableSet_setOf_subset_edgeSet",
+        "transportedEdges"
+      ]
+    },
+    "map_inter_setBernoulli": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.map_inter_setBernoulli",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
+    },
+    "maxEdgeVertexRatio": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.maxEdgeVertexRatio",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "edgeVertexRatio"
+      ]
+    },
+    "maxEdgeVertexRatio_nonneg": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.maxEdgeVertexRatio_nonneg",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "maxEdgeVertexRatio"
+      ],
+      "proof_uses": [
+        "edgeVertexRatio"
+      ]
+    },
+    "transportedEdges": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.transportedEdges",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "uniformColoring_monochromatic_toReal_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.uniformColoring_monochromatic_toReal_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "uniform_coloring"
+      ],
+      "proof_uses": [
+        "uniform_coloring_const"
+      ]
+    },
+    "ExposureBlock": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.ExposureBlock",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "binomialRandom_eq_map_graphOfExposure": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.binomialRandom_eq_map_graphOfExposure",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "ExposureBlock",
+        "exposureMeasure",
+        "graphOfExposure"
+      ],
+      "proof_uses": []
+    },
+    "binomialRandom_setOf_forall_not_subset": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.binomialRandom_setOf_forall_not_subset",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
+    },
+    "card_filter_notMem_le_three": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Expectation.lean",
+      "decl": "ProbMethodCombinatorics.card_filter_notMem_le_three",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "card_filter_subset_le_three"
+      ]
+    },
+    "card_le_of_tetrahedronFree_sample_five": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Expectation.lean",
+      "decl": "ProbMethodCombinatorics.card_le_of_tetrahedronFree_sample_five",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
+    },
+    "card_le_seven_of_tetrahedronFree": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Expectation.lean",
+      "decl": "ProbMethodCombinatorics.card_le_seven_of_tetrahedronFree",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "card_filter_notMem_le_three"
+      ]
+    },
+    "exposureMeasure": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.exposureMeasure",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "ExposureBlock"
+      ],
+      "proof_uses": []
+    },
+    "graphOfExposure": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.graphOfExposure",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "ExposureBlock"
       ],
       "proof_uses": []
     }

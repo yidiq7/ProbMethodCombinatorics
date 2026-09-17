@@ -111,6 +111,24 @@ edge-count bound the book proves, so the edge-count bound stays a task.
 
 ## Log
 
+- **2026-09-17 — §4.1 is complete as a statement: Proposition 4.1.2's threshold is now both halves.**
+  `memLp_triangleCount` proved (the brick #187's review named as next missing — it is what
+  `prob_eq_zero_le_variance_div_sq`'s `MemLp X 2` hypothesis needs to make `Var/𝔼²` meaningful),
+  and with it plus `variance_triangleCount_le` the supercritical half is unblocked and published
+  as #189.  `measurableSet_setOf_forall_adj` promoted to public alongside it, since Chebyshev on
+  any subgraph count wants both.
+
+  **Why the supercritical half needs an `N` and the subcritical one does not**, recorded because
+  the asymmetry is the interesting part of the `whp` idiom in practice: Chebyshev's error is
+  `144/(p·n)³ + 144/(n·(p·n))`, and the two terms vanish for *different reasons* — the first once
+  `p·n` is large, the second only once `n` is large as well.  No choice of scale alone controls
+  it.  Markov's error on the other side is `(p·n)³/6`, uniform in `n`, so a `δ` depending on `ε`
+  alone suffices.  **The shape of the estimate decides whether the idiom needs its `N`**, and
+  stating both halves side by side makes that legible in a way an `o(1)` never would.
+
+  Verified before stating: the constants close (`M` from `ε`, then `N` from `ε` and `M`), and
+  `binom(n,3) ≥ n³/12` holds for every `n ≥ 6` with no exception.
+
 - **2026-09-17 — §4.1's first moment and subcritical threshold are both proved (#184, #186); 4 sorries left.**
   `integral_triangleCount` and `prob_no_triangle_of_mul_le` merged.  **The `whp` idiom worked
   first try**, and the reason is worth keeping: the explicit
@@ -132,6 +150,116 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   rather than `(μ S).toReal`.  Mathlib's probability lemmas are stated in `Measure.real`, and the
   reference node had to end in a `measureReal_def` dance purely because I wrote `.toReal`.  This
   is the template every later `whp` node copies, so it is worth getting right once.
+
+- **2026-09-17 — six merges, and the board saturated for the first time.**
+  `prob_triangle_of_le_mul` (#191) closes §4.1's threshold in both directions; Zhao 6.2.4 (#192);
+  `map_inter_setBernoulli` (#194); `integral_copyCount` (#197), §4.2's first moment; Lemma 2.4.3
+  (#199).  Every task published this session was claimed within minutes and three returned a PR
+  inside ten.
+
+  **Two contributor proofs reused existing vocabulary instead of copying it**, which is the habit
+  the consolidation notes have been trying to buy.  #199's `card_filter_notMem_le_three` is a
+  thin adapter onto Proposition 2.4.2's existing `card_filter_subset_le_three` — for `|e| = 3` in
+  `Fin 5`, `v ∉ e` and `e ⊆ univ.erase v` are the same condition — so the "a 4-set carries at most
+  three edges" argument still has one home.  #197 added no declarations at all.
+
+  Against that, #192 *did* land a fourth copy of an argument, and the fix was mine rather than
+  the contributor's: `twoColorable_of_inter_card_le` had inlined the monochromatic-edge
+  probability, so `uniformColoring_monochromatic_toReal_le` moved above both consumers and the
+  inline block now calls it, `1d33a6d`, fifteen lines shorter.  **Retiring duplicates stays
+  orchestrator work** — a contributor cannot see the other three copies from inside one task.
+
+- **2026-09-17 — §2.4 is complete, and a contributor re-derived the erratum structurally.**
+  Proposition 2.4.2, Lemma 2.4.3 (#196) and Proposition 2.4.4 (#202) are all proved.
+
+  I had flagged 2.4.4's `5 ≤ n` by brute force: true maxima `3, 7, 14` at `n = 4, 5, 6` against a
+  printed bound of `2.8, 7, 14`.  The contributor located the same off-by-one **without computing
+  anything** — the hypothesis is spent at `Nat.choose_pos (2 ≤ n - 3)`, because at `n = 4` the
+  factor `binom(1,2)` is zero and the cancellation is invalid.  Two independent routes to the
+  same correction is about as much confirmation as a source erratum can get, and the structural
+  one is what now stands in the file.
+
+  Their `Finset.orderEmbOfFin` transport of Lemma 2.4.3 from `Fin 5` to an arbitrary 5-subset is
+  better than the route I published, which waved at "pick an equiv and check freeness survives".
+  The increasing enumeration supplies `image_orderEmbOfFin_univ` and injectivity for free, and
+  `Finset.subset_image_iff` closes both directions of the bijection in two lines each.
+
+  **Publishing a dependent node only after its input lands was the right call.**  2.4.4 was
+  stated at the same time as 2.4.3 but held back; a contributor proving it against a `sorry`
+  would have produced a green PR whose theorem transitively depended on an unproved lemma.
+  Visible in `#print axioms`, but misleading in the trust report.
+
+- **2026-09-17 — three blockers re-derived, three found stale, in one sitting.**
+  The lesson written into the #193 entry got tested within the hour, twice, and both times the
+  recorded blocker was wrong.
+
+  * **§2.4 "not yet assessed"** — it had been assessed and stated two days earlier, and the
+    proved theorem's own docstring already scoped the follow-up node.
+  * **§11.1 "needs `ex(n, H)`, which the project does not have"** — Mathlib has
+    `SimpleGraph.extremalNumber`, plus `Turan`, `TuranDensity`, `ErdosStoneSimonovits` and
+    `Zarankiewicz`.  Theorem 11.1.2 is closer to a citation than a formalization.
+  * **§9.2 "Azuma itself is not [in Mathlib]; everything in §9.3–§9.6 is downstream of it"** —
+    Mathlib has since grown `measure_sum_ge_le_of_hasCondSubgaussianMGF`, and, more to the point,
+    **this project already proved Azuma** as `measure_martingale_sub_ge_le`.  Six sections were
+    recorded as blocked behind a theorem sitting sorry-free in the repository.
+
+  Both notes were true when written.  Neither was re-checked.  **A blocker note is a claim with
+  an expiry date, and the only way to read one safely is to re-derive it** — which costs minutes,
+  against the weeks each of these cost.  Audit bullets now carry the date they were resolved
+  rather than being deleted, so the staleness itself stays visible.
+
+- **2026-09-17 — Proposition 2.4.4 is false as the source prints it, and §4.2's definitions are paid.**
+  Two pieces of authoring, and one erratum.
+
+  **§2.4.** Zhao states Proposition 2.4.4 for `n ≥ 4`: a tetrahedron-free 3-graph has at most
+  `(7/10) binom(n,3)` edges.  At `n = 4` that is false — the 3-graph missing exactly one triple
+  is tetrahedron-free with `3` edges against a bound of `2.8` — and the hypothesis has to be
+  `5 ≤ n`, which is what an argument sampling five vertices can actually support.  Exhaustive
+  search over all 3-graphs on `n ≤ 6` gives maxima `3, 7, 14`: false at `4`, tight at `5` and
+  `6`.  Lemma 2.4.3 (`card_le_seven_of_tetrahedronFree`, #196) is published; 2.4.4 is stated and
+  **held** until it lands, rather than published against a `sorry`.
+
+  **This is the second source erratum, after §6.3's `≤` versus `<`, and both were found the same
+  way: compute the small cases before stating the theorem.**  Neither would have surfaced by
+  reading the proof — in both the proof is right and only the quantifier range is wrong.  The
+  habit is now cheap and has paid twice; it stays.
+
+  **§4.2.** Definition 4.2.7 is authored as `edgeVertexRatio` and `maxEdgeVertexRatio`, together
+  with `copyCount` and its first moment `integral_copyCount` (#195).  `m(H)` maximises over
+  vertex *subsets* rather than over `SimpleGraph.Subgraph`, which is an equality and not a
+  weakening: within a fixed vertex set the densest subgraph is the induced one, and every
+  subgraph has a vertex set.  It also keeps the definition free of `Subgraph` finiteness
+  instances and of any `Decidable` hypothesis, since `Set.ncard` needs neither.  Checked against
+  Example 4.2.8 (`ρ = 7/5`, `m = 3/2`) and, for `integral_copyCount`, by brute force over all
+  graphs on `n ≤ 4` vertices against five shapes for `H`: 80/80.
+
+- **2026-09-17 — Chapter 8's real blocker was a ground set, not a missing API (#193).**
+  `janson.md` had recorded the five unstated asymptotic results of §8.1–§8.3 as needing "a settled
+  `whp` convention plus a worked `G(n,p)` API".  With the `whp` convention settled, I went to build
+  the API and found there was nothing to build.  Mathlib *defines*
+
+      SimpleGraph.binomialRandom V p = setBer(Sym2.diagSetᶜ, p).comap edgeSet
+
+  so `G(n,p)` already is a `setBernoulli`.  The obstruction is one type-level mismatch: every
+  Chapter 8 statement is fixed at `setBernoulli Set.univ p`, and `G(n,p)`'s ground set omits the
+  diagonal.  `map_inter_setBernoulli` — `(setBer(v,p)).map (· ∩ u) = setBer(v ∩ u, p)` — is the
+  whole transfer, and unblocks Theorem 8.1.6, Corollary 8.1.7, Theorem 8.1.10, Theorem 8.2.5 and
+  §8.3.2 at once.
+
+  The route is four steps and every input exists: `measurable_set_iff` for the trace map (`fun_prop`
+  does not do `Inter.inter` on `Set ι`), `setBernoulli_eq_map` to reach the product, and
+  `Measure.infinitePi_map_pi` — which carries no countability hypothesis, so the statement carries
+  none either, despite the rest of the file needing `[Countable ι]` for its *events*.
+
+  **The lesson is about how blockers get recorded.**  "Needs a worked `G(n,p)` API" priced five
+  theorems out of reach for weeks; the truth was a one-lemma impedance mismatch.  A blocker written
+  at the wrong level of abstraction is worse than no note at all, because a note stops people from
+  looking again.  The standing rule already says a "not in Mathlib" claim has a shelf life — this
+  extends it: **re-derive the blocker, don't re-read it.**
+
+  Checked before publishing, per the rule that cost me `exists_container_round`: the identity was
+  brute-forced over all subsets of a 4-element ground set against 400 random `(p, u, v)` triples,
+  400/400 agreeing, and the statement and the step-1 measurability proof both typecheck.
 
 - **2026-09-17 — the `whp` idiom is settled, and §4.1's subcritical threshold published (#183).**
   This was the single convention blocking §4.1's threshold, §4.2's `subgraph_threshold`, Janson's
@@ -1227,16 +1355,23 @@ whose analytic input is absent costs a contributor a day to discover.
 
 **(c) Real work on infrastructure that does exist.**  Statable whenever there is capacity; these
 are the honest growth path.
-- §9.2 Azuma — `Martingale`, `Filtration` and `condExp` are all present; Azuma itself is not.
-  Everything in §9.3–§9.6 is downstream of it.
+- §9.2 Azuma — *stale note, resolved 2026-09-17*: Azuma **is** proved here, as
+  `measure_martingale_sub_ge_le` in `Concentration.lean`, and that file has no `sorry`.  The
+  conditional sub-Gaussian step its own docstring calls "the work" was done.  §9.3–§9.6 are
+  therefore **not blocked**, and §9.3 (chromatic number of `G(n,1/2)`) is the next node in
+  Chapter 9 — it needs a vertex-exposure martingale, not new analysis.
+- Chapter 8's five asymptotic results — *resolved 2026-09-17*: the blocker was never a missing
+  `G(n,p)` API but the ground-set mismatch now isolated as `map_inter_setBernoulli` (#193).
 - §10.2 Kahn–Lovász — needs two orchestrator-authored definitions first (a count of perfect
   matchings, and the bipartite double cover; note `boxProd` is the **Cartesian** product and
   would silently build the wrong graph).
 - §4.3 Bollobás–Thomason, §4.1/§4.2 thresholds, §4.4 clique number — all need an `ε`–`N` or
-  `whp` idiom plus, for §4.2, a definition of `m(H)`.
-- §11.1.3 / §11.1.5 — need `ex(n, H)` and a `whp` idiom.
-- §2.4 hypergraph Turán sampling — not yet assessed; the most likely of Chapter 2's four to be
-  tractable.
+  `whp` idiom plus, for §4.2, a definition of `m(H)`.  *(The `whp` idiom was settled 2026-09-17;
+  what remains of this bullet is `m(H)` and `ρ`.)*
+- §11.1.3 / §11.1.5 — *both halves resolved 2026-09-17*: `whp` is settled, and `ex(n, H)` is
+  Mathlib's `SimpleGraph.extremalNumber`.  11.1.3's lower bound is stated as #203.
+- §2.4 hypergraph Turán sampling — *stale note, resolved*: assessed and stated 2026-09-15 as
+  `card_le_of_tetrahedronFree`, with Lemma 2.4.3 and Proposition 2.4.4 stated 2026-09-17.
 
 **The standing rule this audit enforces:** a "not in Mathlib" note has a shelf life, and a
 "Mathlib has the vocabulary" note is not evidence of tractability.  Re-check before publishing,

@@ -66,10 +66,24 @@ read that example first.
 
 The asymptotic consequences — Theorem 8.1.6, Corollary 8.1.7, Theorem 8.1.10 (the two-regime
 triangle-free estimate), Theorem 8.2.5 (Harel–Mousset–Samotij) and §8.3's chromatic number of
-`G(n,1/2)` (Theorem 8.3.2, Bollobás) — are planned rather than stated, for the same reason as
-Chapter 4's: they are statements about sequences with `o(1)` error, and they need a settled
-`whp` convention plus a worked `G(n,p)` API. Theorem 8.3.2 additionally needs Lemma 8.3.3 and
-the iterated-extraction colouring argument, which is a substantial development of its own.
+`G(n,1/2)` (Theorem 8.3.2, Bollobás) — are planned rather than stated. The `whp` convention they
+need is now settled (see `README.md`), which leaves one blocker, and it is not the one recorded
+here before: **the ground set, not the `G(n,p)` API.** Mathlib's `binomialRandom` is
+
+    G(V, p) = setBer(Sym2.diagSetᶜ, p).comap edgeSet
+
+so `G(n,p)` *is* a `setBernoulli`, and the API around it is adequate. But every theorem in this
+chapter is fixed at `setBernoulli Set.univ p`, and those statements are frozen. Transferring
+them to a ground set that omits the diagonal is `map_inter_setBernoulli` (#193), which is
+therefore the single shared prerequisite for all five.
+
+Theorem 8.3.2 additionally needs Lemma 8.3.3 and the iterated-extraction colouring argument,
+which is a substantial development of its own.
+
+**The lesson in the correction:** the old note said these needed "a worked `G(n,p)` API", which
+sounded like a large build-out and priced the whole group out of reach. The actual obstruction
+was a one-lemma impedance mismatch between two ground sets. A blocker recorded at the wrong
+level of abstraction is worse than no note, because it stops anyone from looking again.
 
 ## `[Countable ι]`, and how it was found
 

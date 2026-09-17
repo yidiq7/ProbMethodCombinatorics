@@ -416,6 +416,195 @@ theorem card_le_of_tetrahedronFree {n : ℕ} (hn : 4 ≤ n) (H : Finset (Finset 
     _ = 3 * (n.choose 3 * (n - 3)) := by rw [hid]
     _ = 3 * n.choose 3 * (n - 3) := by ring
 
+/-- The triples of `Fin 5` avoiding a vertex `v` are exactly the four triples inside the 4-set
+`univ.erase v`, and tetrahedron-freeness keeps one of those out of `H`. -/
+private theorem card_filter_notMem_le_three {H : Finset (Finset (Fin 5))}
+    (h3 : ∀ e ∈ H, e.card = 3)
+    (hfree : ∀ S : Finset (Fin 5), S.card = 4 → ∃ e ⊆ S, e.card = 3 ∧ e ∉ H) (v : Fin 5) :
+    (H.filter (fun e => v ∉ e)).card ≤ 3 := by
+  have hS : (Finset.univ.erase v).card = 4 := by
+    rw [Finset.card_erase_of_mem (Finset.mem_univ v), Finset.card_univ, Fintype.card_fin]
+  have heq : H.filter (fun e => v ∉ e) = H.filter (fun e => e ⊆ Finset.univ.erase v) := by
+    ext e
+    simp [Finset.subset_erase]
+  rw [heq]
+  exact card_filter_subset_le_three h3 hfree hS
+
+/-- **A five-vertex tetrahedron-free 3-graph has at most seven edges** (Zhao, Lemma 2.4.3).
+
+Complementation turns this into a statement about ordinary graphs.  Sending a triple `e ⊆ Fin 5`
+to its complement `eᶜ`, a pair, is a bijection from triples to pairs, and for `v : Fin 5` the
+four triples inside `univ.erase v` are exactly the four pairs through `v`.  So `H` contains a
+tetrahedron precisely when the complement graph has a vertex of degree `4`, and `H` is
+tetrahedron-free precisely when that graph has maximum degree at most `3`.  A five-vertex graph
+of maximum degree `3` has at most `⌊3 * 5 / 2⌋ = 7` edges, by handshaking.
+
+Tight: the bound `7` is attained. -/
+theorem card_le_seven_of_tetrahedronFree (H : Finset (Finset (Fin 5)))
+    (h3 : ∀ e ∈ H, e.card = 3)
+    (hfree : ∀ S : Finset (Fin 5), S.card = 4 → ∃ e ⊆ S, e.card = 3 ∧ e ∉ H) :
+    H.card ≤ 7 := by
+  -- Double count the pairs `(v, e)` with `v ∉ e`, `e ∈ H`.
+  have hswap : ∑ v : Fin 5, (H.filter (fun e => v ∉ e)).card
+      = ∑ e ∈ H, (Finset.univ.filter (fun v : Fin 5 => v ∉ e)).card := by
+    simp only [Finset.card_filter]
+    exact Finset.sum_comm
+  -- A triple omits exactly two of the five vertices, so the double count is `2 * |H|`.
+  have homit : ∀ e ∈ H, (Finset.univ.filter (fun v : Fin 5 => v ∉ e)).card = 2 := by
+    intro e he
+    have hcompl : Finset.univ.filter (fun v : Fin 5 => v ∉ e) = Finset.univ \ e := by
+      ext v; simp
+    rw [hcompl, Finset.card_sdiff, Finset.inter_univ, h3 e he, Finset.card_univ,
+      Fintype.card_fin]
+  -- Each of the five vertices is avoided by at most three edges.
+  have hhigh : ∑ v : Fin 5, (H.filter (fun e => v ∉ e)).card ≤ 15 :=
+    calc ∑ v : Fin 5, (H.filter (fun e => v ∉ e)).card
+        ≤ ∑ _v : Fin 5, 3 :=
+          Finset.sum_le_sum fun v _ => card_filter_notMem_le_three h3 hfree v
+      _ = 15 := by simp
+  rw [hswap, Finset.sum_congr rfl homit] at hhigh
+  simp only [Finset.sum_const, smul_eq_mul] at hhigh
+  omega
+
+/-- Every 3-element `e` lies in at least `binom(n-3, 2)` of the 5-element subsets of `Fin n`:
+adjoining any pair of vertices from outside `e` gives one, and distinct pairs give distinct
+sets. -/
+private theorem card_choose_two_le_card_filter_five_superset {n : ℕ} {e : Finset (Fin n)}
+    (he : e.card = 3) :
+    (n - 3).choose 2 ≤ ((Finset.univ.powersetCard 5).filter (fun S => e ⊆ S)).card := by
+  have hcard : ((Finset.univ \ e).powersetCard 2).card = (n - 3).choose 2 := by
+    rw [Finset.card_powersetCard, Finset.card_sdiff, Finset.inter_univ, he, Finset.card_univ,
+      Fintype.card_fin]
+  rw [← hcard]
+  refine Finset.card_le_card_of_injOn (fun t => t ∪ e) ?_ ?_
+  · intro t ht
+    simp only [Finset.mem_coe, Finset.mem_powersetCard] at ht
+    have hdisj : Disjoint t e :=
+      Finset.disjoint_left.2 fun a ha hae => (Finset.mem_sdiff.1 (ht.1 ha)).2 hae
+    simp only [Finset.mem_coe, Finset.mem_filter, Finset.mem_powersetCard]
+    refine ⟨⟨Finset.subset_univ _, ?_⟩, Finset.subset_union_right⟩
+    rw [Finset.card_union_of_disjoint hdisj, ht.2, he]
+  · have key : ∀ a b : Finset (Fin n), a ⊆ Finset.univ \ e → a ∪ e = b ∪ e → a ⊆ b := by
+      intro a b ha hab x hx
+      rcases Finset.mem_union.1 (hab ▸ Finset.mem_union_left e hx) with h | h
+      · exact h
+      · exact absurd h (Finset.mem_sdiff.1 (ha hx)).2
+    intro t ht u hu htu
+    simp only [Finset.mem_coe, Finset.mem_powersetCard] at ht hu
+    exact Finset.Subset.antisymm (key t u ht.1 htu) (key u t hu.1 htu.symm)
+
+/-- `card_le_seven_of_tetrahedronFree` transported from `Fin 5` to an arbitrary 5-element
+`S : Finset (Fin n)`.  The increasing enumeration `ι := S.orderEmbOfFin` has image `S`, so
+`t ↦ t.image ι` is a bijection from the 3-graph `H'` on `Fin 5` that it pulls back from `H` onto
+the edges of `H` inside `S`, and it carries every 4-subset of `Fin 5` to a 4-subset of `S`, which
+is what transfers tetrahedron-freeness. -/
+private theorem card_filter_subset_le_seven {n : ℕ} {H : Finset (Finset (Fin n))}
+    (h3 : ∀ e ∈ H, e.card = 3)
+    (hfree : ∀ S : Finset (Fin n), S.card = 4 → ∃ e ⊆ S, e.card = 3 ∧ e ∉ H)
+    {S : Finset (Fin n)} (hS : S.card = 5) :
+    (H.filter (fun e => e ⊆ S)).card ≤ 7 := by
+  set ι : Fin 5 → Fin n := fun i => S.orderEmbOfFin hS i
+  have hinj : Function.Injective ι := (S.orderEmbOfFin hS).injective
+  have himg : Finset.image ι Finset.univ = S := Finset.image_orderEmbOfFin_univ S hS
+  set H' : Finset (Finset (Fin 5)) := Finset.univ.filter (fun t => t.image ι ∈ H) with hH'def
+  have hmemH' : ∀ t : Finset (Fin 5), t ∈ H' ↔ t.image ι ∈ H := by
+    intro t; simp [hH'def]
+  have hbij : H'.image (fun t => t.image ι) = H.filter (fun e => e ⊆ S) := by
+    ext e
+    simp only [Finset.mem_image, Finset.mem_filter]
+    constructor
+    · rintro ⟨t, ht, rfl⟩
+      exact ⟨(hmemH' t).1 ht, himg ▸ Finset.image_subset_image (Finset.subset_univ t)⟩
+    · rintro ⟨heH, heS⟩
+      rw [← himg] at heS
+      obtain ⟨t, -, rfl⟩ := Finset.subset_image_iff.1 heS
+      exact ⟨t, (hmemH' t).2 heH, rfl⟩
+  have hcard : (H.filter (fun e => e ⊆ S)).card = H'.card := by
+    rw [← hbij, Finset.card_image_of_injective _ (Finset.image_injective hinj)]
+  rw [hcard]
+  refine card_le_seven_of_tetrahedronFree H' ?_ ?_
+  · intro t ht
+    have := h3 _ ((hmemH' t).1 ht)
+    rwa [Finset.card_image_of_injective _ hinj] at this
+  · intro T hT
+    obtain ⟨e, heT, hecard, heH⟩ :=
+      hfree (T.image ι) (by rw [Finset.card_image_of_injective _ hinj, hT])
+    obtain ⟨t, htT, rfl⟩ := Finset.subset_image_iff.1 heT
+    refine ⟨t, htT, ?_, ?_⟩
+    · rwa [Finset.card_image_of_injective _ hinj] at hecard
+    · exact fun h => heH ((hmemH' t).1 h)
+
+/-- `10 binom(n,5) = binom(n,3) binom(n-3,2)`: the count of pairs (3-set inside 5-set) read two
+ways.  Both sides vanish for `n < 5`, so no hypothesis on `n` is needed. -/
+private theorem ten_mul_choose_five_eq_mul_choose_two (n : ℕ) :
+    10 * n.choose 5 = n.choose 3 * (n - 3).choose 2 := by
+  have h4 : n.choose 5 * 5 = n.choose 4 * (n - 4) := Nat.choose_succ_right_eq n 4
+  have h3 : n.choose 4 * 4 = n.choose 3 * (n - 3) := Nat.choose_succ_right_eq n 3
+  have h2 : (n - 3).choose 2 * 2 = (n - 3) * (n - 4) := by
+    have h := Nat.choose_succ_right_eq (n - 3) 1
+    rw [Nat.choose_one_right] at h
+    have hsub : n - 3 - 1 = n - 4 := by omega
+    rwa [hsub] at h
+  have key : 2 * (10 * n.choose 5) = 2 * (n.choose 3 * (n - 3).choose 2) := by
+    calc 2 * (10 * n.choose 5) = n.choose 5 * 5 * 4 := by ring
+      _ = n.choose 4 * (n - 4) * 4 := by rw [h4]
+      _ = n.choose 4 * 4 * (n - 4) := by ring
+      _ = n.choose 3 * (n - 3) * (n - 4) := by rw [h3]
+      _ = n.choose 3 * ((n - 3) * (n - 4)) := by ring
+      _ = n.choose 3 * ((n - 3).choose 2 * 2) := by rw [h2]
+      _ = 2 * (n.choose 3 * (n - 3).choose 2) := by ring
+  omega
+
+/-- **Sampling five vertices instead of four** (Zhao, Proposition 2.4.4): a tetrahedron-free
+3-graph has at most `(7/10) binom(n,3)` edges.
+
+The proof is `card_le_of_tetrahedronFree` with the sample size raised from `4` to `5`: double
+count the pairs `(S, e)` with `|S| = 5`, `e ⊆ S` and `e ∈ H`, bound the inner count by
+`card_le_seven_of_tetrahedronFree`, and cancel using `10 binom(n,5) = binom(n,3) binom(n-3,2)`.
+
+**`5 ≤ n`, not `4 ≤ n` as the source prints it.**  At `n = 4` the claim is false: the 3-graph on
+four vertices missing exactly one triple is tetrahedron-free and has `3` edges, while
+`(7/10) binom(4,3) = 2.8`.  Four vertices cannot support an argument that samples five.  The
+bound is tight at `n = 5` and at `n = 6`, where the true maxima are `7` and `14` against
+`(7/10) binom(n,3) = 7` and `14`. -/
+theorem card_le_of_tetrahedronFree_sample_five {n : ℕ} (hn : 5 ≤ n)
+    (H : Finset (Finset (Fin n)))
+    (h3 : ∀ e ∈ H, e.card = 3)
+    (hfree : ∀ S : Finset (Fin n), S.card = 4 → ∃ e ⊆ S, e.card = 3 ∧ e ∉ H) :
+    10 * H.card ≤ 7 * n.choose 3 := by
+  have hPcard : (Finset.univ.powersetCard 5 : Finset (Finset (Fin n))).card = n.choose 5 := by
+    rw [Finset.card_powersetCard, Finset.card_univ, Fintype.card_fin]
+  -- Double count the pairs `(S, e)` with `|S| = 5`, `e ⊆ S`, `e ∈ H`.
+  have hswap : ∑ e ∈ H, ((Finset.univ.powersetCard 5).filter (fun S => e ⊆ S)).card
+      = ∑ S ∈ (Finset.univ.powersetCard 5 : Finset (Finset (Fin n))),
+          (H.filter (fun e => e ⊆ S)).card := by
+    simp only [Finset.card_filter]
+    exact Finset.sum_comm
+  have hlow : H.card * (n - 3).choose 2
+      ≤ ∑ e ∈ H, ((Finset.univ.powersetCard 5).filter (fun S => e ⊆ S)).card := by
+    have := Finset.card_nsmul_le_sum H
+      (fun e => ((Finset.univ.powersetCard 5).filter (fun S => e ⊆ S)).card) ((n - 3).choose 2)
+      (fun e he => card_choose_two_le_card_filter_five_superset (h3 e he))
+    simpa [smul_eq_mul] using this
+  have hhigh : ∑ S ∈ (Finset.univ.powersetCard 5 : Finset (Finset (Fin n))),
+      (H.filter (fun e => e ⊆ S)).card ≤ 7 * n.choose 5 := by
+    have := Finset.sum_le_card_nsmul (Finset.univ.powersetCard 5 : Finset (Finset (Fin n)))
+      (fun S => (H.filter (fun e => e ⊆ S)).card) 7
+      (fun S hS => card_filter_subset_le_seven h3 hfree (Finset.mem_powersetCard.1 hS).2)
+    rw [hPcard, smul_eq_mul] at this
+    omega
+  have hkey : H.card * (n - 3).choose 2 ≤ 7 * n.choose 5 := by
+    rw [hswap] at hlow
+    exact hlow.trans hhigh
+  -- `10 binom(n,5) = binom(n,3) binom(n-3,2)`, and `binom(n-3,2) ≥ 1` cancels; this is the
+  -- step that needs `5 ≤ n`, and at `n = 4` the factor `binom(n-3,2)` vanishes.
+  refine Nat.le_of_mul_le_mul_right ?_ (Nat.choose_pos (by omega : 2 ≤ n - 3))
+  calc 10 * H.card * (n - 3).choose 2 = 10 * (H.card * (n - 3).choose 2) := by ring
+    _ ≤ 10 * (7 * n.choose 5) := Nat.mul_le_mul le_rfl hkey
+    _ = 7 * (10 * n.choose 5) := by ring
+    _ = 7 * (n.choose 3 * (n - 3).choose 2) := by rw [ten_mul_choose_five_eq_mul_choose_two]
+    _ = 7 * n.choose 3 * (n - 3).choose 2 := by ring
+
 /-! ### §2.5 Unbalancing lights -/
 
 /-- The `±1` vector recording membership in `S`. -/

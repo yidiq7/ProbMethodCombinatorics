@@ -1,3 +1,4 @@
+import Mathlib.Combinatorics.SimpleGraph.Finite
 import Mathlib.Probability.Combinatorics.BinomialRandomGraph.Defs
 import Mathlib.Probability.Moments.Variance
 import Mathlib.Probability.Independence.Basic
@@ -403,52 +404,130 @@ noncomputable def triangleCount {n : ℕ} (G : SimpleGraph (Fin n)) : ℝ :=
     ({H : SimpleGraph (Fin n) | ∀ a ∈ T, ∀ b ∈ T, a ≠ b → H.Adj a b}).indicator
       (fun _ => (1 : ℝ)) G
 
-/-- The event that a prescribed finite set of pairs are all edges is measurable. -/
+/-! ### Shared vocabulary for edge events in `G(n, p)`
+
+`offDiagPairs` and the lemmas below are **public on purpose**.  The probability that a prescribed
+loop-free set of pairs is entirely present is `p ^ |S|`, and every counting argument in
+Chapters 4, 7 and 8 needs it.  `Correlation.lean` holds its own copies of the same facts, but they
+are `private` and so unreachable from here — which is how three independent re-derivations of this
+one computation came to exist.  Anything new should call these rather than rebuild them. -/
+
+/-- The unordered pairs of **distinct** vertices drawn from `T`: the edge set a triangle on `T`
+would have to contain. -/
+def offDiagPairs {n : ℕ} (T : Finset (Fin n)) : Finset (Sym2 (Fin n)) :=
+  T.sym2.filter fun e => ¬ e.IsDiag
+
+theorem mem_offDiagPairs {n : ℕ} {T : Finset (Fin n)} {a b : Fin n} :
+    s(a, b) ∈ offDiagPairs T ↔ a ∈ T ∧ b ∈ T ∧ a ≠ b := by
+  simp [offDiagPairs, and_assoc]
+
+theorem not_isDiag_of_mem_offDiagPairs {n : ℕ} {T : Finset (Fin n)}
+    {e : Sym2 (Fin n)} (he : e ∈ offDiagPairs T) : ¬ e.IsDiag :=
+  (Finset.mem_filter.1 he).2
+
+/-- Two vertex sets share exactly the pairs drawn from their intersection. -/
+theorem offDiagPairs_inter {n : ℕ} (T₁ T₂ : Finset (Fin n)) :
+    offDiagPairs T₁ ∩ offDiagPairs T₂ = offDiagPairs (T₁ ∩ T₂) := by
+  ext e
+  induction e using Sym2.ind with
+  | _ a b => simp only [Finset.mem_inter, mem_offDiagPairs, Finset.mem_inter]; tauto
+
+/-- `T` spans `binom(#T, 2)` pairs of distinct vertices, in the additive form that avoids
+truncated subtraction: the diagonal accounts for the remaining `#T` members of `T.sym2`. -/
+theorem card_offDiagPairs_add {n : ℕ} (T : Finset (Fin n)) :
+    (offDiagPairs T).card + T.card = (T.card + 1).choose 2 := by
+  have hdiag : T.sym2.filter (fun e => e.IsDiag) = T.image Sym2.diag := by
+    ext e
+    induction e using Sym2.ind with
+    | _ a b =>
+      simp only [Finset.mem_filter, Finset.mk_mem_sym2_iff, Sym2.mk_isDiag_iff,
+        Finset.mem_image, Sym2.diag, Sym2.eq_iff]
+      constructor
+      · rintro ⟨⟨ha, _⟩, rfl⟩
+        exact ⟨a, ha, by tauto⟩
+      · rintro ⟨c, hc, h⟩
+        rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ <;> exact ⟨⟨hc, hc⟩, rfl⟩
+  have hinj : Function.Injective (Sym2.diag : Fin n → Sym2 (Fin n)) := by
+    intro a b h
+    simpa [Sym2.diag, Sym2.eq_iff] using h
+  have hsplit : (T.sym2.filter (fun e => e.IsDiag)).card + (offDiagPairs T).card = T.sym2.card :=
+    Finset.card_filter_add_card_filter_not _
+  rw [hdiag, Finset.card_image_of_injective _ hinj, Finset.card_sym2] at hsplit
+  omega
+
+/-- Requiring two sets of pairs is requiring their union. -/
+theorem setOf_subset_edgeSet_inter {n : ℕ} (S₁ S₂ : Finset (Sym2 (Fin n))) :
+    {G : SimpleGraph (Fin n) | ↑S₁ ⊆ G.edgeSet} ∩ {G : SimpleGraph (Fin n) | ↑S₂ ⊆ G.edgeSet}
+      = {G : SimpleGraph (Fin n) | ↑(S₁ ∪ S₂) ⊆ G.edgeSet} := by
+  ext G
+  simp [Set.union_subset_iff]
+
+/-- "Every pair in `S` is an edge" is a finite intersection of coordinate events, hence
+measurable. -/
+theorem measurableSet_setOf_subset_edgeSet {n : ℕ} (S : Finset (Sym2 (Fin n))) :
+    MeasurableSet {G : SimpleGraph (Fin n) | ↑S ⊆ G.edgeSet} := by
+  have h : {G : SimpleGraph (Fin n) | ↑S ⊆ G.edgeSet}
+      = ⋂ e ∈ S, {G : SimpleGraph (Fin n) | e ∈ G.edgeSet} := by
+    ext G; simp [Set.subset_def]
+  rw [h]
+  exact S.measurableSet_biInter fun e _ => measurable_edgeSet (measurableSet_mem e)
+
+/-- **`G(n, p)` contains a prescribed finite set of non-loop pairs with probability `p ^ #S`.**
+
+`binomialRandom` is `setBernoulli` read through `fromEdgeSet`, so the event becomes the cylinder
+`{R | ↑S ⊆ R}` of the underlying product of Bernoulli coordinates, and `Measure.infinitePi_pi`
+evaluates it as a product of `#S` copies of `p`. -/
+theorem binomialRandom_setOf_subset_edgeSet {n : ℕ} (p : I) (S : Finset (Sym2 (Fin n)))
+    (hS : ∀ e ∈ S, ¬ e.IsDiag) :
+    binomialRandom (Fin n) p {G : SimpleGraph (Fin n) | ↑S ⊆ G.edgeSet}
+      = (toNNReal p : ENNReal) ^ S.card := by
+  rw [binomialRandom_eq_map,
+    Measure.map_apply measurable_fromEdgeSet (measurableSet_setOf_subset_edgeSet S),
+    setBernoulli_apply']
+  have hpre : (fun f : Sym2 (Fin n) → Prop => {e | f e}) ⁻¹'
+      (fromEdgeSet ⁻¹' {G : SimpleGraph (Fin n) | ↑S ⊆ G.edgeSet})
+      = (↑S : Set (Sym2 (Fin n))).pi (fun _ => ({True} : Set Prop)) := by
+    ext f
+    simp only [Set.mem_preimage, edgeSet_fromEdgeSet, Set.mem_pi, Set.mem_singleton_iff,
+      Set.subset_def, Set.mem_ofPred_eq, Set.mem_sdiff, Finset.mem_coe]
+    exact ⟨fun h e he => eq_true (h e he).1,
+      fun h e he => ⟨of_eq_true (h e he), by simpa using hS e he⟩⟩
+  rw [hpre, Measure.infinitePi_pi _ (fun e _ => MeasurableSet.of_discrete),
+    Finset.prod_congr rfl (g := fun _ => (toNNReal p : ENNReal)) ?_, Finset.prod_const]
+  intro e he
+  have hne : e ∈ (Sym2.diagSetᶜ : Set (Sym2 (Fin n))) := by
+    simpa using hS e he
+  simp [Measure.dirac_apply', hne]
+
+/-- The event that `T` spans a triangle, in terms of its pairs. -/
+theorem setOf_forall_adj_eq_setOf_offDiagPairs {n : ℕ} (T : Finset (Fin n)) :
+    {H : SimpleGraph (Fin n) | ∀ a ∈ T, ∀ b ∈ T, a ≠ b → H.Adj a b}
+      = {G : SimpleGraph (Fin n) | ↑(offDiagPairs T) ⊆ G.edgeSet} := by
+  ext H
+  simp only [Set.mem_ofPred_eq, Set.subset_def, Finset.mem_coe]
+  constructor
+  · intro h e he
+    induction e using Sym2.ind with
+    | _ a b =>
+      obtain ⟨ha, hb, hab⟩ := mem_offDiagPairs.1 he
+      exact h a ha b hb hab
+  · intro h a ha b hb hab
+    exact h s(a, b) (mem_offDiagPairs.2 ⟨ha, hb, hab⟩)
+
+/-- The measurability of the same event, in the `∀ e ∈ E` spelling that `triangleCount`'s
+definition produces.  A thin wrapper over `measurableSet_setOf_subset_edgeSet` above; the two sets
+differ only by `Set.subset_def`. -/
 private theorem measurableSet_forall_mem_edgeSet {n : ℕ} (E : Finset (Sym2 (Fin n))) :
     MeasurableSet {G : SimpleGraph (Fin n) | ∀ e ∈ E, e ∈ G.edgeSet} := by
-  have hrw : {G : SimpleGraph (Fin n) | ∀ e ∈ E, e ∈ G.edgeSet}
-      = ⋂ e ∈ E, {G : SimpleGraph (Fin n) | e ∈ G.edgeSet} := by
-    ext G; simp
-  rw [hrw]
-  refine E.measurableSet_biInter fun e _ => ?_
-  induction e using Sym2.ind with
-  | _ u v =>
-      have : {G : SimpleGraph (Fin n) | s(u, v) ∈ G.edgeSet}
-          = {G : SimpleGraph (Fin n) | G.Adj u v} := by ext G; simp [mem_edgeSet]
-      rw [this]
-      measurability
+  simpa [Set.subset_def] using measurableSet_setOf_subset_edgeSet E
 
-/-- **A prescribed set of non-loop pairs is present with probability `p ^ |E|`.**  Under
-`binomialRandom_apply'` the event is a cylinder in the product of Bernoulli measures on
-`Sym2 (Fin n)`, so its probability is the product of the `|E|` factors it constrains. -/
+/-- The same probability in the `∀ e ∈ E` spelling.  A thin wrapper over
+`binomialRandom_setOf_subset_edgeSet` above. -/
 private theorem binomialRandom_forall_mem_edgeSet {n : ℕ} (p : I) (E : Finset (Sym2 (Fin n)))
     (hE : ∀ e ∈ E, ¬ e.IsDiag) :
     binomialRandom (Fin n) p {G : SimpleGraph (Fin n) | ∀ e ∈ E, e ∈ G.edgeSet}
       = (toNNReal p : ENNReal) ^ E.card := by
-  have himg : edgeSet '' {G : SimpleGraph (Fin n) | ∀ e ∈ E, e ∈ G.edgeSet}
-      = {t ∈ ({t : Set (Sym2 (Fin n)) | ∀ e ∈ E, e ∈ t}) | t ⊆ Sym2.diagSetᶜ} := by
-    ext t
-    constructor
-    · rintro ⟨G, hG, rfl⟩
-      exact ⟨hG, G.edgeSet_subset_compl_diagSet⟩
-    · rintro ⟨h1, h2⟩
-      have hd : Disjoint t Sym2.diagSet := Set.subset_compl_iff_disjoint_right.mp h2
-      refine ⟨fromEdgeSet t, ?_, ?_⟩
-      · intro e he
-        rw [edgeSet_fromEdgeSet, sdiff_eq_left.mpr hd]
-        exact h1 e he
-      · rw [edgeSet_fromEdgeSet, sdiff_eq_left.mpr hd]
-  have hpre : (fun f : Sym2 (Fin n) → Prop ↦ {i | f i}) ⁻¹'
-      {t : Set (Sym2 (Fin n)) | ∀ e ∈ E, e ∈ t}
-      = Set.pi (↑E) (fun _ ↦ ({True} : Set Prop)) := by
-    ext f
-    simp [Set.mem_pi, eq_iff_iff]
-  rw [binomialRandom_apply', himg, ← setBernoulli_apply_eq_apply_subsets, setBernoulli_apply',
-    hpre, Measure.infinitePi_pi _ fun _ _ ↦ MeasurableSet.of_discrete,
-    Finset.prod_congr rfl (g := fun _ ↦ (toNNReal p : ENNReal)) ?_, Finset.prod_const]
-  intro e he
-  have hmem : e ∈ Sym2.diagSetᶜ := by simpa [Sym2.mem_diagSet] using hE e he
-  simp [Measure.dirac_apply', eq_true hmem]
+  simpa [Set.subset_def] using binomialRandom_setOf_subset_edgeSet p E hE
 
 /-- **The first moment of the triangle count** (Zhao, the computation behind Proposition 4.1.2):
 `𝔼X = binom(n,3) p³`.
@@ -510,108 +589,6 @@ theorem integral_triangleCount (n : ℕ) (p : I) :
     Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
   rw [MeasureTheory.integral_indicator_const _ (key T hT).1, Measure.real, (key T hT).2,
     smul_eq_mul, mul_one, ENNReal.toReal_pow, ENNReal.coe_toReal, unitInterval.coe_toNNReal]
-
-/-- The unordered pairs of **distinct** vertices drawn from `T`: the edge set a triangle on `T`
-would have to contain. -/
-private def offDiagPairs {n : ℕ} (T : Finset (Fin n)) : Finset (Sym2 (Fin n)) :=
-  T.sym2.filter fun e => ¬ e.IsDiag
-
-private theorem mem_offDiagPairs {n : ℕ} {T : Finset (Fin n)} {a b : Fin n} :
-    s(a, b) ∈ offDiagPairs T ↔ a ∈ T ∧ b ∈ T ∧ a ≠ b := by
-  simp [offDiagPairs, and_assoc]
-
-private theorem not_isDiag_of_mem_offDiagPairs {n : ℕ} {T : Finset (Fin n)}
-    {e : Sym2 (Fin n)} (he : e ∈ offDiagPairs T) : ¬ e.IsDiag :=
-  (Finset.mem_filter.1 he).2
-
-/-- Two vertex sets share exactly the pairs drawn from their intersection. -/
-private theorem offDiagPairs_inter {n : ℕ} (T₁ T₂ : Finset (Fin n)) :
-    offDiagPairs T₁ ∩ offDiagPairs T₂ = offDiagPairs (T₁ ∩ T₂) := by
-  ext e
-  induction e using Sym2.ind with
-  | _ a b => simp only [Finset.mem_inter, mem_offDiagPairs, Finset.mem_inter]; tauto
-
-/-- `T` spans `binom(#T, 2)` pairs of distinct vertices, in the additive form that avoids
-truncated subtraction: the diagonal accounts for the remaining `#T` members of `T.sym2`. -/
-private theorem card_offDiagPairs_add {n : ℕ} (T : Finset (Fin n)) :
-    (offDiagPairs T).card + T.card = (T.card + 1).choose 2 := by
-  have hdiag : T.sym2.filter (fun e => e.IsDiag) = T.image Sym2.diag := by
-    ext e
-    induction e using Sym2.ind with
-    | _ a b =>
-      simp only [Finset.mem_filter, Finset.mk_mem_sym2_iff, Sym2.mk_isDiag_iff,
-        Finset.mem_image, Sym2.diag, Sym2.eq_iff]
-      constructor
-      · rintro ⟨⟨ha, _⟩, rfl⟩
-        exact ⟨a, ha, by tauto⟩
-      · rintro ⟨c, hc, h⟩
-        rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ <;> exact ⟨⟨hc, hc⟩, rfl⟩
-  have hinj : Function.Injective (Sym2.diag : Fin n → Sym2 (Fin n)) := by
-    intro a b h
-    simpa [Sym2.diag, Sym2.eq_iff] using h
-  have hsplit : (T.sym2.filter (fun e => e.IsDiag)).card + (offDiagPairs T).card = T.sym2.card :=
-    Finset.card_filter_add_card_filter_not _
-  rw [hdiag, Finset.card_image_of_injective _ hinj, Finset.card_sym2] at hsplit
-  omega
-
-/-- Requiring two sets of pairs is requiring their union. -/
-private theorem setOf_subset_edgeSet_inter {n : ℕ} (S₁ S₂ : Finset (Sym2 (Fin n))) :
-    {G : SimpleGraph (Fin n) | ↑S₁ ⊆ G.edgeSet} ∩ {G : SimpleGraph (Fin n) | ↑S₂ ⊆ G.edgeSet}
-      = {G : SimpleGraph (Fin n) | ↑(S₁ ∪ S₂) ⊆ G.edgeSet} := by
-  ext G
-  simp [Set.union_subset_iff]
-
-/-- "Every pair in `S` is an edge" is a finite intersection of coordinate events, hence
-measurable. -/
-private theorem measurableSet_setOf_subset_edgeSet {n : ℕ} (S : Finset (Sym2 (Fin n))) :
-    MeasurableSet {G : SimpleGraph (Fin n) | ↑S ⊆ G.edgeSet} := by
-  have h : {G : SimpleGraph (Fin n) | ↑S ⊆ G.edgeSet}
-      = ⋂ e ∈ S, {G : SimpleGraph (Fin n) | e ∈ G.edgeSet} := by
-    ext G; simp [Set.subset_def]
-  rw [h]
-  exact S.measurableSet_biInter fun e _ => measurable_edgeSet (measurableSet_mem e)
-
-/-- **`G(n, p)` contains a prescribed finite set of non-loop pairs with probability `p ^ #S`.**
-
-`binomialRandom` is `setBernoulli` read through `fromEdgeSet`, so the event becomes the cylinder
-`{R | ↑S ⊆ R}` of the underlying product of Bernoulli coordinates, and `Measure.infinitePi_pi`
-evaluates it as a product of `#S` copies of `p`. -/
-private theorem binomialRandom_setOf_subset_edgeSet {n : ℕ} (p : I) (S : Finset (Sym2 (Fin n)))
-    (hS : ∀ e ∈ S, ¬ e.IsDiag) :
-    binomialRandom (Fin n) p {G : SimpleGraph (Fin n) | ↑S ⊆ G.edgeSet}
-      = (toNNReal p : ENNReal) ^ S.card := by
-  rw [binomialRandom_eq_map,
-    Measure.map_apply measurable_fromEdgeSet (measurableSet_setOf_subset_edgeSet S),
-    setBernoulli_apply']
-  have hpre : (fun f : Sym2 (Fin n) → Prop => {e | f e}) ⁻¹'
-      (fromEdgeSet ⁻¹' {G : SimpleGraph (Fin n) | ↑S ⊆ G.edgeSet})
-      = (↑S : Set (Sym2 (Fin n))).pi (fun _ => ({True} : Set Prop)) := by
-    ext f
-    simp only [Set.mem_preimage, edgeSet_fromEdgeSet, Set.mem_pi, Set.mem_singleton_iff,
-      Set.subset_def, Set.mem_ofPred_eq, Set.mem_sdiff, Finset.mem_coe]
-    exact ⟨fun h e he => eq_true (h e he).1,
-      fun h e he => ⟨of_eq_true (h e he), by simpa using hS e he⟩⟩
-  rw [hpre, Measure.infinitePi_pi _ (fun e _ => MeasurableSet.of_discrete),
-    Finset.prod_congr rfl (g := fun _ => (toNNReal p : ENNReal)) ?_, Finset.prod_const]
-  intro e he
-  have hne : e ∈ (Sym2.diagSetᶜ : Set (Sym2 (Fin n))) := by
-    simpa using hS e he
-  simp [Measure.dirac_apply', hne]
-
-/-- The event that `T` spans a triangle, in terms of its pairs. -/
-private theorem setOf_forall_adj_eq_setOf_offDiagPairs {n : ℕ} (T : Finset (Fin n)) :
-    {H : SimpleGraph (Fin n) | ∀ a ∈ T, ∀ b ∈ T, a ≠ b → H.Adj a b}
-      = {G : SimpleGraph (Fin n) | ↑(offDiagPairs T) ⊆ G.edgeSet} := by
-  ext H
-  simp only [Set.mem_ofPred_eq, Set.subset_def, Finset.mem_coe]
-  constructor
-  · intro h e he
-    induction e using Sym2.ind with
-    | _ a b =>
-      obtain ⟨ha, hb, hab⟩ := mem_offDiagPairs.1 he
-      exact h a ha b hb hab
-  · intro h a ha b hb hab
-    exact h s(a, b) (mem_offDiagPairs.2 ⟨ha, hb, hab⟩)
 
 /-- **The variance of the triangle count** (Zhao, the second-moment half of Proposition 4.1.2),
 in the crude form the threshold argument needs.
@@ -781,7 +758,7 @@ theorem variance_triangleCount_le (n : ℕ) (p : I) :
 /-- The event that every pair of distinct vertices of `T` is an edge: an intersection over the
 finitely many pairs drawn from `T` of the events `Adj a b`, each of which is measurable because
 the σ-algebra on `SimpleGraph V` is pulled back along `Adj`. -/
-private lemma measurableSet_setOf_forall_adj {n : ℕ} (T : Finset (Fin n)) :
+theorem measurableSet_setOf_forall_adj {n : ℕ} (T : Finset (Fin n)) :
     MeasurableSet {H : SimpleGraph (Fin n) | ∀ a ∈ T, ∀ b ∈ T, a ≠ b → H.Adj a b} := by
   have hrw : {H : SimpleGraph (Fin n) | ∀ a ∈ T, ∀ b ∈ T, a ≠ b → H.Adj a b}
       = ⋂ a ∈ T, ⋂ b ∈ T, {H : SimpleGraph (Fin n) | a ≠ b → H.Adj a b} := by
@@ -832,6 +809,113 @@ private lemma one_le_triangleCount_of_ne_zero {n : ℕ} {G : SimpleGraph (Fin n)
           ({H : SimpleGraph (Fin n) | ∀ a ∈ T, ∀ b ∈ T, a ≠ b → H.Adj a b}).indicator
             (fun _ => (1 : ℝ)) G)
         (fun _ _ => Set.indicator_nonneg (fun _ _ => zero_le_one) G) hT
+/-- **`triangleCount` is square-integrable.**
+
+Needed by `prob_eq_zero_le_variance_div_sq`, whose `MemLp X 2` hypothesis is what makes
+`Var[X]/𝔼[X]²` meaningful — so the supercritical half of any threshold argument wants this.
+Public, because the same fact is needed wherever Chebyshev is applied to a subgraph count.
+
+A finite sum of bounded indicators over a probability measure, so there is nothing to check
+beyond measurability of each event. -/
+theorem memLp_triangleCount {n : ℕ} (p : I) :
+    MemLp (triangleCount : SimpleGraph (Fin n) → ℝ) 2 (binomialRandom (Fin n) p) := by
+  unfold triangleCount
+  exact memLp_finsetSum _ fun T _ =>
+    memLp_indicator_const 2 (measurableSet_setOf_forall_adj T) 1 (Or.inr (measure_ne_top _ _))
+
+/-- **The supercritical half of the triangle threshold** (Zhao, Proposition 4.1.2): when `p·n` is
+large, `G(n, p)` contains a triangle with high probability.
+
+Together with `prob_no_triangle_of_mul_le` this is the threshold: `1/n` is where the triangle
+appears.
+
+**This half needs both a scale `M` and an `N`, unlike the subcritical one.**  Chebyshev's error is
+`Var/𝔼² ≤ 144/(p·n)³ + 144/(n·(p·n))` — using `binom(n,3) ≥ n³/12`, valid for `n ≥ 6` — and the
+two terms vanish for different reasons: the first once `p·n` is large, the second only once `n`
+is large *as well*.  No choice of `M` alone controls it, which is why the statement quantifies
+over both.  Take `M` with `144/M³ ≤ ε/2`, then `N ≥ 6` with `144/(N·M) ≤ ε/2`.
+
+The probability is written `Measure.real` rather than `(… ).toReal`, following the convention the
+subcritical node's review established; the ingredients are `memLp_triangleCount`,
+`integral_triangleCount`, `variance_triangleCount_le` and `prob_eq_zero_le_variance_div_sq`, all
+proved above. -/
+theorem prob_triangle_of_le_mul :
+    ∀ ε : ℝ, 0 < ε → ∃ M > 0, ∃ N : ℕ, ∀ (n : ℕ), N ≤ n → ∀ p : I, M ≤ (p : ℝ) * n →
+      1 - ε ≤ (binomialRandom (Fin n) p).real {G | triangleCount G ≠ 0} := by
+  intro ε hε
+  refine ⟨max 1 (288 / ε), lt_max_iff.mpr (Or.inl one_pos), 6, fun n hn p hpn => ?_⟩
+  -- The scale hypothesis gives `p · n ≥ 1` and `(p · n) · ε ≥ 288`; the threshold gives `n ≥ 6`.
+  have hM1 : (1 : ℝ) ≤ max 1 (288 / ε) := le_max_left _ _
+  have hMe : 288 / ε ≤ max 1 (288 / ε) := le_max_right _ _
+  have ht1 : (1 : ℝ) ≤ (p : ℝ) * n := hM1.trans hpn
+  have hεt : 288 ≤ (p : ℝ) * n * ε := (div_le_iff₀ hε).mp (hMe.trans hpn)
+  have hn6 : (6 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn
+  have hp0 : (0 : ℝ) ≤ (p : ℝ) := p.2.1
+  have hnpos : (0 : ℝ) < (n : ℝ) := by linarith
+  have hppos : (0 : ℝ) < (p : ℝ) := by
+    rcases hp0.lt_or_eq with h | h
+    · exact h
+    · rw [← h, zero_mul] at ht1; linarith
+  -- `binom(n,3) = n(n-1)(n-2)/6 ≥ n³/12`, which holds from `n = 6` up.
+  have hchoose : (n : ℝ) ^ 3 / 12 ≤ (n.choose 3 : ℝ) := by
+    have hnat : 6 * n.choose 3 = n * (n - 1) * (n - 2) := by
+      have h := Nat.descFactorial_eq_factorial_mul_choose n 3
+      simp only [Nat.descFactorial, Nat.factorial, Nat.sub_zero, mul_one] at h
+      rw [← h]; ring
+    have hc : (6 : ℝ) * (n.choose 3 : ℝ) = (n : ℝ) * ((n : ℝ) - 1) * ((n : ℝ) - 2) := by
+      have h := congrArg (fun k : ℕ => (k : ℝ)) hnat
+      push_cast [Nat.cast_sub (by omega : 1 ≤ n), Nat.cast_sub (by omega : 2 ≤ n)] at h
+      linarith only [h]
+    nlinarith only [hc, hn6]
+  have hmean : ∫ G, triangleCount G ∂(binomialRandom (Fin n) p)
+      = (n.choose 3 : ℝ) * (p : ℝ) ^ 3 := integral_triangleCount n p
+  have hEpos : 0 < (n.choose 3 : ℝ) * (p : ℝ) ^ 3 := by
+    have h3 : (0 : ℝ) < (n : ℝ) ^ 3 := by positivity
+    exact mul_pos (by linarith) (pow_pos hppos 3)
+  have hcheb := prob_eq_zero_le_variance_div_sq (memLp_triangleCount p)
+    (by rw [hmean]; exact hEpos.ne')
+  have hvar := variance_triangleCount_le n p
+  -- `144 / (p·n)³ ≤ ε/2`: the first Chebyshev term, controlled by the scale alone.
+  have hA0 : 288 ≤ ε * ((n : ℝ) ^ 3 * (p : ℝ) ^ 3) := by
+    have ht2 : (1 : ℝ) ≤ ((p : ℝ) * n) ^ 2 := by nlinarith only [ht1]
+    have e1 : 288 * ((p : ℝ) * n) ^ 2 ≤ (p : ℝ) * n * ε * ((p : ℝ) * n) ^ 2 :=
+      mul_le_mul_of_nonneg_right hεt (by positivity)
+    linarith only [e1, ht2]
+  have hA : 288 * ((n : ℝ) ^ 3 * (p : ℝ) ^ 3) ≤ ε * ((n : ℝ) ^ 6 * (p : ℝ) ^ 6) := by
+    have h := mul_le_mul_of_nonneg_right hA0
+      (show (0 : ℝ) ≤ (n : ℝ) ^ 3 * (p : ℝ) ^ 3 by positivity)
+    linarith only [h]
+  -- `144 / (n·(p·n)) ≤ ε/2`: the second term, which also needs `n` large.
+  have hB0 : 288 ≤ ε * ((n : ℝ) ^ 2 * (p : ℝ)) := by
+    have e1 : 288 * (n : ℝ) ≤ (p : ℝ) * n * ε * (n : ℝ) :=
+      mul_le_mul_of_nonneg_right hεt hnpos.le
+    linarith only [e1, hn6]
+  have hB : 288 * ((n : ℝ) ^ 4 * (p : ℝ) ^ 5) ≤ ε * ((n : ℝ) ^ 6 * (p : ℝ) ^ 6) := by
+    have h := mul_le_mul_of_nonneg_right hB0
+      (show (0 : ℝ) ≤ (n : ℝ) ^ 4 * (p : ℝ) ^ 5 by positivity)
+    linarith only [h]
+  -- Chebyshev's error is at most `ε`, since `𝔼² ≥ n⁶p⁶/144`.
+  have hkey : Var[(triangleCount : SimpleGraph (Fin n) → ℝ); binomialRandom (Fin n) p]
+      / (∫ G, triangleCount G ∂(binomialRandom (Fin n) p)) ^ 2 ≤ ε := by
+    have hstep : (n : ℝ) ^ 3 * (p : ℝ) ^ 3 / 12 ≤ (n.choose 3 : ℝ) * (p : ℝ) ^ 3 := by
+      have h := mul_le_mul_of_nonneg_right hchoose (pow_nonneg hp0 3)
+      linarith only [h]
+    have hsq : ((n : ℝ) ^ 3 * (p : ℝ) ^ 3 / 12) ^ 2 ≤ ((n.choose 3 : ℝ) * (p : ℝ) ^ 3) ^ 2 :=
+      pow_le_pow_left₀ (by positivity) hstep 2
+    rw [hmean, div_le_iff₀ (pow_pos hEpos 2)]
+    linarith only [hvar, hA, hB, mul_le_mul_of_nonneg_left hsq hε.le]
+  -- Complement: `ℙ(X ≠ 0) = 1 - ℙ(X = 0) ≥ 1 - ε`.
+  have hmeasS : MeasurableSet {G : SimpleGraph (Fin n) | triangleCount G = 0} :=
+    measurable_triangleCount (measurableSet_singleton 0)
+  have hzero : (binomialRandom (Fin n) p).real {G : SimpleGraph (Fin n) | triangleCount G = 0}
+      ≤ ε := by
+    rw [measureReal_def]
+    exact hcheb.trans hkey
+  have hset : {G : SimpleGraph (Fin n) | triangleCount G ≠ 0}
+      = {G : SimpleGraph (Fin n) | triangleCount G = 0}ᶜ := rfl
+  rw [hset, probReal_compl_eq_one_sub hmeasS]
+  linarith
+
 /-- **The subcritical half of the triangle threshold** (Zhao, Proposition 4.1.2): when `p·n` is
 small, `G(n, p)` has no triangle with high probability.
 
@@ -894,5 +978,95 @@ theorem prob_no_triangle_of_mul_le :
   rw [hSdef] at hfinal
   simp only [measureReal_def] at hfinal
   linarith
+
+/-! ### §4.2: thresholds for a fixed subgraph
+
+Definition 4.2.7 and the count the threshold is stated against.  `maxEdgeVertexRatio` is `m(H)`,
+whose reciprocal `n ^ (-1 / m H)` is the threshold of Theorem 4.2.10 (Bollobás 1981).
+-/
+
+section Subgraphs
+
+variable {V : Type*} [Fintype V]
+
+/-- The **edge-vertex ratio** `ρ(H') = e_{H'} / v_{H'}` of Definition 4.2.7, for `H'` the
+subgraph of `G` induced on `s`.  Half the average degree of that subgraph.
+
+`s = ∅` gives `0 / 0 = 0`, which is the value `maxEdgeVertexRatio` wants there anyway. -/
+noncomputable def edgeVertexRatio (G : SimpleGraph V) (s : Finset V) : ℝ :=
+  ({e ∈ G.edgeSet | ∀ v ∈ e, v ∈ s} : Set (Sym2 V)).ncard / s.card
+
+/-- The **maximum edge-vertex ratio over subgraphs**, `m(H)` of Definition 4.2.7.
+
+Zhao maximises over all subgraphs `H' ⊆ H`; the maximum is taken over vertex *subsets* here, and
+the two agree.  Within a fixed vertex set, adding an edge of `G` raises `e_{H'}` and leaves
+`v_{H'}` alone, so the densest subgraph on a given vertex set is the induced one, and every
+subgraph has a vertex set.  On Example 4.2.8 — `K₄` with a pendant edge — this gives
+`ρ(H) = 7/5` but `m(H) = ρ(K₄) = 3/2`, matching the source. -/
+noncomputable def maxEdgeVertexRatio (G : SimpleGraph V) : ℝ :=
+  (univ : Finset (Finset V)).sup' ⟨∅, mem_univ _⟩ (edgeVertexRatio G)
+
+theorem edgeVertexRatio_le_maxEdgeVertexRatio (G : SimpleGraph V) (s : Finset V) :
+    edgeVertexRatio G s ≤ maxEdgeVertexRatio G :=
+  le_sup' _ (mem_univ s)
+
+theorem maxEdgeVertexRatio_nonneg (G : SimpleGraph V) : 0 ≤ maxEdgeVertexRatio G :=
+  le_trans (by simp [edgeVertexRatio]) (le_sup' (edgeVertexRatio G) (mem_univ (∅ : Finset V)))
+
+variable [DecidableEq V]
+
+/-- The edges of `H` transported to `Fin n` along a labelling `f`. -/
+def transportedEdges (H : SimpleGraph V) [DecidableRel H.Adj] {n : ℕ} (f : V → Fin n) :
+    Finset (Sym2 (Fin n)) := H.edgeFinset.image (Sym2.map f)
+
+/-- The number of **labelled copies** of `H` in `G`: injections `V → Fin n` carrying every edge
+of `H` to an edge of `G`.
+
+Written with `Set.indicator` over sets of graphs for the same reason as `triangleCount` — the
+measure below ranges over all graphs on `Fin n`, where no `DecidableRel G.Adj` is available. -/
+noncomputable def copyCount (H : SimpleGraph V) [DecidableRel H.Adj] {n : ℕ}
+    (G : SimpleGraph (Fin n)) : ℝ :=
+  ∑ f ∈ (univ : Finset (V → Fin n)).filter Function.Injective,
+    ({K : SimpleGraph (Fin n) | ↑(transportedEdges H f) ⊆ K.edgeSet}).indicator (fun _ => 1) G
+
+/-- **The expected number of labelled copies of `H` in `G(n, p)`** is
+`n^{\underline{v_H}} · p^{e_H}`.
+
+Each of the `n.descFactorial v_H` injections contributes the probability that its `e_H`
+transported edges are all present, which is `p ^ e_H` by
+`binomialRandom_setOf_subset_edgeSet` — the transported edges are distinct, and none is a loop,
+because the labelling is injective. -/
+theorem integral_copyCount (H : SimpleGraph V) [DecidableRel H.Adj] (n : ℕ) (p : I) :
+    ∫ G, copyCount H G ∂(binomialRandom (Fin n) p)
+      = (n.descFactorial (Fintype.card V) : ℝ) * (p : ℝ) ^ H.edgeFinset.card := by
+  have key : ∀ f ∈ (univ : Finset (V → Fin n)).filter Function.Injective,
+      MeasurableSet {K : SimpleGraph (Fin n) | ↑(transportedEdges H f) ⊆ K.edgeSet} ∧
+      binomialRandom (Fin n) p {K : SimpleGraph (Fin n) | ↑(transportedEdges H f) ⊆ K.edgeSet}
+        = (toNNReal p : ENNReal) ^ H.edgeFinset.card := by
+    intro f hf
+    have hinj : Function.Injective f := (Finset.mem_filter.1 hf).2
+    have hnd : ∀ e ∈ transportedEdges H f, ¬ e.IsDiag := by
+      intro e he
+      obtain ⟨e', he', rfl⟩ := Finset.mem_image.1 he
+      rw [Sym2.isDiag_map hinj]
+      exact H.not_isDiag_of_mem_edgeSet (mem_edgeFinset.1 he')
+    have hcard : (transportedEdges H f).card = H.edgeFinset.card :=
+      Finset.card_image_of_injective _ (Sym2.map.injective hinj)
+    exact ⟨measurableSet_setOf_subset_edgeSet _,
+      by rw [binomialRandom_setOf_subset_edgeSet p _ hnd, hcard]⟩
+  have hcount : ((univ : Finset (V → Fin n)).filter Function.Injective).card
+      = n.descFactorial (Fintype.card V) := by
+    rw [← Fintype.card_subtype,
+      Fintype.card_congr (Equiv.subtypeInjectiveEquivEmbedding V (Fin n)),
+      Fintype.card_embedding_eq, Fintype.card_fin]
+  simp only [copyCount]
+  rw [MeasureTheory.integral_finsetSum _ fun f hf =>
+    memLp_one_iff_integrable.mp
+      (memLp_indicator_const 1 (key f hf).1 1 (Or.inr (measure_ne_top _ _)))]
+  rw [Finset.sum_congr rfl fun f hf => ?_, Finset.sum_const, nsmul_eq_mul, hcount]
+  rw [MeasureTheory.integral_indicator_const _ (key f hf).1, Measure.real, (key f hf).2,
+    smul_eq_mul, mul_one, ENNReal.toReal_pow, ENNReal.coe_toReal, unitInterval.coe_toNNReal]
+
+end Subgraphs
 
 end ProbMethodCombinatorics
