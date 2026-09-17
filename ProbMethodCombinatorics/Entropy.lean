@@ -2257,6 +2257,23 @@ theorem indepSetCount_completeBipartiteGraph (d : ℕ) :
   rw [hcount, pow_succ]
   omega
 
+/-- **Kahn–Zhao** (Zhao, Theorem 10.4.12; Kahn 2001 for the bipartite case, Zhao 2010 in
+general): a `d`-regular graph on `n` vertices has at most `i(K_{d,d})^{n/(2d)}` independent sets.
+
+Stated as `i(G)^{2d} ≤ i(K_{d,d})^n` to stay in `ℕ`, which is the same inequality with the root
+cleared — the chapter's other bounds are written the same way.
+
+`indepSetCount_completeBipartiteGraph` evaluates the right-hand base as `2^{d+1} - 1`, so the
+content is that the disjoint union of `n/(2d)` copies of `K_{d,d}` is extremal among `d`-regular
+graphs.  Equality holds exactly there, so no constant in this statement can be improved.
+
+`d = 0` is excluded by the regularity hypothesis only when `n > 0`; at `d = 0` the bound reads
+`i(G)^0 = 1 ≤ 1^n`, which holds, so no positivity hypothesis is needed. -/
+theorem indepSetCount_pow_le (n d : ℕ) (G : SimpleGraph (Fin n)) [DecidableRel G.Adj]
+    (hreg : ∀ v, G.degree v = d) :
+    indepSetCount G ^ (2 * d) ≤ indepSetCount (completeBipartiteGraph (Fin d) (Fin d)) ^ n := by
+  sorry
+
 end IndepSetCount
 
 end ProbMethodCombinatorics
