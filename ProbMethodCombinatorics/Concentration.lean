@@ -1,5 +1,6 @@
 import Mathlib.Probability.Moments.SubGaussian
 import Mathlib.Probability.Martingale.Basic
+import Mathlib.Probability.Combinatorics.BinomialRandomGraph.Defs
 import Mathlib.MeasureTheory.Constructions.Pi
 
 /-!
@@ -717,5 +718,55 @@ theorem measure_martingale_sub_ge_le {Ω : Type*} {m0 : MeasurableSpace Ω} {μ 
         rw [← Real.exp_add, Real.exp_eq_exp, htdef]
         field_simp
         ring
+
+/-! ### §9.3 The vertex-exposure product
+
+`measure_sub_integral_ge_le` bounds a function of *independent coordinates*, and applying it to
+`χ(G(n, p))` needs `G(n, p)` presented that way.  Which coordinates are chosen decides the
+strength of the result: exposing one edge at a time gives `C(n,2)` coordinates and the weak bound
+`exp (-2 λ² / C(n,2))`, while exposing one **vertex** at a time gives `n - 1` nonempty coordinates
+and Shamir–Spencer's `exp (-2 λ²)` (Theorem 9.3.1).  The difference is the whole point of the
+theorem, so the vertex decomposition is the one built here.
+-/
+
+section VertexExposure
+
+open unitInterval SimpleGraph
+
+/-- Coordinate `i` of the vertex-exposure product: the potential edges joining `i` to the
+vertices below it.  Coordinate `0` is empty, and the block sizes `0, 1, …, n-1` sum to `C(n,2)`,
+the number of potential edges. -/
+abbrev ExposureBlock (n : ℕ) (i : Fin n) : Type := {j : Fin n // j < i} → Prop
+
+/-- The graph assembled from a vertex-exposure sample: `a` and `b` are adjacent exactly when the
+block of the larger records the smaller.
+
+`SimpleGraph.fromRel` supplies symmetry and looplessness, and the guard `a < b` makes the
+underlying relation one-directional, so `fromRel` recovers the intended graph rather than a
+symmetrised version of something larger. -/
+def graphOfExposure {n : ℕ} (x : ∀ i, ExposureBlock n i) : SimpleGraph (Fin n) :=
+  SimpleGraph.fromRel fun a b => if h : a < b then x b ⟨a, h⟩ else False
+
+/-- The law of one vertex-exposure block: each potential edge down from `i` is present
+independently with probability `p`.  This is the coordinate measure of `setBernoulli`, carried
+over to the block. -/
+noncomputable def exposureMeasure (n : ℕ) (p : I) (i : Fin n) : Measure (ExposureBlock n i) :=
+  Measure.pi fun _ =>
+    (toNNReal p) • Measure.dirac True + (toNNReal (σ p)) • Measure.dirac False
+
+/-- **`G(n, p)` is the vertex-exposure product.**  Assembling independent blocks, one per vertex,
+gives exactly the binomial random graph.
+
+This is what lets `measure_sub_integral_ge_le` reach `χ(G(n, p))`, and with it §9.3–§9.6.
+
+`graphOfExposure` is a bijection: for `a < b` the pair `{a, b}` is recorded by exactly one
+coordinate, namely `⟨a, _⟩` in block `b`, so the coordinates biject with the `C(n,2)` potential
+edges and the two product structures match term by term. -/
+theorem binomialRandom_eq_map_graphOfExposure (n : ℕ) (p : I) :
+    SimpleGraph.binomialRandom (Fin n) p
+      = Measure.map graphOfExposure (Measure.pi (exposureMeasure n p)) := by
+  sorry
+
+end VertexExposure
 
 end ProbMethodCombinatorics
