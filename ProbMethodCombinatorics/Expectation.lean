@@ -416,6 +416,20 @@ theorem card_le_of_tetrahedronFree {n : ℕ} (hn : 4 ≤ n) (H : Finset (Finset 
     _ = 3 * (n.choose 3 * (n - 3)) := by rw [hid]
     _ = 3 * n.choose 3 * (n - 3) := by ring
 
+/-- The triples of `Fin 5` avoiding a vertex `v` are exactly the four triples inside the 4-set
+`univ.erase v`, and tetrahedron-freeness keeps one of those out of `H`. -/
+private theorem card_filter_notMem_le_three {H : Finset (Finset (Fin 5))}
+    (h3 : ∀ e ∈ H, e.card = 3)
+    (hfree : ∀ S : Finset (Fin 5), S.card = 4 → ∃ e ⊆ S, e.card = 3 ∧ e ∉ H) (v : Fin 5) :
+    (H.filter (fun e => v ∉ e)).card ≤ 3 := by
+  have hS : (Finset.univ.erase v).card = 4 := by
+    rw [Finset.card_erase_of_mem (Finset.mem_univ v), Finset.card_univ, Fintype.card_fin]
+  have heq : H.filter (fun e => v ∉ e) = H.filter (fun e => e ⊆ Finset.univ.erase v) := by
+    ext e
+    simp [Finset.subset_erase]
+  rw [heq]
+  exact card_filter_subset_le_three h3 hfree hS
+
 /-- **A five-vertex tetrahedron-free 3-graph has at most seven edges** (Zhao, Lemma 2.4.3).
 
 Complementation turns this into a statement about ordinary graphs.  Sending a triple `e ⊆ Fin 5`
@@ -430,7 +444,27 @@ theorem card_le_seven_of_tetrahedronFree (H : Finset (Finset (Fin 5)))
     (h3 : ∀ e ∈ H, e.card = 3)
     (hfree : ∀ S : Finset (Fin 5), S.card = 4 → ∃ e ⊆ S, e.card = 3 ∧ e ∉ H) :
     H.card ≤ 7 := by
-  sorry
+  -- Double count the pairs `(v, e)` with `v ∉ e`, `e ∈ H`.
+  have hswap : ∑ v : Fin 5, (H.filter (fun e => v ∉ e)).card
+      = ∑ e ∈ H, (Finset.univ.filter (fun v : Fin 5 => v ∉ e)).card := by
+    simp only [Finset.card_filter]
+    exact Finset.sum_comm
+  -- A triple omits exactly two of the five vertices, so the double count is `2 * |H|`.
+  have homit : ∀ e ∈ H, (Finset.univ.filter (fun v : Fin 5 => v ∉ e)).card = 2 := by
+    intro e he
+    have hcompl : Finset.univ.filter (fun v : Fin 5 => v ∉ e) = Finset.univ \ e := by
+      ext v; simp
+    rw [hcompl, Finset.card_sdiff, Finset.inter_univ, h3 e he, Finset.card_univ,
+      Fintype.card_fin]
+  -- Each of the five vertices is avoided by at most three edges.
+  have hhigh : ∑ v : Fin 5, (H.filter (fun e => v ∉ e)).card ≤ 15 :=
+    calc ∑ v : Fin 5, (H.filter (fun e => v ∉ e)).card
+        ≤ ∑ _v : Fin 5, 3 :=
+          Finset.sum_le_sum fun v _ => card_filter_notMem_le_three h3 hfree v
+      _ = 15 := by simp
+  rw [hswap, Finset.sum_congr rfl homit] at hhigh
+  simp only [Finset.sum_const, smul_eq_mul] at hhigh
+  omega
 
 /-- **Sampling five vertices instead of four** (Zhao, Proposition 2.4.4): a tetrahedron-free
 3-graph has at most `(7/10) binom(n,3)` edges.
