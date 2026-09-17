@@ -169,6 +169,25 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   inline block now calls it, `1d33a6d`, fifteen lines shorter.  **Retiring duplicates stays
   orchestrator work** — a contributor cannot see the other three copies from inside one task.
 
+- **2026-09-17 — never add a declaration to a file that has an open task pinned to it.**
+  #234 was published in `SecondMoment.lean` pinned to `bb591afb`; the contributor branched from
+  exactly that, correctly.  I then pushed `8053d5b`, adding three declarations to the same file
+  for #235.  `statement-immutability` compares the PR head against **current base**, not against
+  the pinned commit, so it read the contributor's older file as having *deleted*
+  `prob_sum_indicator_eq_zero_le`, `memLp_sum_indicator_one` and `integral_sum_indicator_one`.
+  Their diff touches none of those names, and `git merge-tree` against `main` was clean.
+
+  **This is deterministic, not a race.**  Any orchestrator commit that adds a declaration to a
+  file will red-light every open task pinned to an earlier commit of that file, however disjoint
+  the edits are, until the contributor rebases.
+
+  The rule I had after the #188 episode — "after changing a file, re-test the mergeability of
+  every open PR against it before pinging anyone" — was too weak, because here the PR *was*
+  mergeable and the check still failed.  The correct rule: **land all of a file's new statements
+  before pinning any task to it, or publish successive tasks in different files.**  Second rebase
+  I have caused today; the first I caused by editing around a PR, this one by publishing two
+  tasks into one file.
+
 - **2026-09-17 — the two remaining `sorry`s are not equal, and one of them carries §11.1's headline result.**
   §2.2 closed (#227/#228), so `Expectation.lean` joins the sorry-free files and only
   `Containers.lean` still has any.  Counting `sorry`s made that look like a footnote.  It is not.

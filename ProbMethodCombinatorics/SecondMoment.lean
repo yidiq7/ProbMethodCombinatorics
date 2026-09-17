@@ -388,6 +388,30 @@ theorem le_card_of_distinctSubsetSums {n k : ℕ} (hk : 0 < k) (S : Finset ℕ)
         nlinarith [hr0, hr2, hpigR, hn0, sq_nonneg (r - 1), sq_nonneg (r - 2), sq_nonneg (r - 3),
           mul_nonneg hr0 (by linarith : (0:ℝ) ≤ (n:ℝ))]
 
+/-- **Lemma 4.2.4 in finite form** (Zhao, Setup 4.2.2 and Lemma 4.2.4): for a sum of indicators
+with positive mean,
+
+    ℙ(X = 0) ≤ (𝔼X + ∑_{q ∈ D} ℙ(A_{q.1} ∩ A_{q.2})) / (𝔼X)².
+
+Chebyshev — `prob_eq_zero_le_variance_div_sq` — composed with `variance_sum_indicator_le`, whose
+right-hand side is already `𝔼X + ∑_D ℙ(A ∩ A)`.  Nothing new is proved; this is the form §4.2's
+1-statement consumes, and it is worth naming because both inputs have to be lined up on the same
+`D` and the same mean.
+
+Zhao writes the second term as `(𝔼X) Δ*` with `Δ* = max_i ∑_{j ∼ i} ℙ(A_j | A_i)`.  That is the
+same quantity bounded above: `∑_D ℙ(A_i ∩ A_j) = ∑_i ℙ(A_i) ∑_{j ∼ i} ℙ(A_j | A_i) ≤ (𝔼X) Δ*`.
+The sum form is kept here because `D` is already a parameter of `variance_sum_indicator_le` — it
+is not derived from `A`, since independence is not decidable — and introducing `Δ*` as a
+definition would add a `max` over conditional probabilities that no consumer needs. -/
+theorem prob_sum_indicator_eq_zero_le [IsProbabilityMeasure μ] {ι : Type*} [Fintype ι]
+    (A : ι → Set Ω) (hA : ∀ i, MeasurableSet (A i)) (D : Finset (ι × ι))
+    (hD : ∀ i j, i ≠ j → (i, j) ∉ D → IndepSet (A i) (A j) μ)
+    (hmean : (∑ i, (μ (A i)).toReal) ≠ 0) :
+    (μ {ω | ∑ i, (A i).indicator (fun _ => (1 : ℝ)) ω = 0}).toReal
+      ≤ ((∑ i, (μ (A i)).toReal) + ∑ q ∈ D, (μ (A q.1 ∩ A q.2)).toReal)
+          / (∑ i, (μ (A i)).toReal) ^ 2 := by
+  sorry
+
 /-! ### §4.1 The triangle count in `G(n, p)` -/
 
 /-- **The number of triangles of `G`**, as a real number: one for each 3-element vertex set whose
@@ -820,6 +844,21 @@ theorem integrable_sum_indicator_one {μ : Measure α} [IsFiniteMeasure μ] {s :
     Integrable (fun x => ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x) μ :=
   integrable_finsetSum _ fun i hi => (integrable_const (1 : ℝ)).indicator (hE i hi)
 
+theorem memLp_sum_indicator_one {μ : Measure α} [IsFiniteMeasure μ] {s : Finset ι}
+    {E : ι → Set α} (hE : ∀ i ∈ s, MeasurableSet (E i)) :
+    MemLp (fun x => ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x) 2 μ :=
+  memLp_finsetSum _ fun i hi =>
+    memLp_indicator_const 2 (hE i hi) 1 (Or.inr (measure_ne_top μ _))
+
+/-- The mean of a finite sum of indicators is the sum of the event probabilities. -/
+theorem integral_sum_indicator_one {μ : Measure α} [IsFiniteMeasure μ] {s : Finset ι}
+    {E : ι → Set α} (hE : ∀ i ∈ s, MeasurableSet (E i)) :
+    μ[fun x => ∑ i ∈ s, (E i).indicator (fun _ => (1 : ℝ)) x] = ∑ i ∈ s, (μ (E i)).toReal := by
+  rw [MeasureTheory.integral_finsetSum _ fun i hi =>
+    (integrable_const (1 : ℝ)).indicator (hE i hi)]
+  exact Finset.sum_congr rfl fun i hi => by
+    rw [integral_indicator_const _ (hE i hi), smul_eq_mul, mul_one, measureReal_def]
+
 end IndicatorSum
 
 /-- `triangleCount` is measurable: a finite sum of indicators of measurable events. -/
@@ -858,8 +897,7 @@ beyond measurability of each event. -/
 theorem memLp_triangleCount {n : ℕ} (p : I) :
     MemLp (triangleCount : SimpleGraph (Fin n) → ℝ) 2 (binomialRandom (Fin n) p) := by
   unfold triangleCount
-  exact memLp_finsetSum _ fun T _ =>
-    memLp_indicator_const 2 (measurableSet_setOf_forall_adj T) 1 (Or.inr (measure_ne_top _ _))
+  exact memLp_sum_indicator_one fun T _ => measurableSet_setOf_forall_adj T
 
 /-- `n³/12 ≤ binom(n,3)` for `6 ≤ n`.
 
