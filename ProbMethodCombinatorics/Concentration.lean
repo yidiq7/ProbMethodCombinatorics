@@ -982,6 +982,35 @@ theorem abs_sub_chromaticNumber_le_one {n : ℕ} (v : Fin n) (G G' : SimpleGraph
       exact_mod_cast h₁
     linarith
 
+/-- **The chromatic number of a random graph is concentrated in a window of width `O(√n)`**
+(Zhao, Theorem 9.3.1; Shamir and Spencer 1987).  For every `lam ≥ 0`,
+
+    ℙ(|χ(G(n, p)) - 𝔼χ(G(n, p))| ≥ lam √(n-1)) ≤ 2 exp (-2 lam²).
+
+The striking part, as the source puts it, is that this proves concentration *around the mean
+without knowing where the mean is*.
+
+**Vertex exposure is what makes the bound this strong.**  Through
+`binomialRandom_eq_map_graphOfExposure` the chromatic number becomes a function of `n`
+independent blocks, of which `n - 1` are nonempty, and `abs_sub_chromaticNumber_le_one` gives
+each of those a bounded difference of `1`.  So `∑ cᵢ² = n - 1`, and
+`measure_sub_integral_ge_le` at `lam √(n-1)` returns `exp (-2 lam²)` with the `n - 1` cancelling.
+Exposing one edge at a time would give `C(n,2)` coordinates and only `exp (-2 lam² / C(n,2))`.
+
+**`2 ≤ n` is load-bearing.**  At `n = 1` the radius `lam √(n-1)` is `0`, so the event is
+everything and the left side is `1`, while the right side drops below `1` as soon as
+`lam ≥ 1` — at `lam = 2` it is about `0.0007`.  The source states no hypothesis on `n`, its
+interest being asymptotic; the finite form needs one. -/
+theorem measure_abs_sub_integral_chromaticNumber_ge_le (n : ℕ) (hn : 2 ≤ n) (p : I)
+    (lam : ℝ) (hlam : 0 ≤ lam) :
+    (SimpleGraph.binomialRandom (Fin n) p).real
+        {G : SimpleGraph (Fin n) | lam * Real.sqrt ((n : ℝ) - 1)
+          ≤ |(G.chromaticNumber.toNat : ℝ)
+              - ∫ K, (K.chromaticNumber.toNat : ℝ)
+                  ∂(SimpleGraph.binomialRandom (Fin n) p)|}
+      ≤ 2 * Real.exp (-2 * lam ^ 2) := by
+  sorry
+
 end VertexExposure
 
 end ProbMethodCombinatorics
