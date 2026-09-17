@@ -1360,10 +1360,7 @@ theorem exists_container_round (c d : ℝ) (hc : 0 < c) (hd : 0 < d) (n : ℕ) (
     ∃ (pick : Finset (Fin n) → Finset (Finset (Fin n)) → Finset (Fin n) → Fin n)
       (kill : Finset (Fin n) → Finset (Finset (Fin n)) → Fin n → Finset (Fin n)),
       IsContainerRound c d pick kill := by
-  rcases Nat.eq_zero_or_pos n with rfl | hn
-  · -- `Finset (Fin 0)` is inhabited while `Fin 0` is empty, so `pick` cannot be total here.
-    sorry
-  · exact exists_container_round_of_pos c d n hn
+  exact exists_container_round_of_pos c d n hn
 
 /-- The two vertices of an unordered pair, as a `Finset`. -/
 private def pairVerts {n : ℕ} (p : Sym2 (Fin n)) : Finset (Fin n) :=
