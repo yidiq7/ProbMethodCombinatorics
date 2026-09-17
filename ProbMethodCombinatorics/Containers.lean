@@ -1186,6 +1186,595 @@ theorem exists_container_round (c d : ℝ) (hc : 0 < c) (hd : 0 < d) (n : ℕ) :
       IsContainerRound c d pick kill := by
   sorry
 
+/-- The two vertices of an unordered pair, as a `Finset`. -/
+private def pairVerts {n : ℕ} (p : Sym2 (Fin n)) : Finset (Fin n) :=
+  {x ∈ (univ : Finset (Fin n)) | x ∈ p}
+
+private theorem mem_pairVerts {n : ℕ} {p : Sym2 (Fin n)} {v : Fin n} :
+    v ∈ pairVerts p ↔ v ∈ p := by simp [pairVerts]
+
+private theorem pairVerts_mk {n : ℕ} (x y : Fin n) : pairVerts s(x, y) = {x, y} := by
+  ext v
+  simp [pairVerts, Sym2.mem_iff]
+
+/-- The vertices whose forbidden-pair degree has passed the threshold `K`. -/
+private def highPairDeg {n : ℕ} (K : ℕ) (E : Finset (Sym2 (Fin n))) : Finset (Fin n) :=
+  {v ∈ (univ : Finset (Fin n)) | K < #{e ∈ E | v ∈ e}}
+
+/-- The alive vertex set of a run state: everything neither retired, nor selected, nor deleted
+for forbidden-pair degree. -/
+private def roundAliveV {n : ℕ} (K : ℕ) (X S : Finset (Fin n))
+    (E : Finset (Sym2 (Fin n))) : Finset (Fin n) := (X ∪ S ∪ highPairDeg K E)ᶜ
+
+/-- The alive hypergraph of a run state: the edges of `H` that lie inside the alive vertex set
+and contain no forbidden pair. -/
+private def roundAliveE {n : ℕ} (K : ℕ) (H : Finset (Finset (Fin n))) (X S : Finset (Fin n))
+    (E : Finset (Sym2 (Fin n))) : Finset (Finset (Fin n)) :=
+  {e ∈ H | e ⊆ roundAliveV K X S E ∧ ∀ x ∈ e, ∀ y ∈ e, s(x, y) ∉ E}
+
+/-- The forbidden pairs created by selecting `u`: the pairs `xy` for which `uxy` is an edge of the
+alive hypergraph. -/
+private def roundNewPairs {n : ℕ} (Ae : Finset (Finset (Fin n))) (u : Fin n) :
+    Finset (Sym2 (Fin n)) :=
+  {p ∈ (univ : Finset (Sym2 (Fin n))) | ¬ p.IsDiag ∧ u ∉ p ∧ insert u (pairVerts p) ∈ Ae}
+
+private theorem mem_roundNewPairs {n : ℕ} {Ae : Finset (Finset (Fin n))} {u : Fin n}
+    {p : Sym2 (Fin n)} : p ∈ roundNewPairs Ae u ↔
+      ¬ p.IsDiag ∧ u ∉ p ∧ insert u (pairVerts p) ∈ Ae := by
+  simp [roundNewPairs]
+
+/-- One round applied to a run state: select from the alive part of the target `T`, retire the
+round's `kill` set, record the selection, and add the forbidden pairs the selection creates. -/
+private def roundStep {n : ℕ} (K : ℕ) (H : Finset (Finset (Fin n)))
+    (pick : Finset (Fin n) → Finset (Finset (Fin n)) → Finset (Fin n) → Fin n)
+    (kill : Finset (Fin n) → Finset (Finset (Fin n)) → Fin n → Finset (Fin n))
+    (T X S : Finset (Fin n)) (E : Finset (Sym2 (Fin n))) :
+    Finset (Fin n) × Finset (Fin n) × Finset (Sym2 (Fin n)) :=
+  (X ∪ kill (roundAliveV K X S E) (roundAliveE K H X S E)
+      (pick (roundAliveV K X S E) (roundAliveE K H X S E) (T ∩ roundAliveV K X S E)),
+    insert (pick (roundAliveV K X S E) (roundAliveE K H X S E) (T ∩ roundAliveV K X S E)) S,
+    E ∪ roundNewPairs (roundAliveE K H X S E)
+      (pick (roundAliveV K X S E) (roundAliveE K H X S E) (T ∩ roundAliveV K X S E)))
+
+/-- The run of §11.3: iterate `roundStep` on the target `T` from the state `(X, S, E)`, halting
+once `bX` vertices are retired, once `bE` forbidden pairs are recorded, or once nothing of `T` is
+alive; `fuel` caps the number of rounds. -/
+private def roundRun {n : ℕ} (K bX bE : ℕ) (H : Finset (Finset (Fin n)))
+    (pick : Finset (Fin n) → Finset (Finset (Fin n)) → Finset (Fin n) → Fin n)
+    (kill : Finset (Fin n) → Finset (Finset (Fin n)) → Fin n → Finset (Fin n))
+    (T : Finset (Fin n)) :
+    ℕ → Finset (Fin n) → Finset (Fin n) → Finset (Sym2 (Fin n)) →
+      Finset (Fin n) × Finset (Fin n) × Finset (Sym2 (Fin n))
+  | 0, X, S, E => (X, S, E)
+  | fuel + 1, X, S, E =>
+    if bX ≤ X.card then (X, S, E)
+    else if bE ≤ E.card then (X, S, E)
+    else if (T ∩ roundAliveV K X S E).Nonempty then
+      roundRun K bX bE H pick kill T fuel (roundStep K H pick kill T X S E).1
+        (roundStep K H pick kill T X S E).2.1 (roundStep K H pick kill T X S E).2.2
+    else (X, S, E)
+
+/-- Every component of the run's state only ever grows. -/
+private theorem roundRun_grows {n : ℕ} (K bX bE : ℕ) (H : Finset (Finset (Fin n)))
+    (pick : Finset (Fin n) → Finset (Finset (Fin n)) → Finset (Fin n) → Fin n)
+    (kill : Finset (Fin n) → Finset (Finset (Fin n)) → Fin n → Finset (Fin n))
+    (T : Finset (Fin n)) (fuel : ℕ) :
+    ∀ (X S : Finset (Fin n)) (E : Finset (Sym2 (Fin n))),
+      X ⊆ (roundRun K bX bE H pick kill T fuel X S E).1 ∧
+      S ⊆ (roundRun K bX bE H pick kill T fuel X S E).2.1 ∧
+      E ⊆ (roundRun K bX bE H pick kill T fuel X S E).2.2 := by
+  induction fuel with
+  | zero => exact fun X S E => ⟨Subset.refl _, Subset.refl _, Subset.refl _⟩
+  | succ fuel ih =>
+    intro X S E
+    rw [roundRun]
+    split_ifs with h1 h2 h3
+    · exact ⟨Subset.refl _, Subset.refl _, Subset.refl _⟩
+    · exact ⟨Subset.refl _, Subset.refl _, Subset.refl _⟩
+    · exact ⟨Finset.subset_union_left.trans (ih _ _ _).1,
+        (Finset.subset_insert _ _).trans (ih _ _ _).2.1,
+        Finset.subset_union_left.trans (ih _ _ _).2.2⟩
+    · exact ⟨Subset.refl _, Subset.refl _, Subset.refl _⟩
+
+/-- **The run is replayed by the set of vertices it selects.**  Shrinking the target to any `J`
+that still contains every selected vertex leaves the run unchanged: the state, and hence the
+alive vertex set and the alive hypergraph, agree step by step, and stability of `pick` forces the
+same selection. -/
+private theorem roundRun_replay {n : ℕ} (K bX bE : ℕ) (H : Finset (Finset (Fin n)))
+    (pick : Finset (Fin n) → Finset (Finset (Fin n)) → Finset (Fin n) → Fin n)
+    (kill : Finset (Fin n) → Finset (Finset (Fin n)) → Fin n → Finset (Fin n))
+    (hpick : ∀ (Av : Finset (Fin n)) (Ae : Finset (Finset (Fin n))) (T : Finset (Fin n)),
+      T.Nonempty → pick Av Ae T ∈ T)
+    (hstab : ∀ (Av : Finset (Fin n)) (Ae : Finset (Finset (Fin n))) (T T' : Finset (Fin n)),
+      T' ⊆ T → pick Av Ae T ∈ T' → pick Av Ae T' = pick Av Ae T)
+    (fuel : ℕ) :
+    ∀ (T J X S : Finset (Fin n)) (E : Finset (Sym2 (Fin n))),
+      (roundRun K bX bE H pick kill T fuel X S E).2.1 ⊆ J → J ⊆ T →
+        roundRun K bX bE H pick kill J fuel X S E
+          = roundRun K bX bE H pick kill T fuel X S E := by
+  induction fuel with
+  | zero => exact fun T J X S E _ _ => rfl
+  | succ fuel ih =>
+    intro T J X S E hSJ hJT
+    have hstep : ∀ T' : Finset (Fin n),
+        roundRun K bX bE H pick kill T' (fuel + 1) X S E =
+          if bX ≤ X.card then (X, S, E)
+          else if bE ≤ E.card then (X, S, E)
+          else if (T' ∩ roundAliveV K X S E).Nonempty then
+            roundRun K bX bE H pick kill T' fuel (roundStep K H pick kill T' X S E).1
+              (roundStep K H pick kill T' X S E).2.1 (roundStep K H pick kill T' X S E).2.2
+          else (X, S, E) := fun T' => by rw [roundRun]
+    rw [hstep T] at hSJ
+    rw [hstep J, hstep T]
+    by_cases h1 : bX ≤ X.card
+    · simp only [if_pos h1]
+    simp only [if_neg h1] at hSJ ⊢
+    by_cases h2 : bE ≤ E.card
+    · simp only [if_pos h2]
+    simp only [if_neg h2] at hSJ ⊢
+    set Av : Finset (Fin n) := roundAliveV K X S E with hAv
+    set Ae : Finset (Finset (Fin n)) := roundAliveE K H X S E with hAe
+    by_cases h3 : (T ∩ Av).Nonempty
+    · simp only [if_pos h3] at hSJ ⊢
+      have hvT : pick Av Ae (T ∩ Av) ∈ T ∩ Av := hpick _ _ _ h3
+      have hvJ : pick Av Ae (T ∩ Av) ∈ J :=
+        hSJ ((roundRun_grows K bX bE H pick kill T fuel _ _ _).2.1
+          (Finset.mem_insert_self _ _))
+      have hvJA : pick Av Ae (T ∩ Av) ∈ J ∩ Av :=
+        Finset.mem_inter.mpr ⟨hvJ, (Finset.mem_inter.mp hvT).2⟩
+      have h3J : (J ∩ Av).Nonempty := ⟨_, hvJA⟩
+      have hsel : pick Av Ae (J ∩ Av) = pick Av Ae (T ∩ Av) :=
+        hstab Av Ae (T ∩ Av) (J ∩ Av) (Finset.inter_subset_inter_right hJT) hvJA
+      simp only [if_pos h3J, roundStep, ← hAv, ← hAe, hsel]
+      exact ih T J _ _ _ hSJ hJT
+    · have h3J : ¬ (J ∩ Av).Nonempty := by
+        rintro ⟨x, hx⟩
+        rw [Finset.mem_inter] at hx
+        exact h3 ⟨x, Finset.mem_inter.mpr ⟨hJT hx.1, hx.2⟩⟩
+      simp only [if_neg h3, if_neg h3J]
+
+private theorem pairVerts_inj {n : ℕ} {p q : Sym2 (Fin n)} (h : pairVerts p = pairVerts q) :
+    p = q :=
+  Sym2.ext fun x => by
+    rw [← mem_pairVerts, ← mem_pairVerts, h]
+
+/-- A vertex's hypergraph degree is at most `Δ₁`. -/
+private theorem card_filter_mem_le_codegree {n : ℕ} (H : Finset (Finset (Fin n))) (v : Fin n) :
+    #{e ∈ H | v ∈ e} ≤ maxCodegree 1 H := by
+  unfold maxCodegree
+  have hmem : ({v} : Finset (Fin n)) ∈
+      Finset.filter (fun A : Finset (Fin n) => A.card = 1) univ := by simp
+  refine le_trans (le_of_eq (congrArg Finset.card ?_))
+    (Finset.le_sup (f := fun A : Finset (Fin n) => #{e ∈ H | A ⊆ e}) hmem)
+  ext e
+  simp [Finset.singleton_subset_iff]
+
+/-- A pair's hypergraph codegree is at most `Δ₂`. -/
+private theorem card_filter_pairVerts_le_codegree {n : ℕ} (H : Finset (Finset (Fin n)))
+    {p : Sym2 (Fin n)} (hp : ¬ p.IsDiag) :
+    #{e ∈ H | pairVerts p ⊆ e} ≤ maxCodegree 2 H := by
+  unfold maxCodegree
+  have hmem : pairVerts p ∈ Finset.filter (fun A : Finset (Fin n) => A.card = 2) univ := by
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and]
+    exact card_filter_mem_eq_two p hp
+  exact Finset.le_sup (f := fun A : Finset (Fin n) => #{e ∈ H | A ⊆ e}) hmem
+
+/-- **Union bound on the edges a vertex set meets.** -/
+private theorem card_filter_meets_le {n : ℕ} (H : Finset (Finset (Fin n)))
+    (W : Finset (Fin n)) :
+    #{e ∈ H | ∃ v ∈ W, v ∈ e} ≤ W.card * maxCodegree 1 H := by
+  classical
+  calc #{e ∈ H | ∃ v ∈ W, v ∈ e}
+      ≤ #(W.biUnion fun v => {e ∈ H | v ∈ e}) := by
+        refine Finset.card_le_card fun e he => ?_
+        simp only [Finset.mem_filter] at he
+        obtain ⟨heH, v, hvW, hve⟩ := he
+        exact Finset.mem_biUnion.mpr ⟨v, hvW, Finset.mem_filter.mpr ⟨heH, hve⟩⟩
+    _ ≤ ∑ v ∈ W, #{e ∈ H | v ∈ e} := Finset.card_biUnion_le
+    _ ≤ ∑ _v ∈ W, maxCodegree 1 H :=
+        Finset.sum_le_sum fun v _ => card_filter_mem_le_codegree H v
+    _ = W.card * maxCodegree 1 H := by rw [Finset.sum_const, smul_eq_mul]
+
+/-- **Union bound on the edges a set of forbidden pairs meets.** -/
+private theorem card_filter_pairs_le {n : ℕ} (H : Finset (Finset (Fin n)))
+    (E : Finset (Sym2 (Fin n))) (hdiag : ∀ e ∈ E, ¬ e.IsDiag) :
+    #{e ∈ H | ∃ x ∈ e, ∃ y ∈ e, s(x, y) ∈ E} ≤ E.card * maxCodegree 2 H := by
+  classical
+  calc #{e ∈ H | ∃ x ∈ e, ∃ y ∈ e, s(x, y) ∈ E}
+      ≤ #(E.biUnion fun p => {e ∈ H | pairVerts p ⊆ e}) := by
+        refine Finset.card_le_card fun e he => ?_
+        simp only [Finset.mem_filter] at he
+        obtain ⟨heH, x, hxe, y, hye, hxy⟩ := he
+        refine Finset.mem_biUnion.mpr ⟨s(x, y), hxy, Finset.mem_filter.mpr ⟨heH, ?_⟩⟩
+        rw [pairVerts_mk]
+        intro z hz
+        rcases Finset.mem_insert.mp hz with rfl | hz'
+        · exact hxe
+        · rw [Finset.mem_singleton] at hz'; exact hz' ▸ hye
+    _ ≤ ∑ p ∈ E, #{e ∈ H | pairVerts p ⊆ e} := Finset.card_biUnion_le
+    _ ≤ ∑ _p ∈ E, maxCodegree 2 H :=
+        Finset.sum_le_sum fun p hp => card_filter_pairVerts_le_codegree H (hdiag p hp)
+    _ = E.card * maxCodegree 2 H := by rw [Finset.sum_const, smul_eq_mul]
+
+/-- **The handshake bound on the vertices deleted for forbidden-pair degree.** -/
+private theorem card_highPairDeg_mul_le {n : ℕ} (K : ℕ) (E : Finset (Sym2 (Fin n)))
+    (hdiag : ∀ e ∈ E, ¬ e.IsDiag) :
+    (highPairDeg K E).card * (K + 1) ≤ 2 * E.card := by
+  have hlow : (highPairDeg K E).card * (K + 1)
+      ≤ ∑ v ∈ highPairDeg K E, #{e ∈ E | v ∈ e} := by
+    refine le_trans (le_of_eq ?_) (Finset.card_nsmul_le_sum _ _ (K + 1) ?_)
+    · rw [smul_eq_mul]
+    · intro v hv
+      simp only [highPairDeg, Finset.mem_filter, Finset.mem_univ, true_and] at hv
+      omega
+  refine hlow.trans ?_
+  rw [← sum_card_incident E hdiag]
+  exact Finset.sum_le_sum_of_subset (Finset.subset_univ _)
+
+private theorem roundNewPairs_not_isDiag {n : ℕ} {Ae : Finset (Finset (Fin n))} {u : Fin n}
+    {p : Sym2 (Fin n)} (hp : p ∈ roundNewPairs Ae u) : ¬ p.IsDiag :=
+  (mem_roundNewPairs.mp hp).1
+
+/-- **Selecting `u` creates one forbidden pair per alive edge at `u`.** -/
+private theorem card_filter_le_card_roundNewPairs {n : ℕ} (Ae : Finset (Finset (Fin n)))
+    (h3 : ∀ e ∈ Ae, e.card = 3) (u : Fin n) :
+    #{e ∈ Ae | u ∈ e} ≤ (roundNewPairs Ae u).card := by
+  refine Finset.card_le_card_of_surjOn (fun p => insert u (pairVerts p)) ?_
+  intro e he
+  simp only [Finset.coe_filter, Set.mem_ofPred_eq] at he
+  obtain ⟨heAe, hue⟩ := he
+  have hcard : (e.erase u).card = 2 := by rw [Finset.card_erase_of_mem hue, h3 e heAe]
+  obtain ⟨x, y, hxy, hxyeq⟩ := Finset.card_eq_two.mp hcard
+  have hue' : u ∉ ({x, y} : Finset (Fin n)) := by
+    rw [← hxyeq]; exact Finset.notMem_erase u e
+  have heq : insert u ({x, y} : Finset (Fin n)) = e := by
+    rw [← hxyeq, Finset.insert_erase hue]
+  refine ⟨s(x, y), ?_, by simpa only [pairVerts_mk] using heq⟩
+  simp only [Finset.mem_coe, mem_roundNewPairs, pairVerts_mk, heq]
+  simp only [Finset.mem_insert, Finset.mem_singleton, not_or] at hue'
+  refine ⟨by simpa [Sym2.mk_isDiag_iff] using hxy, ?_, heAe⟩
+  simp only [Sym2.mem_iff]
+  tauto
+
+/-- **The forbidden pairs a selection creates are new**: an alive edge contains no pair of `E`. -/
+private theorem roundNewPairs_disjoint {n : ℕ} (K : ℕ) (H : Finset (Finset (Fin n)))
+    (X S : Finset (Fin n)) (E : Finset (Sym2 (Fin n))) (u : Fin n) :
+    Disjoint E (roundNewPairs (roundAliveE K H X S E) u) := by
+  rw [Finset.disjoint_right]
+  intro p
+  induction p using Sym2.ind with
+  | _ x y =>
+    intro hp hpE
+    rw [mem_roundNewPairs] at hp
+    have hAe := hp.2.2
+    rw [roundAliveE, Finset.mem_filter, pairVerts_mk] at hAe
+    exact hAe.2.2 x (Finset.mem_insert_of_mem (Finset.mem_insert_self x {y})) y
+      (Finset.mem_insert_of_mem (Finset.mem_insert_of_mem (Finset.mem_singleton_self y))) hpE
+
+/-- **Each vertex gains at most `Δ₂` forbidden-pair neighbours per round.** -/
+private theorem card_filter_mem_roundNewPairs_le {n : ℕ} (H : Finset (Finset (Fin n)))
+    {Ae : Finset (Finset (Fin n))} (hsub : Ae ⊆ H) {u v : Fin n} (huv : u ≠ v) :
+    #{p ∈ roundNewPairs Ae u | v ∈ p} ≤ maxCodegree 2 H := by
+  refine le_trans (Finset.card_le_card_of_injOn (fun p => insert u (pairVerts p)) ?_ ?_)
+    (card_filter_pairVerts_le_codegree H (p := s(u, v))
+      (by simpa [Sym2.mk_isDiag_iff] using huv))
+  · intro p hp
+    simp only [Finset.coe_filter, Set.mem_ofPred_eq] at hp
+    obtain ⟨hpn, hvp⟩ := hp
+    rw [mem_roundNewPairs] at hpn
+    simp only [Finset.coe_filter, Set.mem_ofPred_eq]
+    refine ⟨hsub hpn.2.2, ?_⟩
+    rw [pairVerts_mk]
+    intro z hz
+    rcases Finset.mem_insert.mp hz with rfl | hz'
+    · exact Finset.mem_insert_self _ _
+    · rw [Finset.mem_singleton] at hz'
+      subst hz'
+      exact Finset.mem_insert_of_mem (mem_pairVerts.mpr hvp)
+  · intro p hp q hq heq
+    simp only [Finset.coe_filter, Set.mem_ofPred_eq] at hp hq
+    have hup : u ∉ pairVerts p := fun h => (mem_roundNewPairs.mp hp.1).2.1 (mem_pairVerts.mp h)
+    have huq : u ∉ pairVerts q := fun h => (mem_roundNewPairs.mp hq.1).2.1 (mem_pairVerts.mp h)
+    refine pairVerts_inj ?_
+    simp only at heq
+    rw [← Finset.erase_insert hup, ← Finset.erase_insert huq, heq]
+
+/-- **A selection creates no pair at a vertex already past the deletion threshold**, because the
+alive hypergraph lives inside the alive vertex set. -/
+private theorem filter_mem_roundNewPairs_eq_empty {n : ℕ} (K : ℕ) (H : Finset (Finset (Fin n)))
+    (X S : Finset (Fin n)) (E : Finset (Sym2 (Fin n))) (u : Fin n) {v : Fin n}
+    (hv : K < #{e ∈ E | v ∈ e}) :
+    {p ∈ roundNewPairs (roundAliveE K H X S E) u | v ∈ p} = ∅ := by
+  refine Finset.filter_eq_empty_iff.mpr ?_
+  intro p hp hvp
+  rw [mem_roundNewPairs] at hp
+  have hAe := hp.2.2
+  rw [roundAliveE, Finset.mem_filter] at hAe
+  have halive : v ∈ roundAliveV K X S E :=
+    hAe.2.1 (Finset.mem_insert_of_mem (mem_pairVerts.mpr hvp))
+  rw [roundAliveV, Finset.mem_compl] at halive
+  refine halive (Finset.mem_union_right _ ?_)
+  simp only [highPairDeg, Finset.mem_filter, Finset.mem_univ, true_and]
+  exact hv
+
+/-- **The pairs a selection creates meet no independent set**, since each comes from an edge
+of `H` on the selected vertex and the pair. -/
+private theorem notMem_roundNewPairs_of_indep {n : ℕ} {H Ae : Finset (Finset (Fin n))}
+    (hsub : Ae ⊆ H) {I : Finset (Fin n)} (hI : ∀ e ∈ H, ¬ e ⊆ I) {u : Fin n} (hu : u ∈ I)
+    {a b : Fin n} (ha : a ∈ I) (hb : b ∈ I) : s(a, b) ∉ roundNewPairs Ae u := by
+  intro hmem
+  rw [mem_roundNewPairs, pairVerts_mk] at hmem
+  refine hI _ (hsub hmem.2.2) ?_
+  intro z hz
+  rcases Finset.mem_insert.mp hz with rfl | hz'
+  · exact hu
+  · rcases Finset.mem_insert.mp hz' with rfl | hz''
+    · exact ha
+    · rw [Finset.mem_singleton] at hz''
+      exact hz'' ▸ hb
+
+/-- **The forbidden-pair degree invariant survives a round.**  A vertex already past the deletion
+threshold gains nothing, and a vertex below it gains at most `Δ₂ ≤ c * √d`. -/
+private theorem roundStep_degree {n : ℕ} {c d : ℝ} {H : Finset (Finset (Fin n))}
+    (hcod2 : (maxCodegree 2 H : ℝ) ≤ c * Real.sqrt d)
+    {K : ℕ} (hKle : (K : ℝ) ≤ c * Real.sqrt d)
+    (X S : Finset (Fin n)) (E : Finset (Sym2 (Fin n))) (u : Fin n)
+    (hEdeg : ∀ v : Fin n, (#{e ∈ E | v ∈ e} : ℝ) ≤ 2 * c * Real.sqrt d) (v : Fin n) :
+    (#{e ∈ E ∪ roundNewPairs (roundAliveE K H X S E) u | v ∈ e} : ℝ)
+      ≤ 2 * c * Real.sqrt d := by
+  have hAeH : roundAliveE K H X S E ⊆ H := by rw [roundAliveE]; exact Finset.filter_subset _ _
+  have hle : #{e ∈ E ∪ roundNewPairs (roundAliveE K H X S E) u | v ∈ e}
+      ≤ #{e ∈ E | v ∈ e} + #{e ∈ roundNewPairs (roundAliveE K H X S E) u | v ∈ e} := by
+    rw [Finset.filter_union]
+    exact Finset.card_union_le _ _
+  by_cases hvhigh : K < #{e ∈ E | v ∈ e}
+  · rw [filter_mem_roundNewPairs_eq_empty K H X S E u hvhigh, Finset.card_empty,
+      Nat.add_zero] at hle
+    exact le_trans (Nat.cast_le.mpr hle) (hEdeg v)
+  · have hnew : #{e ∈ roundNewPairs (roundAliveE K H X S E) u | v ∈ e} ≤ maxCodegree 2 H := by
+      by_cases huv : u = v
+      · subst huv
+        have hempty : {e ∈ roundNewPairs (roundAliveE K H X S E) u | u ∈ e} = ∅ :=
+          Finset.filter_eq_empty_iff.mpr fun p hp => (mem_roundNewPairs.mp hp).2.1
+        simp [hempty]
+      · exact card_filter_mem_roundNewPairs_le H hAeH huv
+    have hb1 : (#{e ∈ E | v ∈ e} : ℝ) ≤ c * Real.sqrt d :=
+      le_trans (Nat.cast_le.mpr (Nat.le_of_not_lt hvhigh)) hKle
+    have hb2 : (#{e ∈ roundNewPairs (roundAliveE K H X S E) u | v ∈ e} : ℝ)
+        ≤ c * Real.sqrt d := le_trans (Nat.cast_le.mpr hnew) hcod2
+    have hb3 : (#{e ∈ E ∪ roundNewPairs (roundAliveE K H X S E) u | v ∈ e} : ℝ)
+        ≤ (#{e ∈ E | v ∈ e} : ℝ)
+          + (#{e ∈ roundNewPairs (roundAliveE K H X S E) u | v ∈ e} : ℝ) := by
+      exact_mod_cast hle
+    linarith
+
+/-- **The forbidden-pair count grows by the alive degree of the selected vertex.** -/
+private theorem card_union_roundNewPairs {n : ℕ} {H : Finset (Finset (Fin n))}
+    (h3 : ∀ e ∈ H, e.card = 3) (K : ℕ) (X S : Finset (Fin n))
+    (E : Finset (Sym2 (Fin n))) (u : Fin n) :
+    E.card + #{e ∈ roundAliveE K H X S E | u ∈ e}
+      ≤ (E ∪ roundNewPairs (roundAliveE K H X S E) u).card := by
+  have hAeH : roundAliveE K H X S E ⊆ H := by rw [roundAliveE]; exact Finset.filter_subset _ _
+  rw [Finset.card_union_of_disjoint (roundNewPairs_disjoint K H X S E u)]
+  exact Nat.add_le_add_left
+    (card_filter_le_card_roundNewPairs _ (fun e he => h3 e (hAeH he)) u) _
+
+/-- **One round yields `4 * n * d / 5`, split between forbidden pairs and retired vertices.**
+
+Few enough edges of `H` have been deleted — at most `|W| Δ₁` for meeting a dead vertex and
+`|E| Δ₂` for containing a forbidden pair — that the round's raw double count, which is stated
+against the alive hypergraph, becomes a bound against `d * n`. -/
+private theorem round_yield {n : ℕ} {c d : ℝ} {H : Finset (Finset (Fin n))}
+    (hHsum : 3 * (H.card : ℝ) = d * n)
+    (hcod1 : (maxCodegree 1 H : ℝ) ≤ c * d) (hcod2 : (maxCodegree 2 H : ℝ) ≤ c * Real.sqrt d)
+    {K : ℕ} {X S : Finset (Fin n)} {E : Finset (Sym2 (Fin n))}
+    (hEd : ∀ e ∈ E, ¬ e.IsDiag)
+    (hslackv : 3 * ((X.card : ℝ) + S.card + (highPairDeg K E).card) * (c * d)
+        + 3 * (E.card : ℝ) * (c * Real.sqrt d) ≤ 1 / 5 * (n : ℝ) * d)
+    {t k : ℕ}
+    (hdbl : 3 * ((roundAliveE K H X S E).card : ℝ)
+      ≤ (n : ℝ) * (t : ℝ) + ((k : ℝ) + 1) * (c * d)) :
+    4 / 5 * (n : ℝ) * d ≤ (n : ℝ) * (t : ℝ) + ((k : ℝ) + 1) * (c * d) := by
+  have hsub : H ⊆ roundAliveE K H X S E ∪
+      ({e ∈ H | ∃ v ∈ X ∪ S ∪ highPairDeg K E, v ∈ e}
+        ∪ {e ∈ H | ∃ x ∈ e, ∃ y ∈ e, s(x, y) ∈ E}) := by
+    intro e he
+    by_cases hin : e ⊆ roundAliveV K X S E ∧ ∀ x ∈ e, ∀ y ∈ e, s(x, y) ∉ E
+    · exact Finset.mem_union_left _ (by rw [roundAliveE, Finset.mem_filter]; exact ⟨he, hin⟩)
+    · refine Finset.mem_union_right _ ?_
+      rw [not_and_or] at hin
+      rcases hin with hin | hin
+      · obtain ⟨v, hv, hvn⟩ := Finset.not_subset.mp hin
+        refine Finset.mem_union_left _ (Finset.mem_filter.mpr ⟨he, v, ?_, hv⟩)
+        rw [roundAliveV, Finset.mem_compl, not_not] at hvn
+        exact hvn
+      · push Not at hin
+        obtain ⟨x, hx, y, hy, hxy⟩ := hin
+        exact Finset.mem_union_right _ (Finset.mem_filter.mpr ⟨he, x, hx, y, hy, hxy⟩)
+  have hcardH : H.card ≤ (roundAliveE K H X S E).card
+      + ((X ∪ S ∪ highPairDeg K E).card * maxCodegree 1 H + E.card * maxCodegree 2 H) := by
+    refine le_trans (Finset.card_le_card hsub) (le_trans (Finset.card_union_le _ _) ?_)
+    refine Nat.add_le_add_left (le_trans (Finset.card_union_le _ _) ?_) _
+    exact Nat.add_le_add (card_filter_meets_le H _) (card_filter_pairs_le H E hEd)
+  have hWcard : ((X ∪ S ∪ highPairDeg K E).card : ℝ)
+      ≤ (X.card : ℝ) + S.card + (highPairDeg K E).card := by
+    have h := le_trans (Finset.card_union_le (X ∪ S) (highPairDeg K E))
+      (Nat.add_le_add_right (Finset.card_union_le X S) _)
+    exact_mod_cast h
+  have h1 : ((X ∪ S ∪ highPairDeg K E).card : ℝ) * (maxCodegree 1 H : ℝ)
+      ≤ ((X.card : ℝ) + S.card + (highPairDeg K E).card) * (c * d) :=
+    mul_le_mul hWcard hcod1 (Nat.cast_nonneg _) (by positivity)
+  have h2 : ((E.card : ℝ)) * (maxCodegree 2 H : ℝ) ≤ (E.card : ℝ) * (c * Real.sqrt d) :=
+    mul_le_mul_of_nonneg_left hcod2 (Nat.cast_nonneg _)
+  have h0 : (H.card : ℝ) ≤ ((roundAliveE K H X S E).card : ℝ)
+      + (((X ∪ S ∪ highPairDeg K E).card : ℝ) * (maxCodegree 1 H : ℝ)
+        + (E.card : ℝ) * (maxCodegree 2 H : ℝ)) := by
+    exact_mod_cast hcardH
+  have hcomm : d * (n : ℝ) = (n : ℝ) * d := mul_comm _ _
+  linarith
+
+/-- **The invariants carried by one run of the container algorithm on an independent set `I`.**
+
+Along the run the retired set misses `I`, the selected vertices stay inside `I`, the forbidden
+pairs stay diagonal-free, of degree at most `2 * c * √d`, and absent from `I`; the number of
+selections never exceeds the round budget `B`; and the run halts either with the retirement
+threshold met, with the forbidden-pair threshold met, with nothing of `I` left alive, or — only
+if the round budget is spent — with the accumulated yield `4 * n * d * B / 5`. -/
+private theorem roundRun_invariants {n : ℕ} {c d : ℝ}
+    {H : Finset (Finset (Fin n))} (h3 : ∀ e ∈ H, e.card = 3)
+    (hHsum : 3 * (H.card : ℝ) = d * n)
+    (hcod1 : (maxCodegree 1 H : ℝ) ≤ c * d) (hcod2 : (maxCodegree 2 H : ℝ) ≤ c * Real.sqrt d)
+    {K bX bE B : ℕ} (hKle : (K : ℝ) ≤ c * Real.sqrt d)
+    (hslack : ∀ aX aS aD aE : ℕ, aX < bX → aS ≤ B → aE < bE → aD * (K + 1) ≤ 2 * aE →
+      3 * ((aX : ℝ) + aS + aD) * (c * d) + 3 * (aE : ℝ) * (c * Real.sqrt d)
+        ≤ 1 / 5 * (n : ℝ) * d)
+    {pick : Finset (Fin n) → Finset (Finset (Fin n)) → Finset (Fin n) → Fin n}
+    {kill : Finset (Fin n) → Finset (Finset (Fin n)) → Fin n → Finset (Fin n)}
+    (hrule : IsContainerRound c d pick kill)
+    {I : Finset (Fin n)} (hI : ∀ e ∈ H, ¬ e ⊆ I) (fuel : ℕ) :
+    ∀ (X S Y Q : Finset (Fin n)) (E F : Finset (Sym2 (Fin n))),
+      roundRun K bX bE H pick kill I fuel X S E = (Y, Q, F) →
+      Disjoint X I → S ⊆ I → (∀ e ∈ E, ¬ e.IsDiag) →
+      (∀ v : Fin n, (#{e ∈ E | v ∈ e} : ℝ) ≤ 2 * c * Real.sqrt d) →
+      (∀ a ∈ I, ∀ b ∈ I, s(a, b) ∉ E) →
+      4 / 5 * (n : ℝ) * d * (S.card : ℝ)
+        ≤ (n : ℝ) * (E.card : ℝ) + ((X.card : ℝ) + (S.card : ℝ)) * (c * d) →
+      S.card + fuel = B →
+      Disjoint Y I ∧ Q ⊆ I ∧ (∀ e ∈ F, ¬ e.IsDiag) ∧
+        (∀ v : Fin n, (#{e ∈ F | v ∈ e} : ℝ) ≤ 2 * c * Real.sqrt d) ∧
+        (∀ a ∈ I, ∀ b ∈ I, s(a, b) ∉ F) ∧ Q.card ≤ B ∧
+        (bX ≤ Y.card ∨ bE ≤ F.card ∨ I ⊆ Q ∪ highPairDeg K F ∨
+          4 / 5 * (n : ℝ) * d * (B : ℝ)
+            ≤ (n : ℝ) * (F.card : ℝ) + ((Y.card : ℝ) + (Q.card : ℝ)) * (c * d)) := by
+  obtain ⟨hmem, -, hkill, hdsj, hcount⟩ := hrule
+  induction fuel with
+  | zero =>
+    intro X S Y Q E F hrun hXI hSI hEd hEdeg hEI hpot hfuel
+    simp only [roundRun, Prod.mk.injEq] at hrun
+    obtain ⟨rfl, rfl, rfl⟩ := hrun
+    refine ⟨hXI, hSI, hEd, hEdeg, hEI, by omega, Or.inr (Or.inr (Or.inr ?_))⟩
+    have hSB : (S.card : ℝ) = (B : ℝ) := by
+      have h : S.card = B := by omega
+      exact_mod_cast h
+    rw [← hSB]
+    exact hpot
+  | succ fuel ih =>
+    intro X S Y Q E F hrun hXI hSI hEd hEdeg hEI hpot hfuel
+    rw [roundRun] at hrun
+    by_cases h1 : bX ≤ X.card
+    · rw [if_pos h1] at hrun
+      simp only [Prod.mk.injEq] at hrun
+      obtain ⟨rfl, rfl, rfl⟩ := hrun
+      exact ⟨hXI, hSI, hEd, hEdeg, hEI, by omega, Or.inl h1⟩
+    rw [if_neg h1] at hrun
+    by_cases h2 : bE ≤ E.card
+    · rw [if_pos h2] at hrun
+      simp only [Prod.mk.injEq] at hrun
+      obtain ⟨rfl, rfl, rfl⟩ := hrun
+      exact ⟨hXI, hSI, hEd, hEdeg, hEI, by omega, Or.inr (Or.inl h2)⟩
+    rw [if_neg h2] at hrun
+    by_cases h4 : (I ∩ roundAliveV K X S E).Nonempty
+    swap
+    · rw [if_neg h4] at hrun
+      simp only [Prod.mk.injEq] at hrun
+      obtain ⟨rfl, rfl, rfl⟩ := hrun
+      refine ⟨hXI, hSI, hEd, hEdeg, hEI, by omega, Or.inr (Or.inr (Or.inl ?_))⟩
+      intro x hx
+      by_contra hxc
+      refine h4 ⟨x, Finset.mem_inter.mpr ⟨hx, ?_⟩⟩
+      rw [roundAliveV, Finset.mem_compl]
+      intro hmemW
+      rcases Finset.mem_union.mp hmemW with hW | hW
+      · rcases Finset.mem_union.mp hW with hW' | hW'
+        · exact Finset.disjoint_left.mp hXI hW' hx
+        · exact hxc (Finset.mem_union_left _ hW')
+      · exact hxc (Finset.mem_union_right _ hW)
+    rw [if_pos h4] at hrun
+    simp only [roundStep] at hrun
+    obtain ⟨u, hudef⟩ : ∃ u, u = pick (roundAliveV K X S E) (roundAliveE K H X S E)
+        (I ∩ roundAliveV K X S E) := ⟨_, rfl⟩
+    rw [← hudef] at hrun
+    have hAeH : roundAliveE K H X S E ⊆ H := by
+      rw [roundAliveE]; exact Finset.filter_subset _ _
+    have hAesub : ∀ e ∈ roundAliveE K H X S E, e ⊆ roundAliveV K X S E := by
+      intro e he
+      rw [roundAliveE, Finset.mem_filter] at he
+      exact he.2.1
+    have huIAv : u ∈ I ∩ roundAliveV K X S E := by
+      rw [hudef]; exact hmem _ _ _ h4
+    have huI : u ∈ I := (Finset.mem_inter.mp huIAv).1
+    have huW : u ∉ X ∪ S ∪ highPairDeg K E := by
+      have h := (Finset.mem_inter.mp huIAv).2
+      rw [roundAliveV, Finset.mem_compl] at h
+      exact h
+    have huS : u ∉ S := fun h => huW (Finset.mem_union_left _ (Finset.mem_union_right _ h))
+    obtain ⟨hkillsub, hkillu⟩ := hkill (roundAliveV K X S E) (roundAliveE K H X S E) u
+    have hkillI : Disjoint (kill (roundAliveV K X S E) (roundAliveE K H X S E) u) I := by
+      have hd0 := hdsj (roundAliveV K X S E) (roundAliveE K H X S E)
+        (I ∩ roundAliveV K X S E) h4
+      rw [← hudef] at hd0
+      rw [Finset.disjoint_left]
+      intro a ha haI
+      exact Finset.disjoint_left.mp hd0 ha (Finset.mem_inter.mpr ⟨haI, hkillsub ha⟩)
+    have hkillX : Disjoint X (kill (roundAliveV K X S E) (roundAliveE K H X S E) u) := by
+      rw [Finset.disjoint_right]
+      intro a ha
+      have h := hkillsub ha
+      rw [roundAliveV, Finset.mem_compl] at h
+      exact fun haX => h (Finset.mem_union_left _ (Finset.mem_union_left _ haX))
+    have hcod1Ae : (maxCodegree 1 (roundAliveE K H X S E) : ℝ) ≤ c * d :=
+      le_trans (Nat.cast_le.mpr (maxCodegree_mono 1 hAeH)) hcod1
+    have hdbl : 3 * ((roundAliveE K H X S E).card : ℝ)
+        ≤ (n : ℝ) * (#{e ∈ roundAliveE K H X S E | u ∈ e} : ℝ)
+          + ((#(kill (roundAliveV K X S E) (roundAliveE K H X S E) u) : ℝ) + 1) * (c * d) := by
+      have h := hcount (roundAliveV K X S E) (roundAliveE K H X S E)
+        (I ∩ roundAliveV K X S E) Finset.inter_subset_right h4 hAesub hcod1Ae
+      rw [← hudef] at h
+      exact h
+    have hyield : 4 / 5 * (n : ℝ) * d
+        ≤ (n : ℝ) * (#{e ∈ roundAliveE K H X S E | u ∈ e} : ℝ)
+          + ((#(kill (roundAliveV K X S E) (roundAliveE K H X S E) u) : ℝ) + 1) * (c * d) :=
+      round_yield hHsum hcod1 hcod2 hEd
+        (hslack X.card S.card (highPairDeg K E).card E.card (by omega) (by omega) (by omega)
+          (card_highPairDeg_mul_le K E hEd)) hdbl
+    refine ih _ _ Y Q _ F hrun (Finset.disjoint_union_left.mpr ⟨hXI, hkillI⟩)
+      (Finset.insert_subset huI hSI) ?_ (roundStep_degree hcod2 hKle X S E u hEdeg) ?_ ?_ ?_
+    · intro e he
+      rcases Finset.mem_union.mp he with h | h
+      · exact hEd e h
+      · exact roundNewPairs_not_isDiag h
+    · intro a ha b hb hmem'
+      rcases Finset.mem_union.mp hmem' with h | h
+      · exact hEI a ha b hb h
+      · exact notMem_roundNewPairs_of_indep hAeH hI huI ha hb h
+    · have hcX : (X ∪ kill (roundAliveV K X S E) (roundAliveE K H X S E) u).card
+          = X.card + (kill (roundAliveV K X S E) (roundAliveE K H X S E) u).card :=
+        Finset.card_union_of_disjoint hkillX
+      have hcS : (insert u S).card = S.card + 1 := Finset.card_insert_of_notMem huS
+      have hcE : (E.card : ℝ) + (#{e ∈ roundAliveE K H X S E | u ∈ e} : ℝ)
+          ≤ ((E ∪ roundNewPairs (roundAliveE K H X S E) u).card : ℝ) := by
+        exact_mod_cast card_union_roundNewPairs h3 K X S E u
+      have hmul : (n : ℝ) * ((E.card : ℝ) + (#{e ∈ roundAliveE K H X S E | u ∈ e} : ℝ))
+          ≤ (n : ℝ) * ((E ∪ roundNewPairs (roundAliveE K H X S E) u).card : ℝ) :=
+        mul_le_mul_of_nonneg_left hcE (Nat.cast_nonneg n)
+      rw [hcX, hcS]
+      push_cast
+      linarith
+    · rw [Finset.card_insert_of_notMem huS]
+      omega
+
+
+
+
+
+
+
+
+
+
+
+
+
 /-- **The run: iterate the round and deliver the first phase's fingerprint.**
 
 The largest of §11.3's nodes, and the analogue of `exists_fingerprint_of_greedy_rule`.  Given a
@@ -1248,7 +1837,205 @@ theorem exists_run_of_container_round (c d : ℝ) (hc : 0 < c) (hd : 0 < d)
         (∀ u ∈ I, ∀ v ∈ I, s(u, v) ∉ E (S I)) ∧
         ((n : ℝ) / (100 * max c 1) ≤ ((R (S I)).card : ℝ) ∨
           (n : ℝ) * Real.sqrt d / (100 * max c 1) ≤ ((E (S I)).card : ℝ)) := by
-  sorry
+  -- `n` and `√d` are positive
+  have hq0 : 0 < Real.sqrt d := Real.sqrt_pos.mpr hd
+  have hnR : (0 : ℝ) < n := lt_of_lt_of_le (by linarith) hqn
+  -- the hypergraph handshake identity: summing degrees counts each edge three times
+  have hhand : ∑ v : Fin n, (#{e ∈ H | v ∈ e} : ℝ) = 3 * (H.card : ℝ) := by
+    have hnat : ∑ v : Fin n, #{e ∈ H | v ∈ e} = 3 * H.card := by
+      have hswap : ∑ v : Fin n, #{e ∈ H | v ∈ e}
+          = ∑ e ∈ H, #{v ∈ (univ : Finset (Fin n)) | v ∈ e} := by
+        simp only [Finset.card_filter]
+        exact Finset.sum_comm
+      have hfil : ∀ e ∈ H, #{v ∈ (univ : Finset (Fin n)) | v ∈ e} = 3 := by
+        intro e he
+        rw [show {v ∈ (univ : Finset (Fin n)) | v ∈ e} = e by ext v; simp]
+        exact h3 e he
+      rw [hswap, Finset.sum_congr rfl hfil, Finset.sum_const, smul_eq_mul, mul_comm]
+    exact_mod_cast hnat
+  -- the maximum degree bound forces `c ≥ 1`, hence `max c 1 = c`
+  have hc1 : (1 : ℝ) ≤ c := by
+    have hub : ∑ v : Fin n, (#{e ∈ H | v ∈ e} : ℝ) ≤ (n : ℝ) * (c * d) := by
+      calc ∑ v : Fin n, (#{e ∈ H | v ∈ e} : ℝ) ≤ ∑ _v : Fin n, c * d :=
+            Finset.sum_le_sum fun v _ =>
+              le_trans (Nat.cast_le.mpr (card_filter_mem_le_codegree H v)) hcod1
+        _ = (n : ℝ) * (c * d) := by
+            rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
+    rw [hhand, hsum] at hub
+    nlinarith only [hub, mul_pos hnR hd]
+  have hM : max c 1 = c := max_eq_left hc1
+  rw [hM] at hn
+  simp only [hM]
+  set q : ℝ := Real.sqrt d with hqdef
+  have hdq : d = q ^ 2 := by rw [hqdef, Real.sq_sqrt hd.le]
+  have h5c : 10 ^ 5 * c ≤ q := by
+    linarith only [hn, mul_nonneg hc.le (sub_nonneg.mpr hc1)]
+  have hq5 : (10 : ℝ) ^ 5 ≤ q := by linarith only [h5c, hc1]
+  have hcsq : (1 : ℝ) ≤ c ^ 2 := by nlinarith only [hc1]
+  -- the thresholds: the forbidden-pair degree cut `K`, the two halting budgets, the round budget
+  set K : ℕ := ⌊c * q⌋₊ with hKdef
+  set bX : ℕ := ⌈(n : ℝ) / (100 * c)⌉₊ with hbXdef
+  set bE : ℕ := ⌈(n : ℝ) * q / (100 * c)⌉₊ with hbEdef
+  set B : ℕ := ⌊(n : ℝ) / (2 * q)⌋₊ with hBdef
+  have hKle : (K : ℝ) ≤ c * q := by rw [hKdef]; exact Nat.floor_le (by positivity)
+  have hKgt : c * q < (K : ℝ) + 1 := by rw [hKdef]; exact Nat.lt_floor_add_one _
+  have hbXle : (n : ℝ) / (100 * c) ≤ (bX : ℝ) := by rw [hbXdef]; exact Nat.le_ceil _
+  have hbEle : (n : ℝ) * q / (100 * c) ≤ (bE : ℝ) := by rw [hbEdef]; exact Nat.le_ceil _
+  have hBle : (B : ℝ) ≤ (n : ℝ) / (2 * q) := by rw [hBdef]; exact Nat.floor_le (by positivity)
+  have hBgt : (n : ℝ) / (2 * q) < (B : ℝ) + 1 := by rw [hBdef]; exact Nat.lt_floor_add_one _
+  -- the slack that makes each round yield `4 * n * d / 5`
+  have hslack : ∀ aX aS aD aE : ℕ, aX < bX → aS ≤ B → aE < bE → aD * (K + 1) ≤ 2 * aE →
+      3 * ((aX : ℝ) + aS + aD) * (c * d) + 3 * (aE : ℝ) * (c * q) ≤ 1 / 5 * (n : ℝ) * d := by
+    intro aX aS aD aE haX haS haE haD
+    have hXlt : (aX : ℝ) * (100 * c) < (n : ℝ) := by
+      rw [hbXdef] at haX
+      exact (lt_div_iff₀ (by positivity)).mp (Nat.lt_ceil.mp haX)
+    have hElt : (aE : ℝ) * (100 * c) < (n : ℝ) * q := by
+      rw [hbEdef] at haE
+      exact (lt_div_iff₀ (by positivity)).mp (Nat.lt_ceil.mp haE)
+    have hSle : (aS : ℝ) * (2 * q) ≤ (n : ℝ) :=
+      (le_div_iff₀ (by positivity)).mp (le_trans (by exact_mod_cast haS) hBle)
+    have hDle : (aD : ℝ) * (c * q) ≤ 2 * (aE : ℝ) := by
+      have hcast : (aD : ℝ) * ((K : ℝ) + 1) ≤ 2 * (aE : ℝ) := by exact_mod_cast haD
+      linarith only [hcast,
+        mul_le_mul_of_nonneg_left hKgt.le (Nat.cast_nonneg aD : (0 : ℝ) ≤ aD)]
+    rw [hdq]
+    have e1 : 3 * (aX : ℝ) * (c * q ^ 2) ≤ 3 / 100 * ((n : ℝ) * q ^ 2) := by
+      linarith only [mul_le_mul_of_nonneg_right hXlt.le (sq_nonneg q)]
+    have e2 : 3 * (aS : ℝ) * (c * q ^ 2) ≤ 3 / 2 * ((n : ℝ) * (c * q)) := by
+      linarith only [mul_le_mul_of_nonneg_right hSle (by positivity : (0 : ℝ) ≤ c * q)]
+    have e3 : 3 * (aD : ℝ) * (c * q ^ 2) ≤ 6 * q * (aE : ℝ) := by
+      linarith only [mul_le_mul_of_nonneg_right hDle hq0.le]
+    have e4 : 6 * q * (aE : ℝ) ≤ 6 / 100 * ((n : ℝ) * q ^ 2) := by
+      have h1 : (aE : ℝ) * 100 ≤ (n : ℝ) * q := by
+        linarith only [hElt,
+          mul_nonneg (Nat.cast_nonneg aE : (0 : ℝ) ≤ aE) (sub_nonneg.mpr hc1)]
+      linarith only [mul_le_mul_of_nonneg_right h1 hq0.le]
+    have e5 : 3 * (aE : ℝ) * (c * q) ≤ 3 / 100 * ((n : ℝ) * q ^ 2) := by
+      linarith only [mul_le_mul_of_nonneg_right hElt.le hq0.le]
+    have e6 : 3 / 2 * ((n : ℝ) * (c * q)) ≤ 3 / (2 * 10 ^ 5) * ((n : ℝ) * q ^ 2) := by
+      linarith only [mul_le_mul_of_nonneg_right h5c (mul_nonneg hnR.le hq0.le)]
+    linarith only [e1, e2, e3, e4, e5, e6, mul_nonneg hnR.le (sq_nonneg q)]
+  -- the fingerprint is the set of selected vertices; the excluded set is chosen by halting mode
+  have hmem := hrule.1
+  have hstab := hrule.2.1
+  refine ⟨fun J => (roundRun K bX bE H pick kill J B ∅ ∅ ∅).2.1,
+    fun J => if bX ≤ (roundRun K bX bE H pick kill J B ∅ ∅ ∅).1.card ∨
+        bE ≤ (roundRun K bX bE H pick kill J B ∅ ∅ ∅).2.2.card then
+      (roundRun K bX bE H pick kill J B ∅ ∅ ∅).1
+      else ((roundRun K bX bE H pick kill J B ∅ ∅ ∅).2.1
+        ∪ highPairDeg K (roundRun K bX bE H pick kill J B ∅ ∅ ∅).2.2)ᶜ,
+    fun J => (roundRun K bX bE H pick kill J B ∅ ∅ ∅).2.2, fun I hI => ?_⟩
+  obtain ⟨Y, Q, F, hYQF⟩ : ∃ Y Q F, roundRun K bX bE H pick kill I B ∅ ∅ ∅ = (Y, Q, F) :=
+    ⟨_, _, _, rfl⟩
+  obtain ⟨hYI, hQI, hFd, hFdeg, hFI, hQB, hhalt⟩ :=
+    roundRun_invariants h3 hsum hcod1 hcod2 hKle hslack hrule hI
+      B ∅ ∅ Y Q ∅ F hYQF (by simp) (by simp) (by simp)
+      (fun v => by
+        simp only [Finset.filter_empty, Finset.card_empty, Nat.cast_zero]
+        positivity)
+      (by simp) (by simp) (by simp)
+  -- replaying on the fingerprint reproduces the run, which is both stability and how `R` and
+  -- `E` are recovered from `S I`
+  have hreplay : ∀ J : Finset (Fin n), Q ⊆ J → J ⊆ I →
+      roundRun K bX bE H pick kill J B ∅ ∅ ∅ = (Y, Q, F) := fun J hQJ hJI => by
+    rw [roundRun_replay K bX bE H pick kill hmem hstab B I J ∅ ∅ ∅
+      (by rw [hYQF]; exact hQJ) hJI, hYQF]
+  have hQQ : roundRun K bX bE H pick kill Q B ∅ ∅ ∅ = (Y, Q, F) :=
+    hreplay Q (Finset.Subset.refl _) hQI
+  simp only [hYQF, hQQ]
+  have hQcard : (Q.card : ℝ) ≤ (n : ℝ) / (2 * q) := le_trans (by exact_mod_cast hQB) hBle
+  have hQb : (Q.card : ℝ) * (2 * q) ≤ (n : ℝ) := (le_div_iff₀ (by positivity)).mp hQcard
+  have hBn : (n : ℝ) < ((B : ℝ) + 1) * (2 * q) := (div_lt_iff₀ (by positivity)).mp hBgt
+  have hstabfin : ∀ J : Finset (Fin n), Q ⊆ J → J ⊆ I →
+      (roundRun K bX bE H pick kill J B ∅ ∅ ∅).2.1 = Q := fun J hQJ hJI => by
+    rw [hreplay J hQJ hJI]
+  by_cases hcase : bX ≤ Y.card ∨ bE ≤ F.card
+  · -- a threshold fired: the excluded set is the retired set, which misses `I`
+    rw [if_pos hcase]
+    refine ⟨hQI, hQcard, hstabfin, ?_, hFd, hFdeg, hFI, ?_⟩
+    · intro x hx
+      exact Finset.mem_union_right _
+        (Finset.mem_compl.mpr fun hxY => Finset.disjoint_left.mp hYI hxY hx)
+    · rcases hcase with hX | hE
+      · exact Or.inl (le_trans hbXle (by exact_mod_cast hX))
+      · exact Or.inr (le_trans hbEle (by exact_mod_cast hE))
+  · -- no threshold fired, so the run exhausted the alive vertices of `I`
+    rw [if_neg hcase]
+    rw [not_or] at hcase
+    have hXlt : Y.card < bX := Nat.lt_of_not_le hcase.1
+    have hElt : F.card < bE := Nat.lt_of_not_le hcase.2
+    have hYb : (Y.card : ℝ) * (100 * c) < (n : ℝ) := by
+      rw [hbXdef] at hXlt
+      exact (lt_div_iff₀ (by positivity)).mp (Nat.lt_ceil.mp hXlt)
+    have hFb : (F.card : ℝ) * (100 * c) < (n : ℝ) * q := by
+      rw [hbEdef] at hElt
+      exact (lt_div_iff₀ (by positivity)).mp (Nat.lt_ceil.mp hElt)
+    have hIcov : I ⊆ Q ∪ highPairDeg K F := by
+      rcases hhalt with h | h | h | h
+      · exact absurd h hcase.1
+      · exact absurd h hcase.2
+      · exact h
+      · -- the round budget cannot run out while both thresholds are unmet
+        exfalso
+        rw [hdq] at h
+        have hlhs : 2 / 5 * ((n : ℝ) * q) * ((n : ℝ) - 2 * q)
+            ≤ 4 / 5 * (n : ℝ) * q ^ 2 * (B : ℝ) := by
+          linarith only [mul_le_mul_of_nonneg_left
+            (by linarith only [hBn] : (n : ℝ) - 2 * q ≤ (B : ℝ) * (2 * q))
+            (by positivity : (0 : ℝ) ≤ 2 / 5 * ((n : ℝ) * q))]
+        have p1 : (n : ℝ) * (F.card : ℝ) ≤ 1 / 100 * ((n : ℝ) * (n : ℝ) * q) := by
+          have h1 : (F.card : ℝ) * 100 ≤ (n : ℝ) * q := by
+            linarith only [hFb, mul_nonneg
+              (Nat.cast_nonneg F.card : (0 : ℝ) ≤ (F.card : ℝ)) (sub_nonneg.mpr hc1)]
+          linarith only [mul_le_mul_of_nonneg_left h1 hnR.le]
+        have p2 : (Y.card : ℝ) * (c * q ^ 2) ≤ 1 / 100 * ((n : ℝ) * q ^ 2) := by
+          linarith only [mul_le_mul_of_nonneg_right hYb.le (sq_nonneg q)]
+        have p3 : (Q.card : ℝ) * (c * q ^ 2) ≤ 1 / (2 * 10 ^ 5) * ((n : ℝ) * q ^ 2) := by
+          linarith only [mul_le_mul_of_nonneg_right hQb (by positivity : (0 : ℝ) ≤ c * q),
+            mul_le_mul_of_nonneg_right h5c (mul_nonneg hnR.le hq0.le)]
+        have p4 : (n : ℝ) * q ^ 2 ≤ 1 / 4 * ((n : ℝ) * (n : ℝ) * q) := by
+          linarith only [mul_le_mul_of_nonneg_left hqn (mul_nonneg hnR.le hq0.le)]
+        have hpos : (0 : ℝ) < (n : ℝ) * (n : ℝ) * q := by positivity
+        linarith only [h, hlhs, p1, p2, p3, p4, hpos]
+    refine ⟨hQI, hQcard, hstabfin, ?_, hFd, hFdeg, hFI, ?_⟩
+    · intro x hx
+      rw [compl_compl]
+      exact Finset.mem_union_right _ (hIcov hx)
+    · -- the container `S I ∪ D` leaves out all but a `1/50` fraction of the vertices
+      refine Or.inl ?_
+      have hcompl : (((Q ∪ highPairDeg K F)ᶜ).card : ℝ)
+          = (n : ℝ) - ((Q ∪ highPairDeg K F).card : ℝ) := by
+        rw [Finset.card_compl, Fintype.card_fin,
+          Nat.cast_sub (by simpa using Finset.card_le_univ (Q ∪ highPairDeg K F))]
+      rw [hcompl]
+      have hUc : ((Q ∪ highPairDeg K F).card : ℝ)
+          ≤ (Q.card : ℝ) + ((highPairDeg K F).card : ℝ) := by
+        exact_mod_cast Finset.card_union_le Q (highPairDeg K F)
+      have hD1 : ((highPairDeg K F).card : ℝ) * ((K : ℝ) + 1) ≤ 2 * (F.card : ℝ) := by
+        exact_mod_cast card_highPairDeg_mul_le K F hFd
+      have hD2 : ((highPairDeg K F).card : ℝ) * (c * q) ≤ 2 * (F.card : ℝ) := by
+        linarith only [hD1, mul_le_mul_of_nonneg_left hKgt.le
+          (Nat.cast_nonneg (highPairDeg K F).card :
+            (0 : ℝ) ≤ ((highPairDeg K F).card : ℝ))]
+      have hD3 : 100 * ((highPairDeg K F).card : ℝ) * c ^ 2 * q < 2 * ((n : ℝ) * q) := by
+        linarith only [mul_le_mul_of_nonneg_right hD2 (by positivity : (0 : ℝ) ≤ 100 * c), hFb]
+      have hD4 : 100 * ((highPairDeg K F).card : ℝ) * c ^ 2 < 2 * (n : ℝ) :=
+        lt_of_mul_lt_mul_right (by linarith only [hD3]) hq0.le
+      have hD0 : (0 : ℝ) ≤ ((highPairDeg K F).card : ℝ) := Nat.cast_nonneg _
+      have hQ0 : (0 : ℝ) ≤ (Q.card : ℝ) := Nat.cast_nonneg _
+      have hD5 : ((highPairDeg K F).card : ℝ) * 100 < 2 * (n : ℝ) := by
+        linarith only [hD4, mul_le_mul_of_nonneg_left hcsq
+          (by linarith only [hD0] : (0 : ℝ) ≤ 100 * ((highPairDeg K F).card : ℝ))]
+      have hQ5 : (Q.card : ℝ) * (2 * 10 ^ 5) ≤ (n : ℝ) := by
+        linarith only [hQb, mul_le_mul_of_nonneg_left hq5
+          (by linarith only [hQ0] : (0 : ℝ) ≤ 2 * (Q.card : ℝ))]
+      have hdivc : (n : ℝ) / (100 * c) ≤ (n : ℝ) / 100 := by
+        rw [div_le_div_iff₀ (by positivity) (by norm_num)]
+        nlinarith only [hc1, hnR]
+      linarith only [hdivc, hUc, hD5, hQ5, hnR]
+
+
 
 /-- **The dense branch of §11.3: containers from a dense graph of forbidden pairs.**
 
