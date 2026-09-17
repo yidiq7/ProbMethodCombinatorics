@@ -799,6 +799,31 @@ theorem janson_prob_none_le [Countable ι] (p : I) (S : κ → Set ι) (D : Fins
   rw [hP, h1, h2, h3] at huniv
   exact huniv
 
+/-- **Triples off the dependency set span disjoint edge sets.**  This is the hypothesis
+`janson_prob_none_le` and `janson_prob_none_le_of_mu_le` both ask for, at the triangle family.
+
+Distinct triples that are not dependent share at most one vertex, and `offDiagPairs` of a set of
+size at most one is empty — `card_offDiagPairs_add` gives `binom(1,2) = 0` and `binom(2,2) = 1`.
+`offDiagPairs_inter` then turns that emptiness into disjointness without naming any element. -/
+private theorem disjoint_offDiagPairs_of_notMem_triangleDependency {n : ℕ}
+    (A B : {T : Finset (Fin n) // T.card = 3}) (hne : A ≠ B)
+    (hnotD : (A, B) ∉ triangleDependency n) :
+    Disjoint (↑(offDiagPairs (A : Finset (Fin n))) : Set (Sym2 (Fin n)))
+      (↑(offDiagPairs (B : Finset (Fin n))) : Set (Sym2 (Fin n))) := by
+  have hmem : ((A, B) ∈ triangleDependency n) ↔
+      (A ≠ B ∧ 2 ≤ ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))).card) := by
+    simp [triangleDependency]
+  have hle : ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))).card ≤ 1 := by
+    by_contra hcon
+    exact hnotD (hmem.2 ⟨hne, by omega⟩)
+  have h := card_offDiagPairs_add ((A : Finset (Fin n)) ∩ (B : Finset (Fin n)))
+  have hc : ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))).card = 0 ∨
+      ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))).card = 1 := by omega
+  have hempty : offDiagPairs ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))) = ∅ := by
+    rcases hc with hc | hc <;> rw [hc] at h <;> simpa [Nat.choose] using h
+  rw [Finset.disjoint_coe, Finset.disjoint_iff_inter_eq_empty, offDiagPairs_inter]
+  exact hempty
+
 /-- **`G(n, p)` is triangle-free with probability at most `exp (-binom(n,3) p³ + n⁴p⁵/2)`**
 (Zhao, Question 8.1.5, the finite form behind Theorem 8.1.6).
 
@@ -817,24 +842,7 @@ theorem binomialRandom_no_triangle_le (n : ℕ) (p : I) :
       ≤ Real.exp (-((n.choose 3 : ℝ) * (p : ℝ) ^ 3) + (n : ℝ) ^ 4 * (p : ℝ) ^ 5 / 2) := by
   -- Triples meeting in at most one vertex span disjoint edge sets: a shared edge would put two
   -- shared vertices in the intersection, and `offDiagPairs` of a set of size `≤ 1` is empty.
-  have hD : ∀ A B : {T : Finset (Fin n) // T.card = 3}, A ≠ B →
-      (A, B) ∉ triangleDependency n →
-      Disjoint (↑(offDiagPairs (A : Finset (Fin n))) : Set (Sym2 (Fin n)))
-        (↑(offDiagPairs (B : Finset (Fin n))) : Set (Sym2 (Fin n))) := by
-    intro A B hne hnotD
-    have hmem : ((A, B) ∈ triangleDependency n) ↔
-        (A ≠ B ∧ 2 ≤ ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))).card) := by
-      simp [triangleDependency]
-    have hle : ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))).card ≤ 1 := by
-      by_contra hcon
-      exact hnotD (hmem.2 ⟨hne, by omega⟩)
-    have h := card_offDiagPairs_add ((A : Finset (Fin n)) ∩ (B : Finset (Fin n)))
-    have hc : ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))).card = 0 ∨
-        ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))).card = 1 := by omega
-    have hempty : offDiagPairs ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))) = ∅ := by
-      rcases hc with hc | hc <;> rw [hc] at h <;> simpa [Nat.choose] using h
-    rw [Finset.disjoint_coe, Finset.disjoint_iff_inter_eq_empty, offDiagPairs_inter]
-    exact hempty
+  have hD := disjoint_offDiagPairs_of_notMem_triangleDependency (n := n)
   -- Janson's inequality on the triangle family, with `μ` substituted exactly.
   have hmain := janson_prob_none_le p
     (fun T : {T : Finset (Fin n) // T.card = 3} =>
@@ -1148,24 +1156,7 @@ theorem binomialRandom_no_triangle_le_of_one_le (n : ℕ) (hn : 4 ≤ n) (p : I)
       ≤ Real.exp (-((n.choose 3 : ℝ) * (p : ℝ) / (6 * ((n : ℝ) - 3)))) := by
   -- Triples meeting in at most one vertex span disjoint edge sets: a shared edge would put two
   -- shared vertices in the intersection, and `offDiagPairs` of a set of size `≤ 1` is empty.
-  have hD : ∀ A B : {T : Finset (Fin n) // T.card = 3}, A ≠ B →
-      (A, B) ∉ triangleDependency n →
-      Disjoint (↑(offDiagPairs (A : Finset (Fin n))) : Set (Sym2 (Fin n)))
-        (↑(offDiagPairs (B : Finset (Fin n))) : Set (Sym2 (Fin n))) := by
-    intro A B hne hnotD
-    have hmem : ((A, B) ∈ triangleDependency n) ↔
-        (A ≠ B ∧ 2 ≤ ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))).card) := by
-      simp [triangleDependency]
-    have hle : ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))).card ≤ 1 := by
-      by_contra hcon
-      exact hnotD (hmem.2 ⟨hne, by omega⟩)
-    have h := card_offDiagPairs_add ((A : Finset (Fin n)) ∩ (B : Finset (Fin n)))
-    have hc : ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))).card = 0 ∨
-        ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))).card = 1 := by omega
-    have hempty : offDiagPairs ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))) = ∅ := by
-      rcases hc with hc | hc <;> rw [hc] at h <;> simpa [Nat.choose] using h
-    rw [Finset.disjoint_coe, Finset.disjoint_iff_inter_eq_empty, offDiagPairs_inter]
-    exact hempty
+  have hD := disjoint_offDiagPairs_of_notMem_triangleDependency (n := n)
   -- Positivity of the three factors that the cancellation divides by.
   have h3n : 3 ≤ n := by omega
   have hnR : (4 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn
