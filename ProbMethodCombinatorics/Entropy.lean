@@ -2,6 +2,7 @@ import Mathlib.Analysis.SpecialFunctions.Log.Base
 import Mathlib.Analysis.SpecialFunctions.BinaryEntropy
 import Mathlib.LinearAlgebra.Matrix.Permanent
 import Mathlib.Combinatorics.SimpleGraph.Finite
+import Mathlib.Combinatorics.SimpleGraph.Matching
 
 /-!
 # Chapter 10: Entropy
@@ -1991,5 +1992,65 @@ theorem sum_choose_le_exp_binEntropy {n k : ℕ} (hk : 0 < k) (h2k : 2 * k ≤ n
   push_cast
   rw [hlog, Real.exp_log (by positivity), le_div_iff₀ (by positivity)]
   exact key
+
+/-! ### 10.2 Kahn–Lovász: the bipartite double cover
+
+Corollary 10.2.2 reduces to Brégman–Minc — proved above as `permanent_le_prod_factorial` — via
+the bipartite double cover.  Both objects the reduction needs are absent from Mathlib and are
+authored here: `SimpleGraph.Subgraph.IsPerfectMatching` exists only as a predicate, with no
+count, and Mathlib's `□` (`boxProd`) is the **Cartesian** product, not the one wanted.
+-/
+
+section DoubleCover
+
+variable {V : Type*}
+
+/-- The **bipartite double cover** `G × K₂`: vertices `V × Bool`, with `(u, i)` adjacent to
+`(v, j)` when `u` and `v` are adjacent in `G` *and* `i ≠ j`.
+
+**This is the tensor product, not Mathlib's `boxProd`.**  `boxProd` joins `(u, i)` to `(v, j)`
+when `u = v ∧ i ≠ j` or `i = j ∧ u ~ v`, which is a different graph: on `K₂` the double cover is
+`2K₂`, two disjoint edges, while `boxProd` gives the 4-cycle.  Reaching for `□` here would build
+a graph about which every subsequent theorem is true and useless.
+
+`fromRel` supplies symmetry and looplessness, and recovers exactly the intended relation: the
+underlying relation is already symmetric, and `i ≠ j` forces `(u, i) ≠ (v, j)`. -/
+def doubleCover (G : SimpleGraph V) : SimpleGraph (V × Bool) :=
+  SimpleGraph.fromRel fun a b => G.Adj a.1 b.1 ∧ a.2 ≠ b.2
+
+@[simp] theorem doubleCover_adj {G : SimpleGraph V} {a b : V × Bool} :
+    (doubleCover G).Adj a b ↔ G.Adj a.1 b.1 ∧ a.2 ≠ b.2 := by
+  simp only [doubleCover, SimpleGraph.fromRel_adj]
+  constructor
+  · rintro ⟨_, ⟨h, h2⟩ | ⟨h, h2⟩⟩
+    · exact ⟨h, h2⟩
+    · exact ⟨h.symm, h2.symm⟩
+  · rintro ⟨h, h2⟩
+    exact ⟨fun hab => h2 (by rw [hab]), Or.inl ⟨h, h2⟩⟩
+
+/-- The number of perfect matchings of `G`, written `pm(G)` in the source.
+
+`Nat.card` rather than a `Finset.card`: `Subgraph.IsPerfectMatching` has no `DecidablePred`
+instance and this project declares none.  For finite `V` the subtype is `Finite`, so the count is
+the honest cardinality and not `Nat.card`'s junk value at infinite types. -/
+noncomputable def perfectMatchingCount [Fintype V] (G : SimpleGraph V) : ℕ :=
+  Nat.card {M : G.Subgraph // M.IsPerfectMatching}
+
+/-- **The double cover's perfect matchings are the permanent of the adjacency matrix.**
+
+A perfect matching of `G × K₂` sends each `(u, false)` to some `(σ u, true)`, and covering the
+`true` side forces `σ` to be a bijection; adjacency in the double cover says exactly that `u` and
+`σ u` are adjacent in `G`.  So perfect matchings correspond to the permutations counted by
+`permSupport` of the adjacency matrix.
+
+This is the bridge from Corollary 10.2.2 to `permanent_le_prod_factorial`: with
+`permanent_eq_card_permSupport` it turns a statement about perfect matchings into one about a
+permanent, which Brégman–Minc then bounds. -/
+theorem perfectMatchingCount_doubleCover {n : ℕ} (G : SimpleGraph (Fin n)) [DecidableRel G.Adj] :
+    perfectMatchingCount (doubleCover G)
+      = (univ.filter fun σ : Equiv.Perm (Fin n) => ∀ i, G.Adj i (σ i)).card := by
+  sorry
+
+end DoubleCover
 
 end ProbMethodCombinatorics
