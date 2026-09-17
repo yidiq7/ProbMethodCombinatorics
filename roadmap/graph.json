@@ -905,8 +905,8 @@
         "is_dependency_graph",
         "lll_symmetric",
         "pattern",
+        "uniformColoring_monochromatic_toReal_le",
         "uniform_coloring",
-        "uniform_coloring_const",
         "uniform_coloring_indep"
       ]
     },
@@ -4547,7 +4547,13 @@
       "uses": [
         "triangleCount"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "integral_triangleCount",
+        "measurable_triangleCount",
+        "memLp_triangleCount",
+        "prob_zero_bound",
+        "variance_triangleCount_le"
+      ]
     },
     "twoColorable_of_sum_inv_two_pow_le": {
       "kind": "theorem",
@@ -4559,7 +4565,113 @@
       "uses": [
         "two_colorable"
       ],
+      "proof_uses": [
+        "instIsProbabilityMeasureForallBoolUniformColoring",
+        "is_dependency_graph",
+        "lll_sum",
+        "pattern",
+        "uniformColoring_monochromatic_toReal_le",
+        "uniform_coloring",
+        "uniform_coloring_indep"
+      ]
+    },
+    "copyCount": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.copyCount",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "transportedEdges"
+      ]
+    },
+    "edgeVertexRatio": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.edgeVertexRatio",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
       "proof_uses": []
+    },
+    "edgeVertexRatio_le_maxEdgeVertexRatio": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.edgeVertexRatio_le_maxEdgeVertexRatio",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "edgeVertexRatio",
+        "maxEdgeVertexRatio"
+      ],
+      "proof_uses": []
+    },
+    "integral_copyCount": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.integral_copyCount",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "copyCount"
+      ],
+      "proof_uses": []
+    },
+    "map_inter_setBernoulli": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.map_inter_setBernoulli",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
+    },
+    "maxEdgeVertexRatio": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.maxEdgeVertexRatio",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "edgeVertexRatio"
+      ]
+    },
+    "maxEdgeVertexRatio_nonneg": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.maxEdgeVertexRatio_nonneg",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "maxEdgeVertexRatio"
+      ],
+      "proof_uses": [
+        "edgeVertexRatio"
+      ]
+    },
+    "transportedEdges": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.transportedEdges",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "uniformColoring_monochromatic_toReal_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.uniformColoring_monochromatic_toReal_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "uniform_coloring"
+      ],
+      "proof_uses": [
+        "uniform_coloring_const"
+      ]
     }
   }
 }

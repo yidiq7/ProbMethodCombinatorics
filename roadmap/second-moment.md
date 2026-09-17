@@ -76,7 +76,23 @@ idempotent, so `Var X i ≤ 𝔼 X i`), and bound each remaining term by `ℙ(A 
   the last blocker on §4.1, §4.2 and Theorem 11.1.5 alike.
 - **`subgraph_threshold`** — Theorem 4.2.10 (Bollobás 1981): `n^{-1/m(H)}` is the
   threshold for containing a fixed `H`, where `m(H)` is the maximum edge-vertex ratio over
-  subgraphs. Needs Definition 4.2.7 (`ρ`, `m`) as shared definitions first.
+  subgraphs.  **Definition 4.2.7 is authored as of 2026-09-17** — `edgeVertexRatio` (`ρ`) and
+  `maxEdgeVertexRatio` (`m`) — together with `copyCount`, the labelled-copy count the threshold
+  is stated against, and its first moment `integral_copyCount` (#195).
+
+  **`m(H)` maximises over vertex subsets, not over `SimpleGraph.Subgraph`, and that is an
+  equality rather than a simplification.**  Within a fixed vertex set, adding an edge raises
+  `e_{H'}` and leaves `v_{H'}` alone, so the densest subgraph on a given vertex set is the
+  induced one; and every subgraph has a vertex set.  Choosing subsets keeps the definition free
+  of `Subgraph` finiteness instances and of any `Decidable` hypothesis — `Set.ncard` needs
+  neither.  Verified against Example 4.2.8 before committing: for `K₄` with a pendant edge the
+  definition returns `ρ(H) = 7/5` and `m(H) = 3/2`, which is what the source states, and the
+  maximum over *all* subgraphs was computed separately and agrees.
+
+  What remains for the threshold itself is the second moment — `Δ*` of Setup 4.2.2 — and then
+  the two halves in the `whp` idiom, with the 0-statement running on the densest subgraph `H'`
+  rather than on `H` (Example 4.2.6 is the reason: the first moment of `H` alone gives the wrong
+  answer, `n^{-5/7}` instead of `n^{-2/3}`).
 - **`clique_number`** — §4.4, the clique number of a random graph.
 - **`hardy_ramanujan`** — §4.5. **Blocked on Mertens' theorem, which Mathlib does not have.**
   The earlier note here said the statement is expressible — `ArithmeticFunction.cardDistinctFactors`
