@@ -58,7 +58,17 @@ idempotent, so `Var X i ≤ 𝔼 X i`), and bound each remaining term by `ℙ(A 
   variable over `binomialRandom` (an orchestrator-authored definition) and a settled `whp`
   idiom.  The natural first nodes are then the two finite moment computations,
   `𝔼X = binom(n,3) p³` and the variance bound; those are publishable the moment the count
-  exists.
+  exists.  **Both are stated and published as of 2026-09-17** — `integral_triangleCount` (#181)
+  and `variance_triangleCount_le` (#182) — on the back of `triangleCount`, authored centrally.
+
+  **`triangleCount` is written with `Set.indicator`, not a clique filter**, and that is forced:
+  the measure ranges over *all* graphs on `Fin n`, where no `DecidableRel G.Adj` is available,
+  and this project declares no `Decidable` instances.  The same expression is therefore both the
+  random variable and, integrated, the expected count.  Sanity-checked before publishing — the
+  empty graph on three vertices has count `0`.
+
+  What remains for the threshold itself is the **`whp` idiom**, which is still unsettled and is
+  the last blocker on §4.1, §4.2 and Theorem 11.1.5 alike.
 - **`subgraph_threshold`** — Theorem 4.2.10 (Bollobás 1981): `n^{-1/m(H)}` is the
   threshold for containing a fixed `H`, where `m(H)` is the maximum edge-vertex ratio over
   subgraphs. Needs Definition 4.2.7 (`ρ`, `m`) as shared definitions first.

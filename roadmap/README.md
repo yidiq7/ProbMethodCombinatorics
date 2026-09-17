@@ -74,6 +74,14 @@ edge-count bound the book proves, so the edge-count bound stays a task.
 
 ### Decisions that still bind
 
+- **`whp` is written out, never as a filter or an `o(1)`** — *for every `ε > 0` there is a
+  threshold making the probability at least `1 - ε`*.  A hypothesis like `p ≪ 1/n` becomes a `δ`
+  bounding `p · n`, so no sequence of graphs and no limit appears in any statement.  This extends
+  the `ε`–`N` convention Chapters 5 and 11 already use to the probabilistic setting, and
+  `prob_no_triangle_of_mul_le` in `SecondMoment.lean` is the reference instance to copy.
+  **Prefer the form with no `N`** where the estimate is uniform in `n`, as Markov's is; reach for
+  `∃ N, ∀ n ≥ N` only when the argument genuinely needs `n` large, as Chebyshev's does.
+
 - **No measure theory in Chapters 1–3.** Every argument there is finite averaging, and the
   statements are phrased as pure existence/counting claims over `Finset` and `Fintype`
   so that proofs are counting arguments rather than `MeasureTheory` developments.
@@ -97,6 +105,50 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   cases.
 
 ## Log
+
+- **2026-09-17 — the `whp` idiom is settled, and §4.1's subcritical threshold published (#183).**
+  This was the single convention blocking §4.1's threshold, §4.2's `subgraph_threshold`, Janson's
+  three asymptotic nodes and Theorem 11.1.5.  It is now a binding decision above, and
+  `prob_no_triangle_of_mul_le` is the reference instance.
+
+  **The choice worth recording is what it avoids.**  A `Whp` *predicate* would have to quantify
+  over a family of probability spaces whose type varies with `n` — `SimpleGraph (Fin n)` — which
+  is dependent machinery the project has no other use for.  Writing the quantifiers out costs one
+  line per statement and keeps every asymptotic node in the same idiom the rest of the book
+  already uses.
+
+  **And the subcritical half needs no `N` at all**, which is why it is stated first: Markov's
+  bound is uniform in `n` (`𝔼X ≤ (p·n)³/6 ≤ δ³/6`), so `δ` depends on `ε` alone.  I verified the
+  arithmetic and that `binom(n,3) ≤ n³/6` holds without exception before stating it.  The
+  supercritical half is **deliberately unpublished**: it needs both a scale `M` and an `N`, and it
+  leans on `variance_triangleCount_le`, whose constants could still move — stating it now would
+  risk a second statement built on an unsettled one.
+
+- **2026-09-17 — §4.1's triangle count is authored and its two moments published (#181, #182).**
+  The goal is now the whole book rather than the stated frontier, so the work is authoring the
+  planned nodes, not only reviewing.  A survey of `graph.json` puts the remaining unstated count
+  at **19 nodes across six groups**, and they split cleanly:
+
+  * **Blocked on absent Mathlib infrastructure, and not tasks**: `hardy_ramanujan` (needs Mertens'
+    theorem — a whole analytic-number-theory project), `isoperimetry`, `talagrand`,
+    `euclidean_tsp`, and behind them `shamir_spencer` and `clique_number_bollobas`.
+  * **Blocked on definitions the orchestrator owes** — which is the actionable half, and where
+    this session starts.
+
+  `triangleCount` is the first of those debts paid.  It is written with `Set.indicator` over a set
+  of graphs rather than a filter on a clique predicate, because the measure ranges over *all*
+  graphs on `Fin n` and no `DecidableRel G.Adj` is available there — a filter would need a
+  `Decidable` instance this project does not declare.  Public, since both moment nodes mention it.
+  Sanity-checked before publishing: the empty graph on three vertices has count `0`, proved.
+
+  The two nodes are exactly the ones `second-moment.md` predicted would become publishable "the
+  moment the count exists": the first moment `binom(n,3) p³`, and a deliberately crude variance
+  bound `n³p³ + n⁴p⁵` whose constants are loose so the prover need not track exact binomials.
+  `variance_sum_indicator_le`, already proved in that file, is built for the second.
+
+  **Next debt: the `whp` idiom.**  It is the single blocker shared by §4.1's threshold, §4.2's
+  `subgraph_threshold`, Janson's three asymptotic nodes and Theorem 11.1.5 — the highest-leverage
+  convention left to settle.
 
 - **2026-09-16 — `exists_container_round` was FALSE as I stated it; repaired, and #176 re-pinned to `348f7d3`.**
   The contributor holding #176 refuted it with a kernel-checked counterexample instead of grinding

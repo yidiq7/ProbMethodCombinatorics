@@ -4329,6 +4329,28 @@
         "triangleCount"
       ],
       "proof_uses": []
+    },
+    "prob_no_triangle_of_mul_le": {
+      "kind": "theorem",
+      "parent": "second_moment",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.prob_no_triangle_of_mul_le",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "triangleCount"
+      ],
+      "proof_uses": []
+    },
+    "exists_independent_transversal": {
+      "kind": "theorem",
+      "parent": "local_lemma",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.exists_independent_transversal",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": []
     }
   }
 }

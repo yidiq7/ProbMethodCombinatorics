@@ -680,4 +680,24 @@ theorem variance_triangleCount_le (n : ℕ) (p : I) :
   have h5 : (0 : ℝ) ≤ (p : ℝ) ^ 5 := by positivity
   exact add_le_add (by gcongr) (by gcongr)
 
+/-- **The subcritical half of the triangle threshold** (Zhao, Proposition 4.1.2): when `p·n` is
+small, `G(n, p)` has no triangle with high probability.
+
+**This is the project's `whp` idiom, and it is the reference for every later use.**  "Whp" is
+written out with explicit quantifiers, never as a filter or an `o(1)`, matching the convention
+Chapter 5 and Chapter 11 already follow: *for every `ε > 0` there is a threshold such that the
+probability is at least `1 - ε`*.  The hypothesis "`p ≪ 1/n`" becomes a `δ` bounding `p · n`, so
+no sequence of graphs and no limit appears anywhere.
+
+**No `N` is needed on this half**, which is why it is stated before its supercritical twin.
+Markov gives a bound uniform in `n`: `𝔼X = binom(n,3) p³ ≤ (p·n)³/6 ≤ δ³/6`, and since
+`triangleCount` is integer-valued, `ℙ(X ≠ 0) = ℙ(X ≥ 1) ≤ 𝔼X`.  Taking `δ = min 1 (6ε)^{1/3}`
+makes `δ³/6 ≤ ε`.  The supercritical half needs both a scale `M` and an `N`, because Chebyshev's
+error `36/(n³p³) + 36/(n²p)` only vanishes once `n` is large as well — it waits on
+`variance_triangleCount_le`. -/
+theorem prob_no_triangle_of_mul_le :
+    ∀ ε : ℝ, 0 < ε → ∃ δ > 0, ∀ (n : ℕ) (p : I), (p : ℝ) * n ≤ δ →
+      1 - ε ≤ (binomialRandom (Fin n) p {G | triangleCount G = 0}).toReal := by
+  sorry
+
 end ProbMethodCombinatorics
