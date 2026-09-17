@@ -1,3 +1,4 @@
+import Mathlib.Combinatorics.SimpleGraph.Finite
 import Mathlib.Probability.Independence.Basic
 import Mathlib.Analysis.SpecialFunctions.Exp
 import Mathlib.Analysis.Complex.ExponentialBounds
@@ -860,6 +861,33 @@ theorem lt_ramseyNumber_of_local_lemma (n k : ℕ) (hk : 2 ≤ k)
     obtain ⟨S, hcard, hmono⟩ :=
       hmem.mono (Nat.not_lt.1 hlt) (fun i j => x {i, j}) hsymm
     exact hno S hcard hmono
+
+/-- **Independent transversals** (Zhao, §6.3): a graph of maximum degree `Δ` whose vertices are
+partitioned into parts, each larger than `2eΔ`, has an independent set containing exactly one
+vertex from every part.
+
+The transversal is returned as a choice function `f` picking a vertex out of each part —
+`part (f j) = j` — which is automatically injective, so the two conclusions say exactly that the
+chosen vertices form an independent transversal.
+
+**The size hypothesis is strict, and that is a repair rather than a transcription.**  The source
+asks for parts of size `≥ 2eΔ`.  At `Δ = 0` that reads `0 ≤ |part|`, which permits an **empty**
+part — and then no transversal exists and the statement is false.  Strict `<` forces every part
+nonempty at every `Δ`, and costs nothing above `Δ = 0` since the bound is already far from tight:
+Haxell's theorem gets by with parts of size `2Δ`, so `2eΔ ≈ 5.44Δ` has room to spare.
+
+**Route.**  Choose one vertex uniformly at random from each part, independently.  For each edge
+whose endpoints lie in *different* parts, let its bad event be that both endpoints were chosen;
+its probability is at most `1/(2eΔ)²`.  Two bad events are dependent only when their edges meet a
+common part, which bounds the dependency degree, and `lovasz_local_lemma_symmetric` then gives a
+positive probability that no bad event occurs.  Edges inside a single part need no event: at most
+one vertex per part is ever chosen. -/
+theorem exists_independent_transversal {n : ℕ} {ι : Type*} [Fintype ι] [DecidableEq ι]
+    (G : SimpleGraph (Fin n)) [DecidableRel G.Adj] (Δ : ℕ) (part : Fin n → ι)
+    (hdeg : ∀ v, G.degree v ≤ Δ)
+    (hsize : ∀ j : ι, 2 * Real.exp 1 * Δ < ((univ.filter fun v => part v = j).card : ℝ)) :
+    ∃ f : ι → Fin n, (∀ j, part (f j) = j) ∧ ∀ j k, j ≠ k → ¬ G.Adj (f j) (f k) := by
+  sorry
 
 end Applications
 
