@@ -521,35 +521,53 @@ theorem uniformColoring_const (T : Finset κ) (b : Bool) :
   rw [Finset.prod_congr rfl (fun a _ => hrew a), Finset.prod_ite_mem, Finset.univ_inter,
     Finset.prod_const]
 
+/-- **Events determined by disjoint sets of coordinates are independent** (Setup 6.1.5), for an
+arbitrary finite product of probability measures.
+
+`S₁` may depend only on the coordinates in `T`, and `S₂` only on those outside it.  The two
+uniform measures this chapter uses — `uniformColoring` on `κ → Bool` and the choice measure on
+`ι → Fin n` — are both instances, and both call it rather than repeating the argument.
+
+Finiteness of the fibres is what makes every set measurable, which is what
+`IndepFun.measure_inter_preimage_eq_mul` needs; `S₁` and `S₂` therefore carry no measurability
+hypothesis. -/
+theorem measure_pi_inter_eq_mul {ι : Type*} [Fintype ι] [DecidableEq ι] {α : ι → Type*}
+    [∀ i, MeasurableSpace (α i)] [∀ i, Finite (α i)] [∀ i, MeasurableSingletonClass (α i)]
+    (ν : ∀ i, Measure (α i)) [∀ i, IsProbabilityMeasure (ν i)]
+    (T : Finset ι) (S₁ S₂ : Set (∀ i, α i))
+    (h₁ : ∀ x y : ∀ i, α i, (∀ a ∈ T, x a = y a) → (x ∈ S₁ ↔ y ∈ S₁))
+    (h₂ : ∀ x y : ∀ i, α i, (∀ a ∉ T, x a = y a) → (x ∈ S₂ ↔ y ∈ S₂)) :
+    Measure.pi ν (S₁ ∩ S₂) = Measure.pi ν S₁ * Measure.pi ν S₂ := by
+  have hindep : iIndepFun (fun (a : ι) (x : ∀ i, α i) => x a) (Measure.pi ν) :=
+    ProbabilityTheory.iIndepFun_pi (μ := ν) (X := fun i => (id : α i → α i))
+      (fun _ => aemeasurable_id)
+  have hind := hindep.indepFun_finset T Tᶜ disjoint_compl_right
+    (fun a => measurable_pi_apply a)
+  have e₁ : (fun (x : ∀ i, α i) (w : { a // a ∈ T }) => x (w : ι)) ⁻¹'
+      ((fun (x : ∀ i, α i) (w : { a // a ∈ T }) => x (w : ι)) '' S₁) = S₁ := by
+    refine Set.Subset.antisymm ?_ (Set.subset_preimage_image _ _)
+    rintro x ⟨y, hy, hxy⟩
+    exact (h₁ y x (fun a ha => congrFun hxy ⟨a, ha⟩)).1 hy
+  have e₂ : (fun (x : ∀ i, α i) (w : { a // a ∈ Tᶜ }) => x (w : ι)) ⁻¹'
+      ((fun (x : ∀ i, α i) (w : { a // a ∈ Tᶜ }) => x (w : ι)) '' S₂) = S₂ := by
+    refine Set.Subset.antisymm ?_ (Set.subset_preimage_image _ _)
+    rintro x ⟨y, hy, hxy⟩
+    exact (h₂ y x (fun a ha => congrFun hxy ⟨a, Finset.mem_compl.2 ha⟩)).1 hy
+  have hmul := hind.measure_inter_preimage_eq_mul
+    ((fun (x : ∀ i, α i) (w : { a // a ∈ T }) => x (w : ι)) '' S₁)
+    ((fun (x : ∀ i, α i) (w : { a // a ∈ Tᶜ }) => x (w : ι)) '' S₂)
+    (Set.toFinite _).measurableSet (Set.toFinite _).measurableSet
+  rw [e₁, e₂] at hmul
+  exact hmul
+
 /-- **Events determined by disjoint sets of coordinates are independent.**  This is Setup 6.1.5
 specialized to a uniform two-colouring: `S₁` may depend only on the coordinates in `T`, and `S₂`
 only on those outside it. -/
 theorem uniformColoring_inter_eq_mul (T : Finset κ) (S₁ S₂ : Set (κ → Bool))
     (h₁ : ∀ x y : κ → Bool, (∀ a ∈ T, x a = y a) → (x ∈ S₁ ↔ y ∈ S₁))
     (h₂ : ∀ x y : κ → Bool, (∀ a ∉ T, x a = y a) → (x ∈ S₂ ↔ y ∈ S₂)) :
-    uniformColoring κ (S₁ ∩ S₂) = uniformColoring κ S₁ * uniformColoring κ S₂ := by
-  have hindep : iIndepFun (fun (a : κ) (x : κ → Bool) => x a) (uniformColoring κ) := by
-    rw [uniformColoring]
-    exact ProbabilityTheory.iIndepFun_pi (μ := fun _ : κ => fairCoin)
-      (X := fun _ : κ => (id : Bool → Bool)) (fun _ => aemeasurable_id)
-  have hind := hindep.indepFun_finset T Tᶜ disjoint_compl_right
-    (fun a => measurable_pi_apply a)
-  have e₁ : (fun (x : κ → Bool) (u : { a // a ∈ T }) => x (u : κ)) ⁻¹'
-      ((fun (x : κ → Bool) (u : { a // a ∈ T }) => x (u : κ)) '' S₁) = S₁ := by
-    refine Set.Subset.antisymm ?_ (Set.subset_preimage_image _ _)
-    rintro x ⟨y, hy, hxy⟩
-    exact (h₁ y x (fun a ha => congrFun hxy ⟨a, ha⟩)).1 hy
-  have e₂ : (fun (x : κ → Bool) (u : { a // a ∈ Tᶜ }) => x (u : κ)) ⁻¹'
-      ((fun (x : κ → Bool) (u : { a // a ∈ Tᶜ }) => x (u : κ)) '' S₂) = S₂ := by
-    refine Set.Subset.antisymm ?_ (Set.subset_preimage_image _ _)
-    rintro x ⟨y, hy, hxy⟩
-    exact (h₂ y x (fun a ha => congrFun hxy ⟨a, Finset.mem_compl.2 ha⟩)).1 hy
-  have hmul := hind.measure_inter_preimage_eq_mul
-    ((fun (x : κ → Bool) (u : { a // a ∈ T }) => x (u : κ)) '' S₁)
-    ((fun (x : κ → Bool) (u : { a // a ∈ Tᶜ }) => x (u : κ)) '' S₂)
-    (Set.toFinite _).measurableSet (Set.toFinite _).measurableSet
-  rw [e₁, e₂] at hmul
-  exact hmul
+    uniformColoring κ (S₁ ∩ S₂) = uniformColoring κ S₁ * uniformColoring κ S₂ :=
+  measure_pi_inter_eq_mul (fun _ : κ => fairCoin) T S₁ S₂ h₁ h₂
 
 end UniformColoring
 
@@ -1069,28 +1087,7 @@ private theorem unifChoice_inter_eq_mul {n : ℕ} {ι : Type*} [Fintype ι] [Dec
     unifChoice Q (S₁ ∩ S₂) = unifChoice Q S₁ * unifChoice Q S₂ := by
   have hprob : ∀ j, IsProbabilityMeasure (uniformOn (Q j : Set (Fin n))) := fun j =>
     isProbabilityMeasure_uniformOn (Set.toFinite _) (Finset.coe_nonempty.2 (hQ j))
-  have hindep : iIndepFun (fun (a : ι) (x : ι → Fin n) => x a) (unifChoice Q) := by
-    rw [unifChoice]
-    exact ProbabilityTheory.iIndepFun_pi (μ := fun j => uniformOn (Q j : Set (Fin n)))
-      (X := fun _ : ι => (id : Fin n → Fin n)) (fun _ => aemeasurable_id)
-  have hind := hindep.indepFun_finset T Tᶜ disjoint_compl_right
-    (fun a => measurable_pi_apply a)
-  have e₁ : (fun (x : ι → Fin n) (w : { a // a ∈ T }) => x (w : ι)) ⁻¹'
-      ((fun (x : ι → Fin n) (w : { a // a ∈ T }) => x (w : ι)) '' S₁) = S₁ := by
-    refine Set.Subset.antisymm ?_ (Set.subset_preimage_image _ _)
-    rintro x ⟨y, hy, hxy⟩
-    exact (h₁ y x (fun a ha => congrFun hxy ⟨a, ha⟩)).1 hy
-  have e₂ : (fun (x : ι → Fin n) (w : { a // a ∈ Tᶜ }) => x (w : ι)) ⁻¹'
-      ((fun (x : ι → Fin n) (w : { a // a ∈ Tᶜ }) => x (w : ι)) '' S₂) = S₂ := by
-    refine Set.Subset.antisymm ?_ (Set.subset_preimage_image _ _)
-    rintro x ⟨y, hy, hxy⟩
-    exact (h₂ y x (fun a ha => congrFun hxy ⟨a, Finset.mem_compl.2 ha⟩)).1 hy
-  have hmul := hind.measure_inter_preimage_eq_mul
-    ((fun (x : ι → Fin n) (w : { a // a ∈ T }) => x (w : ι)) '' S₁)
-    ((fun (x : ι → Fin n) (w : { a // a ∈ Tᶜ }) => x (w : ι)) '' S₂)
-    (Set.toFinite _).measurableSet (Set.toFinite _).measurableSet
-  rw [e₁, e₂] at hmul
-  exact hmul
+  exact measure_pi_inter_eq_mul (fun j => uniformOn (Q j : Set (Fin n))) T S₁ S₂ h₁ h₂
 
 /-- **Independent transversals** (Zhao, §6.3): a graph of degree at most `Δ` whose vertices are
 partitioned into parts, each larger than `2eΔ`, has an independent set containing exactly one
