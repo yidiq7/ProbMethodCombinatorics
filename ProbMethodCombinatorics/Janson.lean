@@ -135,7 +135,37 @@ theorem binomialRandom_setOf_forall_not_subset {n : ℕ} (p : I)
     SimpleGraph.binomialRandom (Fin n) p
         {G : SimpleGraph (Fin n) | ∀ i, ¬ (↑(S i) ⊆ G.edgeSet)}
       = setBernoulli Set.univ p {R : Set (Sym2 (Fin n)) | ∀ i, ¬ (↑(S i) ⊆ R)} := by
-  sorry
+  -- `S i` has no loop, so intersecting the sample with the complement of the diagonal
+  -- changes neither the events nor their conjunction.
+  have hdiag : ∀ (i : κ) (R : Set (Sym2 (Fin n))),
+      (↑(S i) ⊆ R ∩ (Sym2.diagSet)ᶜ ↔ ↑(S i) ⊆ R) := fun i R =>
+    ⟨fun h => h.trans Set.inter_subset_left, fun h _ hx =>
+      ⟨h hx, by simpa using hS i _ (Finset.mem_coe.1 hx)⟩⟩
+  have hmeasG : MeasurableSet {G : SimpleGraph (Fin n) | ∀ i, ¬ (↑(S i) ⊆ G.edgeSet)} :=
+    (Measurable.forall fun _ =>
+      (Measurable.subset measurable_const SimpleGraph.measurable_edgeSet).not).setOf
+  have hmeasR : MeasurableSet {R : Set (Sym2 (Fin n)) | ∀ i, ¬ (↑(S i) ⊆ R)} :=
+    (Measurable.forall fun _ =>
+      (Measurable.subset measurable_const measurable_id).not).setOf
+  have hinter : Measurable (fun R : Set (Sym2 (Fin n)) => R ∩ (Sym2.diagSet)ᶜ) :=
+    measurable_set_iff.2 fun a => by
+      simp only [Set.mem_inter_iff]
+      exact (measurable_pi_apply a).and measurable_const
+  -- `G(n, p)` is `setBer(Sym2.diagSetᶜ, p)` pushed along `fromEdgeSet`.
+  rw [SimpleGraph.binomialRandom_eq_map,
+    Measure.map_apply SimpleGraph.measurable_fromEdgeSet hmeasG]
+  have hpre : SimpleGraph.fromEdgeSet ⁻¹'
+        {G : SimpleGraph (Fin n) | ∀ i, ¬ (↑(S i) ⊆ G.edgeSet)}
+      = {R : Set (Sym2 (Fin n)) | ∀ i, ¬ (↑(S i) ⊆ R)} := by
+    ext R
+    simp only [Set.mem_preimage, Set.mem_ofPred_eq, SimpleGraph.edgeSet_fromEdgeSet,
+      Set.sdiff_eq, hdiag]
+  -- Raise the ground set from `Sym2.diagSetᶜ` to `Set.univ`.
+  rw [hpre, ← Set.univ_inter (Sym2.diagSetᶜ : Set (Sym2 (Fin n))),
+    ← map_inter_setBernoulli, Measure.map_apply hinter hmeasR]
+  congr 1
+  ext R
+  simp only [Set.mem_preimage, Set.mem_ofPred_eq, hdiag]
 
 /-- The conditioning step of the Boppana–Spencer proof of Janson's inequality.
 
