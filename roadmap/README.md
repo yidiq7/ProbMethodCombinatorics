@@ -98,6 +98,32 @@ edge-count bound the book proves, so the edge-count bound stays a task.
 
 ## Log
 
+- **2026-09-17 — §4.1's triangle count is authored and its two moments published (#181, #182).**
+  The goal is now the whole book rather than the stated frontier, so the work is authoring the
+  planned nodes, not only reviewing.  A survey of `graph.json` puts the remaining unstated count
+  at **19 nodes across six groups**, and they split cleanly:
+
+  * **Blocked on absent Mathlib infrastructure, and not tasks**: `hardy_ramanujan` (needs Mertens'
+    theorem — a whole analytic-number-theory project), `isoperimetry`, `talagrand`,
+    `euclidean_tsp`, and behind them `shamir_spencer` and `clique_number_bollobas`.
+  * **Blocked on definitions the orchestrator owes** — which is the actionable half, and where
+    this session starts.
+
+  `triangleCount` is the first of those debts paid.  It is written with `Set.indicator` over a set
+  of graphs rather than a filter on a clique predicate, because the measure ranges over *all*
+  graphs on `Fin n` and no `DecidableRel G.Adj` is available there — a filter would need a
+  `Decidable` instance this project does not declare.  Public, since both moment nodes mention it.
+  Sanity-checked before publishing: the empty graph on three vertices has count `0`, proved.
+
+  The two nodes are exactly the ones `second-moment.md` predicted would become publishable "the
+  moment the count exists": the first moment `binom(n,3) p³`, and a deliberately crude variance
+  bound `n³p³ + n⁴p⁵` whose constants are loose so the prover need not track exact binomials.
+  `variance_sum_indicator_le`, already proved in that file, is built for the second.
+
+  **Next debt: the `whp` idiom.**  It is the single blocker shared by §4.1's threshold, §4.2's
+  `subgraph_threshold`, Janson's three asymptotic nodes and Theorem 11.1.5 — the highest-leverage
+  convention left to settle.
+
 - **2026-09-16 — `exists_container_round` was FALSE as I stated it; repaired, and #176 re-pinned to `348f7d3`.**
   The contributor holding #176 refuted it with a kernel-checked counterexample instead of grinding
   on an impossible task.  The double-count clause rests on `3|Ae| = ∑_{v ∈ Av} deg_{Ae}(v)`, which
