@@ -169,6 +169,38 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   inline block now calls it, `1d33a6d`, fifteen lines shorter.  **Retiring duplicates stays
   orchestrator work** — a contributor cannot see the other three copies from inside one task.
 
+- **2026-09-17 — the two remaining `sorry`s are not equal, and one of them carries §11.1's headline result.**
+  §2.2 closed (#227/#228), so `Expectation.lean` joins the sorry-free files and only
+  `Containers.lean` still has any.  Counting `sorry`s made that look like a footnote.  It is not.
+
+  `#print axioms` over all **217** public theorems in the project: **211 are `sorryAx`-free** and
+  exactly **six are not**, in one chain:
+
+      exists_containers_fingerprint_three_uniform   (the §11.3 hold — the sorry itself)
+        → exists_containers_three_uniform
+          → exists_shrunken_containers_of_many_triangles
+            → exists_containers_triangleFree
+              → card_triangleFreeGraphs_le          (§11.1's Erdős–Kleitman–Rothschild bound)
+
+  So **the held §11.3 corner is load-bearing for Chapter 11's headline theorem.**  Everything from
+  §11.2 downward that the project reports as proved in §11.1 rests on an obligation whose
+  docstring says the corner is *open*.  That is honest in the file and was invisible in the
+  summary, which is the problem: "two sorries, one of them deliberate" reads as under control.
+
+  The other `sorry`, `exists_container_round` (#176), is **isolated** — nothing depends on it.
+  `exists_run_of_container_round` is `sorryAx`-free because it takes `IsContainerRound` as a
+  hypothesis rather than citing the existence theorem, which is exactly the right way to have
+  built it and is why that sorry costs nothing downstream.
+
+  **Consequence for priority.** Resolving the §11.3 corner is the highest-value open item in the
+  project, ahead of any new authoring; it is the only thing standing between §11.1's headline and
+  a genuine proof. And `δ` is no lever there — the docstring establishes that `n/√d` is
+  `δ`-independent, so the corner cannot be dodged by shrinking `δ`.
+
+  **Standing check added: report `sorryAx` reach, not `sorry` count.** A `sorry` in a leaf costs
+  nothing; a `sorry` under a chapter's main theorem is the chapter. The two look identical in a
+  `grep`.
+
 - **2026-09-17 — the whole "blocked on Mathlib" list re-derived; a fourth note was wrong.**
   Theorem 8.1.10 is formalized in both regimes (#222/#224) and Theorem 8.1.6 in the `ε`–`N` idiom
   (#221/#223), so §8.1 is complete.  With the reachable frontier thin, I re-derived every
