@@ -2178,6 +2178,61 @@ cardinality rather than `Nat.card`'s junk value. -/
 noncomputable def indepSetCount (G : SimpleGraph V) : ℕ :=
   Nat.card {S : Finset V // G.IsIndepSet (S : Set V)}
 
+/-- An independent set of `K_{d,d}` misses one of the two sides entirely: every crossing pair
+is an edge, so a set meeting both sides is not independent. -/
+private theorem isIndepSet_completeBipartiteGraph_iff_sideFree {d : ℕ}
+    (S : Finset (Fin d ⊕ Fin d)) :
+    (completeBipartiteGraph (Fin d) (Fin d)).IsIndepSet (S : Set (Fin d ⊕ Fin d)) ↔
+      ((∀ x ∈ S, x.isLeft) ∨ (∀ x ∈ S, x.isRight)) := by
+  rw [SimpleGraph.isIndepSet_iff]
+  constructor
+  · intro h
+    by_cases hl : ∀ x ∈ S, Sum.isLeft x
+    · exact Or.inl hl
+    · refine Or.inr fun x hx => ?_
+      simp only [not_forall] at hl
+      obtain ⟨y, hy, hyl⟩ := hl
+      cases x with
+      | inr b => rfl
+      | inl a =>
+        cases y with
+        | inl b => exact absurd rfl hyl
+        | inr b =>
+          exact ((h (by simpa using hx) (by simpa using hy) (by simp)) (by simp)).elim
+  · intro h x hx y hy _
+    simp only [Finset.mem_coe] at hx hy
+    rcases h with hl | hl
+    · cases x <;> cases y <;> simp_all
+    · cases x <;> cases y <;> simp_all
+
+/-- The subsets of `Fin d ⊕ Fin d` contained in the left side are the `2 ^ d` subsets of it. -/
+private theorem card_filter_forall_isLeft_pow (d : ℕ) :
+    #(univ.filter fun S : Finset (Fin d ⊕ Fin d) => ∀ x ∈ S, x.isLeft) = 2 ^ d := by
+  have h : (univ.filter fun S : Finset (Fin d ⊕ Fin d) => ∀ x ∈ S, x.isLeft)
+      = (univ.map (Function.Embedding.inl : Fin d ↪ Fin d ⊕ Fin d)).powerset := by
+    ext S; simp [Finset.subset_iff, Sum.isLeft_iff]
+  rw [h, Finset.card_powerset, Finset.card_map, Finset.card_univ, Fintype.card_fin]
+
+/-- The subsets of `Fin d ⊕ Fin d` contained in the right side are the `2 ^ d` subsets of it. -/
+private theorem card_filter_forall_isRight_pow (d : ℕ) :
+    #(univ.filter fun S : Finset (Fin d ⊕ Fin d) => ∀ x ∈ S, x.isRight) = 2 ^ d := by
+  have h : (univ.filter fun S : Finset (Fin d ⊕ Fin d) => ∀ x ∈ S, x.isRight)
+      = (univ.map (Function.Embedding.inr : Fin d ↪ Fin d ⊕ Fin d)).powerset := by
+    ext S; simp [Finset.subset_iff, Sum.isRight_iff]
+  rw [h, Finset.card_powerset, Finset.card_map, Finset.card_univ, Fintype.card_fin]
+
+/-- The two sides of `Fin d ⊕ Fin d` share only the empty subset. -/
+private theorem filter_forall_isLeft_inter_isRight_eq (d : ℕ) :
+    (univ.filter fun S : Finset (Fin d ⊕ Fin d) => ∀ x ∈ S, x.isLeft) ∩
+      (univ.filter fun S : Finset (Fin d ⊕ Fin d) => ∀ x ∈ S, x.isRight) = {∅} := by
+  ext S
+  simp only [Finset.mem_inter, Finset.mem_filter, Finset.mem_univ, true_and,
+    Finset.mem_singleton]
+  refine ⟨fun ⟨h₁, h₂⟩ => Finset.eq_empty_of_forall_notMem fun x hx =>
+    not_isLeft_and_isRight ⟨h₁ x hx, h₂ x hx⟩, ?_⟩
+  rintro rfl
+  simp
+
 /-- **`i(K_{d,d}) = 2^{d+1} - 1`.**
 
 An independent set of the complete bipartite graph cannot meet both sides, since every crossing
@@ -2188,7 +2243,19 @@ This is the base of Kahn–Zhao's bound `i(G) ≤ i(K_{d,d})^{n/(2d)}` for `d`-r
 vertices, so the exponent there is what makes the constant matter. -/
 theorem indepSetCount_completeBipartiteGraph (d : ℕ) :
     indepSetCount (completeBipartiteGraph (Fin d) (Fin d)) = 2 ^ (d + 1) - 1 := by
-  sorry
+  have hcount : indepSetCount (completeBipartiteGraph (Fin d) (Fin d))
+      = #((univ.filter fun S : Finset (Fin d ⊕ Fin d) => ∀ x ∈ S, x.isLeft) ∪
+          (univ.filter fun S : Finset (Fin d ⊕ Fin d) => ∀ x ∈ S, x.isRight)) := by
+    rw [indepSetCount,
+      Nat.card_congr (Equiv.subtypeEquivRight isIndepSet_completeBipartiteGraph_iff_sideFree),
+      Nat.card_eq_fintype_card, Fintype.card_subtype, Finset.filter_or]
+  have hio := Finset.card_union_add_card_inter
+    (univ.filter fun S : Finset (Fin d ⊕ Fin d) => ∀ x ∈ S, x.isLeft)
+    (univ.filter fun S : Finset (Fin d ⊕ Fin d) => ∀ x ∈ S, x.isRight)
+  rw [filter_forall_isLeft_inter_isRight_eq, Finset.card_singleton,
+    card_filter_forall_isLeft_pow, card_filter_forall_isRight_pow] at hio
+  rw [hcount, pow_succ]
+  omega
 
 end IndepSetCount
 
