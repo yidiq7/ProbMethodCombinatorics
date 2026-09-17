@@ -556,6 +556,40 @@ section Applications
 
 variable {α : Type*} [Fintype α] [DecidableEq α]
 
+/-- A uniform random two-colouring makes a nonempty set `e` monochromatic with probability at
+most `2 ^ (1 - |e|)`: the event is covered by the two constant patterns on `e`, each of
+probability `2 ^ -|e|`. -/
+private theorem uniformColoring_monochromatic_toReal_le (e : Finset α) (he : 1 ≤ e.card) :
+    (uniformColoring α {x : α → Bool | ∀ u ∈ e, ∀ v ∈ e, x u = x v}).toReal
+      ≤ 1 / 2 ^ (e.card - 1) := by
+  obtain ⟨u₀, hu₀⟩ : e.Nonempty := Finset.card_pos.1 he
+  have hsub : {x : α → Bool | ∀ u ∈ e, ∀ v ∈ e, x u = x v}
+      ⊆ {x : α → Bool | ∀ u ∈ e, x u = true} ∪ {x : α → Bool | ∀ u ∈ e, x u = false} := by
+    intro x hx
+    cases hb : x u₀
+    · right; intro u hu; rw [hx u hu u₀ hu₀, hb]
+    · left; intro u hu; rw [hx u hu u₀ hu₀, hb]
+  have hle : uniformColoring α {x : α → Bool | ∀ u ∈ e, ∀ v ∈ e, x u = x v}
+      ≤ 2 * (2 : ENNReal)⁻¹ ^ e.card :=
+    calc uniformColoring α {x : α → Bool | ∀ u ∈ e, ∀ v ∈ e, x u = x v}
+        ≤ uniformColoring α ({x : α → Bool | ∀ u ∈ e, x u = true}
+            ∪ {x : α → Bool | ∀ u ∈ e, x u = false}) := measure_mono hsub
+      _ ≤ uniformColoring α {x : α → Bool | ∀ u ∈ e, x u = true}
+            + uniformColoring α {x : α → Bool | ∀ u ∈ e, x u = false} := measure_union_le _ _
+      _ = 2 * (2 : ENNReal)⁻¹ ^ e.card := by
+          rw [uniformColoring_const _ true, uniformColoring_const _ false]; ring
+  have htop : (2 : ENNReal) * (2 : ENNReal)⁻¹ ^ e.card ≠ ⊤ :=
+    ENNReal.mul_ne_top (by norm_num) (ENNReal.pow_ne_top (by norm_num))
+  have hreal : (uniformColoring α {x : α → Bool | ∀ u ∈ e, ∀ v ∈ e, x u = x v}).toReal
+      ≤ 2 * ((2 : ℝ)⁻¹) ^ e.card := by simpa using ENNReal.toReal_mono htop hle
+  have hsplit : (2 : ℝ) ^ e.card = 2 ^ (e.card - 1) * 2 := by
+    rw [← pow_succ]; congr 1; omega
+  have hval : 2 * ((2 : ℝ)⁻¹) ^ e.card = 1 / 2 ^ (e.card - 1) := by
+    have hpos : (0 : ℝ) < 2 ^ (e.card - 1) := by positivity
+    rw [inv_pow, hsplit]
+    field_simp
+  rwa [hval] at hreal
+
 /-- **Local condition for 2-colourability** (Zhao, Theorem 6.2.1): a `k`-uniform hypergraph in
 which every edge meets at most `d` other edges is 2-colourable as soon as
 `e * (d + 1) ≤ 2 ^ (k - 1)`.
@@ -604,30 +638,15 @@ theorem twoColorable_of_inter_card_le {k : ℕ} (hk : 2 ≤ k) {H : Finset (Fins
   -- Each bad event has probability at most `2 ^ (1 - k)`.
   have hp : ∀ i, (uniformColoring α (A i)).toReal ≤ 2 * ((2 : ℝ)⁻¹) ^ k := by
     intro i
-    have hne : (i : Finset α).Nonempty := by
-      rw [← Finset.card_pos, huniform _ i.2]; omega
-    obtain ⟨u₀, hu₀⟩ := hne
-    have hsub : A i ⊆ {x : α → Bool | ∀ u ∈ (i : Finset α), x u = true}
-        ∪ {x : α → Bool | ∀ u ∈ (i : Finset α), x u = false} := by
-      intro x hx
-      rw [hAdef] at hx
-      cases hb : x u₀
-      · right; intro u hu; rw [hx u hu u₀ hu₀, hb]
-      · left; intro u hu; rw [hx u hu u₀ hu₀, hb]
-    have hle : uniformColoring α (A i) ≤ 2 * (2 : ENNReal)⁻¹ ^ k := by
-      calc uniformColoring α (A i)
-          ≤ uniformColoring α ({x : α → Bool | ∀ u ∈ (i : Finset α), x u = true}
-              ∪ {x : α → Bool | ∀ u ∈ (i : Finset α), x u = false}) := measure_mono hsub
-        _ ≤ uniformColoring α {x : α → Bool | ∀ u ∈ (i : Finset α), x u = true}
-              + uniformColoring α {x : α → Bool | ∀ u ∈ (i : Finset α), x u = false} :=
-              measure_union_le _ _
-        _ = 2 * (2 : ENNReal)⁻¹ ^ k := by
-            rw [uniformColoring_const _ true, uniformColoring_const _ false, huniform _ i.2]
-            ring
-    have htop : (2 : ENNReal) * (2 : ENNReal)⁻¹ ^ k ≠ ⊤ :=
-      ENNReal.mul_ne_top (by norm_num) (ENNReal.pow_ne_top (by norm_num))
-    have := ENNReal.toReal_mono htop hle
-    simpa using this
+    have hcard : (i : Finset α).card = k := huniform _ i.2
+    have hAeq : A i = {x : α → Bool | ∀ u ∈ (i : Finset α), ∀ v ∈ (i : Finset α), x u = x v} :=
+      Set.ext fun x => hAdef i x
+    rw [hAeq]
+    refine (uniformColoring_monochromatic_toReal_le _ (by omega)).trans (le_of_eq ?_)
+    have hsplit : (2 : ℝ) ^ k = 2 ^ (k - 1) * 2 := by rw [← pow_succ]; congr 1; omega
+    rw [hcard, inv_pow, hsplit]
+    have hpos : (0 : ℝ) < 2 ^ (k - 1) := by positivity
+    field_simp
   have hdcard : ∀ i, (N i).card ≤ d := by
     intro i
     refine le_trans (Finset.card_le_card_of_injOn (fun f => (f : Finset α)) ?_ ?_) (hd i i.2)
@@ -861,40 +880,6 @@ theorem lt_ramseyNumber_of_local_lemma (n k : ℕ) (hk : 2 ≤ k)
     obtain ⟨S, hcard, hmono⟩ :=
       hmem.mono (Nat.not_lt.1 hlt) (fun i j => x {i, j}) hsymm
     exact hno S hcard hmono
-
-/-- A uniform random two-colouring makes a nonempty set `e` monochromatic with probability at
-most `2 ^ (1 - |e|)`: the event is covered by the two constant patterns on `e`, each of
-probability `2 ^ -|e|`. -/
-private theorem uniformColoring_monochromatic_toReal_le (e : Finset α) (he : 1 ≤ e.card) :
-    (uniformColoring α {x : α → Bool | ∀ u ∈ e, ∀ v ∈ e, x u = x v}).toReal
-      ≤ 1 / 2 ^ (e.card - 1) := by
-  obtain ⟨u₀, hu₀⟩ : e.Nonempty := Finset.card_pos.1 he
-  have hsub : {x : α → Bool | ∀ u ∈ e, ∀ v ∈ e, x u = x v}
-      ⊆ {x : α → Bool | ∀ u ∈ e, x u = true} ∪ {x : α → Bool | ∀ u ∈ e, x u = false} := by
-    intro x hx
-    cases hb : x u₀
-    · right; intro u hu; rw [hx u hu u₀ hu₀, hb]
-    · left; intro u hu; rw [hx u hu u₀ hu₀, hb]
-  have hle : uniformColoring α {x : α → Bool | ∀ u ∈ e, ∀ v ∈ e, x u = x v}
-      ≤ 2 * (2 : ENNReal)⁻¹ ^ e.card :=
-    calc uniformColoring α {x : α → Bool | ∀ u ∈ e, ∀ v ∈ e, x u = x v}
-        ≤ uniformColoring α ({x : α → Bool | ∀ u ∈ e, x u = true}
-            ∪ {x : α → Bool | ∀ u ∈ e, x u = false}) := measure_mono hsub
-      _ ≤ uniformColoring α {x : α → Bool | ∀ u ∈ e, x u = true}
-            + uniformColoring α {x : α → Bool | ∀ u ∈ e, x u = false} := measure_union_le _ _
-      _ = 2 * (2 : ENNReal)⁻¹ ^ e.card := by
-          rw [uniformColoring_const _ true, uniformColoring_const _ false]; ring
-  have htop : (2 : ENNReal) * (2 : ENNReal)⁻¹ ^ e.card ≠ ⊤ :=
-    ENNReal.mul_ne_top (by norm_num) (ENNReal.pow_ne_top (by norm_num))
-  have hreal : (uniformColoring α {x : α → Bool | ∀ u ∈ e, ∀ v ∈ e, x u = x v}).toReal
-      ≤ 2 * ((2 : ℝ)⁻¹) ^ e.card := by simpa using ENNReal.toReal_mono htop hle
-  have hsplit : (2 : ℝ) ^ e.card = 2 ^ (e.card - 1) * 2 := by
-    rw [← pow_succ]; congr 1; omega
-  have hval : 2 * ((2 : ℝ)⁻¹) ^ e.card = 1 / 2 ^ (e.card - 1) := by
-    have hpos : (0 : ℝ) < 2 ^ (e.card - 1) := by positivity
-    rw [inv_pow, hsplit]
-    field_simp
-  rwa [hval] at hreal
 
 /-- **Non-uniform hypergraphs are 2-colourable under a local weighted condition**
 (Zhao, Theorem 6.2.4).  Where `twoColorable_of_inter_card_le` caps how many edges each edge
