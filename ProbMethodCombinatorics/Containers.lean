@@ -1191,8 +1191,18 @@ and selects with `Nat.sInf`, which keeps everything total without a `Decidable` 
 collapse.  Take the subtraction bound from `Ae` instead — `n * (Ae.card - deg) + u` — and the
 `% n` decode still works because `u < n`.  The monotonicity step is nonlinear in `n`, so it needs
 `by_contra` plus a `Nat.mul_le_mul` rather than a bare `omega`, exactly as in
-`exists_greedy_rule`. -/
-theorem exists_container_round (c d : ℝ) (hc : 0 < c) (hd : 0 < d) (n : ℕ) :
+`exists_greedy_rule`.
+
+**`0 < n` is required, and without it the theorem is false.**  At `n = 0` the clauses are all
+vacuous, but the *witnesses* cannot be built: `pick`'s domain `Finset (Fin 0)` is inhabited — it
+contains `∅` — while its codomain `Fin 0` is empty, so no function of that type exists and the
+existential fails outright.  No strengthening of the clause bodies can rescue it:
+
+    rintro ⟨pick, kill, -⟩; exact (pick ∅ ∅ ∅).elim0
+
+`exists_greedy_rule` avoids this by accident: its `hdn : d ≤ δ * n` with `0 < d` forces `0 < n`.
+This statement inherited the shape without the hypothesis that made it sound. -/
+theorem exists_container_round (c d : ℝ) (hc : 0 < c) (hd : 0 < d) (n : ℕ) (hn : 0 < n) :
     ∃ (pick : Finset (Fin n) → Finset (Finset (Fin n)) → Finset (Fin n) → Fin n)
       (kill : Finset (Fin n) → Finset (Finset (Fin n)) → Fin n → Finset (Fin n)),
       IsContainerRound c d pick kill := by
