@@ -915,6 +915,30 @@ theorem binomialRandom_eq_map_graphOfExposure (n : ℕ) (p : I) :
   congr 1
   omega
 
+/-- Rewiring the edges at `v` costs at most one colour: a proper `k`-colouring of `G` becomes a
+proper `(k + 1)`-colouring of `G'` by moving `v` to the fresh colour `Fin.last k`.
+
+Every edge of `G'` avoiding `v` is an edge of `G` by `h`, so its endpoints keep distinct colours;
+every edge of `G'` at `v` has one endpoint on `Fin.last k` and the other in the image of
+`Fin.castSucc`. -/
+private theorem colorable_succ_of_adj_iff_off_vertex {n k : ℕ} {v : Fin n}
+    {G G' : SimpleGraph (Fin n)}
+    (h : ∀ a b : Fin n, a ≠ v → b ≠ v → (G.Adj a b ↔ G'.Adj a b)) (hG : G.Colorable k) :
+    G'.Colorable (k + 1) := by
+  classical
+  obtain ⟨c⟩ := hG
+  refine ⟨SimpleGraph.Coloring.mk
+    (fun u => if u = v then Fin.last k else (c u).castSucc) fun {a b} hab => ?_⟩
+  by_cases ha : a = v
+  · by_cases hb : b = v
+    · subst ha
+      subst hb
+      simp at hab
+    · simpa [ha, hb] using (Fin.castSucc_ne_last (c b)).symm
+  · by_cases hb : b = v
+    · simp [ha, hb]
+    · simpa [ha, hb, Fin.castSucc_inj] using c.valid ((h a b ha hb).mpr hab)
+
 /-- **Rewiring one vertex moves the chromatic number by at most one.**  If `G` and `G'` agree on
 every edge avoiding `v`, then `|χ(G) - χ(G')| ≤ 1`.
 
@@ -933,7 +957,30 @@ is faithful. -/
 theorem abs_sub_chromaticNumber_le_one {n : ℕ} (v : Fin n) (G G' : SimpleGraph (Fin n))
     (h : ∀ a b : Fin n, a ≠ v → b ≠ v → (G.Adj a b ↔ G'.Adj a b)) :
     |(G.chromaticNumber.toNat : ℝ) - (G'.chromaticNumber.toNat : ℝ)| ≤ 1 := by
-  sorry
+  -- `Fin n` is finite, so both chromatic numbers are below `⊤` and `ENat.toNat` is faithful.
+  have hfin : ∀ K : SimpleGraph (Fin n), K.Colorable n := fun K => by
+    simpa using K.colorable_of_fintype
+  have htop : ∀ K : SimpleGraph (Fin n), K.chromaticNumber ≠ ⊤ := fun K =>
+    SimpleGraph.chromaticNumber_ne_top_iff_exists.mpr ⟨n, hfin K⟩
+  have hcolor : ∀ K : SimpleGraph (Fin n), K.Colorable K.chromaticNumber.toNat := fun K =>
+    SimpleGraph.chromaticNumber_le_iff_colorable.mp
+      (le_of_eq (ENat.natCast_toNat (htop K)).symm)
+  have hstep : ∀ K K' : SimpleGraph (Fin n),
+      (∀ a b : Fin n, a ≠ v → b ≠ v → (K.Adj a b ↔ K'.Adj a b)) →
+        K'.chromaticNumber.toNat ≤ K.chromaticNumber.toNat + 1 := fun K K' hKK' =>
+    ENat.toNat_le_of_le_natCast
+      (SimpleGraph.Colorable.chromaticNumber_le
+        (colorable_succ_of_adj_iff_off_vertex hKK' (hcolor K)))
+  have h₁ := hstep G G' h
+  have h₂ := hstep G' G fun a b ha hb => (h a b ha hb).symm
+  rw [abs_sub_le_iff]
+  constructor
+  · have : (G.chromaticNumber.toNat : ℝ) ≤ (G'.chromaticNumber.toNat : ℝ) + 1 := by
+      exact_mod_cast h₂
+    linarith
+  · have : (G'.chromaticNumber.toNat : ℝ) ≤ (G.chromaticNumber.toNat : ℝ) + 1 := by
+      exact_mod_cast h₁
+    linarith
 
 end VertexExposure
 
