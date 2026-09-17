@@ -349,6 +349,24 @@ theorem jansonDelta_triangleFamily_le (n : ℕ) (p : I) :
   rw [jansonDelta, Finset.sum_congr rfl hterm, Finset.sum_const, nsmul_eq_mul]
   gcongr
 
+/-- **`G(n, p)` is triangle-free with probability at most `exp (-binom(n,3) p³ + n⁴p⁵/2)`**
+(Zhao, Question 8.1.5, the finite form behind Theorem 8.1.6).
+
+This is Janson's first inequality run on the triangle family: `μ` is `jansonMu_triangleFamily`
+exactly, `Δ` is bounded by `jansonDelta_triangleFamily_le`, and
+`binomialRandom_setOf_forall_not_subset` moves the resulting bound from `setBernoulli` to
+`G(n, p)`.
+
+Theorem 8.1.6 is the asymptotic reading: when `p = o(n^{-1/2})` the term `n⁴p⁵/2` is `o(n³p³)`,
+so the exponent is `-(1 + o(1)) μ`.  That asymptotic form is not stated here; this is the
+inequality it is read off. -/
+theorem binomialRandom_no_triangle_le (n : ℕ) (p : I) :
+    (SimpleGraph.binomialRandom (Fin n) p).real
+        {G : SimpleGraph (Fin n) | ∀ T : {T : Finset (Fin n) // T.card = 3},
+          ¬ (↑(offDiagPairs (T : Finset (Fin n))) ⊆ G.edgeSet)}
+      ≤ Real.exp (-((n.choose 3 : ℝ) * (p : ℝ) ^ 3) + (n : ℝ) ^ 4 * (p : ℝ) ^ 5 / 2) := by
+  sorry
+
 /-- The conditioning step of the Boppana–Spencer proof of Janson's inequality.
 
 If `i ∉ T` and every `S j` with `j ∈ T` outside `T₁` is disjoint from `S i`, then imposing the
