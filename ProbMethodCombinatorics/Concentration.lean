@@ -754,6 +754,93 @@ noncomputable def exposureMeasure (n : ℕ) (p : I) (i : Fin n) : Measure (Expos
   Measure.pi fun _ =>
     (toNNReal p) • Measure.dirac True + (toNNReal (σ p)) • Measure.dirac False
 
+/-- Adjacency in the assembled graph, read off the block of the larger endpoint. -/
+private theorem adj_graphOfExposure_iff_of_lt {n : ℕ} (x : ∀ i, ExposureBlock n i) {a b : Fin n}
+    (h : a < b) : (graphOfExposure x).Adj a b ↔ x b ⟨a, h⟩ := by
+  simp only [graphOfExposure, SimpleGraph.fromRel_adj, ne_eq, dif_pos h, dif_neg (asymm h)]
+  simp [h.ne]
+
+/-- `graphOfExposure` is injective with an explicit inverse: the only sample assembling to `G`
+records, in block `i`, the neighbours of `i` below `i`. -/
+private theorem graphOfExposure_eq_iff_eq_adjBlocks {n : ℕ} (x : ∀ i, ExposureBlock n i)
+    (G : SimpleGraph (Fin n)) :
+    graphOfExposure x = G ↔ x = fun i (j : {j : Fin n // j < i}) => G.Adj j.1 i := by
+  constructor
+  · rintro rfl
+    funext i j
+    obtain ⟨j, hj⟩ := j
+    exact propext (adj_graphOfExposure_iff_of_lt x hj).symm
+  · rintro rfl
+    ext a b
+    rcases lt_trichotomy a b with h | rfl | h
+    · rw [adj_graphOfExposure_iff_of_lt _ h]
+    · simp [graphOfExposure]
+    · rw [SimpleGraph.adj_comm, adj_graphOfExposure_iff_of_lt _ h, SimpleGraph.adj_comm]
+
+private theorem measurable_graphOfExposure_blocks {n : ℕ} :
+    Measurable (graphOfExposure : (∀ i, ExposureBlock n i) → SimpleGraph (Fin n)) := by
+  rw [SimpleGraph.measurable_iff_adj]
+  intro a b
+  rcases lt_trichotomy a b with h | rfl | h
+  · have key : (fun x : ∀ i, ExposureBlock n i => (graphOfExposure x).Adj a b)
+        = fun x => x b ⟨a, h⟩ := by
+      funext x
+      exact propext (adj_graphOfExposure_iff_of_lt x h)
+    rw [key]
+    exact (measurable_pi_apply _).comp (measurable_pi_apply b)
+  · simp [graphOfExposure]
+  · have key : (fun x : ∀ i, ExposureBlock n i => (graphOfExposure x).Adj a b)
+        = fun x => x a ⟨b, h⟩ := by
+      funext x
+      exact propext ((SimpleGraph.adj_comm _ _ _).trans (adj_graphOfExposure_iff_of_lt x h))
+    rw [key]
+    exact (measurable_pi_apply _).comp (measurable_pi_apply a)
+
+private theorem measurableSet_simpleGraph_singleton {n : ℕ} (G : SimpleGraph (Fin n)) :
+    MeasurableSet ({G} : Set (SimpleGraph (Fin n))) := by
+  have h : ({G} : Set (SimpleGraph (Fin n))) = SimpleGraph.Adj ⁻¹' {G.Adj} := by
+    ext H
+    simp only [Set.mem_singleton_iff, Set.mem_preimage]
+    exact ⟨fun h => h ▸ rfl, fun h => SimpleGraph.ext h⟩
+  rw [h]
+  exact SimpleGraph.measurable_adj (measurableSet_singleton _)
+
+/-- The coordinate measure of `setBernoulli`, evaluated at a singleton of `Prop`. -/
+private theorem bernoulliProp_singleton (p : I) (P : Prop) [Decidable P] :
+    ((toNNReal p) • Measure.dirac True + (toNNReal (σ p)) • Measure.dirac False) {P}
+      = if P then (toNNReal p : ℝ≥0∞) else (toNNReal (σ p) : ℝ≥0∞) := by
+  by_cases h : P <;> simp [h, Set.indicator]
+
+/-- Every potential edge is recorded by at most one exposure coordinate. -/
+private theorem injective_sym2_ofExposureIndex {n : ℕ} :
+    Function.Injective fun e : Σ i : Fin n, {j : Fin n // j < i} => s(e.2.1, e.1) := by
+  rintro ⟨i₁, j₁, h₁⟩ ⟨i₂, j₂, h₂⟩ h
+  simp only [Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, Prod.swap_prod_mk] at h
+  obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := h
+  · rfl
+  · exact absurd (h₁.trans h₂) (lt_irrefl _)
+
+/-- Every potential edge is recorded by at least one exposure coordinate: the block of its
+larger endpoint. -/
+private theorem exists_exposureIndex_of_not_isDiag {n : ℕ} {e : Sym2 (Fin n)} (he : ¬ e.IsDiag) :
+    ∃ a : Σ i : Fin n, {j : Fin n // j < i}, s(a.2.1, a.1) = e := by
+  induction e with | _ a b
+  simp only [Sym2.mk_isDiag_iff] at he
+  rcases lt_or_gt_of_ne he with h | h
+  · exact ⟨⟨b, a, h⟩, rfl⟩
+  · exact ⟨⟨a, b, h⟩, Sym2.eq_swap⟩
+
+private theorem card_exposureBlock_univ {n : ℕ} (i : Fin n) :
+    (Finset.univ : Finset {j : Fin n // j < i}).card = (i : ℕ) := by
+  rw [Finset.card_univ, Fintype.card_subtype, ← Fin.card_Iio]
+  congr 1
+  ext j
+  simp
+
+/-- The block sizes `0, 1, …, n-1` sum to `C(n, 2)`, the number of potential edges. -/
+private theorem sum_val_univ_eq_choose_two (n : ℕ) : ∑ i : Fin n, (i : ℕ) = n.choose 2 := by
+  rw [Fin.sum_univ_eq_sum_range (fun i => i) n, Finset.sum_range_id, Nat.choose_two_right]
+
 /-- **`G(n, p)` is the vertex-exposure product.**  Assembling independent blocks, one per vertex,
 gives exactly the binomial random graph.
 
@@ -765,7 +852,67 @@ edges and the two product structures match term by term. -/
 theorem binomialRandom_eq_map_graphOfExposure (n : ℕ) (p : I) :
     SimpleGraph.binomialRandom (Fin n) p
       = Measure.map graphOfExposure (Measure.pi (exposureMeasure n p)) := by
-  sorry
+  classical
+  have hb : IsProbabilityMeasure
+      ((toNNReal p) • Measure.dirac True + (toNNReal (σ p)) • Measure.dirac False) := ⟨by simp⟩
+  have hpr : ∀ i : Fin n, IsProbabilityMeasure (exposureMeasure n p i) := fun i =>
+    inferInstanceAs (IsProbabilityMeasure (Measure.pi fun _ : {j : Fin n // j < i} =>
+      (toNNReal p) • Measure.dirac True + (toNNReal (σ p)) • Measure.dirac False))
+  refine Measure.ext_of_singleton fun G => ?_
+  rw [Measure.map_apply measurable_graphOfExposure_blocks (measurableSet_simpleGraph_singleton G)]
+  have hpre : graphOfExposure ⁻¹' ({G} : Set (SimpleGraph (Fin n)))
+      = {fun i (j : {j : Fin n // j < i}) => G.Adj j.1 i} := by
+    ext x
+    simp only [Set.mem_preimage, Set.mem_singleton_iff]
+    exact graphOfExposure_eq_iff_eq_adjBlocks x G
+  rw [hpre, Measure.pi_singleton, SimpleGraph.binomialRandom_singleton]
+  simp only [exposureMeasure, Measure.pi_singleton]
+  -- Block `i` contributes `p` for each neighbour of `i` below `i` and `σ p` for each non-neighbour.
+  have hblock : ∀ i : Fin n,
+      (∏ x : {j : Fin n // j < i},
+          ((toNNReal p) • Measure.dirac True + (toNNReal (σ p)) • Measure.dirac False)
+            {G.Adj x.1 i})
+        = (toNNReal p : ℝ≥0∞) ^
+              (Finset.univ.filter fun x : {j : Fin n // j < i} => G.Adj x.1 i).card
+            * (toNNReal (σ p) : ℝ≥0∞) ^
+              (Finset.univ.filter fun x : {j : Fin n // j < i} => ¬ G.Adj x.1 i).card := by
+    intro i
+    rw [Finset.prod_congr rfl fun x _ => bernoulliProp_singleton p (G.Adj x.1 i),
+      Finset.prod_ite, Finset.prod_const, Finset.prod_const]
+  -- The coordinates that record an edge biject with the edges, via `⟨i, ⟨j, _⟩⟩ ↦ s(j, i)`.
+  have hcount : (∑ i : Fin n,
+      (Finset.univ.filter fun x : {j : Fin n // j < i} => G.Adj x.1 i).card)
+        = G.edgeSet.toFinset.card := by
+    rw [← Finset.card_sigma]
+    refine Finset.card_bij (fun e _ => s(e.2.1, e.1)) ?_ ?_ ?_
+    · intro e he
+      simp only [Finset.mem_sigma, Finset.mem_filter, Finset.mem_univ, true_and] at he
+      simp [Set.mem_toFinset, he]
+    · intro e₁ _ e₂ _ h
+      exact injective_sym2_ofExposureIndex h
+    · intro e he
+      rw [Set.mem_toFinset] at he
+      obtain ⟨a, ha⟩ := exists_exposureIndex_of_not_isDiag (G.not_isDiag_of_mem_edgeSet he)
+      refine ⟨a, ?_, ha⟩
+      simp only [Finset.mem_sigma, Finset.mem_filter, Finset.mem_univ, true_and]
+      rw [← SimpleGraph.mem_edgeSet]
+      exact ha ▸ he
+  have hsplit : ∀ i : Fin n,
+      (Finset.univ.filter fun x : {j : Fin n // j < i} => G.Adj x.1 i).card
+        + (Finset.univ.filter fun x : {j : Fin n // j < i} => ¬ G.Adj x.1 i).card = (i : ℕ) :=
+    fun i => by rw [Finset.card_filter_add_card_filter_not, card_exposureBlock_univ]
+  have hsum : G.edgeSet.toFinset.card
+      + (∑ i : Fin n, (Finset.univ.filter fun x : {j : Fin n // j < i} => ¬ G.Adj x.1 i).card)
+      = n.choose 2 := by
+    rw [← hcount, ← Finset.sum_add_distrib, Finset.sum_congr rfl fun i _ => hsplit i]
+    exact sum_val_univ_eq_choose_two n
+  have hn : (Nat.card (Fin n)).choose 2 = n.choose 2 := by simp
+  rw [Finset.prod_congr rfl fun i _ => hblock i, Finset.prod_mul_distrib,
+    Finset.prod_pow_eq_pow_sum, Finset.prod_pow_eq_pow_sum, hcount,
+    Set.ncard_eq_toFinset_card' G.edgeSet, hn]
+  congr 1
+  congr 1
+  omega
 
 end VertexExposure
 
