@@ -218,6 +218,34 @@ theorem jansonMu_triangleFamily (n : ℕ) (p : I) :
   rw [jansonMu, Finset.sum_congr rfl fun T _ => hterm T, Finset.sum_const, Finset.card_univ,
     hcount, nsmul_eq_mul]
 
+/-- The dependency set for the triangle family: two distinct triples are dependent exactly when
+they share an edge, which for triples means sharing two vertices.
+
+Triples meeting in at most one vertex span **disjoint** edge sets, so their events are genuinely
+independent and are correctly left out.  This `D` is therefore not merely admissible but minimal,
+and `A ≠ B` together with `2 ≤ #(A ∩ B)` forces `#(A ∩ B) = 2` exactly. -/
+def triangleDependency (n : ℕ) :
+    Finset ({T : Finset (Fin n) // T.card = 3} × {T : Finset (Fin n) // T.card = 3}) :=
+  Finset.univ.filter fun q =>
+    q.1 ≠ q.2 ∧ 2 ≤ ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n))).card
+
+/-- **`Δ` for the triangle family is at most `n⁴p⁵`.**
+
+Two triples sharing an edge span `3 + 3 - 1 = 5` distinct non-loop pairs, so each dependent pair
+contributes `p ⁵`, and there are `3 binom(n,3) (n-3)` ordered dependent pairs — choose a triple,
+choose which two of its vertices are shared, choose the replacement vertex.  That count is
+`n(n-1)(n-2)(n-3)/2`, comfortably below `n⁴`.
+
+The constant is deliberately loose, as in `variance_triangleCount_le`: `Δ ≍ n⁴p⁵` is all the
+applications need, and tracking the exact binomial would cost the prover more than it buys. -/
+theorem jansonDelta_triangleFamily_le (n : ℕ) (p : I) :
+    jansonDelta p
+        (fun T : {T : Finset (Fin n) // T.card = 3} =>
+          (↑(offDiagPairs (T : Finset (Fin n))) : Set (Sym2 (Fin n))))
+        (triangleDependency n)
+      ≤ (n : ℝ) ^ 4 * (p : ℝ) ^ 5 := by
+  sorry
+
 /-- The conditioning step of the Boppana–Spencer proof of Janson's inequality.
 
 If `i ∉ T` and every `S j` with `j ∈ T` outside `T₁` is disjoint from `S i`, then imposing the
