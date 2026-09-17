@@ -1092,7 +1092,7 @@ private theorem unifChoice_inter_eq_mul {n : ℕ} {ι : Type*} [Fintype ι] [Dec
   rw [e₁, e₂] at hmul
   exact hmul
 
-/-- **Independent transversals** (Zhao, §6.3): a graph of maximum degree `Δ` whose vertices are
+/-- **Independent transversals** (Zhao, §6.3): a graph of degree at most `Δ` whose vertices are
 partitioned into parts, each larger than `2eΔ`, has an independent set containing exactly one
 vertex from every part.
 
@@ -1102,16 +1102,31 @@ chosen vertices form an independent transversal.
 
 **The size hypothesis is strict, and that is a repair rather than a transcription.**  The source
 asks for parts of size `≥ 2eΔ`.  At `Δ = 0` that reads `0 ≤ |part|`, which permits an **empty**
-part — and then no transversal exists and the statement is false.  Strict `<` forces every part
-nonempty at every `Δ`, and costs nothing above `Δ = 0` since the bound is already far from tight:
-Haxell's theorem gets by with parts of size `2Δ`, so `2eΔ ≈ 5.44Δ` has room to spare.
+part — and then no transversal exists and the statement is false.  Strict `<` is the minimal
+repair, and it is minimal in a precise sense: for `Δ ≥ 1` the number `2eΔ` is irrational, so it
+is never equal to a part size, and `≤` and `<` are *logically equivalent* hypotheses there.  The
+two forms differ at exactly one point, `Δ = 0`, which is exactly where the non-strict form fails.
+No margin is being spent, and there is none to trade.
 
-**Route.**  Choose one vertex uniformly at random from each part, independently.  For each edge
-whose endpoints lie in *different* parts, let its bad event be that both endpoints were chosen;
-its probability is at most `1/(2eΔ)²`.  Two bad events are dependent only when their edges meet a
-common part, which bounds the dependency degree, and `lovasz_local_lemma_symmetric` then gives a
-positive probability that no bad event occurs.  Edges inside a single part need no event: at most
-one vertex per part is ever chosen. -/
+**Route.**  Pass first to subsets `Q j` of a **common size** `m`, discarding surplus vertices;
+every part has more than `2eΔ` vertices, so `m` may be taken to be any natural number with
+`2eΔ < m`.  This step is load-bearing rather than tidying: with heterogeneous parts the bad event
+for an edge between parts `j` and `k` has probability `1/(|Q j| · |Q k|)`, bounded only by
+`1/m²` for the *minimum* size, while the dependency degree scales with the *maximum*, and the
+local lemma's condition fails once the parts are far apart in size.
+
+Then choose one vertex uniformly at random from each `Q j`, independently.  For each edge whose
+endpoints lie in different parts, its bad event is that both endpoints were chosen, of
+probability `1/m²`.  Two bad events are dependent only when their edges meet a common part, which
+gives dependency degree `d = 2mΔ - 1`, and `lovasz_local_lemma_symmetric` applies because
+`e · (1/m²) · (d + 1) = 2eΔ/m ≤ 1`.
+
+**The `- 1` is load-bearing too.**  With `d = 2mΔ` the condition reads `2eΔ/m + e/m² ≤ 1`, which
+fails at `Δ = 2, m = 11` — the smallest `m` the hypothesis allows, since `2eΔ = 10.873…` — where
+it evaluates to `1.0109`.  The hypothesis leaves about `1.2%` of room and the spurious `+1`
+costs `2.2%`.
+
+Edges inside a single part need no event: at most one vertex per part is ever chosen. -/
 theorem exists_independent_transversal {n : ℕ} {ι : Type*} [Fintype ι] [DecidableEq ι]
     (G : SimpleGraph (Fin n)) [DecidableRel G.Adj] (Δ : ℕ) (part : Fin n → ι)
     (hdeg : ∀ v, G.degree v ≤ Δ)
