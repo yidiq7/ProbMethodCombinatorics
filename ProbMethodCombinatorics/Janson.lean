@@ -177,76 +177,6 @@ are stated against, and `binomialRandom_setOf_forall_not_subset` carries the res
 over to `G(n, p)`.
 -/
 
-/-- **`μ` for the triangle family is `binom(n,3) p³`.**
-
-Each of the `binom(n,3)` triples contributes the probability that its three edges are all
-present, which is `p ³` by `setBernoulli_setOf_subset` — the triple spans exactly three non-loop
-pairs, since `card_offDiagPairs_add` gives `#(offDiagPairs T) + 3 = binom(4,2) = 6`.
-
-The same number as `integral_triangleCount` of Chapter 4, reached over a different sample space:
-there the count is a random variable on `SimpleGraph (Fin n)`, here it is a sum of event
-probabilities on `Set (Sym2 (Fin n))`. -/
-theorem jansonMu_triangleFamily (n : ℕ) (p : I) :
-    jansonMu p (fun T : {T : Finset (Fin n) // T.card = 3} =>
-        (↑(offDiagPairs (T : Finset (Fin n))) : Set (Sym2 (Fin n))))
-      = (n.choose 3 : ℝ) * (p : ℝ) ^ 3 := by
-  -- A triple spans exactly three non-loop pairs: `#(offDiagPairs T) + 3 = binom(4,2) = 6`.
-  have hcard3 : ∀ T : {T : Finset (Fin n) // T.card = 3},
-      (offDiagPairs (T : Finset (Fin n))).card = 3 := by
-    intro T
-    have hT := T.2
-    have h := card_offDiagPairs_add (T : Finset (Fin n))
-    rw [hT] at h
-    norm_num [Nat.choose] at h
-    omega
-  -- The index type is the `3`-element subsets of `Fin n`, of which there are `binom(n,3)`.
-  have hcount : Fintype.card {T : Finset (Fin n) // T.card = 3} = n.choose 3 := by
-    rw [Fintype.card_subtype]
-    have hfilter : {T ∈ (Finset.univ : Finset (Finset (Fin n))) | T.card = 3}
-        = (Finset.univ : Finset (Fin n)).powersetCard 3 := by
-      ext T
-      simp
-    rw [hfilter, Finset.card_powersetCard, Finset.card_univ, Fintype.card_fin]
-  -- Each triple contributes the probability `p ^ 3` that its three pairs are all present.
-  have hterm : ∀ T : {T : Finset (Fin n) // T.card = 3},
-      (setBernoulli Set.univ p
-          {R : Set (Sym2 (Fin n)) | ↑(offDiagPairs (T : Finset (Fin n))) ⊆ R}).toReal
-        = (p : ℝ) ^ 3 := by
-    intro T
-    rw [setBernoulli_setOf_subset, hcard3 T, ENNReal.toReal_pow, ENNReal.coe_toReal,
-      unitInterval.coe_toNNReal]
-  rw [jansonMu, Finset.sum_congr rfl fun T _ => hterm T, Finset.sum_const, Finset.card_univ,
-    hcount, nsmul_eq_mul]
-
-/-- The dependency set for the triangle family: two distinct triples are dependent exactly when
-they share an edge, which for triples means sharing two vertices.
-
-Triples meeting in at most one vertex span **disjoint** edge sets, so their events are genuinely
-independent and are correctly left out.  This `D` is therefore not merely admissible but minimal,
-and `A ≠ B` together with `2 ≤ #(A ∩ B)` forces `#(A ∩ B) = 2` exactly. -/
-def triangleDependency (n : ℕ) :
-    Finset ({T : Finset (Fin n) // T.card = 3} × {T : Finset (Fin n) // T.card = 3}) :=
-  Finset.univ.filter fun q =>
-    q.1 ≠ q.2 ∧ 2 ≤ ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n))).card
-
-/-- Two distinct triples that share at least two vertices share **exactly** two: a third shared
-vertex would exhaust both triples and make them equal. -/
-private theorem card_inter_eq_two_of_mem_triangleDependency {n : ℕ}
-    (q : {T : Finset (Fin n) // T.card = 3} × {T : Finset (Fin n) // T.card = 3})
-    (hq : q ∈ triangleDependency n) :
-    ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n))).card = 2 := by
-  obtain ⟨hne, hge⟩ := (Finset.mem_filter.1 hq).2
-  have hne' : (q.1 : Finset (Fin n)) ≠ (q.2 : Finset (Fin n)) := fun h => hne (Subtype.ext h)
-  have h3 : ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n))).card ≠ 3 := by
-    intro h
-    exact hne' ((Finset.eq_of_subset_of_card_le Finset.inter_subset_left
-      (by rw [q.1.2, h])).symm.trans
-      (Finset.eq_of_subset_of_card_le Finset.inter_subset_right (by rw [q.2.2, h])))
-  have hle := Finset.card_le_card
-    (Finset.inter_subset_left (s₁ := (q.1 : Finset (Fin n))) (s₂ := (q.2 : Finset (Fin n))))
-  rw [q.1.2] at hle
-  omega
-
 /-- **`μ` for the `k`-clique family is `binom(n,k) p^{binom(k,2)}`.**
 
 The general form of `jansonMu_triangleFamily`, which is the case `k = 3`.  Each of the
@@ -294,6 +224,49 @@ theorem jansonMu_cliqueFamily (n k : ℕ) (p : I) :
       unitInterval.coe_toNNReal]
   rw [jansonMu, Finset.sum_congr rfl fun S _ => hterm S, Finset.sum_const, Finset.card_univ,
     hcount, nsmul_eq_mul]
+
+/-- **`μ` for the triangle family is `binom(n,3) p³`.**
+
+Each of the `binom(n,3)` triples contributes the probability that its three edges are all
+present, which is `p ³` by `setBernoulli_setOf_subset` — the triple spans exactly three non-loop
+pairs, since `card_offDiagPairs_add` gives `#(offDiagPairs T) + 3 = binom(4,2) = 6`.
+
+The same number as `integral_triangleCount` of Chapter 4, reached over a different sample space:
+there the count is a random variable on `SimpleGraph (Fin n)`, here it is a sum of event
+probabilities on `Set (Sym2 (Fin n))`. -/
+theorem jansonMu_triangleFamily (n : ℕ) (p : I) :
+    jansonMu p (fun T : {T : Finset (Fin n) // T.card = 3} =>
+        (↑(offDiagPairs (T : Finset (Fin n))) : Set (Sym2 (Fin n))))
+      = (n.choose 3 : ℝ) * (p : ℝ) ^ 3 := by
+  simpa using jansonMu_cliqueFamily n 3 p
+/-- The dependency set for the triangle family: two distinct triples are dependent exactly when
+they share an edge, which for triples means sharing two vertices.
+
+Triples meeting in at most one vertex span **disjoint** edge sets, so their events are genuinely
+independent and are correctly left out.  This `D` is therefore not merely admissible but minimal,
+and `A ≠ B` together with `2 ≤ #(A ∩ B)` forces `#(A ∩ B) = 2` exactly. -/
+def triangleDependency (n : ℕ) :
+    Finset ({T : Finset (Fin n) // T.card = 3} × {T : Finset (Fin n) // T.card = 3}) :=
+  Finset.univ.filter fun q =>
+    q.1 ≠ q.2 ∧ 2 ≤ ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n))).card
+
+/-- Two distinct triples that share at least two vertices share **exactly** two: a third shared
+vertex would exhaust both triples and make them equal. -/
+private theorem card_inter_eq_two_of_mem_triangleDependency {n : ℕ}
+    (q : {T : Finset (Fin n) // T.card = 3} × {T : Finset (Fin n) // T.card = 3})
+    (hq : q ∈ triangleDependency n) :
+    ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n))).card = 2 := by
+  obtain ⟨hne, hge⟩ := (Finset.mem_filter.1 hq).2
+  have hne' : (q.1 : Finset (Fin n)) ≠ (q.2 : Finset (Fin n)) := fun h => hne (Subtype.ext h)
+  have h3 : ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n))).card ≠ 3 := by
+    intro h
+    exact hne' ((Finset.eq_of_subset_of_card_le Finset.inter_subset_left
+      (by rw [q.1.2, h])).symm.trans
+      (Finset.eq_of_subset_of_card_le Finset.inter_subset_right (by rw [q.2.2, h])))
+  have hle := Finset.card_le_card
+    (Finset.inter_subset_left (s₁ := (q.1 : Finset (Fin n))) (s₂ := (q.2 : Finset (Fin n))))
+  rw [q.1.2] at hle
+  omega
 
 /-- **`Δ` for the triangle family is at most `n⁴p⁵`.**
 
