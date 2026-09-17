@@ -3,6 +3,34 @@
 How to run the loop on this project.  Mine, not a worker's: `skills/` is force-loaded
 into every worker's context, so nothing here belongs there.
 
+## Publishing against machinery that exists only as a local `have` buys three copies of it
+
+`integral_triangleCount` (#181) and `variance_triangleCount_le` (#182) both need the probability
+that a prescribed set of pairs is entirely present in `G(n, p)`.  That computation existed — as an
+inline `have hedges` inside `le_binomialRandom_cliqueFree_three` in `Correlation.lean`, where
+nothing else can reach it.  I published both tasks pointing at it anyway.
+
+Result: #184 wrote `binomialRandom_forall_mem_edgeSet`, #187 — whose base predates #184's merge —
+independently wrote `binomialRandom_setOf_subset_edgeSet` for the same purpose at a different
+cardinality, and `Correlation.lean` still has the original.  **Three copies of one lemma**, and a
+fourth was coming in Chapter 8.
+
+This is the duplicated-measure-layer mistake of #28–#30 repeated, and the tell was available
+before publishing: **the route I wrote named a `have` rather than a declaration.**  If the prose
+has to point at a step *inside* another proof, that step is not yet an interface, and publishing
+two tasks against it means each one builds it.
+
+- **Before publishing a batch, check that every lemma the route names is a top-level declaration.**
+  If it is a local `have`, hoist it first — that is orchestrator work and it is cheaper than the
+  consolidation afterwards.
+- **Sibling tasks in one file will not see each other's helpers.**  They are pinned to a common
+  base, so whichever lands second cannot use the first's work even though both end up in the same
+  file.  Either sequence them or supply the shared piece up front.
+- Consolidating afterwards is still mine, not a publishable task
+  (`skills/conventions.md` is explicit), so the cost of getting this wrong is paid in orchestrator
+  time either way.
+
+
 ## "Read its lease and sync the labels" is not the whole instruction — read the comment
 
 **The worst process failure of this session.** A `choir-defect` report landed on #176 at 22:40
