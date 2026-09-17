@@ -151,6 +151,34 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   reference node had to end in a `measureReal_def` dance purely because I wrote `.toReal`.  This
   is the template every later `whp` node copies, so it is worth getting right once.
 
+- **2026-09-17 — Chapter 8's real blocker was a ground set, not a missing API (#193).**
+  `janson.md` had recorded the five unstated asymptotic results of §8.1–§8.3 as needing "a settled
+  `whp` convention plus a worked `G(n,p)` API".  With the `whp` convention settled, I went to build
+  the API and found there was nothing to build.  Mathlib *defines*
+
+      SimpleGraph.binomialRandom V p = setBer(Sym2.diagSetᶜ, p).comap edgeSet
+
+  so `G(n,p)` already is a `setBernoulli`.  The obstruction is one type-level mismatch: every
+  Chapter 8 statement is fixed at `setBernoulli Set.univ p`, and `G(n,p)`'s ground set omits the
+  diagonal.  `map_inter_setBernoulli` — `(setBer(v,p)).map (· ∩ u) = setBer(v ∩ u, p)` — is the
+  whole transfer, and unblocks Theorem 8.1.6, Corollary 8.1.7, Theorem 8.1.10, Theorem 8.2.5 and
+  §8.3.2 at once.
+
+  The route is four steps and every input exists: `measurable_set_iff` for the trace map (`fun_prop`
+  does not do `Inter.inter` on `Set ι`), `setBernoulli_eq_map` to reach the product, and
+  `Measure.infinitePi_map_pi` — which carries no countability hypothesis, so the statement carries
+  none either, despite the rest of the file needing `[Countable ι]` for its *events*.
+
+  **The lesson is about how blockers get recorded.**  "Needs a worked `G(n,p)` API" priced five
+  theorems out of reach for weeks; the truth was a one-lemma impedance mismatch.  A blocker written
+  at the wrong level of abstraction is worse than no note at all, because a note stops people from
+  looking again.  The standing rule already says a "not in Mathlib" claim has a shelf life — this
+  extends it: **re-derive the blocker, don't re-read it.**
+
+  Checked before publishing, per the rule that cost me `exists_container_round`: the identity was
+  brute-forced over all subsets of a 4-element ground set against 400 random `(p, u, v)` triples,
+  400/400 agreeing, and the statement and the step-1 measurability proof both typecheck.
+
 - **2026-09-17 — the `whp` idiom is settled, and §4.1's subcritical threshold published (#183).**
   This was the single convention blocking §4.1's threshold, §4.2's `subgraph_threshold`, Janson's
   three asymptotic nodes and Theorem 11.1.5.  It is now a binding decision above, and
@@ -1247,12 +1275,16 @@ whose analytic input is absent costs a contributor a day to discover.
 are the honest growth path.
 - §9.2 Azuma — `Martingale`, `Filtration` and `condExp` are all present; Azuma itself is not.
   Everything in §9.3–§9.6 is downstream of it.
+- Chapter 8's five asymptotic results — *resolved 2026-09-17*: the blocker was never a missing
+  `G(n,p)` API but the ground-set mismatch now isolated as `map_inter_setBernoulli` (#193).
 - §10.2 Kahn–Lovász — needs two orchestrator-authored definitions first (a count of perfect
   matchings, and the bipartite double cover; note `boxProd` is the **Cartesian** product and
   would silently build the wrong graph).
 - §4.3 Bollobás–Thomason, §4.1/§4.2 thresholds, §4.4 clique number — all need an `ε`–`N` or
-  `whp` idiom plus, for §4.2, a definition of `m(H)`.
-- §11.1.3 / §11.1.5 — need `ex(n, H)` and a `whp` idiom.
+  `whp` idiom plus, for §4.2, a definition of `m(H)`.  *(The `whp` idiom was settled 2026-09-17;
+  what remains of this bullet is `m(H)` and `ρ`.)*
+- §11.1.3 / §11.1.5 — need `ex(n, H)` and a `whp` idiom.  *(`whp` settled 2026-09-17; `ex(n, H)`
+  remains.)*
 - §2.4 hypergraph Turán sampling — not yet assessed; the most likely of Chapter 2's four to be
   tractable.
 
