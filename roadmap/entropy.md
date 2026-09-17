@@ -113,8 +113,20 @@ remarks in the notes and are not stated.
   **open mathematics**, so any statement here must be the proved special case, not the
   conjecture.
 - **Corollary 10.2.2 (Kahn–Lovász)**, `pm(G) ≤ ∏ (d_v!)^(1/2d_v)`. Reduces to `bregman_minc`
-  via the bipartite double cover, but the notes leave the reduction as an exercise — and,
-  checked 2026-09-15, **two of the three things it needs are missing from Mathlib**:
+  via the bipartite double cover, but the notes leave the reduction as an exercise.
+
+  **Both missing objects are authored as of 2026-09-17** — `doubleCover` and
+  `perfectMatchingCount` — and the reduction's first half is published as
+  `perfectMatchingCount_doubleCover` (#216): perfect matchings of `G × K₂` are the permutations
+  counted by `permSupport` of the adjacency matrix, so with `permanent_eq_card_permSupport` the
+  corollary becomes a statement about a permanent, which the proved `permanent_le_prod_factorial`
+  bounds.  Verified exhaustively over all graphs on `n ≤ 5`: 1098/1098.
+
+  The second half, `pm(G)² ≤ pm(doubleCover G)`, is **verified but unstated** — 33866/33866 over
+  all graphs on `n ≤ 6`.  Held deliberately: the statement is true and I have no proof route for
+  it, and publishing a node whose route I cannot supply is what the standing rule forbids.
+
+  Below is what was missing before; kept because the `boxProd` warning still matters:
 
   * **No count of perfect matchings.** `SimpleGraph.Subgraph.IsPerfectMatching` exists as a
     *predicate* (`Matching.lean:236`), but there is no `Finset` of perfect matchings and no
