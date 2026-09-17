@@ -265,7 +265,35 @@ theorem jansonMu_cliqueFamily (n k : ℕ) (p : I) :
     jansonMu p (fun S : {S : Finset (Fin n) // S.card = k} =>
         (↑(offDiagPairs (S : Finset (Fin n))) : Set (Sym2 (Fin n))))
       = (n.choose k : ℝ) * (p : ℝ) ^ k.choose 2 := by
-  sorry
+  -- A `k`-set spans `binom(k,2)` non-loop pairs: `#(offDiagPairs S) + k = binom(k+1,2)`, and
+  -- `binom(k+1,2) = k + binom(k,2)`.
+  have hcardk : ∀ S : {S : Finset (Fin n) // S.card = k},
+      (offDiagPairs (S : Finset (Fin n))).card = k.choose 2 := by
+    intro S
+    have h := card_offDiagPairs_add (S : Finset (Fin n))
+    rw [S.2] at h
+    have hsucc : (k + 1).choose 2 = k + k.choose 2 := by
+      rw [Nat.choose_succ_succ' k 1, Nat.choose_one_right]
+    rw [hsucc] at h
+    omega
+  -- The index type is the `k`-element subsets of `Fin n`, of which there are `binom(n,k)`.
+  have hcount : Fintype.card {S : Finset (Fin n) // S.card = k} = n.choose k := by
+    rw [Fintype.card_subtype]
+    have hfilter : {S ∈ (Finset.univ : Finset (Finset (Fin n))) | S.card = k}
+        = (Finset.univ : Finset (Fin n)).powersetCard k := by
+      ext S
+      simp
+    rw [hfilter, Finset.card_powersetCard, Finset.card_univ, Fintype.card_fin]
+  -- Each `k`-set contributes the probability `p ^ binom(k,2)` that all its pairs are present.
+  have hterm : ∀ S : {S : Finset (Fin n) // S.card = k},
+      (setBernoulli Set.univ p
+          {R : Set (Sym2 (Fin n)) | ↑(offDiagPairs (S : Finset (Fin n))) ⊆ R}).toReal
+        = (p : ℝ) ^ k.choose 2 := by
+    intro S
+    rw [setBernoulli_setOf_subset, hcardk S, ENNReal.toReal_pow, ENNReal.coe_toReal,
+      unitInterval.coe_toNNReal]
+  rw [jansonMu, Finset.sum_congr rfl fun S _ => hterm S, Finset.sum_const, Finset.card_univ,
+    hcount, nsmul_eq_mul]
 
 /-- **`Δ` for the triangle family is at most `n⁴p⁵`.**
 
