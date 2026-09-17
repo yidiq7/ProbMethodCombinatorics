@@ -229,6 +229,24 @@ def triangleDependency (n : ℕ) :
   Finset.univ.filter fun q =>
     q.1 ≠ q.2 ∧ 2 ≤ ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n))).card
 
+/-- Two distinct triples that share at least two vertices share **exactly** two: a third shared
+vertex would exhaust both triples and make them equal. -/
+private theorem card_inter_eq_two_of_mem_triangleDependency {n : ℕ}
+    (q : {T : Finset (Fin n) // T.card = 3} × {T : Finset (Fin n) // T.card = 3})
+    (hq : q ∈ triangleDependency n) :
+    ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n))).card = 2 := by
+  obtain ⟨hne, hge⟩ := (Finset.mem_filter.1 hq).2
+  have hne' : (q.1 : Finset (Fin n)) ≠ (q.2 : Finset (Fin n)) := fun h => hne (Subtype.ext h)
+  have h3 : ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n))).card ≠ 3 := by
+    intro h
+    exact hne' ((Finset.eq_of_subset_of_card_le Finset.inter_subset_left
+      (by rw [q.1.2, h])).symm.trans
+      (Finset.eq_of_subset_of_card_le Finset.inter_subset_right (by rw [q.2.2, h])))
+  have hle := Finset.card_le_card
+    (Finset.inter_subset_left (s₁ := (q.1 : Finset (Fin n))) (s₂ := (q.2 : Finset (Fin n))))
+  rw [q.1.2] at hle
+  omega
+
 /-- **`Δ` for the triangle family is at most `n⁴p⁵`.**
 
 Two triples sharing an edge span `3 + 3 - 1 = 5` distinct non-loop pairs, so each dependent pair
@@ -254,22 +272,8 @@ theorem jansonDelta_triangleFamily_le (n : ℕ) (p : I) :
     rw [hT] at h
     norm_num [Nat.choose] at h
     omega
-  -- On `triangleDependency n` the shared vertex set has exactly two elements: it has at least
-  -- two by definition, and three would force the two triples to be equal.
-  have hinter2 : ∀ q ∈ triangleDependency n,
-      ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n))).card = 2 := by
-    intro q hq
-    obtain ⟨hne, hge⟩ := (Finset.mem_filter.1 hq).2
-    have hne' : (q.1 : Finset (Fin n)) ≠ (q.2 : Finset (Fin n)) := fun h => hne (Subtype.ext h)
-    have h3 : ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n))).card ≠ 3 := by
-      intro h
-      exact hne' ((Finset.eq_of_subset_of_card_le Finset.inter_subset_left
-        (by rw [q.1.2, h])).symm.trans
-        (Finset.eq_of_subset_of_card_le Finset.inter_subset_right (by rw [q.2.2, h])))
-    have hle := Finset.card_le_card
-      (Finset.inter_subset_left (s₁ := (q.1 : Finset (Fin n))) (s₂ := (q.2 : Finset (Fin n))))
-    rw [q.1.2] at hle
-    omega
+  have hinter2 := fun q (hq : q ∈ triangleDependency n) =>
+    card_inter_eq_two_of_mem_triangleDependency q hq
   -- Two triples sharing an edge span `3 + 3 - 1 = 5` non-loop pairs.
   have hcard5 : ∀ q ∈ triangleDependency n,
       (offDiagPairs (q.1 : Finset (Fin n)) ∪ offDiagPairs (q.2 : Finset (Fin n))).card = 5 := by
@@ -348,24 +352,6 @@ theorem jansonDelta_triangleFamily_le (n : ℕ) (p : I) :
   have h5 : (0 : ℝ) ≤ (p : ℝ) ^ 5 := by positivity
   rw [jansonDelta, Finset.sum_congr rfl hterm, Finset.sum_const, nsmul_eq_mul]
   gcongr
-
-/-- Two distinct triples that share at least two vertices share **exactly** two: a third shared
-vertex would exhaust both triples and make them equal. -/
-private theorem card_inter_eq_two_of_mem_triangleDependency {n : ℕ}
-    (q : {T : Finset (Fin n) // T.card = 3} × {T : Finset (Fin n) // T.card = 3})
-    (hq : q ∈ triangleDependency n) :
-    ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n))).card = 2 := by
-  obtain ⟨hne, hge⟩ := (Finset.mem_filter.1 hq).2
-  have hne' : (q.1 : Finset (Fin n)) ≠ (q.2 : Finset (Fin n)) := fun h => hne (Subtype.ext h)
-  have h3 : ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n))).card ≠ 3 := by
-    intro h
-    exact hne' ((Finset.eq_of_subset_of_card_le Finset.inter_subset_left
-      (by rw [q.1.2, h])).symm.trans
-      (Finset.eq_of_subset_of_card_le Finset.inter_subset_right (by rw [q.2.2, h])))
-  have hle := Finset.card_le_card
-    (Finset.inter_subset_left (s₁ := (q.1 : Finset (Fin n))) (s₂ := (q.2 : Finset (Fin n))))
-  rw [q.1.2] at hle
-  omega
 
 /-- The exact number of ordered dependent pairs of triples: `3 binom(n,3) (n-3)`.
 
