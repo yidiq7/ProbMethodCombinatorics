@@ -169,6 +169,28 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   inline block now calls it, `1d33a6d`, fifteen lines shorter.  **Retiring duplicates stays
   orchestrator work** — a contributor cannot see the other three copies from inside one task.
 
+- **2026-09-17 — §8.1's question is answered, and I repeated a mistake this file already records.**
+  `binomialRandom_no_triangle_le` (#215/#217) is `ℙ(G(n,p) triangle-free) ≤
+  exp(-binom(n,3)p³ + n⁴p⁵/2)`, the finite inequality behind Theorem 8.1.6, on the back of
+  `jansonMu_triangleFamily` (#211) and `jansonDelta_triangleFamily_le` (#213).  Setup 8.1.1 is
+  now fully instantiated at `G(n,p)`.
+
+  **I published the statement above `janson_prob_none_le`, the theorem its route depends on.**  As
+  published it could not have been proved without a forward reference, and the contributor had to
+  relocate it.  `containers.md` already records this exact failure for §11.2 — 11.2.1 is a
+  corollary of 11.2.3, so the book's order put the dependency backwards — and I wrote that note
+  before making the same error in a different chapter.
+
+  **New standing check, cheap and mechanical: before publishing, confirm every lemma the route
+  names appears earlier in the target file than the target.**  Statement placement is part of the
+  task, not cosmetics; the book's order is not a safe default and being right about it once does
+  not transfer.
+
+  `offDiagPairs_inter` has now earned its promotion out of `SecondMoment.lean` in three distinct
+  places, the latest in a chapter that did not exist when it was made public.  Contributors used
+  it to prove disjointness *without naming any element* — showing `offDiagPairs (A ∩ B) = ∅` from
+  `card_offDiagPairs_add` — where my route had them picking apart a shared `s(u, v)`.
+
 - **2026-09-17 — Shamir–Spencer is formalized, and §6.3's debts are paid.**
   `measure_abs_sub_integral_chromaticNumber_ge_le` (#209/#210) is Theorem 9.3.1, on the back of
   `binomialRandom_eq_map_graphOfExposure` (#201) and `abs_sub_chromaticNumber_le_one` (#207), both
