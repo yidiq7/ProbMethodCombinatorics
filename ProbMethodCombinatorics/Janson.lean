@@ -1,4 +1,5 @@
 import ProbMethodCombinatorics.Correlation
+import Mathlib.Probability.Combinatorics.BinomialRandomGraph.Defs
 import Mathlib.Probability.Distributions.SetBernoulli
 import Mathlib.Analysis.SpecialFunctions.Exp
 
@@ -114,6 +115,27 @@ theorem map_inter_setBernoulli (u v : Set ι) (p : I) :
     Measure.infinitePi_map_pi (f := fun (a : ι) (b : Prop) => b ∧ a ∈ u) _ hf,
     setBernoulli_eq_map (v ∩ u) p]
   simp_rw [hcoord]
+
+/-- **Janson's inequalities apply to `G(n, p)`.**  For a family of non-loop pair sets `S i`, the
+probability that `G(n, p)` contains none of them is the probability computed by the theorems
+below, which are stated over `setBernoulli Set.univ p`.
+
+This is the whole content of the transfer, and every asymptotic application in §8.1–§8.3 goes
+through it.  Two steps, neither of which is about Janson:
+
+* `binomialRandom_eq_map` reads `G(n, p)` as `setBer(Sym2.diagSetᶜ, p)` pushed along
+  `fromEdgeSet`, and `edgeSet_fromEdgeSet` says the edge set recovered that way is
+  `R \ Sym2.diagSet`.  Since no `e ∈ S i` is a loop, `↑(S i) ⊆ R \ Sym2.diagSet` and
+  `↑(S i) ⊆ R` say the same thing, so the event is unchanged.
+* `map_inter_setBernoulli` moves the ground set from `Sym2.diagSetᶜ` up to `Set.univ`, which is
+  legitimate for exactly the same reason: the event depends only on the trace off the diagonal.
+-/
+theorem binomialRandom_setOf_forall_not_subset {n : ℕ} (p : I)
+    (S : κ → Finset (Sym2 (Fin n))) (hS : ∀ i, ∀ e ∈ S i, ¬ e.IsDiag) :
+    SimpleGraph.binomialRandom (Fin n) p
+        {G : SimpleGraph (Fin n) | ∀ i, ¬ (↑(S i) ⊆ G.edgeSet)}
+      = setBernoulli Set.univ p {R : Set (Sym2 (Fin n)) | ∀ i, ¬ (↑(S i) ⊆ R)} := by
+  sorry
 
 /-- The conditioning step of the Boppana–Spencer proof of Janson's inequality.
 
