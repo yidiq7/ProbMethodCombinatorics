@@ -841,7 +841,79 @@ proved above. -/
 theorem prob_triangle_of_le_mul :
     ∀ ε : ℝ, 0 < ε → ∃ M > 0, ∃ N : ℕ, ∀ (n : ℕ), N ≤ n → ∀ p : I, M ≤ (p : ℝ) * n →
       1 - ε ≤ (binomialRandom (Fin n) p).real {G | triangleCount G ≠ 0} := by
-  sorry
+  intro ε hε
+  refine ⟨max 1 (288 / ε), lt_max_iff.mpr (Or.inl one_pos), 6, fun n hn p hpn => ?_⟩
+  -- The scale hypothesis gives `p · n ≥ 1` and `(p · n) · ε ≥ 288`; the threshold gives `n ≥ 6`.
+  have hM1 : (1 : ℝ) ≤ max 1 (288 / ε) := le_max_left _ _
+  have hMe : 288 / ε ≤ max 1 (288 / ε) := le_max_right _ _
+  have ht1 : (1 : ℝ) ≤ (p : ℝ) * n := hM1.trans hpn
+  have hεt : 288 ≤ (p : ℝ) * n * ε := (div_le_iff₀ hε).mp (hMe.trans hpn)
+  have hn6 : (6 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn
+  have hp0 : (0 : ℝ) ≤ (p : ℝ) := p.2.1
+  have hnpos : (0 : ℝ) < (n : ℝ) := by linarith
+  have hppos : (0 : ℝ) < (p : ℝ) := by
+    rcases hp0.lt_or_eq with h | h
+    · exact h
+    · rw [← h, zero_mul] at ht1; linarith
+  -- `binom(n,3) = n(n-1)(n-2)/6 ≥ n³/12`, which holds from `n = 6` up.
+  have hchoose : (n : ℝ) ^ 3 / 12 ≤ (n.choose 3 : ℝ) := by
+    have hnat : 6 * n.choose 3 = n * (n - 1) * (n - 2) := by
+      have h := Nat.descFactorial_eq_factorial_mul_choose n 3
+      simp only [Nat.descFactorial, Nat.factorial, Nat.sub_zero, mul_one] at h
+      rw [← h]; ring
+    have hc : (6 : ℝ) * (n.choose 3 : ℝ) = (n : ℝ) * ((n : ℝ) - 1) * ((n : ℝ) - 2) := by
+      have h := congrArg (fun k : ℕ => (k : ℝ)) hnat
+      push_cast [Nat.cast_sub (by omega : 1 ≤ n), Nat.cast_sub (by omega : 2 ≤ n)] at h
+      linarith only [h]
+    nlinarith only [hc, hn6]
+  have hmean : ∫ G, triangleCount G ∂(binomialRandom (Fin n) p)
+      = (n.choose 3 : ℝ) * (p : ℝ) ^ 3 := integral_triangleCount n p
+  have hEpos : 0 < (n.choose 3 : ℝ) * (p : ℝ) ^ 3 := by
+    have h3 : (0 : ℝ) < (n : ℝ) ^ 3 := by positivity
+    exact mul_pos (by linarith) (pow_pos hppos 3)
+  have hcheb := prob_eq_zero_le_variance_div_sq (memLp_triangleCount p)
+    (by rw [hmean]; exact hEpos.ne')
+  have hvar := variance_triangleCount_le n p
+  -- `144 / (p·n)³ ≤ ε/2`: the first Chebyshev term, controlled by the scale alone.
+  have hA0 : 288 ≤ ε * ((n : ℝ) ^ 3 * (p : ℝ) ^ 3) := by
+    have ht2 : (1 : ℝ) ≤ ((p : ℝ) * n) ^ 2 := by nlinarith only [ht1]
+    have e1 : 288 * ((p : ℝ) * n) ^ 2 ≤ (p : ℝ) * n * ε * ((p : ℝ) * n) ^ 2 :=
+      mul_le_mul_of_nonneg_right hεt (by positivity)
+    linarith only [e1, ht2]
+  have hA : 288 * ((n : ℝ) ^ 3 * (p : ℝ) ^ 3) ≤ ε * ((n : ℝ) ^ 6 * (p : ℝ) ^ 6) := by
+    have h := mul_le_mul_of_nonneg_right hA0
+      (show (0 : ℝ) ≤ (n : ℝ) ^ 3 * (p : ℝ) ^ 3 by positivity)
+    linarith only [h]
+  -- `144 / (n·(p·n)) ≤ ε/2`: the second term, which also needs `n` large.
+  have hB0 : 288 ≤ ε * ((n : ℝ) ^ 2 * (p : ℝ)) := by
+    have e1 : 288 * (n : ℝ) ≤ (p : ℝ) * n * ε * (n : ℝ) :=
+      mul_le_mul_of_nonneg_right hεt hnpos.le
+    linarith only [e1, hn6]
+  have hB : 288 * ((n : ℝ) ^ 4 * (p : ℝ) ^ 5) ≤ ε * ((n : ℝ) ^ 6 * (p : ℝ) ^ 6) := by
+    have h := mul_le_mul_of_nonneg_right hB0
+      (show (0 : ℝ) ≤ (n : ℝ) ^ 4 * (p : ℝ) ^ 5 by positivity)
+    linarith only [h]
+  -- Chebyshev's error is at most `ε`, since `𝔼² ≥ n⁶p⁶/144`.
+  have hkey : Var[(triangleCount : SimpleGraph (Fin n) → ℝ); binomialRandom (Fin n) p]
+      / (∫ G, triangleCount G ∂(binomialRandom (Fin n) p)) ^ 2 ≤ ε := by
+    have hstep : (n : ℝ) ^ 3 * (p : ℝ) ^ 3 / 12 ≤ (n.choose 3 : ℝ) * (p : ℝ) ^ 3 := by
+      have h := mul_le_mul_of_nonneg_right hchoose (pow_nonneg hp0 3)
+      linarith only [h]
+    have hsq : ((n : ℝ) ^ 3 * (p : ℝ) ^ 3 / 12) ^ 2 ≤ ((n.choose 3 : ℝ) * (p : ℝ) ^ 3) ^ 2 :=
+      pow_le_pow_left₀ (by positivity) hstep 2
+    rw [hmean, div_le_iff₀ (pow_pos hEpos 2)]
+    linarith only [hvar, hA, hB, mul_le_mul_of_nonneg_left hsq hε.le]
+  -- Complement: `ℙ(X ≠ 0) = 1 - ℙ(X = 0) ≥ 1 - ε`.
+  have hmeasS : MeasurableSet {G : SimpleGraph (Fin n) | triangleCount G = 0} :=
+    measurable_triangleCount (measurableSet_singleton 0)
+  have hzero : (binomialRandom (Fin n) p).real {G : SimpleGraph (Fin n) | triangleCount G = 0}
+      ≤ ε := by
+    rw [measureReal_def]
+    exact hcheb.trans hkey
+  have hset : {G : SimpleGraph (Fin n) | triangleCount G ≠ 0}
+      = {G : SimpleGraph (Fin n) | triangleCount G = 0}ᶜ := rfl
+  rw [hset, probReal_compl_eq_one_sub hmeasS]
+  linarith
 
 /-- **The subcritical half of the triangle threshold** (Zhao, Proposition 4.1.2): when `p·n` is
 small, `G(n, p)` has no triangle with high probability.
