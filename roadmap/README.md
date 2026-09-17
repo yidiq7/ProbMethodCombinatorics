@@ -74,6 +74,14 @@ edge-count bound the book proves, so the edge-count bound stays a task.
 
 ### Decisions that still bind
 
+- **`whp` is written out, never as a filter or an `o(1)`** — *for every `ε > 0` there is a
+  threshold making the probability at least `1 - ε`*.  A hypothesis like `p ≪ 1/n` becomes a `δ`
+  bounding `p · n`, so no sequence of graphs and no limit appears in any statement.  This extends
+  the `ε`–`N` convention Chapters 5 and 11 already use to the probabilistic setting, and
+  `prob_no_triangle_of_mul_le` in `SecondMoment.lean` is the reference instance to copy.
+  **Prefer the form with no `N`** where the estimate is uniform in `n`, as Markov's is; reach for
+  `∃ N, ∀ n ≥ N` only when the argument genuinely needs `n` large, as Chebyshev's does.
+
 - **No measure theory in Chapters 1–3.** Every argument there is finite averaging, and the
   statements are phrased as pure existence/counting claims over `Finset` and `Fintype`
   so that proofs are counting arguments rather than `MeasureTheory` developments.
@@ -97,6 +105,24 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   cases.
 
 ## Log
+
+- **2026-09-17 — the `whp` idiom is settled, and §4.1's subcritical threshold published (#183).**
+  This was the single convention blocking §4.1's threshold, §4.2's `subgraph_threshold`, Janson's
+  three asymptotic nodes and Theorem 11.1.5.  It is now a binding decision above, and
+  `prob_no_triangle_of_mul_le` is the reference instance.
+
+  **The choice worth recording is what it avoids.**  A `Whp` *predicate* would have to quantify
+  over a family of probability spaces whose type varies with `n` — `SimpleGraph (Fin n)` — which
+  is dependent machinery the project has no other use for.  Writing the quantifiers out costs one
+  line per statement and keeps every asymptotic node in the same idiom the rest of the book
+  already uses.
+
+  **And the subcritical half needs no `N` at all**, which is why it is stated first: Markov's
+  bound is uniform in `n` (`𝔼X ≤ (p·n)³/6 ≤ δ³/6`), so `δ` depends on `ε` alone.  I verified the
+  arithmetic and that `binom(n,3) ≤ n³/6` holds without exception before stating it.  The
+  supercritical half is **deliberately unpublished**: it needs both a scale `M` and an `N`, and it
+  leans on `variance_triangleCount_le`, whose constants could still move — stating it now would
+  risk a second statement built on an unsettled one.
 
 - **2026-09-17 — §4.1's triangle count is authored and its two moments published (#181, #182).**
   The goal is now the whole book rather than the stated frontier, so the work is authoring the
