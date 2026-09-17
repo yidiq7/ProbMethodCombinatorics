@@ -1038,7 +1038,8 @@
       ],
       "proof_uses": [
         "fair_coin",
-        "instIsProbabilityMeasureBoolFairCoin"
+        "instIsProbabilityMeasureBoolFairCoin",
+        "measure_pi_inter_eq_mul"
       ]
     },
     "cycle_double_count": {
@@ -4346,7 +4347,16 @@
       "statement": "formalized",
       "proof": "planned",
       "uses": [],
-      "proof_uses": []
+      "proof_uses": [
+        "isProbabilityMeasure_unifChoice",
+        "is_dependency_graph",
+        "lll_symmetric",
+        "pattern",
+        "unifChoice",
+        "unifChoice_inter_eq_mul",
+        "unifChoice_pair",
+        "unifChoice_pi_self"
+      ]
     },
     "binomialRandom_forall_mem_edgeSet": {
       "kind": "theorem",
@@ -4697,7 +4707,16 @@
         "exposureMeasure",
         "graphOfExposure"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "bernoulliProp_singleton",
+        "card_exposureBlock_univ",
+        "exists_exposureIndex_of_not_isDiag",
+        "graphOfExposure_eq_iff_eq_adjBlocks",
+        "injective_sym2_ofExposureIndex",
+        "measurableSet_simpleGraph_singleton",
+        "measurable_graphOfExposure_blocks",
+        "sum_val_univ_eq_choose_two"
+      ]
     },
     "binomialRandom_setOf_forall_not_subset": {
       "kind": "theorem",
@@ -4706,7 +4725,9 @@
       "statement": "formalized",
       "proof": "planned",
       "uses": [],
-      "proof_uses": []
+      "proof_uses": [
+        "map_inter_setBernoulli"
+      ]
     },
     "card_filter_notMem_le_three": {
       "kind": "theorem",
@@ -4726,7 +4747,11 @@
       "statement": "formalized",
       "proof": "planned",
       "uses": [],
-      "proof_uses": []
+      "proof_uses": [
+        "card_choose_two_le_card_filter_five_superset",
+        "card_filter_subset_le_seven",
+        "ten_mul_choose_five_eq_mul_choose_two"
+      ]
     },
     "card_le_seven_of_tetrahedronFree": {
       "kind": "theorem",
@@ -4758,6 +4783,311 @@
       "proof": "formalized",
       "uses": [
         "ExposureBlock"
+      ],
+      "proof_uses": []
+    },
+    "abs_sub_chromaticNumber_graphOfExposure_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.abs_sub_chromaticNumber_graphOfExposure_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "ExposureBlock",
+        "graphOfExposure"
+      ],
+      "proof_uses": [
+        "abs_sub_chromaticNumber_le_one",
+        "adj_graphOfExposure_iff_of_lt",
+        "eq_of_exposureBlock_bot"
+      ]
+    },
+    "abs_sub_chromaticNumber_le_one": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.abs_sub_chromaticNumber_le_one",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "colorable_succ_of_adj_iff_off_vertex"
+      ]
+    },
+    "adj_graphOfExposure_iff_of_lt": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.adj_graphOfExposure_iff_of_lt",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "ExposureBlock",
+        "graphOfExposure"
+      ],
+      "proof_uses": []
+    },
+    "bernoulliProp_singleton": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.bernoulliProp_singleton",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "card_choose_two_le_card_filter_five_superset": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Expectation.lean",
+      "decl": "ProbMethodCombinatorics.card_choose_two_le_card_filter_five_superset",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "card_exposureBlock_univ": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.card_exposureBlock_univ",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "card_filter_subset_le_seven": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Expectation.lean",
+      "decl": "ProbMethodCombinatorics.card_filter_subset_le_seven",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "card_le_seven_of_tetrahedronFree"
+      ]
+    },
+    "colorable_succ_of_adj_iff_off_vertex": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.colorable_succ_of_adj_iff_off_vertex",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "eq_of_exposureBlock_bot": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.eq_of_exposureBlock_bot",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "ExposureBlock"
+      ],
+      "proof_uses": []
+    },
+    "exists_exposureIndex_of_not_isDiag": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.exists_exposureIndex_of_not_isDiag",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "graphOfExposure_eq_iff_eq_adjBlocks": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.graphOfExposure_eq_iff_eq_adjBlocks",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "ExposureBlock",
+        "graphOfExposure"
+      ],
+      "proof_uses": [
+        "adj_graphOfExposure_iff_of_lt"
+      ]
+    },
+    "injective_sym2_ofExposureIndex": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.injective_sym2_ofExposureIndex",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "isProbabilityMeasure_unifChoice": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.isProbabilityMeasure_unifChoice",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "unifChoice"
+      ],
+      "proof_uses": []
+    },
+    "jansonMu_triangleFamily": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.jansonMu_triangleFamily",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "janson_mu",
+        "offDiagPairs"
+      ],
+      "proof_uses": []
+    },
+    "le_card_free_graphs": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.le_card_free_graphs",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "measurableSet_simpleGraph_singleton": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.measurableSet_simpleGraph_singleton",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "measurable_graphOfExposure_blocks": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.measurable_graphOfExposure_blocks",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "ExposureBlock",
+        "graphOfExposure"
+      ],
+      "proof_uses": [
+        "adj_graphOfExposure_iff_of_lt"
+      ]
+    },
+    "measure_abs_sub_integral_chromaticNumber_ge_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.measure_abs_sub_integral_chromaticNumber_ge_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "ExposureBlock",
+        "abs_sub_chromaticNumber_graphOfExposure_le",
+        "binomialRandom_eq_map_graphOfExposure",
+        "exposureMeasure",
+        "graphOfExposure",
+        "measurableSet_simpleGraph_singleton",
+        "measurable_graphOfExposure_blocks",
+        "measure_abs_sub_integral_ge_le",
+        "sum_sq_exposureWeight"
+      ]
+    },
+    "measure_abs_sub_integral_ge_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.measure_abs_sub_integral_ge_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "bounded_differences"
+      ]
+    },
+    "measure_pi_inter_eq_mul": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.measure_pi_inter_eq_mul",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "setBernoulli_setOf_subset": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.setBernoulli_setOf_subset",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "setBernoulli_cylinder"
+      ]
+    },
+    "sum_sq_exposureWeight": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.sum_sq_exposureWeight",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "sum_val_univ_eq_choose_two": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.sum_val_univ_eq_choose_two",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "ten_mul_choose_five_eq_mul_choose_two": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Expectation.lean",
+      "decl": "ProbMethodCombinatorics.ten_mul_choose_five_eq_mul_choose_two",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "unifChoice": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.unifChoice",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "unifChoice_inter_eq_mul": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.unifChoice_inter_eq_mul",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "unifChoice"
+      ],
+      "proof_uses": [
+        "measure_pi_inter_eq_mul"
+      ]
+    },
+    "unifChoice_pair": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.unifChoice_pair",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "unifChoice"
+      ],
+      "proof_uses": []
+    },
+    "unifChoice_pi_self": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.unifChoice_pi_self",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "unifChoice"
       ],
       "proof_uses": []
     }

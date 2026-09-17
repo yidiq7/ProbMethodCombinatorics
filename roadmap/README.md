@@ -169,6 +169,40 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   inline block now calls it, `1d33a6d`, fifteen lines shorter.  **Retiring duplicates stays
   orchestrator work** — a contributor cannot see the other three copies from inside one task.
 
+- **2026-09-17 — Shamir–Spencer is formalized, and §6.3's debts are paid.**
+  `measure_abs_sub_integral_chromaticNumber_ge_le` (#209/#210) is Theorem 9.3.1, on the back of
+  `binomialRandom_eq_map_graphOfExposure` (#201) and `abs_sub_chromaticNumber_le_one` (#207), both
+  landed the same day.  It needs **`2 ≤ n`, which the source omits** — at `n = 1` the radius
+  `λ √(n-1)` is zero, the event is everything, and the bound falls below `1` from `λ = 1`.  Third
+  source hypothesis added today, after §6.3's `≤`→`<` and §2.4.4's `n ≥ 4`→`n ≥ 5`.
+
+  **#188 merged with no rebase, and the three nudges I sent for one were my error.**  The conflict
+  was a both-added collision with `9f4322e`; when I later relocated
+  `uniformColoring_monochromatic_toReal_le` in `1d33a6d` the insertion regions stopped
+  overlapping and `git merge-tree` went clean on the contributor's original head.  **After
+  changing a file, re-test the mergeability of every open PR against it before pinging anyone** —
+  I asked three times for a fix my own consolidation had already made.
+
+  §6.3's docstring is corrected on all three counts the review raised: the strictness is free
+  because `2eΔ` is *irrational* for `Δ ≥ 1` (so `≤` and `<` are equivalent except at `Δ = 0`, where
+  the non-strict form is false) rather than because of slack against Haxell; the equalization to a
+  common part size is now stated, since heterogeneous parts break `e·p·(d+1) ≤ 1`; and the `- 1`
+  in `d = 2mΔ - 1` is recorded as load-bearing, failing at `Δ = 2, m = 11` without it.
+
+  **The fourth copy of the disjoint-coordinate independence argument is retired.**
+  `measure_pi_inter_eq_mul` states it for an arbitrary finite product of probability measures, and
+  `uniformColoring_inter_eq_mul` and `unifChoice_inter_eq_mul` are now one-line applications.
+  `iIndepFun_pi` appears once in `LocalLemma.lean` where it appeared twice.
+
+  **Pattern worth naming: on four of the last five PRs the contributor found a better route than
+  the one I published** — singleton comparison instead of product transport (#205),
+  `Fin.last`/`castSucc` instead of `Fin k ⊕ Unit` (#208), `orderEmbOfFin` instead of a hand-rolled
+  equiv (#204), and a general two-sided McDiarmid where I had asked only for a union bound (#210).
+  The prose earned its keep where it *verified facts and named traps* — the brute-forced
+  tightness checks, `ℕ∞.toNat ⊤ = 0`, "`omega` cannot evaluate `Nat.choose`".  It was dead weight
+  where it prescribed tactics.  Write down what is true and what will bite; stop short of
+  choosing the proof.
+
 - **2026-09-17 — §2.4 is complete, and a contributor re-derived the erratum structurally.**
   Proposition 2.4.2, Lemma 2.4.3 (#196) and Proposition 2.4.4 (#202) are all proved.
 
