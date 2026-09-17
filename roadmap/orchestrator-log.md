@@ -3,33 +3,32 @@
 How to run the loop on this project.  Mine, not a worker's: `skills/` is force-loaded
 into every worker's context, so nothing here belongs there.
 
-## Publishing against machinery that exists only as a local `have` buys three copies of it
+## A `private` lemma in another module is unreachable — pointing at it guarantees re-derivation
 
 `integral_triangleCount` (#181) and `variance_triangleCount_le` (#182) both need the probability
-that a prescribed set of pairs is entirely present in `G(n, p)`.  That computation existed — as an
-inline `have hedges` inside `le_binomialRandom_cliqueFree_three` in `Correlation.lean`, where
-nothing else can reach it.  I published both tasks pointing at it anyway.
+that a prescribed set of pairs is entirely present in `G(n, p)`.  I told both tasks that
+`Correlation.lean` "has the `binomialRandom_apply` / `setBernoulli` idiom for reasoning about
+these".  It does — as `private theorem measurableSet_setOf_coe_subset`,
+`private theorem setBernoulli_setOf_coe_subset` and `private theorem setBernoulli_cylinder`, plus
+an inline `have hedges` inside `le_binomialRandom_cliqueFree_three`.
 
-Result: #184 wrote `binomialRandom_forall_mem_edgeSet`, #187 — whose base predates #184's merge —
-independently wrote `binomialRandom_setOf_subset_edgeSet` for the same purpose at a different
-cardinality, and `Correlation.lean` still has the original.  **Three copies of one lemma**, and a
-fourth was coming in Chapter 8.
+**Every one of those is unreachable from another module.**  So the pointer did not save work; it
+guaranteed the work would be done again.  #184 wrote `binomialRandom_forall_mem_edgeSet`, #187 —
+based one commit earlier — independently wrote `binomialRandom_setOf_subset_edgeSet` for the same
+fact at a different cardinality, and `Correlation.lean` still holds the originals.  **Three copies
+of one lemma**, with a fourth due in Chapter 8.
 
-This is the duplicated-measure-layer mistake of #28–#30 repeated, and the tell was available
-before publishing: **the route I wrote named a `have` rather than a declaration.**  If the prose
-has to point at a step *inside* another proof, that step is not yet an interface, and publishing
-two tasks against it means each one builds it.
+This corrects my own first diagnosis of this, which said the tell was that the route named a
+`have` rather than a declaration.  That was too narrow: two of the three *are* top-level
+declarations.  **The tell is visibility, not shape** — `private` crosses no module boundary, so a
+`private` lemma in another file is exactly as unreachable as a `have` inside a proof.
 
-- **Before publishing a batch, check that every lemma the route names is a top-level declaration.**
-  If it is a local `have`, hoist it first — that is orchestrator work and it is cheaper than the
-  consolidation afterwards.
-- **Sibling tasks in one file will not see each other's helpers.**  They are pinned to a common
-  base, so whichever lands second cannot use the first's work even though both end up in the same
-  file.  Either sequence them or supply the shared piece up front.
-- Consolidating afterwards is still mine, not a publishable task
-  (`skills/conventions.md` is explicit), so the cost of getting this wrong is paid in orchestrator
-  time either way.
-
+- **Before pointing a task at a lemma, check it is `public` and in scope from the target's file.**
+  `grep "theorem <name>"` is not enough; look for the `private` and for the import.
+- **Sibling tasks in one file cannot see each other's helpers** either, being pinned to a common
+  base — so whichever lands second re-derives unless the shared piece is supplied up front.
+- Consolidation afterwards is orchestrator work and not publishable
+  (`skills/conventions.md`), so getting this wrong is paid in orchestrator time either way.
 
 ## "Read its lease and sync the labels" is not the whole instruction — read the comment
 
