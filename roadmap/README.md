@@ -169,6 +169,26 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   inline block now calls it, `1d33a6d`, fifteen lines shorter.  **Retiring duplicates stays
   orchestrator work** — a contributor cannot see the other three copies from inside one task.
 
+- **2026-09-17 — §2.4 is complete, and a contributor re-derived the erratum structurally.**
+  Proposition 2.4.2, Lemma 2.4.3 (#196) and Proposition 2.4.4 (#202) are all proved.
+
+  I had flagged 2.4.4's `5 ≤ n` by brute force: true maxima `3, 7, 14` at `n = 4, 5, 6` against a
+  printed bound of `2.8, 7, 14`.  The contributor located the same off-by-one **without computing
+  anything** — the hypothesis is spent at `Nat.choose_pos (2 ≤ n - 3)`, because at `n = 4` the
+  factor `binom(1,2)` is zero and the cancellation is invalid.  Two independent routes to the
+  same correction is about as much confirmation as a source erratum can get, and the structural
+  one is what now stands in the file.
+
+  Their `Finset.orderEmbOfFin` transport of Lemma 2.4.3 from `Fin 5` to an arbitrary 5-subset is
+  better than the route I published, which waved at "pick an equiv and check freeness survives".
+  The increasing enumeration supplies `image_orderEmbOfFin_univ` and injectivity for free, and
+  `Finset.subset_image_iff` closes both directions of the bijection in two lines each.
+
+  **Publishing a dependent node only after its input lands was the right call.**  2.4.4 was
+  stated at the same time as 2.4.3 but held back; a contributor proving it against a `sorry`
+  would have produced a green PR whose theorem transitively depended on an unproved lemma.
+  Visible in `#print axioms`, but misleading in the trust report.
+
 - **2026-09-17 — three blockers re-derived, three found stale, in one sitting.**
   The lesson written into the #193 entry got tested within the hour, twice, and both times the
   recorded blocker was wrong.

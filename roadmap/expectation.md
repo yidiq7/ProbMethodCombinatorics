@@ -16,9 +16,10 @@ Two of the chapter's six sections are stated so far.  The other four are unstate
 - **§2.4 (sampling bounds for the hypergraph Turán problem)** — **assessed and stated
   2026-09-15** as `card_le_of_tetrahedronFree` (Proposition 2.4.2).  Fully tractable: finite,
   entirely in `ℕ`, a self-contained double count, no missing Mathlib input.  Tight at `n = 4`.
-  Lemma 2.4.3 and the five-vertex refinement are **both stated 2026-09-17** —
-  `card_le_seven_of_tetrahedronFree` (#196) and `card_le_of_tetrahedronFree_sample_five`, the
-  latter held until the former is proved.  Question 2.4.1
+  Lemma 2.4.3 and the five-vertex refinement are **both proved 2026-09-17** —
+  `card_le_seven_of_tetrahedronFree` (#196) and `card_le_of_tetrahedronFree_sample_five` (#202),
+  the latter published only once the former had landed rather than against a `sorry`.  **§2.4 is
+  complete.**  Question 2.4.1
   itself is a **notorious open problem** and must never be stated.
 - **§2.5 (unbalancing lights)** — **stated 2026-09-15** as `exists_signs_sum_ge`.  My earlier
   note here ("needs a central limit estimate") was wrong twice over: Mathlib *does* have a CLT
