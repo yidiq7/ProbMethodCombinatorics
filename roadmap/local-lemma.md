@@ -193,3 +193,80 @@ The hypothesis was checked non-vacuous before stating: the least admissible `m` 
 non-`Bool` uniform colouring was one of its two obstacles.  The other — no directed walk or
 cycle anywhere in Mathlib's `Combinatorics/Digraph/` — stands, and is an authoring job of the
 same shape as `IsKSubdivision`.
+
+
+## Status 2026-09-18
+
+**Theorem 6.2.6 COMPLETE** — `setTwoColorable_of_le_card_inter_card_le`, on the back of
+`exists_forall_notMem_of_forall_finset` (Tychonoff) and `twoColorable_of_le_card_inter_card_le`.
+
+**Theorem 6.2.10 COMPLETE** — `exists_coloring_forall_translate_multicolored` in
+`Coloring.lean`, which is now sorry-free.
+
+**§6.2.11 (Beck) stated** in `ArithProgressions.lean`: the geometric tail and the
+progression-meeting count are proved; the local lemma assembly and the theorem are open.
+The constants were verified numerically before publishing — `k₀ ≥ 4/ε` together with a tail
+below `ε/16` closes the estimate with orders of magnitude to spare.  Note this differs from
+the source's bookkeeping (`ε/4`), which is why the tail lemma was stated generically in its
+constant rather than specialised.
+
+**§6.4 (Alon–Linial) stated** in `DirectedCycles.lean`, with authored cycle vocabulary.
+
+**The hypothesis had to be corrected away from the source.**  Zhao states
+`k (1 + log (1 + d D)) ≤ d`.  The dependency degree the argument actually establishes is
+`(1 + d)(1 + D) - 1`: two bad events interact when their closed out-neighbourhoods meet,
+which happens for the `d` out-neighbours of `v`, the `≤ D` in-neighbours of `v`, *and* the
+`≤ d D` vertices sharing an out-neighbour with `v`.  With the source's constant the local
+lemma inequality fails — `k = 5, d = 21, D = 1` gives `e (1-1/k)^d (1+d)(1+D) = 1.103 > 1`.
+Corrected to `k (1 + log ((1+d)(1+D))) ≤ d`, zero violations over `k ≤ 11`, `d ≤ 6000`.
+The least admissible `d` in the regular case moves only from `4, 12, 22, 43` to
+`5, 13, 22, 43` for `k = 1, 2, 3, 5`.
+
+This is the fourth source erratum found by computing small cases (after §2.4.4, §9.3.1 and
+§6.3) and **the first introduced by me**, by transcribing a constant instead of deriving it.
+The check that caught it — instantiate the finished route's inequality at small parameters
+before publishing — is cheap and should be routine for any node whose hypothesis is a
+numeric condition copied from the source.
+
+**§6.5 (lopsided local lemma) stated** in `Lopsided.lean`.  The old note said it needed "the
+general form's proof refactored so that step (6.3) uses a correlation inequality rather than
+independence — worth doing only once the general form is proved".  The general form is proved,
+and the refactor is not needed: `IsNegativeDependencyGraph` asks only about the all-negative
+pattern and only for an inequality, where `IndepFrom` quantifies over every pattern and
+demands equality, so the existing induction transfers with `le_trans` in place of `rw`.
+
+**Still unstated in Chapter 6**: §6.5's Latin transversal application (Erdős–Spencer 1991),
+and §6.6 (Moser–Tardos), which needs a model of the resampling process and is the chapter's
+largest single item.
+
+
+### §6.5's Latin transversal application — assessed 2026-09-18, not yet stated
+
+**Conjectures 6.5.8 (Ryser 1967) and 6.5.9 (Ryser–Brualdi–Stein) are OPEN PROBLEMS and must
+never be stated as theorems**, exactly like Question 2.4.1 in Chapter 2.  Remark 6.5.10 records
+partial progress (Keevash–Pokrovskiy–Sudakov–Yepremyan 2022, and an announced proof by
+Montgomery for large `n`) — announced and unpublished results are not targets either.  The only
+provable thing in this stretch is Theorem 6.5.11.
+
+**Theorem 6.5.11 (Erdős–Spencer 1991)**: every `n × n` array in which each symbol appears at
+most `n / (4e)` times has a Latin transversal.  The conclusion is clean to state — a transversal
+is a permutation `σ`, and "Latin" is `Function.Injective fun i => A i (σ i)` — so unlike §2.6
+there is no definitional obstacle in the *statement*.
+
+The obstacle is the *route*, which needs two things this project does not have:
+
+- **Setup 6.5.4, the random injection model**: a uniformly random injection `X → Y` read as a
+  matching, with `A F` the event that the matching contains `F`.  This is new vocabulary, and
+  it is the measure that the bad events live on — not `uniformColorOn`, because the coordinates
+  are not independent.
+- **Theorem 6.5.5, nonnegative dependence for random injections**: the statement that the
+  canonical negative dependency graph (join two events when their matchings share a vertex) is
+  valid.  Its proof is a counting injection between families of complete matchings, showing
+  `|M_{F₀}| ≤ |M_T|` for every `T : X₀ ↪ Y`.  This is the real content, and it is what makes the
+  lopsided lemma applicable at all.
+
+So the chain is: random injection model → Theorem 6.5.5 → Theorem 6.5.11, on top of
+`lopsided_local_lemma_symmetric`.  Not blocked on Mathlib, unlike §2.6 — blocked only on work,
+and worth doing once the lopsided core lands.  Deliberately left unstated until then rather than
+published against a route I have not worked out, which is the rule that caught §6.4's constant
+one step too late.

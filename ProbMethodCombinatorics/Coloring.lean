@@ -229,7 +229,38 @@ theorem exists_coloring_forall_translate_multicolored {k m : ℕ} [NeZero k]
     (h : Real.exp 1 * ((m * (m - 1) + 1 : ℕ) : ℝ) * k * (1 - 1 / (k : ℝ)) ^ m ≤ 1)
     {S : Finset ℝ} (hS : S.card = m) :
     ∃ c : ℝ → Fin k, ∀ x : ℝ, ∀ i : Fin k, ∃ s ∈ S, c (x + s) = i := by
-  sorry
+  classical
+  -- The bad event at a basepoint `x`: the translate `x + S` misses some colour.
+  set E : ℝ → Set (ℝ → Fin k) :=
+    fun x => {c : ℝ → Fin k | ∃ i : Fin k, ∀ s ∈ S, c (x + s) ≠ i} with hEdef
+  -- Membership in `E x` only depends on the colours assigned on `x + S`.
+  have hdet : ∀ (x : ℝ) (c d : ℝ → Fin k),
+      (∀ y ∈ S.image (fun t => x + t), c y = d y) → (c ∈ E x ↔ d ∈ E x) := by
+    intro x c d hcd
+    have hcd' : ∀ s ∈ S, c (x + s) = d (x + s) := fun s hs =>
+      hcd (x + s) (Finset.mem_image.2 ⟨s, hs, rfl⟩)
+    simp only [hEdef, Set.mem_ofPred_eq]
+    constructor
+    · rintro ⟨i, hi⟩
+      exact ⟨i, fun s hs => by rw [← hcd' s hs]; exact hi s hs⟩
+    · rintro ⟨i, hi⟩
+      exact ⟨i, fun s hs => by rw [hcd' s hs]; exact hi s hs⟩
+  -- Every finite set of basepoints is handled by the local lemma statement above.
+  have hfin : ∀ F : Finset ℝ, ∃ c : ℝ → Fin k, ∀ x ∈ F, c ∉ E x := by
+    intro F
+    obtain ⟨c, hc⟩ := exists_coloring_forall_mem_multicolored h hS F
+    refine ⟨c, fun x hx => ?_⟩
+    simp only [hEdef, Set.mem_ofPred_eq]
+    push Not
+    intro i
+    exact hc x hx i
+  obtain ⟨c, hc⟩ := exists_forall_notMem_of_forall_finset (α := fun _ : ℝ => Fin k) E
+    (fun x => S.image (fun t => x + t)) hdet hfin
+  refine ⟨c, fun x i => ?_⟩
+  have hcx := hc x
+  simp only [hEdef, Set.mem_ofPred_eq] at hcx
+  push Not at hcx
+  exact hcx i
 
 end Translates
 

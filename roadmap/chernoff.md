@@ -140,3 +140,18 @@ bound `C(n,t) ≤ nᵗ`, whose logarithm is `t log n = Θ(√n log n)`.  With th
 `t log n − 2·lam²/C(t,2)` is negative at *every* `n ≥ 1`, so no threshold is needed inside the
 counting and `N` depends only on `δ`.  Worth remembering: when a union bound fails, check
 whether the deviation was chosen for convenience before concluding the route is wrong.
+
+
+**§5.3 COMPLETE, 2026-09-18.**  `binomialRandom_hasKSubdivision_lt` verifies with axioms
+`[propext, Classical.choice, Quot.sound]` — no `sorryAx`.  Nine nodes: the counting core in
+`Chernoff.lean`, and in `Subdivision.lean` the edge count, its expectation, the bounded
+differences tail, the union bound, the bridge from `HasKSubdivision`, two numeric steps, and
+the assembly.
+
+Three route corrections came back from contributors and are now in `skills/conventions.md`
+rather than only on the threads: `set` makes `linarith` atoms syntactic, so a lemma
+instantiated in unfolded form must be folded back with `rw [← ht_def]`; implicit `t` must be
+pinned explicitly on `exists_card_eq_and_le_edgeCountWithin_of_hasKSubdivision`; and
+`measureReal_mono` carries **no** measurability obligation.  The last one had been reported
+on #236 before I repeated it in the routes for #262 and #267 — twice more than it should
+have been.
