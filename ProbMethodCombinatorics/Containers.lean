@@ -2522,8 +2522,20 @@ Reaching `d > n²/4` forces the independent sets to be **small** — at complete
 vertices the largest has `2` vertices against a budget of `8.33` — while the families with large
 independent sets, where packing would bind, are **not dense enough** to enter the corner at all.
 Every instance small enough to search exhaustively sits on one side or the other.  A refutation,
-if one exists, needs a family that is simultaneously dense and rich in large independent sets,
-and none of the natural constructions is both. -/
+if one exists, needs a family that is simultaneously dense and rich in large independent sets.
+
+*The extremal family for that requirement was constructed and checked, and it satisfies the
+corner.*  Take `H` to be **every** triple except those inside a set `I`; this maximises the
+independent-set size subject to a density constraint, so it is the unique place the above
+analysis leaves for a counterexample.  Its independent sets are `I` itself together with the
+pairs meeting `Iᶜ`, and an explicit assignment works: send `I` to one of its own vertices `v₀`,
+each pair `{u, v}` with `v ∈ I \ {v₀}` to `v`, and each pair inside `Iᶜ` to either endpoint.  The
+containers are then `I`, and sets of size at most `1 + |Iᶜ|`, all within budget.  Verified at
+`n = 6, …, 12`, where the densest admissible `|I|` runs from `0.50n` to `0.70n` and the largest
+container lands at or just below the `δ = 1/6` budget.
+
+So the corner survives the case that was constructed specifically to break it.  That is evidence,
+not a proof — the general obstruction, if there is one, is not any of the shapes examined here. -/
 theorem exists_containers_fingerprint_three_uniform (c : ℝ) (hc : 0 < c) :
     ∃ δ > 0, ∀ (n : ℕ) (H : Finset (Finset (Fin n))) (d : ℝ),
       (∀ e ∈ H, e.card = 3) → δ⁻¹ ≤ d → 3 * (H.card : ℝ) = d * n →
