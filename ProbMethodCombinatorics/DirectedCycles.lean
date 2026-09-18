@@ -102,7 +102,97 @@ theorem uniformColorOn_forall_ne_succ_toReal {k : ℕ} [NeZero k] (u : V) (T : F
     (hu : u ∉ T) :
     (uniformColorOn (ZMod k) V {x : V → ZMod k | ∀ w ∈ T, x w ≠ x u + 1}).toReal
       = (1 - 1 / (k : ℝ)) ^ T.card := by
-  sorry
+  have hne : (k : ℝ) ≠ 0 := Nat.cast_ne_zero.2 (NeZero.ne k)
+  -- Conditioning on the label of `u`: the event splits as a disjoint union.
+  have hunion : {x : V → ZMod k | ∀ w ∈ T, x w ≠ x u + 1}
+      = ⋃ b ∈ (Finset.univ : Finset (ZMod k)),
+          ({x : V → ZMod k | x u = b} ∩ {x : V → ZMod k | ∀ w ∈ T, x w ≠ b + 1}) := by
+    ext x
+    constructor
+    · intro hx
+      refine Set.mem_biUnion (Finset.mem_univ (x u)) ⟨rfl, ?_⟩
+      exact hx
+    · intro hx
+      obtain ⟨b, -, hb, hx2⟩ := Set.mem_iUnion₂.1 hx
+      intro w hw
+      show x w ≠ x u + 1
+      rw [show x u = b from hb]
+      exact hx2 w hw
+  have hdisj : (↑(Finset.univ : Finset (ZMod k)) : Set (ZMod k)).PairwiseDisjoint
+      (fun b => ({x : V → ZMod k | x u = b} ∩ {x : V → ZMod k | ∀ w ∈ T, x w ≠ b + 1})) := by
+    intro b _ c _ hbc
+    refine Set.disjoint_left.2 ?_
+    intro x hxb hxc
+    exact hbc ((show x u = b from hxb.1).symm.trans (show x u = c from hxc.1))
+  have hmeas : ∀ b ∈ (Finset.univ : Finset (ZMod k)),
+      MeasurableSet ({x : V → ZMod k | x u = b} ∩ {x : V → ZMod k | ∀ w ∈ T, x w ≠ b + 1}) :=
+    fun _ _ => (Set.toFinite _).measurableSet
+  -- The label of `u` is uniform.
+  have hfirst : ∀ b : ZMod k,
+      uniformColorOn (ZMod k) V {x : V → ZMod k | x u = b} = 1 / (k : ENNReal) := by
+    intro b
+    have hset : {x : V → ZMod k | x u = b}
+        = Set.univ.pi (fun a => if a = u then ({b} : Set (ZMod k)) else Set.univ) := by
+      ext x
+      constructor
+      · intro h a _
+        show x a ∈ (if a = u then ({b} : Set (ZMod k)) else Set.univ)
+        by_cases ha : a = u
+        · rw [if_pos ha]
+          subst ha
+          exact h
+        · rw [if_neg ha]
+          exact Set.mem_univ _
+      · intro h
+        have hxu : x u ∈ (if u = u then ({b} : Set (ZMod k)) else Set.univ) :=
+          h u (Set.mem_univ u)
+        rw [if_pos rfl] at hxu
+        exact hxu
+    rw [hset, uniformColorOn, Measure.pi_pi,
+      Finset.prod_eq_single_of_mem u (Finset.mem_univ u)
+        (fun a _ ha => by rw [if_neg ha]; exact measure_univ),
+      if_pos rfl, ProbabilityTheory.uniformOn_univ, Measure.count_singleton, ZMod.card]
+  -- `{u}` and `T` are disjoint blocks of coordinates, so the two events factor.
+  have hfactor : ∀ b : ZMod k,
+      uniformColorOn (ZMod k) V
+          ({x : V → ZMod k | x u = b} ∩ {x : V → ZMod k | ∀ w ∈ T, x w ≠ b + 1})
+        = uniformColorOn (ZMod k) V {x : V → ZMod k | x u = b}
+          * uniformColorOn (ZMod k) V {x : V → ZMod k | ∀ w ∈ T, x w ≠ b + 1} := by
+    intro b
+    rw [uniformColorOn]
+    refine measure_pi_inter_eq_mul
+      (fun _ : V => ProbabilityTheory.uniformOn (Set.univ : Set (ZMod k))) {u} _ _ ?_ ?_
+    · intro x y hxy
+      show x u = b ↔ y u = b
+      rw [hxy u (Finset.mem_singleton_self u)]
+    · intro x y hxy
+      have hwT : ∀ w ∈ T, x w = y w := by
+        intro w hw
+        refine hxy w ?_
+        rw [Finset.mem_singleton]
+        intro hwu
+        exact hu (hwu ▸ hw)
+      show (∀ w ∈ T, x w ≠ b + 1) ↔ (∀ w ∈ T, y w ≠ b + 1)
+      constructor
+      · intro h w hw
+        rw [← hwT w hw]
+        exact h w hw
+      · intro h w hw
+        rw [hwT w hw]
+        exact h w hw
+  -- Each conditional probability is the fixed-colour answer.
+  have hterm : ∀ b : ZMod k,
+      (uniformColorOn (ZMod k) V
+          ({x : V → ZMod k | x u = b} ∩ {x : V → ZMod k | ∀ w ∈ T, x w ≠ b + 1})).toReal
+        = 1 / (k : ℝ) * (1 - 1 / (k : ℝ)) ^ T.card := by
+    intro b
+    rw [hfactor b, ENNReal.toReal_mul, hfirst b, uniformColorOn_avoid_toReal T (b + 1),
+      ZMod.card, ENNReal.toReal_div, ENNReal.toReal_one, ENNReal.toReal_natCast]
+  rw [hunion, measure_biUnion_finset hdisj hmeas,
+    ENNReal.toReal_sum (fun b _ => measure_ne_top _ _),
+    Finset.sum_congr rfl (fun b _ => hterm b), Finset.sum_const, Finset.card_univ,
+    nsmul_eq_mul, ZMod.card]
+  field_simp
 
 /-- **The local lemma step of Theorem 6.4.3**: a labelling by `ZMod k` in which every vertex
 has an out-neighbour labelled one higher.  Following those out-neighbours is what produces the
