@@ -41,7 +41,38 @@ probability `1 - 1/|β|`. -/
 theorem uniformColorOn_avoid_toReal (T : Finset κ) (b : β) :
     (uniformColorOn β κ {x : κ → β | ∀ u ∈ T, x u ≠ b}).toReal
       = (1 - 1 / (Fintype.card β : ℝ)) ^ T.card := by
-  sorry
+  have hset : {x : κ → β | ∀ u ∈ T, x u ≠ b}
+      = Set.univ.pi (fun a => if a ∈ T then ({b}ᶜ : Set β) else Set.univ) := by
+    ext x
+    constructor
+    · intro h a _
+      show x a ∈ (if a ∈ T then ({b}ᶜ : Set β) else Set.univ)
+      by_cases ha : a ∈ T
+      · rw [if_pos ha]; exact h a ha
+      · rw [if_neg ha]; exact Set.mem_univ _
+    · intro h u hu
+      have hxu : x u ∈ (if u ∈ T then ({b}ᶜ : Set β) else Set.univ) := h u (Set.mem_univ u)
+      rw [if_pos hu] at hxu
+      exact hxu
+  have hsingle : uniformOn (Set.univ : Set β) {b} = 1 / (Fintype.card β : ENNReal) := by
+    rw [uniformOn_univ, Measure.count_singleton]
+  have hreal : (uniformOn (Set.univ : Set β) ({b}ᶜ)).toReal
+      = 1 - 1 / (Fintype.card β : ℝ) := by
+    have h2 := congrArg ENNReal.toReal
+      (uniformOn_compl (s := (Set.univ : Set β)) {b} Set.finite_univ Set.univ_nonempty)
+    rw [ENNReal.toReal_add (measure_ne_top _ _) (measure_ne_top _ _), hsingle] at h2
+    simp only [ENNReal.toReal_div, ENNReal.toReal_one, ENNReal.toReal_natCast] at h2
+    linarith
+  have hrew : ∀ a : κ,
+      uniformOn (Set.univ : Set β) (if a ∈ T then ({b}ᶜ : Set β) else Set.univ)
+        = if a ∈ T then uniformOn (Set.univ : Set β) ({b}ᶜ) else 1 := by
+    intro a
+    by_cases ha : a ∈ T
+    · rw [if_pos ha, if_pos ha]
+    · rw [if_neg ha, if_neg ha]; exact measure_univ
+  rw [hset, uniformColorOn, Measure.pi_pi,
+    Finset.prod_congr rfl (fun a _ => hrew a), Finset.prod_ite_mem, Finset.univ_inter,
+    Finset.prod_const, ENNReal.toReal_pow, hreal]
 
 /-- **A uniform colouring fails to use every colour on `T`** with probability at most
 `|β| · (1 - 1/|β|) ^ |T|`, by a union bound over which colour is missing. -/
