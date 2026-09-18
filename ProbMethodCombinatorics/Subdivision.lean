@@ -32,14 +32,83 @@ noncomputable def edgeCountWithin {n : ℕ} (S : Finset (Fin n)) (G : SimpleGrap
 ordered pairs contributes `p`, and the `/ 2` turns that into the unordered count. -/
 theorem integral_edgeCountWithin {n : ℕ} (S : Finset (Fin n)) (p : I) :
     ∫ G, edgeCountWithin S G ∂(SimpleGraph.binomialRandom (Fin n) p) = (p : ℝ) * S.card.choose 2 := by
-  sorry
+  classical
+  have hmeas : ∀ q : Fin n × Fin n,
+      MeasurableSet {K : SimpleGraph (Fin n) | K.Adj q.1 q.2} :=
+    fun q => (Set.to_countable _).measurableSet
+  have hprob : ∀ q ∈ S.offDiag,
+      (SimpleGraph.binomialRandom (Fin n) p {K : SimpleGraph (Fin n) | K.Adj q.1 q.2}).toReal
+        = (p : ℝ) := by
+    intro q hq
+    have hne : q.1 ≠ q.2 := (Finset.mem_offDiag.1 hq).2.2
+    have hnd : ∀ e ∈ ({s(q.1, q.2)} : Finset (Sym2 (Fin n))), ¬ e.IsDiag := by
+      intro e he
+      rw [Finset.mem_singleton] at he
+      simpa [he, Sym2.mk_isDiag_iff] using hne
+    have hset : {K : SimpleGraph (Fin n) | K.Adj q.1 q.2}
+        = {K : SimpleGraph (Fin n) |
+            ↑({s(q.1, q.2)} : Finset (Sym2 (Fin n))) ⊆ K.edgeSet} := by
+      ext K
+      simp [Set.subset_def, SimpleGraph.mem_edgeSet]
+    rw [hset, binomialRandom_setOf_subset_edgeSet p _ hnd]
+    simp [unitInterval.coe_toNNReal]
+  have hcongr : ∀ q ∈ S.offDiag,
+      ∫ G, ({K : SimpleGraph (Fin n) | K.Adj q.1 q.2}).indicator (fun _ => (1 : ℝ)) G
+          ∂(SimpleGraph.binomialRandom (Fin n) p) = (p : ℝ) := by
+    intro q hq
+    rw [MeasureTheory.integral_indicator_const _ (hmeas q), smul_eq_mul, mul_one, Measure.real]
+    exact hprob q hq
+  have hle : S.card ≤ S.card * S.card := by
+    rcases Nat.eq_zero_or_pos S.card with h0 | h0
+    · simp [h0]
+    · exact Nat.le_mul_of_pos_left _ h0
+  simp only [edgeCountWithin]
+  rw [MeasureTheory.integral_div,
+    MeasureTheory.integral_finsetSum _ fun q _ =>
+      (integrable_const (1 : ℝ)).indicator (hmeas q),
+    Finset.sum_congr rfl hcongr, Finset.sum_const, nsmul_eq_mul, Finset.offDiag_card,
+    Nat.cast_sub hle, Nat.cast_choose_two]
+  push_cast
+  ring
 
 /-- **The edge slots inside `S` number `C(|S|, 2)`.**  This is the coordinate count that sets
 the exponent in the bounded differences inequality below. -/
 theorem card_edgeSlots_within {n : ℕ} (S : Finset (Fin n)) :
     (Finset.univ.filter fun e : EdgeSlot n => (e : Sym2 (Fin n)) ∈ S.sym2).card
       = S.card.choose 2 := by
-  sorry
+  classical
+  have hcoe : (Finset.univ.filter fun e : EdgeSlot n => (e : Sym2 (Fin n)) ∈ S.sym2).card
+      = (S.sym2.filter fun e => ¬ e.IsDiag).card := by
+    refine Finset.card_bij (fun e _ => (e : Sym2 (Fin n))) ?_ ?_ ?_
+    · intro e he
+      simp only [Finset.mem_filter, Finset.mem_univ, true_and] at he
+      exact Finset.mem_filter.2 ⟨he, e.2⟩
+    · intro e₁ _ e₂ _ h
+      exact Subtype.ext h
+    · intro e he
+      rw [Finset.mem_filter] at he
+      exact ⟨⟨e, he.2⟩, by simpa using he.1, rfl⟩
+  have hdiag : (S.sym2.filter fun e => e.IsDiag) = S.image Sym2.diag := by
+    ext e
+    induction e using Sym2.ind with
+    | _ a b =>
+      simp only [Finset.mem_filter, Finset.mk_mem_sym2_iff, Sym2.mk_isDiag_iff,
+        Finset.mem_image, Sym2.diag, Sym2.eq_iff]
+      constructor
+      · rintro ⟨⟨ha, -⟩, rfl⟩
+        exact ⟨a, ha, Or.inl ⟨rfl, rfl⟩⟩
+      · rintro ⟨x, hx, ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩⟩ <;> exact ⟨⟨hx, hx⟩, rfl⟩
+  have hsplit : (S.sym2.filter fun e => e.IsDiag).card
+      + (S.sym2.filter fun e => ¬ e.IsDiag).card = S.sym2.card :=
+    Finset.card_filter_add_card_filter_not _
+  rw [hdiag, Finset.card_image_of_injective _ Sym2.diag_injective,
+    Finset.card_sym2] at hsplit
+  have harith : (S.card + 1).choose 2 = S.card.choose 2 + S.card := by
+    rw [Nat.choose_succ_succ]
+    simp only [Nat.choose_one_right, Nat.succ_eq_add_one, Nat.reduceAdd]
+    omega
+  rw [hcoe]
+  omega
 
 /-- **The edge count inside a fixed set concentrates.**  As a function of the `C(|S|, 2)` edge
 slots inside `S` it changes by at most `1` when one slot is toggled and does not depend on the
@@ -74,7 +143,54 @@ mean `C(t, 2) / 2`, since `C(t, 2) ≥ 50n - 5√n`. -/
 theorem half_choose_two_add_twenty_le {n : ℕ} :
     (⌈10 * Real.sqrt n⌉₊.choose 2 : ℝ) / 2 + 20 * n
       ≤ (⌈10 * Real.sqrt n⌉₊.choose 2 : ℝ) - n + ⌈10 * Real.sqrt n⌉₊ := by
-  sorry
+  set t := ⌈10 * Real.sqrt n⌉₊
+  have hn : (0 : ℝ) ≤ (n : ℝ) := Nat.cast_nonneg n
+  have htn : (0 : ℝ) ≤ (t : ℝ) := Nat.cast_nonneg t
+  have hsqrt : (0 : ℝ) ≤ 10 * Real.sqrt n := by positivity
+  have hle : 10 * Real.sqrt n ≤ (t : ℝ) := Nat.le_ceil _
+  have hsq : (10 * Real.sqrt n) * (10 * Real.sqrt n) ≤ (t : ℝ) * (t : ℝ) :=
+    mul_self_le_mul_self hsqrt hle
+  have h100 : 100 * (n : ℝ) ≤ (t : ℝ) ^ 2 := by
+    have hs : Real.sqrt n * Real.sqrt n = (n : ℝ) := Real.mul_self_sqrt hn
+    nlinarith [hsq, hs]
+  rw [Nat.cast_choose_two]
+  nlinarith [h100, htn, hn]
+
+private theorem two_le_ceil_ten_sqrt {n : ℕ} (hn : 1 ≤ n) : 2 ≤ ⌈10 * Real.sqrt n⌉₊ := by
+  have hn' : (1 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn
+  have hs1 : (1 : ℝ) ≤ Real.sqrt n := by
+    rw [show (1 : ℝ) = Real.sqrt 1 by simp]
+    exact Real.sqrt_le_sqrt hn'
+  have h : ((1 : ℕ) : ℝ) < 10 * Real.sqrt n := by push_cast; linarith
+  have := Nat.lt_ceil.mpr h
+  omega
+
+private theorem choose_two_ceil_ten_sqrt_pos {n : ℕ} (hn : 1 ≤ n) :
+    (0 : ℝ) < (⌈10 * Real.sqrt n⌉₊.choose 2 : ℝ) := by
+  have h : 0 < ⌈10 * Real.sqrt n⌉₊.choose 2 := Nat.choose_pos (two_le_ceil_ten_sqrt hn)
+  exact_mod_cast h
+
+private theorem choose_two_ceil_ten_sqrt_le {n : ℕ} (hn : 1 ≤ n) :
+    (⌈10 * Real.sqrt n⌉₊.choose 2 : ℝ) ≤ 61 * n := by
+  have hn' : (1 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn
+  have hs2 : Real.sqrt n ^ 2 = (n : ℝ) := Real.sq_sqrt (by positivity)
+  have hs1 : (1 : ℝ) ≤ Real.sqrt n := by
+    rw [show (1 : ℝ) = Real.sqrt 1 by simp]
+    exact Real.sqrt_le_sqrt hn'
+  have ht : (⌈10 * Real.sqrt n⌉₊ : ℝ) < 10 * Real.sqrt n + 1 :=
+    Nat.ceil_lt_add_one (by positivity)
+  have ht0 : (0 : ℝ) ≤ (⌈10 * Real.sqrt n⌉₊ : ℝ) := Nat.cast_nonneg _
+  have hsq := mul_self_le_mul_self ht0 ht.le
+  rw [Nat.cast_choose_two]
+  nlinarith [hsq, hs1, hs2, ht0, hn']
+
+private theorem choose_le_exp_card (n k : ℕ) : (n.choose k : ℝ) ≤ Real.exp n := by
+  have h2 : (2 : ℝ) ≤ Real.exp 1 := by linarith [Real.add_one_le_exp (1 : ℝ)]
+  calc (n.choose k : ℝ) ≤ ((2 ^ n : ℕ) : ℝ) := by
+        exact_mod_cast Nat.choose_le_two_pow n k
+    _ = (2 : ℝ) ^ n := by push_cast; ring
+    _ ≤ Real.exp 1 ^ n := by gcongr
+    _ = Real.exp n := by rw [← Real.exp_nat_mul]; simp
 
 /-- The union bound over the `C(n, t)` candidate branch sets is beaten by the deviation `20 n`:
 its logarithm is `O(√n log n)` while the exponent is `Ω(n)`. -/
@@ -82,7 +198,33 @@ theorem exists_forall_choose_mul_exp_lt {δ : ℝ} (hδ : 0 < δ) :
     ∃ N : ℕ, ∀ n ≥ N,
       (n.choose ⌈10 * Real.sqrt n⌉₊ : ℝ)
           * Real.exp (-2 * (20 * n) ^ 2 / (⌈10 * Real.sqrt n⌉₊.choose 2 : ℝ)) < δ := by
-  sorry
+  refine ⟨max 1 (⌈1 / δ⌉₊ + 1), fun n hn => ?_⟩
+  have hn1 : 1 ≤ n := le_trans (le_max_left _ _) hn
+  have hnR : (1 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn1
+  have hC0 := choose_two_ceil_ten_sqrt_pos hn1
+  have hCle := choose_two_ceil_ten_sqrt_le hn1
+  have hexp : -2 * (20 * (n : ℝ)) ^ 2 / (⌈10 * Real.sqrt n⌉₊.choose 2 : ℝ) ≤ -(13 * n) := by
+    rw [div_le_iff₀ hC0]
+    nlinarith [hCle, hnR, hC0]
+  have hprod : (n.choose ⌈10 * Real.sqrt n⌉₊ : ℝ)
+        * Real.exp (-2 * (20 * (n : ℝ)) ^ 2 / (⌈10 * Real.sqrt n⌉₊.choose 2 : ℝ))
+      ≤ Real.exp n * Real.exp (-(13 * (n : ℝ))) :=
+    mul_le_mul (choose_le_exp_card n _) (Real.exp_le_exp.mpr hexp)
+      (Real.exp_pos _).le (Real.exp_pos _).le
+  have heq : Real.exp (n : ℝ) * Real.exp (-(13 * (n : ℝ))) = Real.exp (-(12 * (n : ℝ))) := by
+    rw [← Real.exp_add]; congr 1; ring
+  have hlb : 1 / δ < (n : ℝ) := by
+    have hk : (⌈1 / δ⌉₊ : ℕ) + 1 ≤ n := le_trans (le_max_right _ _) hn
+    have hkR : ((⌈1 / δ⌉₊ : ℕ) : ℝ) + 1 ≤ (n : ℝ) := by exact_mod_cast hk
+    linarith [Nat.le_ceil (1 / δ : ℝ)]
+  have hE : 1 / δ < Real.exp (12 * (n : ℝ)) := by
+    linarith [Real.add_one_le_exp (12 * (n : ℝ))]
+  have hlast : Real.exp (-(12 * (n : ℝ))) < δ := by
+    have hEpos : (0 : ℝ) < Real.exp (12 * (n : ℝ)) := Real.exp_pos _
+    have h3 : 1 < Real.exp (12 * (n : ℝ)) * δ := (div_lt_iff₀ hδ).mp hE
+    rw [Real.exp_neg, inv_eq_one_div, div_lt_iff₀ hEpos]
+    linarith
+  linarith [hprod, heq, hlast]
 
 /-- **Theorem 5.3.2** (Hajós).  With high probability `G(n, 1/2)` has no `K t`-subdivision for
 `t = ⌈10 √n⌉`, stated in the chapter's explicit `δ`–`N` form. -/
