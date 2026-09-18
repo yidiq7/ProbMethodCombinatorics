@@ -48,6 +48,22 @@ theorem cubeNbhd_mono {A B : Finset (Fin n → Bool)} (h : A ⊆ B) (t : ℕ) :
   obtain ⟨a, haA, hd⟩ := hx
   exact ⟨a, h haA, hd⟩
 
+private theorem hammingDist_snoc_snoc (x y : Fin n → Bool) (b c : Bool) :
+    hammingDist (Fin.snoc x b : Fin (n + 1) → Bool) (Fin.snoc y c) =
+      hammingDist x y + if b = c then 0 else 1 := by
+  simp only [hammingDist, Finset.card_filter, Fin.sum_univ_castSucc, Fin.snoc_castSucc,
+    Fin.snoc_last]
+  cases b <;> cases c <;> simp
+
+private theorem hammingDist_snoc_same (x y : Fin n → Bool) (b : Bool) :
+    hammingDist (Fin.snoc x b : Fin (n + 1) → Bool) (Fin.snoc y b) = hammingDist x y := by
+  simp [hammingDist_snoc_snoc]
+
+private theorem hammingDist_snoc_not (x : Fin n → Bool) (b : Bool) :
+    hammingDist (Fin.snoc x b : Fin (n + 1) → Bool) (Fin.snoc x !b) = 1 := by
+  rw [hammingDist_snoc_snoc]
+  cases b <;> simp
+
 /-- **The slice decomposition**, the inductive engine of Harper's theorem: a point of the
 smaller cube lands in the `b`-slice of `A`'s neighbourhood as soon as it is either adjacent to
 the `b`-slice of `A`, or already in the *opposite* slice — the second case being the step
@@ -57,7 +73,11 @@ Both halves of the source's `(A_t)₀ ⊇ (A₀)_t ∪ (A₁)_{t-1}` at `t = 1`,
 quantifying over `b`. -/
 theorem cubeNbhd_one_slice_superset (A : Finset (Fin (n + 1) → Bool)) (b : Bool) :
     cubeNbhd (cubeSlice A b) 1 ∪ cubeSlice A (!b) ⊆ cubeSlice (cubeNbhd A 1) b := by
-  sorry
+  intro x hx
+  simp only [mem_union, cubeNbhd, cubeSlice, mem_filter, mem_univ, true_and] at hx ⊢
+  rcases hx with ⟨y, hy, hxy⟩ | hx
+  · exact ⟨Fin.snoc y b, hy, by rwa [hammingDist_snoc_same]⟩
+  · exact ⟨Fin.snoc x !b, hx, by rw [hammingDist_snoc_not]⟩
 
 /-- **Down-compression** in coordinate `i`: push each element of `A` to the `false` side of
 coordinate `i` whenever that slot is free.
