@@ -1274,7 +1274,7 @@ differences argument available at all.
 
 section EdgeDisjointCliques
 
-open SimpleGraph
+open SimpleGraph unitInterval
 
 /-- `F` is a family of pairwise edge-disjoint `k`-cliques of `G`. -/
 def IsEdgeDisjointCliqueFamily (k : ℕ) {n : ℕ} (G : SimpleGraph (Fin n))
