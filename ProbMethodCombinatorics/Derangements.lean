@@ -62,6 +62,32 @@ Asymptotically optimal — both sides tend to `1/e`, the exact value being `∑ 
 theorem uniformPerm_derangement_ge [NeZero n] :
     (1 - 1 / (n : ℝ)) ^ n
       ≤ (uniformPerm n).real {σ : Equiv.Perm (Fin n) | ∀ i, σ i ≠ i} := by
-  sorry
+  have hset : {σ : Equiv.Perm (Fin n) | ∀ i, σ i ≠ i} = ⋂ i, (fixedPointEvent i)ᶜ := by
+    ext σ
+    simp [fixedPointEvent]
+  rcases Nat.lt_or_ge n 2 with hn | hn
+  · have hn1 : n = 1 := by
+      have := Nat.pos_of_ne_zero (NeZero.ne n)
+      omega
+    subst hn1
+    have hzero : (1 - 1 / ((1 : ℕ) : ℝ)) ^ 1 = 0 := by norm_num
+    rw [hzero, measureReal_def]
+    exact ENNReal.toReal_nonneg
+  · have hnpos : (0 : ℝ) < n := by
+      have h : 0 < n := by omega
+      exact_mod_cast h
+    have hx₁ : 1 / (n : ℝ) < 1 := by
+      rw [div_lt_one hnpos]
+      have h : (1 : ℕ) < n := by omega
+      exact_mod_cast h
+    have key := lopsided_local_lemma (μ := uniformPerm n) (fixedPointEvent (n := n))
+      (fun _ => trivial) (fun _ => ∅) uniformPerm_isNegativeDependencyGraph
+      (fun _ => 1 / (n : ℝ)) (fun _ => by positivity) (fun _ => hx₁)
+      (fun i => by
+        rw [Finset.prod_empty, mul_one, ← measureReal_def]
+        exact le_of_eq (uniformPerm_fixedPointEvent i))
+    rw [Finset.prod_const, Finset.card_univ, Fintype.card_fin] at key
+    rw [hset, measureReal_def]
+    exact key
 
 end ProbMethodCombinatorics
