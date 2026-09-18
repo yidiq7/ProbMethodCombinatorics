@@ -39,7 +39,39 @@ the exponent in the bounded differences inequality below. -/
 theorem card_edgeSlots_within {n : ℕ} (S : Finset (Fin n)) :
     (Finset.univ.filter fun e : EdgeSlot n => (e : Sym2 (Fin n)) ∈ S.sym2).card
       = S.card.choose 2 := by
-  sorry
+  classical
+  have hcoe : (Finset.univ.filter fun e : EdgeSlot n => (e : Sym2 (Fin n)) ∈ S.sym2).card
+      = (S.sym2.filter fun e => ¬ e.IsDiag).card := by
+    refine Finset.card_bij (fun e _ => (e : Sym2 (Fin n))) ?_ ?_ ?_
+    · intro e he
+      simp only [Finset.mem_filter, Finset.mem_univ, true_and] at he
+      exact Finset.mem_filter.2 ⟨he, e.2⟩
+    · intro e₁ _ e₂ _ h
+      exact Subtype.ext h
+    · intro e he
+      rw [Finset.mem_filter] at he
+      exact ⟨⟨e, he.2⟩, by simpa using he.1, rfl⟩
+  have hdiag : (S.sym2.filter fun e => e.IsDiag) = S.image Sym2.diag := by
+    ext e
+    induction e using Sym2.ind with
+    | _ a b =>
+      simp only [Finset.mem_filter, Finset.mk_mem_sym2_iff, Sym2.mk_isDiag_iff,
+        Finset.mem_image, Sym2.diag, Sym2.eq_iff]
+      constructor
+      · rintro ⟨⟨ha, -⟩, rfl⟩
+        exact ⟨a, ha, Or.inl ⟨rfl, rfl⟩⟩
+      · rintro ⟨x, hx, ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩⟩ <;> exact ⟨⟨hx, hx⟩, rfl⟩
+  have hsplit : (S.sym2.filter fun e => e.IsDiag).card
+      + (S.sym2.filter fun e => ¬ e.IsDiag).card = S.sym2.card :=
+    Finset.card_filter_add_card_filter_not _
+  rw [hdiag, Finset.card_image_of_injective _ Sym2.diag_injective,
+    Finset.card_sym2] at hsplit
+  have harith : (S.card + 1).choose 2 = S.card.choose 2 + S.card := by
+    rw [Nat.choose_succ_succ]
+    simp only [Nat.choose_one_right, Nat.succ_eq_add_one, Nat.reduceAdd]
+    omega
+  rw [hcoe]
+  omega
 
 /-- **The edge count inside a fixed set concentrates.**  As a function of the `C(|S|, 2)` edge
 slots inside `S` it changes by at most `1` when one slot is toggled and does not depend on the
