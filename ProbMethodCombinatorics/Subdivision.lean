@@ -61,13 +61,114 @@ theorem binomialRandom_exists_edgeCountWithin_ge_le {n t : ℕ} (ht : 2 ≤ t) (
       ≤ n.choose t * Real.exp (-2 * lam ^ 2 / t.choose 2) := by
   sorry
 
+/-- The ordered non-adjacent branch pairs number twice the `i < j` ones: swapping the two
+coordinates matches the `i > j` half of the filtered off-diagonal with `branchNonAdj G br`. -/
+private theorem card_offDiag_filter_not_adj_eq_two_mul {n t : ℕ} (G : SimpleGraph (Fin n))
+    [DecidableRel G.Adj] (br : Fin t → Fin n) :
+    (((Finset.univ : Finset (Fin t)).offDiag).filter
+        fun q => ¬ G.Adj (br q.1) (br q.2)).card = 2 * (branchNonAdj G br).card := by
+  classical
+  have hlt : (((Finset.univ : Finset (Fin t)).offDiag).filter
+      fun q => ¬ G.Adj (br q.1) (br q.2)).filter (fun q => q.1 < q.2)
+      = branchNonAdj G br := by
+    ext q
+    simp only [branchNonAdj, Finset.mem_filter, Finset.mem_offDiag, Finset.mem_univ, true_and]
+    exact ⟨fun hq => ⟨hq.2, hq.1.2⟩, fun hq => ⟨⟨hq.1.ne, hq.2⟩, hq.1⟩⟩
+  have hge : (((Finset.univ : Finset (Fin t)).offDiag).filter
+      fun q => ¬ G.Adj (br q.1) (br q.2)).filter (fun q => ¬ q.1 < q.2)
+      = (branchNonAdj G br).image Prod.swap := by
+    ext q
+    simp only [branchNonAdj, Finset.mem_filter, Finset.mem_offDiag, Finset.mem_univ, true_and,
+      Finset.mem_image, Prod.exists, Prod.swap_prod_mk]
+    constructor
+    · intro hq
+      refine ⟨q.2, q.1, ⟨?_, ?_⟩, rfl⟩
+      · omega
+      · rw [G.adj_comm]; exact hq.1.2
+    · intro hq
+      obtain ⟨a, b, ⟨hab, hnadj⟩, heq⟩ := hq
+      subst heq
+      dsimp only
+      refine ⟨⟨?_, ?_⟩, ?_⟩
+      · omega
+      · rw [G.adj_comm]; exact hnadj
+      · omega
+  have hsplit := Finset.card_filter_add_card_filter_not
+      (s := (((Finset.univ : Finset (Fin t)).offDiag).filter
+        fun q => ¬ G.Adj (br q.1) (br q.2))) (fun q => q.1 < q.2)
+  rw [hlt, hge, Finset.card_image_of_injective _ Prod.swap_injective] at hsplit
+  omega
+
+/-- Reindexing the adjacent pairs of the branch set along `br`, which is injective, so
+`(i, j) ↦ (br i, br j)` is a bijection from `Finset.univ.offDiag` onto the branch set's. -/
+private theorem card_image_offDiag_filter_adj_eq {n t : ℕ} (G : SimpleGraph (Fin n))
+    [DecidableRel G.Adj] {br : Fin t → Fin n} (hbr : Function.Injective br) :
+    (((Finset.univ.image br).offDiag).filter fun q => G.Adj q.1 q.2).card
+      = (((Finset.univ : Finset (Fin t)).offDiag).filter
+          fun q => G.Adj (br q.1) (br q.2)).card := by
+  classical
+  have hinj : Function.Injective (fun q : Fin t × Fin t => (br q.1, br q.2)) := by
+    intro a b hab
+    simp only [Prod.mk.injEq] at hab
+    exact Prod.ext (hbr hab.1) (hbr hab.2)
+  rw [← Finset.card_image_of_injective _ hinj]
+  congr 1
+  ext q
+  simp only [Finset.mem_filter, Finset.mem_offDiag, Finset.mem_image, Finset.mem_univ, true_and,
+    Prod.exists]
+  constructor
+  · intro hq
+    obtain ⟨⟨⟨i, hi⟩, ⟨j, hj⟩, hne⟩, hadj⟩ := hq
+    refine ⟨i, j, ⟨?_, ?_⟩, ?_⟩
+    · intro hij
+      exact hne (by rw [← hi, ← hj, hij])
+    · rw [hi, hj]; exact hadj
+    · rw [hi, hj]
+  · intro hq
+    obtain ⟨i, j, ⟨hne, hadj⟩, heq⟩ := hq
+    subst heq
+    dsimp only
+    exact ⟨⟨⟨i, rfl⟩, ⟨j, rfl⟩, fun hc => hne (hbr hc)⟩, hadj⟩
+
 /-- **A `K t`-subdivision exhibits a dense `t`-set**: its branch vertices span all but at most
 `n - t` of the `C(t, 2)` pairs, by `card_branchNonAdj_add_le_of_isKSubdivision`. -/
 theorem exists_card_eq_and_le_edgeCountWithin_of_hasKSubdivision {n t : ℕ}
     {G : SimpleGraph (Fin n)} (h : HasKSubdivision G t) :
     ∃ S : Finset (Fin n), S.card = t ∧
       (t.choose 2 : ℝ) - n + t ≤ edgeCountWithin S G := by
-  sorry
+  classical
+  obtain ⟨br, P, hsub⟩ := h
+  refine ⟨Finset.univ.image br, ?_, ?_⟩
+  · rw [Finset.card_image_of_injective _ hsub.inj, Finset.card_univ, Fintype.card_fin]
+  · have hcount : (branchNonAdj G br).card + t ≤ n := by
+      have := card_branchNonAdj_add_le_of_isKSubdivision hsub
+      rwa [Fintype.card_fin] at this
+    have hsum : edgeCountWithin (Finset.univ.image br) G
+        = ((((Finset.univ.image br).offDiag).filter fun q => G.Adj q.1 q.2).card : ℝ) / 2 := by
+      unfold edgeCountWithin
+      congr 1
+      simp only [Set.indicator_apply, Set.mem_ofPred_eq, Finset.sum_boole]
+    have hsplit := Finset.card_filter_add_card_filter_not
+        (s := ((Finset.univ : Finset (Fin t)).offDiag)) (fun q => G.Adj (br q.1) (br q.2))
+    rw [Finset.offDiag_card, Finset.card_univ, Fintype.card_fin,
+      card_offDiag_filter_not_adj_eq_two_mul G br,
+      ← card_image_offDiag_filter_adj_eq G hsub.inj] at hsplit
+    have hle : t ≤ t * t := by
+      rcases Nat.eq_zero_or_pos t with h0 | hpos
+      · simp [h0]
+      · exact Nat.le_mul_of_pos_left t hpos
+    have hreal : ((((Finset.univ.image br).offDiag).filter fun q => G.Adj q.1 q.2).card : ℝ)
+        + 2 * ((branchNonAdj G br).card : ℝ) = (t : ℝ) * (t : ℝ) - (t : ℝ) := by
+      calc ((((Finset.univ.image br).offDiag).filter fun q => G.Adj q.1 q.2).card : ℝ)
+            + 2 * ((branchNonAdj G br).card : ℝ)
+          = (((((Finset.univ.image br).offDiag).filter fun q => G.Adj q.1 q.2).card
+              + 2 * (branchNonAdj G br).card : ℕ) : ℝ) := by push_cast; ring
+        _ = ((t * t - t : ℕ) : ℝ) := by rw [hsplit]
+        _ = (t : ℝ) * (t : ℝ) - (t : ℝ) := by rw [Nat.cast_sub hle]; push_cast; ring
+    have hcountreal : ((branchNonAdj G br).card : ℝ) + (t : ℝ) ≤ (n : ℝ) := by
+      exact_mod_cast hcount
+    rw [hsum, Nat.cast_choose_two]
+    linarith
 
 /-- For `t = ⌈10 √n⌉` the counting threshold `C(t, 2) - n + t` sits at least `20 n` above the
 mean `C(t, 2) / 2`, since `C(t, 2) ≥ 50n - 5√n`. -/
