@@ -15,3 +15,4 @@ import ProbMethodCombinatorics.Containers
 import ProbMethodCombinatorics.Subdivision
 import ProbMethodCombinatorics.Coloring
 import ProbMethodCombinatorics.ArithProgressions
+import ProbMethodCombinatorics.DirectedCycles
