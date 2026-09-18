@@ -194,6 +194,118 @@ theorem uniformColorOn_forall_ne_succ_toReal {k : ℕ} [NeZero k] (u : V) (T : F
     nsmul_eq_mul, ZMod.card]
   field_simp
 
+/-- **The dependency count.**  The closed out-neighbourhood `insert u (N u)` has at most `1 + d`
+vertices, and a vertex `w` whose own closed out-neighbourhood meets it is, for one of those `z`,
+either `z` itself or one of the at most `D` in-neighbours of `z`.  Discarding `u` itself leaves
+at most `d + D + d * D = (1 + d) * (1 + D) - 1` dependents. -/
+private theorem card_dependents_le (G : Digraph V) [DecidableRel G.Adj] {d D : ℕ}
+    (hin : ∀ w : V, (univ.filter fun u => G.Adj u w).card ≤ D)
+    {N : V → Finset V} (hNadj : ∀ u w, w ∈ N u → G.Adj u w)
+    (u : V) (hNcard : (N u).card = d) (B : Finset V)
+    (hB : ∀ w ∈ B, w ≠ u ∧ (insert u (N u) ∩ insert w (N w)).Nonempty) :
+    B.card ≤ d + D + d * D := by
+  have hBT : ∀ w ∈ B,
+      w ∈ (insert u (N u)).biUnion fun z => insert z (univ.filter fun v => G.Adj v z) := by
+    intro w hw
+    obtain ⟨-, z, hz⟩ := hB w hw
+    rw [Finset.mem_inter] at hz
+    refine Finset.mem_biUnion.2 ⟨z, hz.1, ?_⟩
+    rcases Finset.mem_insert.1 hz.2 with hzw | hzN
+    · rw [hzw]
+      exact Finset.mem_insert_self _ _
+    · exact Finset.mem_insert_of_mem (Finset.mem_filter.2 ⟨Finset.mem_univ w, hNadj w z hzN⟩)
+  have hsub : insert u B
+      ⊆ (insert u (N u)).biUnion fun z => insert z (univ.filter fun v => G.Adj v z) := by
+    intro w hw
+    rcases Finset.mem_insert.1 hw with hwu | hwB
+    · rw [hwu]
+      exact Finset.mem_biUnion.2
+        ⟨u, Finset.mem_insert_self u (N u), Finset.mem_insert_self u _⟩
+    · exact hBT w hwB
+  have hTcard :
+      ((insert u (N u)).biUnion fun z => insert z (univ.filter fun v => G.Adj v z)).card
+        ≤ d + D + d * D + 1 := by
+    have hstep : ∀ z ∈ insert u (N u),
+        (insert z (univ.filter fun v => G.Adj v z)).card ≤ 1 + D := by
+      intro z _
+      have h1 := Finset.card_insert_le z (univ.filter fun v => G.Adj v z)
+      have h2 := hin z
+      omega
+    have hcard : (insert u (N u)).card ≤ 1 + d := by
+      have h1 := Finset.card_insert_le u (N u)
+      rw [hNcard] at h1
+      omega
+    refine le_trans (Finset.card_biUnion_le_card_mul _ _ (1 + D) hstep) ?_
+    calc (insert u (N u)).card * (1 + D) ≤ (1 + d) * (1 + D) := Nat.mul_le_mul hcard le_rfl
+      _ = d + D + d * D + 1 := by ring
+  have huB : u ∉ B := fun hu => (hB u hu).1 rfl
+  have hfinal : B.card + 1 ≤ d + D + d * D + 1 := by
+    rw [← Finset.card_insert_of_notMem huB]
+    exact le_trans (Finset.card_le_card hsub) hTcard
+  exact Nat.le_of_add_le_add_right hfinal
+
+/-- **The numerical condition of the symmetric local lemma**, from the hypothesis of
+`exists_labelling_forall_exists_succ`.  For `k = 1` the bad events are null, because the
+hypothesis forces `1 ≤ d`; for `k ≥ 2` it is the hypothesis after taking logarithms, using
+`log (1 - 1/k) ≤ -1/k`. -/
+private theorem exp_mul_pow_mul_le_one_of_log_le {k d D : ℕ} [NeZero k]
+    (h : (k : ℝ) * (1 + Real.log ((1 + d) * (1 + D))) ≤ d) :
+    Real.exp 1 * (1 - 1 / (k : ℝ)) ^ d * ((1 + d) * (1 + D)) ≤ 1 := by
+  have hk1 : (1 : ℝ) ≤ (k : ℝ) := by
+    have hk : 1 ≤ k := Nat.one_le_iff_ne_zero.2 (NeZero.ne k)
+    exact_mod_cast hk
+  have hd0 : (0 : ℝ) ≤ (d : ℝ) := Nat.cast_nonneg d
+  have hD0 : (0 : ℝ) ≤ (D : ℝ) := Nat.cast_nonneg D
+  have hP1 : (1 : ℝ) ≤ (1 + (d : ℝ)) * (1 + (D : ℝ)) := by nlinarith [mul_nonneg hd0 hD0]
+  have hPpos : (0 : ℝ) < (1 + (d : ℝ)) * (1 + (D : ℝ)) := by linarith
+  have hlogP : (0 : ℝ) ≤ Real.log ((1 + (d : ℝ)) * (1 + (D : ℝ))) := Real.log_nonneg hP1
+  -- The left-hand side of `h` is at least `1`, so `1 ≤ d`.
+  have hd1 : (1 : ℝ) ≤ (d : ℝ) := by
+    nlinarith [mul_nonneg (by linarith : (0 : ℝ) ≤ (k : ℝ) - 1)
+      (by linarith : (0 : ℝ) ≤ 1 + Real.log ((1 + (d : ℝ)) * (1 + (D : ℝ))))]
+  rcases eq_or_lt_of_le hk1 with hk | hk
+  · -- `k = 1`: the bad events are null, since `d ≠ 0`.
+    have hz : 1 - 1 / (k : ℝ) = 0 := by rw [← hk]; norm_num
+    have hdne : d ≠ 0 := by
+      intro h0
+      rw [h0] at hd1
+      norm_num at hd1
+    rw [hz, zero_pow hdne, mul_zero, zero_mul]
+    norm_num
+  · have hkpos : (0 : ℝ) < (k : ℝ) := by linarith
+    have ht0 : (0 : ℝ) < 1 - 1 / (k : ℝ) := by
+      have h1 : 1 / (k : ℝ) < 1 := by
+        rw [div_lt_one hkpos]
+        exact hk
+      linarith
+    have hklog : (k : ℝ) * Real.log (1 - 1 / (k : ℝ)) ≤ -1 :=
+      calc (k : ℝ) * Real.log (1 - 1 / (k : ℝ))
+          ≤ (k : ℝ) * (1 - 1 / (k : ℝ) - 1) :=
+            mul_le_mul_of_nonneg_left (Real.log_le_sub_one_of_pos ht0) hkpos.le
+        _ = -1 := by
+          field_simp
+          ring
+    have key : 1 + (d : ℝ) * Real.log (1 - 1 / (k : ℝ))
+        + Real.log ((1 + (d : ℝ)) * (1 + (D : ℝ))) ≤ 0 := by
+      have h1 : (d : ℝ) * ((k : ℝ) * Real.log (1 - 1 / (k : ℝ))) ≤ (d : ℝ) * (-1) :=
+        mul_le_mul_of_nonneg_left hklog hd0
+      have h2 : (k : ℝ) * (1 + (d : ℝ) * Real.log (1 - 1 / (k : ℝ))
+            + Real.log ((1 + (d : ℝ)) * (1 + (D : ℝ)))) ≤ (k : ℝ) * 0 := by
+        have hexpand : (k : ℝ) * (1 + (d : ℝ) * Real.log (1 - 1 / (k : ℝ))
+              + Real.log ((1 + (d : ℝ)) * (1 + (D : ℝ))))
+            = (k : ℝ) * (1 + Real.log ((1 + (d : ℝ)) * (1 + (D : ℝ))))
+              + (d : ℝ) * ((k : ℝ) * Real.log (1 - 1 / (k : ℝ))) := by ring
+        rw [hexpand, mul_zero]
+        linarith
+      exact le_of_mul_le_mul_left h2 hkpos
+    have hexp : Real.exp (1 + (d : ℝ) * Real.log (1 - 1 / (k : ℝ))
+          + Real.log ((1 + (d : ℝ)) * (1 + (D : ℝ))))
+        = Real.exp 1 * (1 - 1 / (k : ℝ)) ^ d * ((1 + (d : ℝ)) * (1 + (D : ℝ))) := by
+      rw [Real.exp_add, Real.exp_add, Real.exp_log hPpos, ← Real.log_pow,
+        Real.exp_log (pow_pos ht0 d)]
+    rw [← hexp]
+    exact Real.exp_le_one_iff.2 key
+
 /-- **The local lemma step of Theorem 6.4.3**: a labelling by `ZMod k` in which every vertex
 has an out-neighbour labelled one higher.  Following those out-neighbours is what produces the
 cycle.
@@ -206,7 +318,84 @@ theorem exists_labelling_forall_exists_succ {k : ℕ} [NeZero k] (G : Digraph V)
     (hloop : ∀ u : V, ¬ G.Adj u u)
     (h : (k : ℝ) * (1 + Real.log ((1 + d) * (1 + D))) ≤ d) :
     ∃ x : V → ZMod k, ∀ u : V, ∃ w, G.Adj u w ∧ x w = x u + 1 := by
-  sorry
+  -- Trim to out-degree exactly `d`: only `d` out-neighbours of each vertex are used.
+  obtain ⟨N, hNsub, hNcard⟩ : ∃ N : V → Finset V,
+      (∀ u, N u ⊆ univ.filter fun w => G.Adj u w) ∧ ∀ u, (N u).card = d := by
+    choose N hN1 hN2 using fun u : V => Finset.exists_subset_card_eq (hout u)
+    exact ⟨N, hN1, hN2⟩
+  have hNadj : ∀ u w, w ∈ N u → G.Adj u w := fun u w hw =>
+    (Finset.mem_filter.1 (hNsub u hw)).2
+  have hNu : ∀ u : V, u ∉ N u := fun u hu => hloop u (hNadj u u hu)
+  -- The bad event at `u`: no chosen out-neighbour carries the next label.
+  obtain ⟨A, hAdef⟩ : ∃ A : V → Set (V → ZMod k), ∀ u,
+      A u = {x : V → ZMod k | ∀ w ∈ N u, x w ≠ x u + 1} := ⟨_, fun _ => rfl⟩
+  have hAmem : ∀ (j : V) (x : V → ZMod k), x ∈ A j ↔ ∀ w ∈ N j, x w ≠ x j + 1 := by
+    intro j x
+    rw [hAdef]
+    exact Iff.rfl
+  have hAmeas : ∀ u, MeasurableSet (A u) := fun _ => (Set.toFinite _).measurableSet
+  -- `A j` reads only the coordinates in the closed out-neighbourhood `insert j (N j)`.
+  have hAinv : ∀ (j : V) (x y : V → ZMod k),
+      (∀ a ∈ insert j (N j), x a = y a) → (x ∈ A j ↔ y ∈ A j) := by
+    intro j x y hxy
+    have hj : x j = y j := hxy j (Finset.mem_insert_self j (N j))
+    have hw : ∀ w ∈ N j, x w = y w := fun w hw =>
+      hxy w (Finset.mem_insert_of_mem hw)
+    rw [hAmem, hAmem]
+    constructor
+    · intro hx w hwN
+      rw [← hw w hwN, ← hj]
+      exact hx w hwN
+    · intro hy w hwN
+      rw [hw w hwN, hj]
+      exact hy w hwN
+  -- Two bad events are joined when their closed out-neighbourhoods meet.
+  obtain ⟨Nb, hNbdef⟩ : ∃ Nb : V → Finset V, ∀ u w,
+      (w ∈ Nb u ↔ w ≠ u ∧ (insert u (N u) ∩ insert w (N w)).Nonempty) :=
+    ⟨fun u => univ.filter fun w => w ≠ u ∧ (insert u (N u) ∩ insert w (N w)).Nonempty, by simp⟩
+  have hNdep : IsDependencyGraph (uniformColorOn (ZMod k) V) A Nb := by
+    intro i s hs g
+    refine measure_pi_inter_eq_mul
+      (fun _ : V => ProbabilityTheory.uniformOn (Set.univ : Set (ZMod k)))
+      (insert i (N i)) (A i) (pattern A s g) (hAinv i) ?_
+    intro x y hxy
+    have hj : ∀ j ∈ s,
+        (x ∈ (if g j then A j else (A j)ᶜ) ↔ y ∈ (if g j then A j else (A j)ᶜ)) := by
+      intro j hjs
+      obtain ⟨hjne, hjN⟩ := hs j hjs
+      have hdisj : Disjoint (insert i (N i)) (insert j (N j)) := by
+        by_contra hcon
+        exact hjN ((hNbdef i j).2 ⟨hjne, Finset.not_disjoint_iff_nonempty_inter.1 hcon⟩)
+      have hiff := hAinv j x y fun a ha =>
+        hxy a fun hai => (Finset.disjoint_left.1 hdisj hai) ha
+      by_cases hg : g j
+      · rw [if_pos hg]; exact hiff
+      · rw [if_neg hg]; exact not_congr hiff
+    simp only [pattern, Set.mem_iInter]
+    exact ⟨fun hh j hjs => (hj j hjs).1 (hh j hjs), fun hh j hjs => (hj j hjs).2 (hh j hjs)⟩
+  -- Every bad event has probability exactly `(1 - 1/k) ^ d`.
+  have hp : ∀ u, (uniformColorOn (ZMod k) V (A u)).toReal ≤ (1 - 1 / (k : ℝ)) ^ d := by
+    intro u
+    refine le_of_eq ?_
+    rw [hAdef u, uniformColorOn_forall_ne_succ_toReal u (N u) (hNu u), hNcard u]
+  have hdcard : ∀ u, (Nb u).card ≤ d + D + d * D := fun u =>
+    card_dependents_le G hin hNadj u (hNcard u) (Nb u) fun w hw => (hNbdef u w).1 hw
+  have hcond : Real.exp 1 * (1 - 1 / (k : ℝ)) ^ d * (((d + D + d * D : ℕ) : ℝ) + 1) ≤ 1 := by
+    have hcast : ((d + D + d * D : ℕ) : ℝ) + 1 = (1 + (d : ℝ)) * (1 + (D : ℝ)) := by
+      push_cast
+      ring
+    rw [hcast]
+    exact exp_mul_pow_mul_le_one_of_log_le h
+  have hposm := lovasz_local_lemma_symmetric (μ := uniformColorOn (ZMod k) V)
+    A hAmeas Nb hNdep hp hdcard hcond
+  -- A labelling of positive-measure support avoids every bad event.
+  rcases Set.eq_empty_or_nonempty (⋂ u, (A u)ᶜ) with hempty | ⟨x, hx⟩
+  · rw [hempty] at hposm
+    simp at hposm
+  refine ⟨x, fun u => ?_⟩
+  simp only [Set.mem_iInter, Set.mem_compl_iff] at hx
+  by_contra hcon
+  exact hx u ((hAmem u x).2 fun w hw hxw => hcon ⟨w, hNadj u w hw, hxw⟩)
 
 /-- **Theorem 6.4.3** (Alon–Linial 1989): a digraph with minimum out-degree `d` and maximum
 in-degree `D` has a directed cycle whose length is divisible by `k`, as soon as
