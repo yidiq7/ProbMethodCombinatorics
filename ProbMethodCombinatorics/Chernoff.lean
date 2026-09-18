@@ -3,6 +3,7 @@ import Mathlib.Analysis.SpecialFunctions.Sqrt
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
 import Mathlib.Analysis.InnerProductSpace.EuclideanDist
 import Mathlib.Data.Fintype.Pi
+import Mathlib.Combinatorics.SimpleGraph.Paths
 import ProbMethodCombinatorics.Alterations
 
 /-!
@@ -646,5 +647,54 @@ theorem exists_nearly_equiangular {α ε : ℝ} (hα : α ∈ Set.Ioo (0 : ℝ) 
       linarith only [hkle, hklt, hs.1, hs.2, hbm, hbn, hen, hεn]
     · rw [div_le_iff₀ hnpos]
       linarith only [hkle, hklt, hs.1, hs.2, hbm, hbn, hen, hεn]
+
+/-! ### §5.3 Graph subdivisions
+
+Mathlib has no notion of a graph subdivision or topological minor — re-checked 2026-09-17, the
+only `IsMinor` is for matroids — so §5.3 needs one authored here.
+
+**The definition is the risk, not the theorem.**  §10.2's `boxProd`-versus-tensor episode is the
+cautionary case: a plausible wrong definition makes every downstream statement true and useless.
+This one was checked against the standard notion on all graphs with at most six vertices before
+being committed, on anchors (a `K t` subgraph forces a subdivision; fewer than `binom(t,2)` edges
+forbids one) and on the cases that discriminate a too-permissive definition from a too-strict
+one — `C₅` and two triangles sharing a vertex have no `K₄`-subdivision, while `K₄` with an edge
+subdivided and `K₃₃` do.
+-/
+
+section Subdivision
+
+open SimpleGraph
+
+variable {V : Type*}
+
+/-- **A `K t`-subdivision in `G`**: `t` distinct *branch* vertices joined pairwise by paths whose
+interiors are disjoint from one another and from every branch vertex.
+
+`interior_disjoint` concludes that a vertex shared by two of the paths is an endpoint of the
+first.  Combined with `interior_avoids_branch` that forces it to be a *common* endpoint, so the
+paths meet only where they are required to — which is what "internally disjoint" means and what a
+weaker condition would silently fail to capture. -/
+structure IsKSubdivision (G : SimpleGraph V) (t : ℕ)
+    (br : Fin t → V) (P : ∀ i j : Fin t, i ≠ j → G.Walk (br i) (br j)) : Prop where
+  /-- The branch vertices are distinct. -/
+  inj : Function.Injective br
+  /-- Each connecting walk is a path. -/
+  isPath : ∀ i j (h : i ≠ j), (P i j h).IsPath
+  /-- No interior vertex of a path is a branch vertex. -/
+  interior_avoids_branch : ∀ i j (h : i ≠ j) (k : Fin t) (v : V),
+    v ∈ (P i j h).support → v ≠ br i → v ≠ br j → v ≠ br k
+  /-- Paths for different pairs meet only at shared branch endpoints. -/
+  interior_disjoint : ∀ i j (h : i ≠ j) (i' j' : Fin t) (h' : i' ≠ j'),
+    ({i, j} : Finset (Fin t)) ≠ {i', j'} → ∀ v : V,
+      v ∈ (P i j h).support → v ∈ (P i' j' h').support →
+      v = br i ∨ v = br j
+
+/-- `G` contains a subdivision of `K t`. -/
+def HasKSubdivision (G : SimpleGraph V) (t : ℕ) : Prop :=
+  ∃ (br : Fin t → V) (P : ∀ i j : Fin t, i ≠ j → G.Walk (br i) (br j)),
+    IsKSubdivision G t br P
+
+end Subdivision
 
 end ProbMethodCombinatorics
