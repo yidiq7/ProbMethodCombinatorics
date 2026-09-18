@@ -62,10 +62,15 @@ upper bounds**, which is the point of the pairing.
 
 ## Not stated
 
-**Theorem 7.1.5**, the monotone-*function* form `𝔼[fg] ≥ 𝔼[f]𝔼[g]`, which implies the event
-form by taking indicators. Stating it needs a product measure over arbitrary linearly ordered
-factors and integrability side conditions; the event form covers every application in the
-book, so this waits until something needs it.
+~~**Theorem 7.1.5**, the monotone-*function* form `𝔼[fg] ≥ 𝔼[f]𝔼[g]`~~ — **proved**, as
+`setBernoulli_mul_integral_le`.  This bullet was stale: the old note said the function form
+"waits until something needs it" because it would need a product measure over arbitrary
+linearly ordered factors and integrability side conditions.  Neither difficulty materialised.
+Over a `Fintype` index the integral is a finite sum
+(`integral_setBernoulli_eq_sum_singleton`), so integrability is vacuous, and the inequality
+reduces to supermodularity of the singleton weights — the Ahlswede–Daykin route, via
+`sum_mul_sum_le_sum_mul_weight`.  The moral matches §9.2's and §11.1's: a blocker recorded
+once should be re-derived before it is trusted, because the corpus underneath it moves.
 
 **Theorem 7.2.5** (Riordan–Selby, `ℙ(maxdeg G(n,1/2) ≤ n/2) = (0.6102… + o(1))ⁿ`) and
 **Proposition 7.2.6** are not stated: the first is quoted without proof in the source, and the
