@@ -76,13 +76,75 @@ theorem half_choose_two_add_twenty_le {n : ℕ} :
       ≤ (⌈10 * Real.sqrt n⌉₊.choose 2 : ℝ) - n + ⌈10 * Real.sqrt n⌉₊ := by
   sorry
 
+private theorem two_le_ceil_ten_sqrt {n : ℕ} (hn : 1 ≤ n) : 2 ≤ ⌈10 * Real.sqrt n⌉₊ := by
+  have hn' : (1 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn
+  have hs1 : (1 : ℝ) ≤ Real.sqrt n := by
+    rw [show (1 : ℝ) = Real.sqrt 1 by simp]
+    exact Real.sqrt_le_sqrt hn'
+  have h : ((1 : ℕ) : ℝ) < 10 * Real.sqrt n := by push_cast; linarith
+  have := Nat.lt_ceil.mpr h
+  omega
+
+private theorem choose_two_ceil_ten_sqrt_pos {n : ℕ} (hn : 1 ≤ n) :
+    (0 : ℝ) < (⌈10 * Real.sqrt n⌉₊.choose 2 : ℝ) := by
+  have h : 0 < ⌈10 * Real.sqrt n⌉₊.choose 2 := Nat.choose_pos (two_le_ceil_ten_sqrt hn)
+  exact_mod_cast h
+
+private theorem choose_two_ceil_ten_sqrt_le {n : ℕ} (hn : 1 ≤ n) :
+    (⌈10 * Real.sqrt n⌉₊.choose 2 : ℝ) ≤ 61 * n := by
+  have hn' : (1 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn
+  have hs2 : Real.sqrt n ^ 2 = (n : ℝ) := Real.sq_sqrt (by positivity)
+  have hs1 : (1 : ℝ) ≤ Real.sqrt n := by
+    rw [show (1 : ℝ) = Real.sqrt 1 by simp]
+    exact Real.sqrt_le_sqrt hn'
+  have ht : (⌈10 * Real.sqrt n⌉₊ : ℝ) < 10 * Real.sqrt n + 1 :=
+    Nat.ceil_lt_add_one (by positivity)
+  have ht0 : (0 : ℝ) ≤ (⌈10 * Real.sqrt n⌉₊ : ℝ) := Nat.cast_nonneg _
+  have hsq := mul_self_le_mul_self ht0 ht.le
+  rw [Nat.cast_choose_two]
+  nlinarith [hsq, hs1, hs2, ht0, hn']
+
+private theorem choose_le_exp_card (n k : ℕ) : (n.choose k : ℝ) ≤ Real.exp n := by
+  have h2 : (2 : ℝ) ≤ Real.exp 1 := by linarith [Real.add_one_le_exp (1 : ℝ)]
+  calc (n.choose k : ℝ) ≤ ((2 ^ n : ℕ) : ℝ) := by
+        exact_mod_cast Nat.choose_le_two_pow n k
+    _ = (2 : ℝ) ^ n := by push_cast; ring
+    _ ≤ Real.exp 1 ^ n := by gcongr
+    _ = Real.exp n := by rw [← Real.exp_nat_mul]; simp
+
 /-- The union bound over the `C(n, t)` candidate branch sets is beaten by the deviation `20 n`:
 its logarithm is `O(√n log n)` while the exponent is `Ω(n)`. -/
 theorem exists_forall_choose_mul_exp_lt {δ : ℝ} (hδ : 0 < δ) :
     ∃ N : ℕ, ∀ n ≥ N,
       (n.choose ⌈10 * Real.sqrt n⌉₊ : ℝ)
           * Real.exp (-2 * (20 * n) ^ 2 / (⌈10 * Real.sqrt n⌉₊.choose 2 : ℝ)) < δ := by
-  sorry
+  refine ⟨max 1 (⌈1 / δ⌉₊ + 1), fun n hn => ?_⟩
+  have hn1 : 1 ≤ n := le_trans (le_max_left _ _) hn
+  have hnR : (1 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn1
+  have hC0 := choose_two_ceil_ten_sqrt_pos hn1
+  have hCle := choose_two_ceil_ten_sqrt_le hn1
+  have hexp : -2 * (20 * (n : ℝ)) ^ 2 / (⌈10 * Real.sqrt n⌉₊.choose 2 : ℝ) ≤ -(13 * n) := by
+    rw [div_le_iff₀ hC0]
+    nlinarith [hCle, hnR, hC0]
+  have hprod : (n.choose ⌈10 * Real.sqrt n⌉₊ : ℝ)
+        * Real.exp (-2 * (20 * (n : ℝ)) ^ 2 / (⌈10 * Real.sqrt n⌉₊.choose 2 : ℝ))
+      ≤ Real.exp n * Real.exp (-(13 * (n : ℝ))) :=
+    mul_le_mul (choose_le_exp_card n _) (Real.exp_le_exp.mpr hexp)
+      (Real.exp_pos _).le (Real.exp_pos _).le
+  have heq : Real.exp (n : ℝ) * Real.exp (-(13 * (n : ℝ))) = Real.exp (-(12 * (n : ℝ))) := by
+    rw [← Real.exp_add]; congr 1; ring
+  have hlb : 1 / δ < (n : ℝ) := by
+    have hk : (⌈1 / δ⌉₊ : ℕ) + 1 ≤ n := le_trans (le_max_right _ _) hn
+    have hkR : ((⌈1 / δ⌉₊ : ℕ) : ℝ) + 1 ≤ (n : ℝ) := by exact_mod_cast hk
+    linarith [Nat.le_ceil (1 / δ : ℝ)]
+  have hE : 1 / δ < Real.exp (12 * (n : ℝ)) := by
+    linarith [Real.add_one_le_exp (12 * (n : ℝ))]
+  have hlast : Real.exp (-(12 * (n : ℝ))) < δ := by
+    have hEpos : (0 : ℝ) < Real.exp (12 * (n : ℝ)) := Real.exp_pos _
+    have h3 : 1 < Real.exp (12 * (n : ℝ)) * δ := (div_lt_iff₀ hδ).mp hE
+    rw [Real.exp_neg, inv_eq_one_div, div_lt_iff₀ hEpos]
+    linarith
+  linarith [hprod, heq, hlast]
 
 /-- **Theorem 5.3.2** (Hajós).  With high probability `G(n, 1/2)` has no `K t`-subdivision for
 `t = ⌈10 √n⌉`, stated in the chapter's explicit `δ`–`N` form. -/
