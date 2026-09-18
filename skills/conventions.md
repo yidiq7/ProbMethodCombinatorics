@@ -220,6 +220,16 @@ declarations with real statements, prove your target *from* them, and say clearl
 PR description which ones are left open.  Named obligations are useful to the project;
 an unnamed `sorry` is not.
 
+## If `comparator` disagrees with the byte-level checks
+
+`comparator` rebuilds; `statement-immutability` and `statement-equiv` compare bytes.  When the
+first is red and the other two are green, the usual cause is that **`main` has moved ahead of
+your branch** — not that anything is wrong with your proof.  A new file that merely *imports*
+your target's file is enough to do it, as is a dependency's proof landing elsewhere in the repo.
+
+The remedy is the same as below: merge `origin/main` into your workspace and push.  Never edit
+the statement to make a gate pass.
+
 ## If your proof inherits `sorryAx` from a dependency
 
 `comparator` reads **your head ref**, not GitHub's generated merge ref.  So when your
@@ -244,6 +254,18 @@ placeholder, and filling one in adds none.
 *both* spellings in context, and `linarith` treats them as unrelated atoms.  Fold the
 hypothesis back with `rw [← ht_def] at h` before calling the solver.  The same hazard shows
 up with any `Nat.choose` or cast expression that appears in two spellings.
+
+**Names that do not exist, and their replacements.**  `Measure.real` is a def, not a rewrite
+lemma — use `measureReal_def` (or the alias `Measure.real_def`).  For counting measure on a
+`Finset`, `Measure.count_apply_finset` is the one you want; `Measure.count_apply_finite` drags
+in `Set.Finite.toFinset` bookkeeping.  When a map is a bijection of the *whole* type,
+`Finset.card_equiv` with e.g. `Equiv.mulLeft` beats `Finset.card_nbij'`, which makes you
+discharge `MapsTo`/`LeftInvOn`/`RightInvOn`.
+
+**Factorial notation is scoped.**  `n !` only parses where `Nat` is open.  Several files in this
+project open only `Finset MeasureTheory ProbabilityTheory`, and there `n !` fails with
+`unexpected token ':='; expected term` because `!` is read as boolean negation.  Write
+`Nat.factorial n`.
 
 **`measureReal_mono` carries no measurability obligation** — it needs only `s ⊆ t` and
 `μ t ≠ ∞`, and the latter is found by instance search whenever the measure is a probability
