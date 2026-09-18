@@ -35,6 +35,19 @@ With `p = 1/2` and `m = ⌊(n-1)/2⌋` each factor is at least `1/2` by the symm
 theorem prod_le_binomialRandom_forall_ncard_neighborSet_le (p : I) (m : ℕ) :
     ∏ v : V, binomialRandom V p {G : SimpleGraph V | (G.neighborSet v).ncard ≤ m}
       ≤ binomialRandom V p {G : SimpleGraph V | ∀ v, (G.neighborSet v).ncard ≤ m} := by
-  sorry
+  have hset : {G : SimpleGraph V | ∀ v, (G.neighborSet v).ncard ≤ m}
+      = ⋂ v : V, {G : SimpleGraph V | (G.neighborSet v).ncard ≤ m} := by
+    ext G
+    simp only [Set.mem_iInter]
+    exact Iff.rfl
+  rw [hset]
+  have hsingle : MeasurableSingletonClass (SimpleGraph V) :=
+    ⟨fun G => by
+      have h : ({G} : Set (SimpleGraph V)) = SimpleGraph.Adj ⁻¹' {G.Adj} := by
+        ext H; simp only [Set.mem_singleton_iff, Set.mem_preimage, SimpleGraph.adj_inj]
+      rw [h]; exact measurable_adj (measurableSet_singleton _)⟩
+  exact prod_le_binomialRandom_iInter p _
+    (fun v _ _ hle hG => (Set.ncard_le_ncard (neighborSet_mono hle v) (Set.toFinite _)).trans hG)
+    (fun _ => (Set.toFinite _).measurableSet)
 
 end ProbMethodCombinatorics
