@@ -220,19 +220,42 @@ declarations with real statements, prove your target *from* them, and say clearl
 PR description which ones are left open.  Named obligations are useful to the project;
 an unnamed `sorry` is not.
 
+## Name every `instance`, especially one that appears in a statement
+
+`comparator` builds a *challenge* tree from the base with every module renamed under a
+`ChoirBase.` prefix, and compares the target's elaborated statement there against the one in
+your tree.  An **anonymous** `instance` gets an auto-generated name that does not survive that
+renaming, so if the instance appears inside the statement's term the two sides differ as terms
+while their bytes are identical — and the gate reports `statement-mismatch` on a statement
+nobody touched.
+
+This actually happened: `Derangements.lean` declared
+`instance : MeasurableSpace (Equiv.Perm (Fin n)) := ⊤` anonymously, that instance rides inside
+every statement mentioning `uniformPerm`, and all five such PRs went red while
+`statement-immutability` and `statement-equiv` stayed green.  `Concentration.lean`'s
+`instCountableSimpleGraphFin` and friends are named and never had the problem.
+
+So: give instances explicit names.  It costs nothing and it is the difference between a gate
+that works and one that rejects correct proofs.
+
 ## If `comparator` disagrees with the byte-level checks
 
 `comparator` rebuilds; `statement-immutability` and `statement-equiv` compare bytes.  When the
-first is red and the other two are green, the usual cause is that **`main` has moved ahead of
-your branch** — not that anything is wrong with your proof.  A new file that merely *imports*
-your target's file is enough to do it, as is a dependency's proof landing elsewhere in the repo.
+first is red and the other two are green, **something about elaboration differs, not your
+proof.**  Two causes seen so far, in order of likelihood:
 
-The remedy is the same as below: merge `origin/main` into your workspace and push.  Never edit
-the statement to make a gate pass.
+1. An anonymous instance in the statement's term — see above.  This is a defect in the
+   *statement file* and the orchestrator must fix it; do not work around it.
+2. Your branch is far behind `main`.  Merge `origin/main` in and push.
+
+Try (2) first because it is free, but if `comparator` is still red afterwards, **stop and say
+so on the thread.**  Do not start editing your proof, and never edit the statement to make a
+gate pass.  A second red after a clean re-merge is information the orchestrator needs.
 
 ## If your proof inherits `sorryAx` from a dependency
 
-`comparator` reads **your head ref**, not GitHub's generated merge ref.  So when your
+`comparator` checks out GitHub's generated merge ref for the workspace, but empirically an
+inherited `sorryAx` has cleared only once the contributor merged `main` in and pushed.  So when your
 target calls a lemma that is still a placeholder at your base, the gate sees `sorryAx` in
 your closure — and that does **not** clear when the dependency merges into `main`.  The
 merge has to happen in your workspace:
