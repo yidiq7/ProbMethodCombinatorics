@@ -695,6 +695,21 @@ def HasKSubdivision (G : SimpleGraph V) (t : ℕ) : Prop :=
   ∃ (br : Fin t → V) (P : ∀ i j : Fin t, i ≠ j → G.Walk (br i) (br j)),
     IsKSubdivision G t br P
 
+/-- The non-adjacent branch pairs of a `K t`-subdivision, as ordered pairs `i < j`. -/
+def branchNonAdj {V : Type*} [Fintype V] (G : SimpleGraph V) [DecidableRel G.Adj]
+    {t : ℕ} (br : Fin t → V) : Finset (Fin t × Fin t) :=
+  Finset.univ.filter fun q => q.1 < q.2 ∧ ¬ G.Adj (br q.1) (br q.2)
+
+/-- **The counting core of Theorem 5.3.2.**  Every non-adjacent pair of branch vertices is
+joined by a path of length at least two, so it consumes an interior vertex, and interiors of
+different paths are disjoint from each other and from all `t` branch vertices.  Hence the
+non-adjacent pairs and the branch vertices together fit inside `V`. -/
+theorem card_branchNonAdj_add_le_of_isKSubdivision {V : Type*} [Fintype V] [DecidableEq V]
+    {G : SimpleGraph V} [DecidableRel G.Adj] {t : ℕ} {br : Fin t → V}
+    {P : ∀ i j : Fin t, i ≠ j → G.Walk (br i) (br j)} (h : IsKSubdivision G t br P) :
+    (branchNonAdj G br).card + t ≤ Fintype.card V := by
+  sorry
+
 end Subdivision
 
 end ProbMethodCombinatorics
