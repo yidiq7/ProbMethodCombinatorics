@@ -69,6 +69,21 @@ theorem exists_card_eq_and_le_edgeCountWithin_of_hasKSubdivision {n t : ℕ}
       (t.choose 2 : ℝ) - n + t ≤ edgeCountWithin S G := by
   sorry
 
+/-- For `t = ⌈10 √n⌉` the counting threshold `C(t, 2) - n + t` sits at least `20 n` above the
+mean `C(t, 2) / 2`, since `C(t, 2) ≥ 50n - 5√n`. -/
+theorem half_choose_two_add_twenty_le {n : ℕ} :
+    (⌈10 * Real.sqrt n⌉₊.choose 2 : ℝ) / 2 + 20 * n
+      ≤ (⌈10 * Real.sqrt n⌉₊.choose 2 : ℝ) - n + ⌈10 * Real.sqrt n⌉₊ := by
+  sorry
+
+/-- The union bound over the `C(n, t)` candidate branch sets is beaten by the deviation `20 n`:
+its logarithm is `O(√n log n)` while the exponent is `Ω(n)`. -/
+theorem exists_forall_choose_mul_exp_lt {δ : ℝ} (hδ : 0 < δ) :
+    ∃ N : ℕ, ∀ n ≥ N,
+      (n.choose ⌈10 * Real.sqrt n⌉₊ : ℝ)
+          * Real.exp (-2 * (20 * n) ^ 2 / (⌈10 * Real.sqrt n⌉₊.choose 2 : ℝ)) < δ := by
+  sorry
+
 /-- **Theorem 5.3.2** (Hajós).  With high probability `G(n, 1/2)` has no `K t`-subdivision for
 `t = ⌈10 √n⌉`, stated in the chapter's explicit `δ`–`N` form. -/
 theorem binomialRandom_hasKSubdivision_lt {δ : ℝ} (hδ : 0 < δ) :
