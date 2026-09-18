@@ -1449,7 +1449,31 @@ theorem binomialRandom_no_clique_le_of_mu_le (n k : ℕ) (p : I)
               (↑(offDiagPairs (S : Finset (Fin n))) : Set (Sym2 (Fin n))))) ^ 2
           / (2 * jansonDelta p (fun S : {S : Finset (Fin n) // S.card = k} =>
               (↑(offDiagPairs (S : Finset (Fin n))) : Set (Sym2 (Fin n)))) (cliqueDependency n k))) := by
-  sorry
+  -- Admissibility of `cliqueDependency n k`, at any clique size: two distinct `k`-sets left out
+  -- of it share at most one vertex, and `offDiagPairs` of such an intersection is empty, so
+  -- `disjoint_offDiagPairs_of_card_inter_le_one` applies verbatim.
+  have hD : ∀ A B : {S : Finset (Fin n) // S.card = k}, A ≠ B →
+      (A, B) ∉ cliqueDependency n k →
+      Disjoint (↑(offDiagPairs (A : Finset (Fin n))) : Set (Sym2 (Fin n)))
+        (↑(offDiagPairs (B : Finset (Fin n))) : Set (Sym2 (Fin n))) := by
+    intro A B hne hnotD
+    refine disjoint_offDiagPairs_of_card_inter_le_one _ _ ?_
+    have hmem : ((A, B) ∈ cliqueDependency n k) ↔
+        (A ≠ B ∧ 2 ≤ ((A : Finset (Fin n)) ∩ (B : Finset (Fin n))).card) := by
+      simp [cliqueDependency]
+    by_contra hcon
+    exact hnotD (hmem.2 ⟨hne, by omega⟩)
+  -- Janson's second inequality on the `k`-clique family, with `μ` and `Δ` left abstract: the two
+  -- regime hypotheses are this statement's own, and the right-hand side is already the stated one.
+  have hmain := janson_prob_none_le_of_mu_le p
+    (fun S : {S : Finset (Fin n) // S.card = k} =>
+      (↑(offDiagPairs (S : Finset (Fin n))) : Set (Sym2 (Fin n))))
+    (cliqueDependency n k) hD hle hpos
+  -- Cross from `G(n, p)` to `setBernoulli`; the clique edge sets contain no loop.
+  rw [measureReal_def, binomialRandom_setOf_forall_not_subset p
+    (fun S : {S : Finset (Fin n) // S.card = k} => offDiagPairs (S : Finset (Fin n)))
+    fun _ _ he => not_isDiag_of_mem_offDiagPairs he]
+  exact hmain
 
 /-- The elementary bound `exp (-x) ≤ 1 - x + x ^ 2 / 2` for `x ≥ 0`.
 
