@@ -28,7 +28,23 @@ is this bound with the constant absorbed. -/
 theorem exists_tail_sum_coe_mul_geometric_lt {r c : ℝ} (hr₀ : 0 ≤ r) (hr₁ : r < 1)
     (hc : 0 < c) :
     ∃ N : ℕ, ∑' m : ℕ, ((m + N : ℕ) : ℝ) * r ^ (m + N) < c := by
-  sorry
+  -- `∑ n rⁿ` converges for `‖r‖ < 1`, so its tails are the total minus the partial sums,
+  -- which tend to `0`; any `N` past the threshold for `c` works.
+  have hnorm : ‖r‖ < 1 := by rwa [Real.norm_of_nonneg hr₀]
+  have hsum : Summable fun n : ℕ => (n : ℝ) * r ^ n := by
+    simpa using summable_pow_mul_geometric_of_norm_lt_one (R := ℝ) 1 hnorm
+  have htail : ∀ N : ℕ, ∑' m : ℕ, ((m + N : ℕ) : ℝ) * r ^ (m + N)
+      = (∑' n : ℕ, (n : ℝ) * r ^ n) - ∑ j ∈ Finset.range N, (j : ℝ) * r ^ j := by
+    intro N
+    rw [eq_sub_iff_add_eq, add_comm]
+    exact hsum.sum_add_tsum_nat_add N
+  have hconst : Filter.Tendsto (fun _ : ℕ => ∑' n : ℕ, (n : ℝ) * r ^ n) Filter.atTop
+      (nhds (∑' n : ℕ, (n : ℝ) * r ^ n)) := tendsto_const_nhds
+  have key : Filter.Tendsto (fun N : ℕ => ∑' m : ℕ, ((m + N : ℕ) : ℝ) * r ^ (m + N))
+      Filter.atTop (nhds 0) := by
+    simp only [htail]
+    simpa using hconst.sub hsum.hasSum.tendsto_sum_nat
+  exact (key.eventually_lt_const hc).exists
 
 /-- **How many progressions can meet a fixed one.**  An `ℓ`-AP of common difference at most `D`
 meeting a fixed `k`-AP is determined by the element where they meet, the position of that
