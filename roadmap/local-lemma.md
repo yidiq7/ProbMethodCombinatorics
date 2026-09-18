@@ -133,8 +133,23 @@ correlation inequality rather than independence — worth doing only once the ge
 proved. §6.6 is an algorithmic result whose statement needs a model of the resampling
 process; it is the largest single item in the chapter.
 
-Also not stated: Theorem 6.2.4 (non-uniform hypergraphs, via Corollary 6.1.10), Theorem
-6.2.6 and Lemma 6.2.7 (the compactness argument extending the lemma to infinite vertex
-sets, via Tychonoff), and Theorems 6.2.10–6.2.11 (multicoloured translates; Beck's colouring
-of arithmetic progressions). All are reachable once the three local-lemma forms land, and
-6.2.4 in particular is a short follow-on.
+Also not stated: Theorem 6.2.6 and Lemma 6.2.7 (the compactness argument extending the lemma
+to infinite vertex sets, via Tychonoff), and Theorems 6.2.10–6.2.11 (multicoloured translates;
+Beck's colouring of arithmetic progressions).  The three general local-lemma forms
+(`lovasz_local_lemma`, `lovasz_local_lemma_symmetric`, `lovasz_local_lemma_of_sum_le`) have all
+landed, so these are reachable now rather than blocked.
+
+**Corrected 2026-09-17**: this list used to also name Theorem 6.2.4, which contradicted the
+paragraph above it — 6.2.4 *is* `twoColorable_of_sum_inv_two_pow_le` (#190) and has been proved
+since 2026-09-16.
+
+**§6.4 assessed 2026-09-17.**  Theorem 6.4.3 (Alon–Linial): a digraph with min out-degree `δ`
+and max in-degree `Δ` has a cycle of length divisible by `k` whenever
+`k ≤ δ / (1 + log (1 + δΔ))`.  The probabilistic half is a routine symmetric-local-lemma
+application (label each vertex by `x v ∈ ZMod k`, let `A v` be the event that no out-neighbour
+carries `x v + 1`, so `ℙ(A v) = (1 - 1/k) ^ δ`).  The blocker is vocabulary, not probability:
+Mathlib's `Combinatorics/Digraph/` has only `Basic.lean` and `Orientation.lean` — **no directed
+walk, no directed cycle** — so the closing step, extracting a cycle from the functional graph
+of "successor with label `+1`", has nothing to be stated against.  This is the same shape of
+obstacle §5.3 had, and it was resolved there by authoring the vocabulary and validating it by
+exhaustive small-case search before any theorem was stated.  The same discipline applies here.
