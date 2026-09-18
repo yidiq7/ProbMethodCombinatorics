@@ -30,6 +30,19 @@ blocker was assessed — several turned out to be wrong on inspection, which is 
   unstated and is harder (a compactness argument for the parameters).
 - **§2.6 (the crossing number inequality)** — needs Euler's formula for planar graphs.
 
+  **Re-derived 2026-09-18: this blocker is real, and it is the only one in the project that has
+  survived re-checking.**  A search of `Mathlib/Combinatorics/` and `Mathlib/Topology/` finds no
+  planarity predicate, no Euler characteristic for graphs, and no `crossingNumber`; the single
+  occurrence of "Planar" anywhere is a bullet in a docstring listing future colouring topics.
+  So §2.6 needs three authored objects — a planarity notion, Euler's formula, and the crossing
+  number — and the first is a genuine design problem (combinatorial embedding versus topological
+  embedding) rather than a transcription.  Left unstated deliberately.
+
+  This is worth contrasting with the five roadmap blockers that turned out **false** on
+  re-derivation — Chapter 8's G(n,p) API, §9.2's Azuma, §11.1's `ex(n,H)`, §2.2's Dirichlet, and
+  §7.1.5's function form.  A recorded blocker is a claim to re-check, not a fact; the point of
+  re-checking is that it sometimes confirms, as here.
+
 ## `hamilton_paths` — `ProbMethodCombinatorics.hamiltonPaths`
 
 The Hamilton paths of a tournament `T : Fin n → Fin n → Bool`, as the orderings
