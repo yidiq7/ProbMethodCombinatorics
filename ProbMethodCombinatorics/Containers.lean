@@ -2498,7 +2498,32 @@ constant-factor window of `d = Θ(n²)` in which **the graph container theorem c
 
 At complete 3-uniform `H` the corner is satisfiable — a regular tournament orientation works, with
 containers of size `(n+1)/2` — but that is **one family checked by hand, not a proof**, and no
-refutation is known either.  Treat the corner as open. -/
+refutation is known either.  Treat the corner as open.
+
+**What is known about it as of 2026-09-17, and what is not.**
+
+*Proved:* `card_le_of_forall_not_subset` gives `|I| ≤ n - 2d/(3n)` for every independent `I`.  In
+the corner's regime `d > n²/4` that reads `|I| ≤ 5n/6`, which is **exactly the `δ = 1/6`
+budget**.  So no maximal independent set is individually too large to fit in a container, and the
+first candidate obstruction is ruled out.
+
+*What remains is packing, not size.*  With a one-vertex fingerprint the `n + 1` containers must
+each hold the *union* of every independent set assigned to them and still miss `δn` vertices.
+That is a system-of-distinct-representatives question when the sets are near the budget and a
+covering question when they are small — not a counting one.
+
+*Searched, not proved:* a randomised-greedy assignment at `δ = 1/6` succeeds on 30/30 random
+dense `H` at `n = 6, 7, 8`, and on every structured family tried — complete 3-uniform, all
+triples inside a half-sized set, all triples meeting a half in at least two vertices, all triples
+meeting a quarter.  No counterexample.
+
+*The structural reason the search is not conclusive:* the two difficulties are anti-correlated.
+Reaching `d > n²/4` forces the independent sets to be **small** — at complete `H` on `10`
+vertices the largest has `2` vertices against a budget of `8.33` — while the families with large
+independent sets, where packing would bind, are **not dense enough** to enter the corner at all.
+Every instance small enough to search exhaustively sits on one side or the other.  A refutation,
+if one exists, needs a family that is simultaneously dense and rich in large independent sets,
+and none of the natural constructions is both. -/
 theorem exists_containers_fingerprint_three_uniform (c : ℝ) (hc : 0 < c) :
     ∃ δ > 0, ∀ (n : ℕ) (H : Finset (Finset (Fin n))) (d : ℝ),
       (∀ e ∈ H, e.card = 3) → δ⁻¹ ≤ d → 3 * (H.card : ℝ) = d * n →
