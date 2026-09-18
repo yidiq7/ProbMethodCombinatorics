@@ -22,6 +22,52 @@ namespace ProbMethodCombinatorics
 
 open Finset MeasureTheory unitInterval SimpleGraph
 
+/-- Some colour of `Fin 3` is used by no neighbour of `x` inside `T.erase x`, as soon as `x` has
+fewer than three neighbours there. -/
+private theorem exists_color_unused_on_neighbors {V : Type*} [Fintype V] [DecidableEq V]
+    (G : SimpleGraph V) [DecidableRel G.Adj] (T : Finset V) (x : V)
+    (c : (SimpleGraph.induce ((T.erase x : Finset V) : Set V) G).Coloring (Fin 3))
+    (hcard : ((T.erase x).filter fun y => G.Adj x y).card < 3) :
+    ∃ b : Fin 3, ∀ (y : V) (hy : y ∈ T.erase x), G.Adj x y → c ⟨y, hy⟩ ≠ b := by
+  have hlt : (((T.erase x).filter fun y => G.Adj x y).image
+      fun y => if h : y ∈ T.erase x then c ⟨y, h⟩ else 0).card < Fintype.card (Fin 3) := by
+    simpa using lt_of_le_of_lt Finset.card_image_le hcard
+  obtain ⟨b, hb⟩ : ∃ b : Fin 3, b ∉ ((T.erase x).filter fun y => G.Adj x y).image
+      fun y => if h : y ∈ T.erase x then c ⟨y, h⟩ else 0 := by
+    by_contra hcon
+    exact (Finset.card_lt_iff_ne_univ _).mp hlt
+      (Finset.eq_univ_iff_forall.mpr fun b => not_not.mp fun h => hcon ⟨b, h⟩)
+  refine ⟨b, fun y hy hadj hcy => hb (Finset.mem_image.mpr ⟨y, ?_, ?_⟩)⟩
+  · exact Finset.mem_filter.mpr ⟨hy, hadj⟩
+  · show (if h : y ∈ T.erase x then c ⟨y, h⟩ else 0) = b
+    rw [dif_pos hy]
+    exact hcy
+
+/-- A 3-colouring of the subgraph induced on `T.erase x` extends to one of the subgraph induced
+on `T` by giving `x` a colour that none of its neighbours uses. -/
+private theorem colorable_three_of_color_unused {V : Type*} [Fintype V] [DecidableEq V]
+    (G : SimpleGraph V) [DecidableRel G.Adj] (T : Finset V) (x : V)
+    (c : (SimpleGraph.induce ((T.erase x : Finset V) : Set V) G).Coloring (Fin 3)) (b : Fin 3)
+    (hb : ∀ (y : V) (hy : y ∈ T.erase x), G.Adj x y → c ⟨y, hy⟩ ≠ b) :
+    (SimpleGraph.induce (T : Set V) G).Colorable 3 := by
+  refine ⟨SimpleGraph.Coloring.mk (fun v => if hv : (v : V) = x then b else
+    c ⟨(v : V), Finset.mem_erase.mpr ⟨hv, v.2⟩⟩) ?_⟩
+  intro u v huv
+  have hadj : G.Adj (u : V) (v : V) := huv
+  by_cases hu : (u : V) = x
+  · have hv : (v : V) ≠ x := fun h => hadj.ne (hu.trans h.symm)
+    simp only [dif_pos hu, dif_neg hv]
+    refine fun h => hb _ (Finset.mem_erase.mpr ⟨hv, v.2⟩) ?_ h.symm
+    rw [← hu]
+    exact hadj
+  · by_cases hv : (v : V) = x
+    · simp only [dif_neg hu, dif_pos hv]
+      refine hb _ (Finset.mem_erase.mpr ⟨hu, u.2⟩) ?_
+      rw [← hv]
+      exact hadj.symm
+    · simp only [dif_neg hu, dif_neg hv]
+      exact c.valid hadj
+
 /-- **A vertex-minimal non-3-colourable induced subgraph has minimum degree at least 3.**
 If some vertex had at most two neighbours inside `T`, a 3-colouring of `T` without it would
 extend by a colour avoiding those neighbours.
@@ -32,7 +78,12 @@ theorem three_le_card_neighbors_of_minimal {V : Type*} [Fintype V] [DecidableEq 
     (hT : ¬ (SimpleGraph.induce (T : Set V) G).Colorable 3)
     (hmin : ∀ x ∈ T, (SimpleGraph.induce ((T.erase x : Finset V) : Set V) G).Colorable 3) :
     ∀ x ∈ T, 3 ≤ ((T.erase x).filter fun y => G.Adj x y).card := by
-  sorry
+  intro x hx
+  by_contra hlt
+  rw [Nat.not_le] at hlt
+  obtain ⟨c⟩ := hmin x hx
+  obtain ⟨b, hb⟩ := exists_color_unused_on_neighbors G T x c hlt
+  exact hT (colorable_three_of_color_unused G T x c b hb)
 
 /-- **Lemma 9.3.5**: for `p ≤ n ^ (-α)` with `α > 5/6`, with high probability every set of at
 most `C √n` vertices of `G(n, p)` induces a 3-colourable subgraph.
