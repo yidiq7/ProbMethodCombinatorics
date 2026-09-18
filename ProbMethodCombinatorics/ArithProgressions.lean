@@ -28,8 +28,8 @@ is this bound with the constant absorbed. -/
 theorem exists_tail_sum_coe_mul_geometric_lt {r c : ℝ} (hr₀ : 0 ≤ r) (hr₁ : r < 1)
     (hc : 0 < c) :
     ∃ N : ℕ, ∑' m : ℕ, ((m + N : ℕ) : ℝ) * r ^ (m + N) < c := by
-  -- `∑ n rⁿ` converges for `‖r‖ < 1`, so its tails are the total minus the partial sums,
-  -- which tend to `0`; any `N` past the threshold for `c` works.
+  -- `∑ n rⁿ` converges for `‖r‖ < 1`, so its tails are the total minus the finite sums
+  -- over `range N`, which tend to `0`; any `N` past the threshold for `c` works.
   have hnorm : ‖r‖ < 1 := by rwa [Real.norm_of_nonneg hr₀]
   have hsum : Summable fun n : ℕ => (n : ℝ) * r ^ n := by
     simpa using summable_pow_mul_geometric_of_norm_lt_one (R := ℝ) 1 hnorm
