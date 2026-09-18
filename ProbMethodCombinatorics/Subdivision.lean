@@ -505,6 +505,30 @@ theorem binomialRandom_hasKSubdivision_lt {δ : ℝ} (hδ : 0 < δ) :
     ∃ N : ℕ, ∀ n ≥ N,
       (SimpleGraph.binomialRandom (Fin n) ⟨1 / 2, by norm_num⟩).real
           {G | HasKSubdivision G ⌈10 * Real.sqrt n⌉₊} < δ := by
-  sorry
+  classical
+  obtain ⟨N₀, hN₀⟩ := exists_forall_choose_mul_exp_lt hδ
+  refine ⟨max N₀ 1, fun n hn => ?_⟩
+  have hn0 : N₀ ≤ n := le_trans (le_max_left _ _) hn
+  have hn1 : 1 ≤ n := le_trans (le_max_right _ _) hn
+  set t : ℕ := ⌈10 * Real.sqrt n⌉₊ with ht_def
+  have ht2 : 2 ≤ t := two_le_ceil_ten_sqrt hn1
+  have hp : ((⟨1 / 2, by norm_num⟩ : I) : ℝ) = 1 / 2 := rfl
+  have hsub : {G : SimpleGraph (Fin n) | HasKSubdivision G t}
+      ⊆ {G : SimpleGraph (Fin n) | ∃ S : Finset (Fin n), S.card = t ∧
+          (20 * (n : ℝ)) ≤ edgeCountWithin S G
+            - ((⟨1 / 2, by norm_num⟩ : I) : ℝ) * t.choose 2} := by
+    intro G hG
+    obtain ⟨S, hScard, hSle⟩ :=
+      exists_card_eq_and_le_edgeCountWithin_of_hasKSubdivision (t := t) hG
+    refine ⟨S, hScard, ?_⟩
+    have hhalf := half_choose_two_add_twenty_le (n := n)
+    rw [← ht_def] at hhalf
+    rw [hp]
+    linarith
+  have hmono := measureReal_mono (μ := SimpleGraph.binomialRandom (Fin n) ⟨1 / 2, by norm_num⟩)
+    hsub (measure_ne_top _ _)
+  have hunion := binomialRandom_exists_edgeCountWithin_ge_le (n := n) (t := t) ht2
+    (⟨1 / 2, by norm_num⟩ : I) (lam := 20 * (n : ℝ)) (by positivity)
+  exact lt_of_le_of_lt (le_trans hmono hunion) (hN₀ n hn0)
 
 end ProbMethodCombinatorics
