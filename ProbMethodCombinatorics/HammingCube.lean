@@ -163,12 +163,108 @@ theorem card_cubeCompress (i : Fin n) (A : Finset (Fin n → Bool)) :
       rw [if_neg hy', if_neg hy', Function.update_idem]
       exact Function.update_eq_self_iff.mpr hb.symm
 
+private lemma mem_cubeNbhd_of {A : Finset (Fin n → Bool)} {x a : Fin n → Bool} {t : ℕ}
+    (ha : a ∈ A) (h : hammingDist x a ≤ t) : x ∈ cubeNbhd A t := by
+  simp only [cubeNbhd, mem_filter, mem_univ, true_and]
+  exact ⟨a, ha, h⟩
+
+private lemma hammingDist_update_update_le (i : Fin n) (b : Bool) (x y : Fin n → Bool) :
+    hammingDist (Function.update x i b) (Function.update y i b) ≤ hammingDist x y := by
+  unfold hammingDist
+  refine Finset.card_le_card fun j hj => ?_
+  simp only [mem_filter, mem_univ, true_and] at hj ⊢
+  by_cases hji : j = i
+  · subst hji
+    exact absurd (by rw [Function.update_self, Function.update_self]) hj
+  · rwa [Function.update_of_ne hji, Function.update_of_ne hji] at hj
+
+private lemma hammingDist_update_le_one (i : Fin n) (b : Bool) (x : Fin n → Bool) :
+    hammingDist (Function.update x i b) x ≤ 1 := by
+  unfold hammingDist
+  refine le_trans (Finset.card_le_card (t := ({i} : Finset (Fin n))) fun j hj => ?_) ?_
+  · simp only [mem_filter, mem_univ, true_and] at hj
+    simp only [mem_singleton]
+    by_contra hji
+    exact hj (Function.update_of_ne hji b x)
+  · simp
+
+/-- Two points at Hamming distance at most one that already differ at `i` differ *only* at
+`i`, so each is obtained from the other by updating that coordinate. -/
+private lemma update_eq_of_hammingDist_le_one {i : Fin n} {y z : Fin n → Bool}
+    (h : hammingDist y z ≤ 1) (hne : y i ≠ z i) : Function.update y i (z i) = z := by
+  unfold hammingDist at h
+  have key : ∀ j, j ≠ i → y j = z j := by
+    intro j hji
+    by_contra hcon
+    have hsub : ({i, j} : Finset (Fin n)) ⊆ univ.filter fun k => y k ≠ z k := by
+      intro k hk
+      simp only [mem_insert, mem_singleton] at hk
+      simp only [mem_filter, mem_univ, true_and]
+      rcases hk with rfl | rfl
+      · exact hne
+      · exact hcon
+    have hc := Finset.card_le_card hsub
+    rw [card_insert_of_notMem (by simpa using Ne.symm hji), card_singleton] at hc
+    omega
+  funext j
+  by_cases hji : j = i
+  · rw [hji, Function.update_self]
+  · rw [Function.update_of_ne hji]
+    exact key j hji
+
+/-- A point of the compression that is already in `A` keeps its partner on the `false` side
+inside `A`. -/
+private lemma update_false_mem_of_mem {i : Fin n} {A : Finset (Fin n → Bool)}
+    {z : Fin n → Bool} (hz : z ∈ cubeCompress i A) (hzA : z ∈ A) :
+    Function.update z i false ∈ A := by
+  rcases Bool.dichotomy (z i) with hb | hb
+  · rwa [update_false_eq_self hb]
+  · exact ((mem_cubeCompress_true hb).1 hz).2
+
+/-- Compression and the one-neighbourhood almost commute: compressing first can only land
+inside the compression of the neighbourhood. -/
+private lemma cubeNbhd_cubeCompress_subset (i : Fin n) (A : Finset (Fin n → Bool)) :
+    cubeNbhd (cubeCompress i A) 1 ⊆ cubeCompress i (cubeNbhd A 1) := by
+  intro y hy
+  simp only [cubeNbhd, mem_filter, mem_univ, true_and] at hy
+  obtain ⟨z, hz, hyz⟩ := hy
+  rcases Bool.dichotomy (y i) with hyi | hyi
+  · refine (mem_cubeCompress_false hyi).2 ?_
+    by_cases hzA : z ∈ A
+    · exact Or.inl (mem_cubeNbhd_of hzA hyz)
+    · obtain ⟨-, hz'⟩ := cubeCompress_of_notMem hz hzA
+      exact Or.inr (mem_cubeNbhd_of hz'
+        ((hammingDist_update_update_le i true y z).trans hyz))
+  · refine (mem_cubeCompress_true hyi).2 ⟨?_, ?_⟩
+    · by_cases hzA : z ∈ A
+      · exact mem_cubeNbhd_of hzA hyz
+      · obtain ⟨-, hz'⟩ := cubeCompress_of_notMem hz hzA
+        refine mem_cubeNbhd_of hz' ?_
+        have hy' : Function.update y i true = y := Function.update_eq_self_iff.mpr hyi.symm
+        calc hammingDist y (Function.update z i true)
+            = hammingDist (Function.update y i true) (Function.update z i true) := by rw [hy']
+          _ ≤ hammingDist y z := hammingDist_update_update_le i true y z
+          _ ≤ 1 := hyz
+    · by_cases hzA : z ∈ A
+      · exact mem_cubeNbhd_of (update_false_mem_of_mem hz hzA)
+          ((hammingDist_update_update_le i false y z).trans hyz)
+      · obtain ⟨hzi, hz'⟩ := cubeCompress_of_notMem hz hzA
+        have hyz' : Function.update y i false = z := by
+          have hu : Function.update y i (z i) = z :=
+            update_eq_of_hammingDist_le_one hyz (by simp [hyi, hzi])
+          rwa [hzi] at hu
+        rw [hyz']
+        refine mem_cubeNbhd_of hz' ?_
+        rw [hammingDist_comm]
+        exact hammingDist_update_le_one i true z
+
 /-- **Compression does not increase the neighbourhood.**  This is the step that makes the
 compression argument work at all, and the one Mathlib's `UV`/`Down` results do *not* give —
 theirs bound the shadow of a `k`-uniform family, not the neighbourhood of an arbitrary
 subset. -/
 theorem card_cubeNbhd_cubeCompress_le (i : Fin n) (A : Finset (Fin n → Bool)) :
     (cubeNbhd (cubeCompress i A) 1).card ≤ (cubeNbhd A 1).card := by
-  sorry
+  exact (Finset.card_le_card (cubeNbhd_cubeCompress_subset i A)).trans_eq
+    (card_cubeCompress i (cubeNbhd A 1))
 
 end ProbMethodCombinatorics
