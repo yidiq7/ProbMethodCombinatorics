@@ -1,3 +1,4 @@
+import ProbMethodCombinatorics.SecondMoment
 import Mathlib.Probability.Moments.SubGaussian
 import Mathlib.Probability.Martingale.Basic
 import Mathlib.Combinatorics.SimpleGraph.Coloring.Vertex
@@ -1174,6 +1175,43 @@ def graphOfEdgeSlots {n : ℕ} (x : EdgeSlot n → Prop) : SimpleGraph (Fin n) :
 noncomputable def edgeSlotMeasure (n : ℕ) (p : I) : Measure (EdgeSlot n → Prop) :=
   Measure.pi fun _ => (toNNReal p) • Measure.dirac True + (toNNReal (σ p)) • Measure.dirac False
 
+/-- `graphOfEdgeSlots` is measurable: for distinct `a` and `b`, adjacency in the assembled graph
+is the single coordinate `s(a, b)`, and for `a = b` it is `False`. -/
+private theorem measurable_graphOfEdgeSlots {n : ℕ} :
+    Measurable (graphOfEdgeSlots : (EdgeSlot n → Prop) → SimpleGraph (Fin n)) := by
+  rw [SimpleGraph.measurable_iff_adj]
+  intro a b
+  by_cases hab : a = b
+  · subst hab
+    simp [graphOfEdgeSlots]
+  · have key : (fun x : EdgeSlot n → Prop => (graphOfEdgeSlots x).Adj a b)
+        = fun x => x ⟨s(a, b), by simpa using hab⟩ := by
+      funext x
+      simp only [graphOfEdgeSlots, SimpleGraph.fromEdgeSet_adj, Set.mem_ofPred_eq]
+      exact propext ⟨fun h => h.1.2, fun h => ⟨⟨by simpa using hab, h⟩, hab⟩⟩
+    rw [key]
+    exact measurable_pi_apply _
+
+/-- `graphOfEdgeSlots` is injective with an explicit inverse: the only sample assembling to `G`
+marks exactly the slots that are edges of `G`.  The slots are already off the diagonal, so
+`edgeSet_fromEdgeSet` loses nothing in either direction. -/
+private theorem graphOfEdgeSlots_eq_iff_eq_edgeSlots {n : ℕ} (x : EdgeSlot n → Prop)
+    (G : SimpleGraph (Fin n)) :
+    graphOfEdgeSlots x = G ↔ x = fun e : EdgeSlot n => (e : Sym2 (Fin n)) ∈ G.edgeSet := by
+  constructor
+  · rintro rfl
+    funext e
+    simp only [graphOfEdgeSlots, SimpleGraph.edgeSet_fromEdgeSet, Set.mem_sdiff,
+      Set.mem_ofPred_eq, Sym2.mem_diagSet]
+    exact propext ⟨fun h => ⟨⟨e.2, h⟩, e.2⟩, fun h => h.1.2⟩
+  · rintro rfl
+    have hset : {e : Sym2 (Fin n) | ∃ _ : ¬ e.IsDiag, e ∈ G.edgeSet} = G.edgeSet := by
+      ext e
+      simp only [Set.mem_ofPred_eq]
+      exact ⟨fun h => h.2, fun h => ⟨G.not_isDiag_of_mem_edgeSet h, h⟩⟩
+    simp only [graphOfEdgeSlots]
+    rw [hset, SimpleGraph.fromEdgeSet_edgeSet]
+
 /-- **`G(n, p)` is the edge-exposure product.**
 
 There are `binom(n,2)` slots, one per unordered pair of distinct vertices, and a graph's mass is
@@ -1185,8 +1223,170 @@ ordering to respect. -/
 theorem binomialRandom_eq_map_graphOfEdgeSlots (n : ℕ) (p : I) :
     SimpleGraph.binomialRandom (Fin n) p
       = Measure.map graphOfEdgeSlots (edgeSlotMeasure n p) := by
-  sorry
+  classical
+  refine Measure.ext_of_singleton fun G => ?_
+  rw [Measure.map_apply measurable_graphOfEdgeSlots (measurableSet_simpleGraph_singleton G)]
+  have hpre : graphOfEdgeSlots ⁻¹' ({G} : Set (SimpleGraph (Fin n)))
+      = {fun e : EdgeSlot n => (e : Sym2 (Fin n)) ∈ G.edgeSet} := by
+    ext x
+    simp only [Set.mem_preimage, Set.mem_singleton_iff]
+    exact graphOfEdgeSlots_eq_iff_eq_edgeSlots x G
+  rw [hpre, SimpleGraph.binomialRandom_singleton, edgeSlotMeasure, Measure.pi_singleton,
+    Finset.prod_congr rfl fun (e : EdgeSlot n) _ =>
+      bernoulliProp_singleton p ((e : Sym2 (Fin n)) ∈ G.edgeSet),
+    Finset.prod_ite, Finset.prod_const, Finset.prod_const]
+  -- The slots marked present biject with the edges, via `Subtype.val`.
+  have hcount : (Finset.univ.filter
+      fun e : EdgeSlot n => (e : Sym2 (Fin n)) ∈ G.edgeSet).card = G.edgeSet.ncard := by
+    rw [Set.ncard_eq_toFinset_card' G.edgeSet]
+    refine Finset.card_bij (fun e _ => (e : Sym2 (Fin n))) ?_ ?_ ?_
+    · intro e he
+      simp only [Finset.mem_filter, Finset.mem_univ, true_and] at he
+      simpa [Set.mem_toFinset] using he
+    · intro e₁ _ e₂ _ h
+      exact Subtype.ext h
+    · intro e he
+      rw [Set.mem_toFinset] at he
+      exact ⟨⟨e, G.not_isDiag_of_mem_edgeSet he⟩, by simp [he], rfl⟩
+  -- There are `C(n, 2)` slots in all, so the absent ones number `C(n, 2) - #E`.
+  have hsplit : (Finset.univ.filter
+        fun e : EdgeSlot n => (e : Sym2 (Fin n)) ∈ G.edgeSet).card
+      + (Finset.univ.filter
+        fun e : EdgeSlot n => ¬ (e : Sym2 (Fin n)) ∈ G.edgeSet).card = n.choose 2 := by
+    rw [Finset.card_filter_add_card_filter_not, Finset.card_univ,
+      Sym2.card_subtype_not_diag, Fintype.card_fin]
+  have hn : (Nat.card (Fin n)).choose 2 = n.choose 2 := by simp
+  rw [hcount, hn]
+  congr 1
+  congr 1
+  omega
 
 end EdgeExposure
+
+/-! ### §9.3: edge-disjoint cliques
+
+Lemma 9.3.3 bounds the lower tail of the clique number by applying bounded differences to `Y`,
+the maximum number of pairwise edge-disjoint `k`-cliques.  The point of using `Y` rather than the
+*count* of `k`-cliques is that the count can move by a lot when one edge changes — a single edge
+can lie in many cliques — while `Y` moves by at most one, which is what makes a bounded
+differences argument available at all.
+-/
+
+section EdgeDisjointCliques
+
+open SimpleGraph unitInterval
+
+/-- `F` is a family of pairwise edge-disjoint `k`-cliques of `G`. -/
+def IsEdgeDisjointCliqueFamily (k : ℕ) {n : ℕ} (G : SimpleGraph (Fin n))
+    (F : Finset (Finset (Fin n))) : Prop :=
+  (∀ S ∈ F, S.card = k ∧ ↑(offDiagPairs S) ⊆ G.edgeSet) ∧
+  ∀ S ∈ F, ∀ T ∈ F, S ≠ T → Disjoint (offDiagPairs S) (offDiagPairs T)
+
+/-- `Y(G)`, the largest number of pairwise edge-disjoint `k`-cliques in `G`. -/
+noncomputable def edgeDisjointCliqueNumber (k : ℕ) {n : ℕ} (G : SimpleGraph (Fin n)) : ℕ :=
+  sSup {m | ∃ F : Finset (Finset (Fin n)), IsEdgeDisjointCliqueFamily k G F ∧ F.card = m}
+
+/-- The family cards are bounded: a family is a `Finset` of subsets of `Fin n`, so it has at most
+`2 ^ n` members.  This has to be said out loud — `Nat.sSup` returns the junk value `0` on an
+unbounded set, which would make `edgeDisjointCliqueNumber` meaningless rather than large. -/
+private theorem bddAbove_setOf_card_isEdgeDisjointCliqueFamily (k : ℕ) {n : ℕ}
+    (G : SimpleGraph (Fin n)) :
+    BddAbove
+      {m | ∃ F : Finset (Finset (Fin n)), IsEdgeDisjointCliqueFamily k G F ∧ F.card = m} :=
+  ⟨Fintype.card (Finset (Fin n)), fun m hm => by
+    obtain ⟨F, -, rfl⟩ := hm
+    simpa using F.card_le_univ⟩
+
+/-- The empty family is edge-disjoint vacuously, so `0` is always attained. -/
+private theorem nonempty_setOf_card_isEdgeDisjointCliqueFamily (k : ℕ) {n : ℕ}
+    (G : SimpleGraph (Fin n)) :
+    Set.Nonempty
+      {m | ∃ F : Finset (Finset (Fin n)), IsEdgeDisjointCliqueFamily k G F ∧ F.card = m} :=
+  ⟨0, ∅, ⟨by simp, by simp⟩, by simp⟩
+
+/-- Every edge-disjoint family of `k`-cliques is at most as large as `Y(G)`. -/
+private theorem card_le_edgeDisjointCliqueNumber {k n : ℕ} {G : SimpleGraph (Fin n)}
+    {F : Finset (Finset (Fin n))} (hF : IsEdgeDisjointCliqueFamily k G F) :
+    F.card ≤ edgeDisjointCliqueNumber k G :=
+  le_csSup (bddAbove_setOf_card_isEdgeDisjointCliqueFamily k G) ⟨F, hF, rfl⟩
+
+/-- The one-directional bound, stated once and applied twice.  Given an edge-disjoint family `F`
+of `k`-cliques of `G'`, at most one member has `e` among its pairs — two such members would share
+`e`, contradicting pairwise disjointness — and every other member is still a clique of `G`, since
+`G` and `G'` agree off `e`.  Discarding that single member leaves a family for `G`. -/
+private theorem edgeDisjointCliqueNumber_le_succ_of_edgeSet_agree (k : ℕ) {n : ℕ}
+    (e : Sym2 (Fin n)) (G G' : SimpleGraph (Fin n))
+    (h : ∀ f : Sym2 (Fin n), f ≠ e → (f ∈ G.edgeSet ↔ f ∈ G'.edgeSet)) :
+    edgeDisjointCliqueNumber k G' ≤ edgeDisjointCliqueNumber k G + 1 := by
+  refine csSup_le (nonempty_setOf_card_isEdgeDisjointCliqueFamily k G') ?_
+  rintro m ⟨F, ⟨hcl, hdj⟩, rfl⟩
+  -- Two distinct members both containing `e` would not be edge-disjoint.
+  have hone : (F.filter fun S => e ∈ offDiagPairs S).card ≤ 1 := by
+    refine Finset.card_le_one.2 fun S hS T hT => ?_
+    obtain ⟨hSF, hSe⟩ := Finset.mem_filter.1 hS
+    obtain ⟨hTF, hTe⟩ := Finset.mem_filter.1 hT
+    by_contra hne
+    exact Finset.disjoint_left.1 (hdj S hSF T hTF hne) hSe hTe
+  have hsplit : (F.filter fun S => e ∈ offDiagPairs S).card
+      + (F.filter fun S => ¬ e ∈ offDiagPairs S).card = F.card :=
+    Finset.card_filter_add_card_filter_not _
+  -- The members missing `e` span only pairs on which `G` and `G'` agree.
+  have hfam : IsEdgeDisjointCliqueFamily k G (F.filter fun S => ¬ e ∈ offDiagPairs S) := by
+    refine ⟨fun S hS => ?_, fun S hS T hT hne =>
+      hdj S (Finset.mem_of_mem_filter S hS) T (Finset.mem_of_mem_filter T hT) hne⟩
+    obtain ⟨hSF, hSe⟩ := Finset.mem_filter.1 hS
+    refine ⟨(hcl S hSF).1, fun f hf => ?_⟩
+    have hfe : f ≠ e := fun hfe => hSe (hfe ▸ Finset.mem_coe.1 hf)
+    exact (h f hfe).mpr ((hcl S hSF).2 hf)
+  have := card_le_edgeDisjointCliqueNumber hfam
+  omega
+
+/-- **Changing one edge moves `Y` by at most one.**
+
+Deleting an edge destroys at most one member of an edge-disjoint family, since the members are
+edge-disjoint and so at most one contains that edge; adding an edge creates at most one new
+member for the same reason.  This is exactly where edge-disjointness is doing work — the plain
+count of `k`-cliques has no such bound, because one edge can lie in many cliques.
+
+This is the bounded-differences input to Lemma 9.3.3, and it is why that lemma uses
+`binomialRandom_eq_map_graphOfEdgeSlots` rather than the vertex decomposition. -/
+theorem abs_sub_edgeDisjointCliqueNumber_le_one (k : ℕ) {n : ℕ} (e : Sym2 (Fin n))
+    (G G' : SimpleGraph (Fin n))
+    (h : ∀ f : Sym2 (Fin n), f ≠ e → (f ∈ G.edgeSet ↔ f ∈ G'.edgeSet)) :
+    |(edgeDisjointCliqueNumber k G : ℝ) - (edgeDisjointCliqueNumber k G' : ℝ)| ≤ 1 := by
+  have h₁ := edgeDisjointCliqueNumber_le_succ_of_edgeSet_agree k e G G' h
+  have h₂ := edgeDisjointCliqueNumber_le_succ_of_edgeSet_agree k e G' G fun f hf => (h f hf).symm
+  rw [abs_sub_le_iff]
+  refine ⟨?_, ?_⟩
+  · have : (edgeDisjointCliqueNumber k G : ℝ) ≤ (edgeDisjointCliqueNumber k G' : ℝ) + 1 := by
+      exact_mod_cast h₂
+    linarith
+  · have : (edgeDisjointCliqueNumber k G' : ℝ) ≤ (edgeDisjointCliqueNumber k G : ℝ) + 1 := by
+      exact_mod_cast h₁
+    linarith
+
+/-- **Lemma 9.3.3** (Zhao, §9.3; the same statement as Lemma 8.3.3): the probability that
+`G(n, p)` has no `k`-clique decays like `exp (-2 (𝔼Y)² / binom(n,2))`, where `Y` is the maximum
+number of pairwise edge-disjoint `k`-cliques.
+
+Bounded differences on `Y`, through the edge-exposure product.  `Y = 0` says exactly that no
+`k`-clique is present, so the left side is the clique-free probability; the right side is
+`measure_sub_integral_ge_le` applied to `-Y` at deviation `𝔼Y`, with every `cᵢ = 1` over the
+`binom(n,2)` edge slots.
+
+The source obtains `e^{-n^{2-o(1)}}` from this by showing `𝔼Y ≥ n^{2-o(1)}` at `p = 1/2` and
+`k` near `2 log₂ n`; that estimate is a separate node, and this is the inequality it is fed to.
+
+**Why `Y` and not the clique count.**  One edge can lie in many `k`-cliques, so the count has no
+bounded difference; at most one member of an *edge-disjoint* family contains a given edge, which
+is what caps the change at one.  See `abs_sub_edgeDisjointCliqueNumber_le_one`. -/
+theorem prob_edgeDisjointCliqueNumber_eq_zero_le (k n : ℕ) (hn : 2 ≤ n) (p : I) :
+    (SimpleGraph.binomialRandom (Fin n) p).real
+        {G : SimpleGraph (Fin n) | edgeDisjointCliqueNumber k G = 0}
+      ≤ Real.exp (-2 * (∫ G, (edgeDisjointCliqueNumber k G : ℝ)
+            ∂(SimpleGraph.binomialRandom (Fin n) p)) ^ 2 / (n.choose 2 : ℝ)) := by
+  sorry
+
+end EdgeDisjointCliques
 
 end ProbMethodCombinatorics

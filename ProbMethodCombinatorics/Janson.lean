@@ -250,6 +250,158 @@ def cliqueDependency (n k : ℕ) :
   Finset.univ.filter fun q =>
     q.1 ≠ q.2 ∧ 2 ≤ ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n))).card
 
+/-- A vertex set of size `m` spans `binom(m,2)` non-loop pairs.
+
+`card_offDiagPairs_add` gives `#(offDiagPairs S) + m = binom(m+1,2)`, and `binom(m+1,2)` is
+`m + binom(m,2)` by `Nat.choose_succ_succ'` and `Nat.choose_one_right`. -/
+private theorem card_offDiagPairs_cliqueGrade {n : ℕ} {S : Finset (Fin n)} {m : ℕ}
+    (hS : S.card = m) : (offDiagPairs S).card = m.choose 2 := by
+  have h := card_offDiagPairs_add S
+  rw [hS] at h
+  have hsucc : (m + 1).choose 2 = m + m.choose 2 := by
+    rw [Nat.choose_succ_succ' m 1, Nat.choose_one_right]
+  rw [hsucc] at h
+  omega
+
+/-- `A ∩ (T ∪ U) = T` whenever `T ⊆ A` and no element of `U` lies in `A`.
+
+This is what identifies the shared vertex set of a graded dependent pair: the second clique of
+the pair parametrised by `(A, T, U)` is `T ∪ U`, and its intersection with `A` is `T`. -/
+private theorem inter_union_eq_cliqueGrade {n : ℕ} {A T U : Finset (Fin n)}
+    (hT : T ⊆ A) (hU : ∀ x ∈ U, x ∉ A) : A ∩ (T ∪ U) = T := by
+  ext y
+  simp only [Finset.mem_inter, Finset.mem_union]
+  constructor
+  · rintro ⟨hyA, hyT | hyU⟩
+    · exact hyT
+    · exact absurd hyA (hU y hyU)
+  · intro hyT
+    exact ⟨hT hyT, Or.inl hyT⟩
+
+/-- **The dependent pairs of `k`-sets at grade `j`**: for `2 ≤ j < k` there are exactly
+`binom(n,k) binom(k,j) binom(n-k,k-j)` ordered pairs of `k`-sets meeting in `j` vertices.
+
+The bijection is `(A, T, U) ↦ (A, T ∪ U)` from the triples with `T ⊆ A` of size `j` and
+`U ⊆ univ \ A` of size `k - j`, whose number is `binom(n,k) · binom(k,j) · binom(n-k,k-j)` by
+`Finset.card_sigma` and `Finset.card_powersetCard`.  `inter_union_eq_cliqueGrade` recovers `T`
+as `A ∩ (T ∪ U)`, which gives both the grade and injectivity, and `j < k` makes `U` nonempty,
+so the two `k`-sets are distinct; `Finset.sdiff_union_inter` inverts the map. -/
+private theorem card_cliqueDependency_grade (n k j : ℕ) (hj2 : 2 ≤ j) (hjk : j < k) :
+    ((cliqueDependency n k).filter fun q =>
+        ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n))).card = j).card
+      = n.choose k * k.choose j * (n - k).choose (k - j) := by
+  -- The parameter set: a `k`-set `A`, the shared `j` vertices `T ⊆ A`, and `B`'s other `k - j`
+  -- vertices `U`, taken from outside `A`.
+  set E : Finset ((_ : {S : Finset (Fin n) // S.card = k}) × (Finset (Fin n) × Finset (Fin n))) :=
+    (Finset.univ : Finset {S : Finset (Fin n) // S.card = k}).sigma
+      fun A => ((A : Finset (Fin n)).powersetCard j) ×ˢ
+        ((Finset.univ \ (A : Finset (Fin n))).powersetCard (k - j)) with hEdef
+  have hmemE : ∀ a : (_ : {S : Finset (Fin n) // S.card = k}) × (Finset (Fin n) × Finset (Fin n)),
+      a ∈ E → a.2.1 ⊆ (a.1 : Finset (Fin n)) ∧ a.2.1.card = j ∧
+        (∀ x ∈ a.2.2, x ∉ (a.1 : Finset (Fin n))) ∧ a.2.2.card = k - j := by
+    intro a ha
+    rw [hEdef, Finset.mem_sigma, Finset.mem_product, Finset.mem_powersetCard,
+      Finset.mem_powersetCard] at ha
+    exact ⟨ha.2.1.1, ha.2.1.2, fun x hx => (Finset.mem_sdiff.1 (ha.2.2.1 hx)).2, ha.2.2.2⟩
+  -- `T` and `U` are disjoint, so `T ∪ U` is again a `k`-set.
+  have hunion : ∀ a ∈ E, (a.2.1 ∪ a.2.2).card = k := by
+    intro a ha
+    obtain ⟨hTsub, hTc, hUout, hUc⟩ := hmemE a ha
+    have hdisj : Disjoint a.2.1 a.2.2 :=
+      Finset.disjoint_left.2 fun x hxT hxU => hUout x hxU (hTsub hxT)
+    rw [Finset.card_union_of_disjoint hdisj, hTc, hUc]
+    omega
+  have hcardE : E.card = n.choose k * k.choose j * (n - k).choose (k - j) := by
+    have hcount : Fintype.card {S : Finset (Fin n) // S.card = k} = n.choose k := by
+      rw [Fintype.card_subtype]
+      have hfilter : {S ∈ (Finset.univ : Finset (Finset (Fin n))) | S.card = k}
+          = (Finset.univ : Finset (Fin n)).powersetCard k := by
+        ext S
+        simp
+      rw [hfilter, Finset.card_powersetCard, Finset.card_univ, Fintype.card_fin]
+    have hfib : ∀ A : {S : Finset (Fin n) // S.card = k},
+        (((A : Finset (Fin n)).powersetCard j) ×ˢ
+            ((Finset.univ \ (A : Finset (Fin n))).powersetCard (k - j))).card
+          = k.choose j * (n - k).choose (k - j) := by
+      intro A
+      rw [Finset.card_product, Finset.card_powersetCard, Finset.card_powersetCard, A.2,
+        Finset.card_sdiff_of_subset (Finset.subset_univ _), Finset.card_univ, Fintype.card_fin, A.2]
+    rw [hEdef, Finset.card_sigma, Finset.sum_congr rfl fun A _ => hfib A, Finset.sum_const,
+      Finset.card_univ, hcount, smul_eq_mul]
+    ring
+  rw [← hcardE]
+  refine (Finset.card_bij
+    (fun a ha => ((a.1, ⟨a.2.1 ∪ a.2.2, hunion a ha⟩) :
+      {S : Finset (Fin n) // S.card = k} × {S : Finset (Fin n) // S.card = k}))
+    ?_ ?_ ?_).symm
+  · -- the image is a dependent pair at grade `j`
+    intro a ha
+    obtain ⟨hTsub, hTc, hUout, hUc⟩ := hmemE a ha
+    have hAe := inter_union_eq_cliqueGrade hTsub hUout
+    have hUne : a.2.2.Nonempty := by
+      rw [← Finset.card_pos, hUc]
+      omega
+    obtain ⟨u, hu⟩ := hUne
+    refine Finset.mem_filter.2 ⟨Finset.mem_filter.2 ⟨Finset.mem_univ _, ?_, ?_⟩, ?_⟩
+    · intro h
+      have hAU : (a.1 : Finset (Fin n)) = a.2.1 ∪ a.2.2 :=
+        congrArg (fun T : {S : Finset (Fin n) // S.card = k} => (T : Finset (Fin n))) h
+      exact hUout u hu (hAU ▸ Finset.mem_union_right _ hu)
+    · show 2 ≤ ((a.1 : Finset (Fin n)) ∩ (a.2.1 ∪ a.2.2)).card
+      rw [hAe, hTc]
+      exact hj2
+    · show ((a.1 : Finset (Fin n)) ∩ (a.2.1 ∪ a.2.2)).card = j
+      rw [hAe, hTc]
+  · -- injectivity: `T` is recovered as `A ∩ (T ∪ U)` and `U` as the rest
+    intro a₁ ha₁ a₂ ha₂ h
+    obtain ⟨hTsub₁, hTc₁, hUout₁, hUc₁⟩ := hmemE a₁ ha₁
+    obtain ⟨hTsub₂, hTc₂, hUout₂, hUc₂⟩ := hmemE a₂ ha₂
+    have hfst : a₁.1 = a₂.1 := congrArg Prod.fst h
+    have hsnd : a₁.2.1 ∪ a₁.2.2 = a₂.2.1 ∪ a₂.2.2 :=
+      congrArg (fun T : {S : Finset (Fin n) // S.card = k} => (T : Finset (Fin n)))
+        (congrArg Prod.snd h)
+    have hT : a₁.2.1 = a₂.2.1 := by
+      rw [← inter_union_eq_cliqueGrade hTsub₁ hUout₁, hsnd, hfst,
+        inter_union_eq_cliqueGrade hTsub₂ hUout₂]
+    have hU : a₁.2.2 = a₂.2.2 := by
+      ext x
+      constructor
+      · intro hx
+        rcases Finset.mem_union.1 (hsnd ▸ Finset.mem_union_right a₁.2.1 hx) with h' | h'
+        · exact absurd (hfst ▸ hTsub₂ h') (hUout₁ x hx)
+        · exact h'
+      · intro hx
+        rcases Finset.mem_union.1 (hsnd.symm ▸ Finset.mem_union_right a₂.2.1 hx) with h' | h'
+        · exact absurd (hfst ▸ hTsub₁ h') (hUout₂ x hx)
+        · exact h'
+    obtain ⟨A₁, T₁, U₁⟩ := a₁
+    obtain ⟨A₂, T₂, U₂⟩ := a₂
+    simp only at hfst hT hU
+    subst hfst
+    subst hT
+    subst hU
+    rfl
+  · -- surjectivity: take `T = A ∩ B` and `U = B \ A`
+    intro q hq
+    obtain ⟨hqD, hj⟩ := Finset.mem_filter.1 hq
+    have hUc : ((q.2 : Finset (Fin n)) \ (q.1 : Finset (Fin n))).card = k - j := by
+      have hh := Finset.card_sdiff_add_card_inter
+        (q.2 : Finset (Fin n)) (q.1 : Finset (Fin n))
+      rw [q.2.2, Finset.inter_comm] at hh
+      omega
+    have hBeq : ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n)))
+        ∪ ((q.2 : Finset (Fin n)) \ (q.1 : Finset (Fin n))) = (q.2 : Finset (Fin n)) := by
+      rw [Finset.inter_comm, Finset.union_comm,
+        Finset.sdiff_union_inter (q.2 : Finset (Fin n)) (q.1 : Finset (Fin n))]
+    refine ⟨⟨q.1, ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n)),
+      (q.2 : Finset (Fin n)) \ (q.1 : Finset (Fin n)))⟩, ?_, ?_⟩
+    · rw [hEdef, Finset.mem_sigma, Finset.mem_product, Finset.mem_powersetCard,
+        Finset.mem_powersetCard]
+      refine ⟨Finset.mem_univ _, ⟨Finset.inter_subset_left, hj⟩, ?_, hUc⟩
+      intro x hx
+      exact Finset.mem_sdiff.2 ⟨Finset.mem_univ _, (Finset.mem_sdiff.1 hx).2⟩
+    · exact Prod.ext rfl (Subtype.ext hBeq)
+
 /-- **`Δ` for the `k`-clique family, exactly.**
 
 Grade the dependent pairs by `j = #(A ∩ B)`, which runs over `2, …, k-1`.  There are
@@ -270,7 +422,52 @@ theorem jansonDelta_cliqueFamily (n k : ℕ) (p : I) :
       = ∑ j ∈ Finset.Ico 2 k,
           (n.choose k * k.choose j * (n - k).choose (k - j) : ℕ)
             * (p : ℝ) ^ (2 * k.choose 2 - j.choose 2) := by
-  sorry
+  -- Each dependent pair `(A, B)` spans `2 binom(k,2) - binom(j,2)` non-loop pairs, where
+  -- `j = #(A ∩ B)`: both cliques' edges, with the shared `j`-clique's counted once.
+  have hterm : ∀ q ∈ cliqueDependency n k,
+      (setBernoulli Set.univ p {R : Set (Sym2 (Fin n)) |
+          (↑(offDiagPairs (q.1 : Finset (Fin n))) : Set (Sym2 (Fin n)))
+            ∪ (↑(offDiagPairs (q.2 : Finset (Fin n))) : Set (Sym2 (Fin n))) ⊆ R}).toReal
+        = (p : ℝ) ^ (2 * k.choose 2
+            - (((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n))).card).choose 2) := by
+    intro q _
+    have h := Finset.card_union_add_card_inter
+      (offDiagPairs (q.1 : Finset (Fin n))) (offDiagPairs (q.2 : Finset (Fin n)))
+    rw [offDiagPairs_inter, card_offDiagPairs_cliqueGrade q.1.2,
+      card_offDiagPairs_cliqueGrade q.2.2, card_offDiagPairs_cliqueGrade (m :=
+        ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n))).card) rfl] at h
+    rw [← Finset.coe_union, setBernoulli_setOf_subset, ENNReal.toReal_pow,
+      ENNReal.coe_toReal, unitInterval.coe_toNNReal]
+    -- `h` pins the union's cardinality and, with it, that the subtraction does not truncate.
+    congr 1
+    omega
+  -- The grade `j = #(A ∩ B)` of a dependent pair lies in `Ico 2 k`: at least `2` to share an
+  -- edge, and less than `k` since `j = k` would force `A = B`.
+  have hmaps : ∀ q ∈ cliqueDependency n k,
+      ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n))).card ∈ Finset.Ico 2 k := by
+    intro q hq
+    obtain ⟨hne, hge⟩ := (Finset.mem_filter.1 hq).2
+    have hle := Finset.card_le_card
+      (Finset.inter_subset_left (s₁ := (q.1 : Finset (Fin n))) (s₂ := (q.2 : Finset (Fin n))))
+    rw [q.1.2] at hle
+    have hlt : ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n))).card ≠ k := by
+      intro hk
+      refine hne (Subtype.ext ?_)
+      have h1 : (q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n)) = (q.1 : Finset (Fin n)) :=
+        Finset.eq_of_subset_of_card_le Finset.inter_subset_left (by rw [q.1.2, hk])
+      have h2 : (q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n)) = (q.2 : Finset (Fin n)) :=
+        Finset.eq_of_subset_of_card_le Finset.inter_subset_right (by rw [q.2.2, hk])
+      exact h1 ▸ h2
+    rw [Finset.mem_Ico]
+    omega
+  -- Grade the sum by `j`; the summand depends on the pair only through `j`, so each fibre
+  -- contributes its cardinality times `p ^ (2 binom(k,2) - binom(j,2))`.
+  rw [jansonDelta, Finset.sum_congr rfl hterm,
+    ← Finset.sum_fiberwise_of_maps_to' hmaps
+      (fun j => (p : ℝ) ^ (2 * k.choose 2 - j.choose 2))]
+  refine Finset.sum_congr rfl fun j hj => ?_
+  rw [Finset.mem_Ico] at hj
+  rw [Finset.sum_const, nsmul_eq_mul, card_cliqueDependency_grade n k j hj.1 hj.2]
 
 /-- The dependency set for the triangle family: two distinct triples are dependent exactly when
 they share an edge, which for triples means sharing two vertices.
@@ -541,43 +738,10 @@ theorem jansonDelta_triangleFamily (n : ℕ) (p : I) :
           (↑(offDiagPairs (T : Finset (Fin n))) : Set (Sym2 (Fin n))))
         (triangleDependency n)
       = (3 * n.choose 3 * (n - 3) : ℕ) * (p : ℝ) ^ 5 := by
-  -- A triple spans exactly three non-loop pairs: `#(offDiagPairs T) + 3 = binom(4,2) = 6`.
-  have hcard3 : ∀ T : {T : Finset (Fin n) // T.card = 3},
-      (offDiagPairs (T : Finset (Fin n))).card = 3 := by
-    intro T
-    have hT := T.2
-    have h := card_offDiagPairs_add (T : Finset (Fin n))
-    rw [hT] at h
-    norm_num [Nat.choose] at h
-    omega
-  have hinter2 := fun q (hq : q ∈ triangleDependency n) =>
-    card_inter_eq_two_of_mem_triangleDependency q hq
-  -- Two triples sharing an edge span `3 + 3 - 1 = 5` non-loop pairs.
-  have hcard5 : ∀ q ∈ triangleDependency n,
-      (offDiagPairs (q.1 : Finset (Fin n)) ∪ offDiagPairs (q.2 : Finset (Fin n))).card = 5 := by
-    intro q hq
-    have h2 := hinter2 q hq
-    have hone : (offDiagPairs ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n)))).card = 1 := by
-      have h := card_offDiagPairs_add ((q.1 : Finset (Fin n)) ∩ (q.2 : Finset (Fin n)))
-      rw [h2] at h
-      norm_num [Nat.choose] at h
-      omega
-    have h := Finset.card_union_add_card_inter
-      (offDiagPairs (q.1 : Finset (Fin n))) (offDiagPairs (q.2 : Finset (Fin n)))
-    rw [offDiagPairs_inter, hcard3 q.1, hcard3 q.2, hone] at h
-    omega
-  -- Each dependent pair contributes the probability `p ⁵` that its five pairs are all present.
-  have hterm : ∀ q ∈ triangleDependency n,
-      (setBernoulli Set.univ p {R : Set (Sym2 (Fin n)) |
-          (↑(offDiagPairs (q.1 : Finset (Fin n))) : Set (Sym2 (Fin n)))
-            ∪ (↑(offDiagPairs (q.2 : Finset (Fin n))) : Set (Sym2 (Fin n))) ⊆ R}).toReal
-        = (p : ℝ) ^ 5 := by
-    intro q hq
-    rw [← Finset.coe_union, setBernoulli_setOf_subset, hcard5 q hq, ENNReal.toReal_pow,
-      ENNReal.coe_toReal, unitInterval.coe_toNNReal]
-  rw [jansonDelta, Finset.sum_congr rfl hterm, Finset.sum_const, nsmul_eq_mul,
-    card_triangleDependency_exact]
-
+  have h : triangleDependency n = cliqueDependency n 3 := rfl
+  rw [h, jansonDelta_cliqueFamily n 3 p]
+  norm_num [Finset.sum_Ico_succ_top, Nat.choose]
+  exact Or.inl (Or.inl (mul_comm _ _))
 /-- The conditioning step of the Boppana–Spencer proof of Janson's inequality.
 
 If `i ∉ T` and every `S j` with `j ∈ T` outside `T₁` is disjoint from `S i`, then imposing the
@@ -1257,6 +1421,35 @@ theorem binomialRandom_no_triangle_le_of_one_le (n : ℕ) (hn : 4 ≤ n) (p : I)
     (fun T : {T : Finset (Fin n) // T.card = 3} => offDiagPairs (T : Finset (Fin n)))
     fun _ _ he => not_isDiag_of_mem_offDiagPairs he]
   exact hmain
+
+/-- **The clique-free probability in the dense regime** (Zhao, Lemma 8.3.3, the finite form).
+
+Janson's second inequality on the `k`-clique family.  `jansonMu_cliqueFamily` and
+`jansonDelta_cliqueFamily` evaluate the two constants as `binom(n,k) p^{binom(k,2)}` and the
+graded sum over intersection sizes, so a caller rewrites with those and is left with arithmetic.
+
+They are left abstract in the statement rather than substituted because `Δ` appears three times —
+in both hypotheses and in a denominator — and spelling out the graded sum each time would make
+the statement unreadable without making it stronger.
+
+This is what §8.3's chromatic-number argument runs on: at `p = 1/2` and `k` near `2 log₂ n` it
+gives the `e^{-n^{2-o(1)}}` lower tail Bollobás' proof needs.  `binomialRandom_no_triangle_le_of_one_le`
+is the `k = 3` instance with the constants substituted. -/
+theorem binomialRandom_no_clique_le_of_mu_le (n k : ℕ) (p : I)
+    (hle : jansonMu p (fun S : {S : Finset (Fin n) // S.card = k} =>
+              (↑(offDiagPairs (S : Finset (Fin n))) : Set (Sym2 (Fin n))))
+           ≤ jansonDelta p (fun S : {S : Finset (Fin n) // S.card = k} =>
+              (↑(offDiagPairs (S : Finset (Fin n))) : Set (Sym2 (Fin n)))) (cliqueDependency n k))
+    (hpos : 0 < jansonDelta p (fun S : {S : Finset (Fin n) // S.card = k} =>
+              (↑(offDiagPairs (S : Finset (Fin n))) : Set (Sym2 (Fin n)))) (cliqueDependency n k)) :
+    (SimpleGraph.binomialRandom (Fin n) p).real
+        {G : SimpleGraph (Fin n) | ∀ S : {S : Finset (Fin n) // S.card = k},
+          ¬ (↑(offDiagPairs (S : Finset (Fin n))) ⊆ G.edgeSet)}
+      ≤ Real.exp (-(jansonMu p (fun S : {S : Finset (Fin n) // S.card = k} =>
+              (↑(offDiagPairs (S : Finset (Fin n))) : Set (Sym2 (Fin n))))) ^ 2
+          / (2 * jansonDelta p (fun S : {S : Finset (Fin n) // S.card = k} =>
+              (↑(offDiagPairs (S : Finset (Fin n))) : Set (Sym2 (Fin n)))) (cliqueDependency n k))) := by
+  sorry
 
 /-- The elementary bound `exp (-x) ≤ 1 - x + x ^ 2 / 2` for `x ≥ 0`.
 
