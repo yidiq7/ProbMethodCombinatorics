@@ -1614,3 +1614,49 @@ in one.
   nodes that sat for five hours were the ones where I had given a bad route (#84) or bundled two
   kinds of work (#15, #60).  **Prose quality tracks throughput about as closely as statement
   quality does.**
+
+
+# Status, 2026-09-18: one `sorry` remains, and it is open mathematics
+
+`lake build` is green, the board is empty, no PR is open, and the corpus is **276 theorems /
+350 public declarations** with exactly **one** `sorry`: `Containers.lean:2548`,
+`exists_containers_fingerprint_three_uniform` — the §11.3 corner, which is an open
+mathematical problem and not unfinished formalization.
+
+**Chapter 6 was completed today, end to end.**  §6.1–§6.2 (all three local-lemma forms,
+2-colourability, Ramsey), §6.2.6 (infinite vertex sets, via Tychonoff), §6.2.10
+(Erdős–Lovász multicoloured translates), §6.2.11 (Beck), §6.3 (independent transversals),
+§6.4 (Alon–Linial directed cycles), §6.5 (lopsided local lemma, derangement bound,
+Erdős–Spencer Latin transversals), §6.6 (sparse `k`-CNF satisfiability).  Also completed:
+§5.3 (Hajós) and §9.3.4 (Shamir–Spencer four-value concentration) with its Lemma 9.3.5.
+Every headline theorem was axiom-audited to `[propext, Classical.choice, Quot.sound]`.
+
+## What is left, and why — the four blockers are not interchangeable
+
+| Section | Blocker | Clearable by Mathlib work? |
+|---|---|---|
+| §2.6 crossing number | no planarity, Euler's formula or `crossingNumber` in Mathlib | yes |
+| §7.2.6 | no FKG for *continuous* product measures (Mathlib's is finite-lattice only) | yes |
+| §9.4–9.6 | no Hamming-cube isoperimetry, Talagrand convex distance, subadditive Euclidean functionals | yes |
+| §11.1.5 | inherits `sorryAx` from the §11.3 corner | **no** — needs the mathematics settled |
+
+Never targets, for a different reason: Theorem 6.6.3, Theorem 7.2.5 and Proposition 7.2.6 are
+**quoted or sketched** rather than proved by the source, and Lemma 9.3.3's second half says
+"details again omitted".  Question 2.4.1, Conjecture 11.1.4 and Conjectures 6.5.8/6.5.9
+(Ryser, Ryser–Brualdi–Stein) are **open problems** and must never be stated as theorems.
+
+## Two habits that did the most work
+
+**Re-derive a recorded blocker before trusting it.**  Seven were checked; five were wholly
+stale (Chapter 8's G(n,p) API, §9.2's Azuma, §11.1's `ex(n,H)`, §2.2's Dirichlet, §7.1.5's
+function form), one was half-stale (§7.2.6 — Mathlib *does* have Gaussians), and one was
+confirmed real (§2.6).  The same disease runs the other way: §2.3's "planned, not stated"
+headings described work finished long ago, and `lake build` caught me restating Caro–Wei.
+**Grep the source tree — and Mathlib — before believing any roadmap heading in either
+direction.**  That check caught `CliqueFree.card_edgeFinset_le` one step before I duplicated it.
+
+**Instantiate a copied numeric hypothesis at small parameters before publishing.**  §6.4's
+constant was transcribed from the source and is *wrong for the dependency count the argument
+establishes* — `(1+d)(1+D)-1`, not `dD`; it fails at `k=5, d=21, D=1`.  Caught before any
+worker saw it, unlike the four source errata in §2.4.4, §9.3.1, §6.3 and §6.5.6, which were
+the source's own.
