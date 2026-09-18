@@ -160,3 +160,39 @@ the other direction one.
 direction.** `grep -rn "<decl-name>" ProbMethodCombinatorics/*.lean` costs nothing, and for a
 theorem that may already exist upstream, `grep` Mathlib too — that check is what caught
 `CliqueFree.card_edgeFinset_le` one step before I duplicated it.
+
+
+## §2.6 re-derived 2026-09-18: blocked, and an abstraction was considered and rejected
+
+The blocker stands — Mathlib has no planarity predicate, no Euler characteristic for graphs,
+and no `crossingNumber`; the single occurrence of "Planar" is a docstring bullet.  That much
+was already checked on 2026-09-17 and re-confirmed today.
+
+**What is new is that I worked out how one might dodge it, and decided not to.**  The proof of
+Theorem 2.6.2 has two halves:
+
+1. *Topological*: Euler's formula gives `|E| ≤ 3|V| - 6` for planar graphs, hence
+   `cr G ≥ |E| - 3|V|` for every graph.  This is the part Mathlib cannot supply.
+2. *Probabilistic*: keep each vertex independently with probability `p`.  Then
+   `p⁴ · cr G ≥ p² |E| - 3p |V|`, and `p = 4|V|/|E|` — admissible exactly when `|E| ≥ 4|V|`,
+   which is the theorem's hypothesis — yields `cr G ≥ |E|³ / (64 |V|²)`.  I checked the
+   arithmetic: at `|V| = 100`, `|E| = 4000` both sides are exactly `100000`.
+
+Half 2 is the part Chapter 2 is actually teaching, and it *could* be stated against an
+abstract `cr` assumed to satisfy the Euler bound and to restrict correctly to induced
+subgraphs.
+
+**I rejected that, for a reason worth recording.**  Such a statement is only worth having if
+something satisfies its hypotheses, and the only witness is the genuine topological crossing
+number — which is precisely what is unavailable.  So the theorem would be unfalsifiable in
+this corpus: true, unusable, and impossible to validate.  Crossings are topological, so there
+is no exhaustive small-case check of the kind that validated `IsKSubdivision` (67720 graphs)
+and `IsDirectedCycle` (18 discriminating cases) before those were committed.  That is the
+`boxProd`-versus-tensor failure mode from §10.2 — a plausible definition making every
+downstream theorem true and useless — and the small-case check is the only defence against it.
+
+Contrast §7.2, where the same question got the opposite answer the same day: there the
+salvageable part was the source's *own* remark, restated in `binomialRandom`, a model the
+corpus already has and the theorem is genuinely about.  No new abstraction was invented and
+non-vacuity was never in doubt.  **The test is whether the restatement needs a witness the
+corpus cannot produce.**
