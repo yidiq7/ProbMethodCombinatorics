@@ -34,6 +34,25 @@ def IsKChoosable {V : Type*} (G : SimpleGraph V) (k : ℕ) : Prop :=
   ∀ (α : Type) [DecidableEq α] (L : V → Finset α), (∀ v, (L v).card = k) →
     ∃ c : V → α, (∀ v, c v ∈ L v) ∧ ∀ u v, G.Adj u v → c u ≠ c v
 
+/-- The markings of the colour universe `C` that send every colour of a sub-list `T` to the
+single value `b` are determined by their values off `T`, so there are at most
+`2 ^ (#C - #T)` of them. -/
+private theorem card_filter_forced_le {α : Type} [DecidableEq α] {C T : Finset α}
+    (hTC : T ⊆ C) (b : Bool) :
+    (Finset.univ.filter (fun m : C → Bool => ∀ a : C, (a : α) ∈ T → m a = b)).card
+      ≤ 2 ^ (C.card - T.card) := by
+  have hcard : Fintype.card ((C \ T : Finset α) → Bool) = 2 ^ (C.card - T.card) := by
+    rw [Fintype.card_fun, Fintype.card_bool, Fintype.card_coe, Finset.card_sdiff_of_subset hTC]
+  rw [← hcard, ← Finset.card_univ]
+  refine Finset.card_le_card_of_injOn
+    (fun m y => m ⟨(y : α), (Finset.mem_sdiff.1 y.2).1⟩) (fun _ _ => Finset.mem_univ _) ?_
+  intro m₁ h₁ m₂ h₂ hm
+  rw [Finset.mem_coe, Finset.mem_filter] at h₁ h₂
+  funext x
+  by_cases hx : (x : α) ∈ T
+  · rw [h₁.2 x hx, h₂.2 x hx]
+  · exact congrFun hm ⟨(x : α), Finset.mem_sdiff.2 ⟨x.2, hx⟩⟩
+
 /-- **Theorem 1.4.2**: `K n n` is `k`-choosable once `2n < 2 ^ k`, i.e. once
 `k ≥ log₂(2n) + 1`.
 
@@ -42,7 +61,59 @@ keeps an `L` colour and a right vertex only an `R` colour, so adjacent vertices 
 however the surviving colours are chosen. -/
 theorem isKChoosable_completeBipartiteGraph {n k : ℕ} (h : 2 * n < 2 ^ k) :
     IsKChoosable (completeBipartiteGraph (Fin n) (Fin n)) k := by
-  sorry
+  intro α _ L hL
+  rcases Nat.eq_zero_or_pos n with rfl | hn
+  · refine ⟨fun v => v.elim Fin.elim0 Fin.elim0, ?_, ?_⟩
+    · rintro (i | i) <;> exact i.elim0
+    · rintro (i | i) <;> exact i.elim0
+  classical
+  set C : Finset α := Finset.univ.biUnion L
+  have hsub : ∀ v, L v ⊆ C := fun v a ha => Finset.mem_biUnion.2 ⟨v, Finset.mem_univ v, ha⟩
+  have hkC : k ≤ C.card := by
+    have hle := Finset.card_le_card (hsub (Sum.inl ⟨0, hn⟩))
+    rwa [hL] at hle
+  -- `B v` collects the markings that send every colour of `L v` to the wrong side for `v`.
+  set B : (Fin n ⊕ Fin n) → Finset (C → Bool) := fun v =>
+    Finset.univ.filter (fun m => ∀ a : C, (a : α) ∈ L v → m a = !v.isLeft)
+  have hBcard : ∀ v, (B v).card ≤ 2 ^ (C.card - k) := by
+    intro v
+    have hle := card_filter_forced_le (hsub v) (!v.isLeft)
+    rwa [hL] at hle
+  have hunion : (Finset.univ.biUnion B).card ≤ 2 * n * 2 ^ (C.card - k) := by
+    have hle := Finset.card_biUnion_le_card_mul Finset.univ B _ (fun v _ => hBcard v)
+    rw [Finset.card_univ, Fintype.card_sum, Fintype.card_fin] at hle
+    have hnn : n + n = 2 * n := by omega
+    rwa [hnn] at hle
+  have hlt : (Finset.univ.biUnion B).card < (Finset.univ : Finset (C → Bool)).card := by
+    have huniv : (Finset.univ : Finset (C → Bool)).card = 2 ^ C.card := by
+      rw [Finset.card_univ, Fintype.card_fun, Fintype.card_bool, Fintype.card_coe]
+    have hpow : 2 ^ k * 2 ^ (C.card - k) = 2 ^ C.card := by
+      rw [← pow_add]
+      congr 1
+      omega
+    calc (Finset.univ.biUnion B).card
+        ≤ 2 * n * 2 ^ (C.card - k) := hunion
+      _ < 2 ^ k * 2 ^ (C.card - k) :=
+          Nat.mul_lt_mul_of_lt_of_le h le_rfl (Nat.two_pow_pos _)
+      _ = (Finset.univ : Finset (C → Bool)).card := by rw [hpow, huniv]
+  obtain ⟨m, -, hm⟩ := Finset.exists_mem_notMem_of_card_lt_card hlt
+  -- No vertex is emptied by `m`, so every vertex keeps a colour marked on its own side.
+  have hgood : ∀ v, ∃ a, ∃ ha : a ∈ C, a ∈ L v ∧ m ⟨a, ha⟩ = v.isLeft := by
+    intro v
+    by_contra hcon
+    refine hm (Finset.mem_biUnion.2 ⟨v, Finset.mem_univ v,
+      Finset.mem_filter.2 ⟨Finset.mem_univ _, ?_⟩⟩)
+    intro a ha
+    have hne : m a ≠ v.isLeft := fun heq => hcon ⟨(a : α), a.2, ha, heq⟩
+    revert hne
+    cases m a <;> cases v.isLeft <;> simp
+  choose c hcC hcL hcm using hgood
+  refine ⟨c, hcL, ?_⟩
+  intro u v huv heq
+  rw [completeBipartiteGraph_adj] at huv
+  have hside : u.isLeft ≠ v.isLeft := by
+    rcases u with i | i <;> rcases v with j | j <;> simp at huv ⊢
+  exact hside (by rw [← hcm u, ← hcm v]; congr 1; exact Subtype.ext heq)
 
 /-- **Theorem 1.4.3**: a non-2-colourable `k`-uniform hypergraph with `n` edges obstructs
 `k`-choosability of `K n n`.
@@ -56,6 +127,23 @@ theorem not_isKChoosable_completeBipartiteGraph {α : Type} [Fintype α] [Decida
     {n k : ℕ} (H : Finset (Finset α)) (huniform : ∀ e ∈ H, e.card = k) (hn : H.card = n)
     (hnot : ¬ TwoColorable H) :
     ¬ IsKChoosable (completeBipartiteGraph (Fin n) (Fin n)) k := by
-  sorry
+  subst hn
+  intro hchoose
+  apply hnot
+  obtain ⟨c, hc, hsep⟩ :=
+    hchoose α (fun v => ((H.equivFin.symm (v.elim id id) : {e // e ∈ H}) : Finset α))
+      (fun v => huniform _ (H.equivFin.symm (v.elim id id)).2)
+  refine ⟨fun a => decide (∃ i, c (Sum.inl i) = a), fun e he => ?_⟩
+  have hie : ((H.equivFin.symm (H.equivFin ⟨e, he⟩) : {e // e ∈ H}) : Finset α) = e := by
+    rw [Equiv.symm_apply_apply]
+  set i : Fin H.card := H.equivFin ⟨e, he⟩
+  refine ⟨c (Sum.inl i), ?_, c (Sum.inr i), ?_, ?_⟩
+  · simpa [hie] using hc (Sum.inl i)
+  · simpa [hie] using hc (Sum.inr i)
+  · have hleft : ∃ j, c (Sum.inl j) = c (Sum.inl i) := ⟨i, rfl⟩
+    have hright : ¬ ∃ j, c (Sum.inl j) = c (Sum.inr i) := by
+      rintro ⟨j, hj⟩
+      exact hsep (Sum.inl j) (Sum.inr i) (Or.inl ⟨rfl, rfl⟩) hj
+    simp [hleft, hright]
 
 end ProbMethodCombinatorics
