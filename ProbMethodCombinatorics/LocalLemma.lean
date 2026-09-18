@@ -3,6 +3,7 @@ import Mathlib.Probability.Independence.Basic
 import Mathlib.Probability.UniformOn
 import Mathlib.Analysis.SpecialFunctions.Exp
 import Mathlib.Analysis.Complex.ExponentialBounds
+import Mathlib.Topology.Compactness.Compact
 import ProbMethodCombinatorics.PropertyB
 import ProbMethodCombinatorics.Ramsey
 
@@ -1344,5 +1345,61 @@ theorem exists_independent_transversal {n : ℕ} {ι : Type*} [Fintype ι] [Deci
     · simp [hjpart]
 
 end Applications
+
+section Compactness
+
+/-! ### Infinite vertex sets
+
+Theorem 6.2.6 colours a hypergraph on a *possibly infinite* vertex set, so the results here
+cannot live in `Applications` above, whose `variable` line fixes `[Fintype α]`.
+-/
+
+variable {α : Type*} [DecidableEq α]
+
+/-- **The compactness argument** (Zhao, Lemma 6.2.7).  In the random variable model with
+finitely many choices per variable, avoiding every *finite* collection of bad events already
+avoids all of them, however many there are.  This is what lets Theorems 6.2.6, 6.2.10 and
+6.2.11 run the local lemma on finite subsystems and then pass to an infinite vertex set.
+
+`hdet` is the book's "each event depends on a finite subset of variables", written as
+invariance under changes outside that subset — the form a caller can actually establish, and
+the same shape as the `hAinv` side conditions the finite applications above already discharge.
+
+Remark 6.2.8 is the warning that the conclusion needs the variable model: `hdet` and the
+finiteness of each `α i` are both doing work, and dropping either makes it false. -/
+theorem exists_forall_notMem_of_forall_finset {ι κ : Type*} {α : ι → Type*}
+    [∀ i, Finite (α i)] (E : κ → Set (∀ i, α i)) (s : κ → Finset ι)
+    (hdet : ∀ (j : κ) (x y : ∀ i, α i), (∀ i ∈ s j, x i = y i) → (x ∈ E j ↔ y ∈ E j))
+    (h : ∀ F : Finset κ, ∃ x, ∀ j ∈ F, x ∉ E j) :
+    ∃ x, ∀ j, x ∉ E j := by
+  sorry
+
+/-- **The symmetric condition without uniformity, on an arbitrary vertex type.**  Relative to
+`twoColorable_of_inter_card_le` this asks only `k ≤ e.card` rather than `e.card = k`, and drops
+`[Fintype α]`.  Both are needed for Theorem 6.2.6: its edges have *at least* `k` vertices, and
+its vertex set is infinite. -/
+theorem twoColorable_of_le_card_inter_card_le {k : ℕ} (hk : 2 ≤ k) {H : Finset (Finset α)}
+    (hcard : ∀ e ∈ H, k ≤ e.card) {d : ℕ}
+    (hd : ∀ e ∈ H, ((H.erase e).filter fun f => (e ∩ f).Nonempty).card ≤ d)
+    (h : Real.exp 1 * (d + 1) ≤ 2 ^ (k - 1)) :
+    TwoColorable H := by
+  sorry
+
+/-- Proper 2-colourability of a possibly infinite hypergraph: every edge sees both colours. -/
+def SetTwoColorable (H : Set (Finset α)) : Prop :=
+  ∃ f : α → Bool, ∀ e ∈ H, ∃ u ∈ e, ∃ v ∈ e, f u ≠ f v
+
+/-- **Theorem 6.2.6**: the local condition for 2-colourability survives on an infinite vertex
+set.  The local lemma colours every finite subhypergraph, and `exists_forall_notMem_of_forall_finset`
+assembles those colourings into one. -/
+theorem setTwoColorable_of_le_card_inter_card_le {k : ℕ} (hk : 2 ≤ k) {H : Set (Finset α)}
+    (hcard : ∀ e ∈ H, k ≤ e.card) {d : ℕ}
+    (hdfin : ∀ e ∈ H, {f | f ∈ H ∧ f ≠ e ∧ (e ∩ f).Nonempty}.Finite)
+    (hd : ∀ e ∈ H, {f | f ∈ H ∧ f ≠ e ∧ (e ∩ f).Nonempty}.ncard ≤ d)
+    (h : Real.exp 1 * (d + 1) ≤ 2 ^ (k - 1)) :
+    SetTwoColorable H := by
+  sorry
+
+end Compactness
 
 end ProbMethodCombinatorics
