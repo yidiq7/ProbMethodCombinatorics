@@ -25,3 +25,4 @@ import ProbMethodCombinatorics.PolyLowerBound
 import ProbMethodCombinatorics.ColourDiscrepancy
 import ProbMethodCombinatorics.MaxDegree
 import ProbMethodCombinatorics.ListColouring
+import ProbMethodCombinatorics.HammingCube
