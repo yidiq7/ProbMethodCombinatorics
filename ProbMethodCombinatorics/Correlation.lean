@@ -1362,6 +1362,91 @@ theorem prob_notMem_le_pow_of_isUpperSet {ι : Type*} [Countable ι] (F : Set (S
   exact ENNReal.toReal_mono (ENNReal.pow_ne_top (measure_ne_top _ _)) (hcomplle.trans hEle)
 
 
+/-- **FKG with no sign hypothesis.**  Mathlib's `fkg` needs `0 ≤ f` and `0 ≤ g`; the conclusion
+does not, because adding a constant to either function shifts both sides of the inequality by
+exactly the same amount.  This is that shift, performed once: `f` and `g` are replaced by
+`f + ∑ |f|` and `g + ∑ |g|`, which are non-negative, and the four extra terms cancel.
+
+The weight `μ` is required to be a probability weight (`∑ μ = 1`), which is what makes
+`(∑ μ) * ∑ μ * (f * g)` in `fkg`'s conclusion collapse to `∑ μ * (f * g)`. -/
+private theorem sum_mul_sum_le_sum_mul_weight {α : Type*} [Fintype α] [DistribLattice α]
+    (μ f g : α → ℝ) (hμ₀ : 0 ≤ μ) (hμ₁ : ∑ a, μ a = 1)
+    (hμ : ∀ a b, μ a * μ b ≤ μ (a ⊓ b) * μ (a ⊔ b))
+    (hf : Monotone f) (hg : Monotone g) :
+    (∑ a, μ a * f a) * ∑ a, μ a * g a ≤ ∑ a, μ a * (f a * g a) := by
+  obtain ⟨c, hc⟩ : ∃ c : ℝ, ∀ a, 0 ≤ f a + c :=
+    ⟨∑ b, |f b|, fun a ↦ by
+      have h1 : |f a| ≤ ∑ b, |f b| :=
+        Finset.single_le_sum (f := fun b ↦ |f b|) (fun b _ ↦ abs_nonneg _) (Finset.mem_univ a)
+      have h2 : -f a ≤ |f a| := neg_le_abs _
+      linarith⟩
+  obtain ⟨d, hd⟩ : ∃ d : ℝ, ∀ a, 0 ≤ g a + d :=
+    ⟨∑ b, |g b|, fun a ↦ by
+      have h1 : |g a| ≤ ∑ b, |g b| :=
+        Finset.single_le_sum (f := fun b ↦ |g b|) (fun b _ ↦ abs_nonneg _) (Finset.mem_univ a)
+      have h2 : -g a ≤ |g a| := neg_le_abs _
+      linarith⟩
+  have key := fkg (μ := μ) (f := fun a ↦ f a + c) (g := fun a ↦ g a + d) hμ₀
+    (fun a ↦ hc a) (fun a ↦ hd a) (hf.add_const c) (hg.add_const d) hμ
+  rw [hμ₁, one_mul] at key
+  have e1 : ∑ a, μ a * (f a + c) = (∑ a, μ a * f a) + c := by
+    simp only [mul_add, Finset.sum_add_distrib, ← Finset.sum_mul, hμ₁, one_mul]
+  have e2 : ∑ a, μ a * (g a + d) = (∑ a, μ a * g a) + d := by
+    simp only [mul_add, Finset.sum_add_distrib, ← Finset.sum_mul, hμ₁, one_mul]
+  have e3 : ∑ a, μ a * ((f a + c) * (g a + d))
+      = (∑ a, μ a * (f a * g a)) + d * (∑ a, μ a * f a) + c * (∑ a, μ a * g a) + c * d := by
+    have h : ∀ a, μ a * ((f a + c) * (g a + d))
+        = μ a * (f a * g a) + d * (μ a * f a) + c * (μ a * g a) + (c * d) * μ a := fun a ↦ by ring
+    simp only [h, Finset.sum_add_distrib, ← Finset.mul_sum, hμ₁, mul_one]
+  rw [e1, e2, e3] at key
+  nlinarith [key]
+
+/-- With `ι` finite, `Set ι` is a finite type carrying a probability measure with measurable
+singletons, so every function on it is integrable and its integral is the finite sum of its
+values weighted by the point masses. -/
+private theorem integral_setBernoulli_eq_sum_singleton {ι : Type*} [Fintype ι] (p : I)
+    (f : Set ι → ℝ) :
+    ∫ R, f R ∂(setBernoulli Set.univ p)
+      = ∑ s : Set ι, (setBernoulli (Set.univ : Set ι) p).real {s} * f s := by
+  rw [integral_fintype Integrable.of_finite]
+  simp [smul_eq_mul]
+
+/-- The point masses of `setBer(univ, p)` sum to `1`. -/
+private theorem sum_setBernoulli_real_singleton {ι : Type*} [Fintype ι] (p : I) :
+    ∑ s : Set ι, (setBernoulli (Set.univ : Set ι) p).real {s} = 1 := by
+  rw [sum_measureReal_singleton]; simp
+
+/-- `setBer(univ, p)` is log-supermodular — in fact log-modular: the point mass of `s` is
+`p ^ #s * (1 - p) ^ #sᶜ`, and both `#(a ⊓ b) + #(a ⊔ b) = #a + #b` and the same identity for
+the complements hold, so the two sides are equal.  This is the hypothesis `fkg` consumes. -/
+private theorem setBernoulli_real_singleton_supermodular {ι : Type*} [Fintype ι] (p : I)
+    (a b : Set ι) :
+    (setBernoulli (Set.univ : Set ι) p).real {a} * (setBernoulli (Set.univ : Set ι) p).real {b}
+      ≤ (setBernoulli (Set.univ : Set ι) p).real {a ⊓ b}
+        * (setBernoulli (Set.univ : Set ι) p).real {a ⊔ b} := by
+  rw [setBernoulli_real_singleton p (Set.subset_univ a) Set.finite_univ,
+    setBernoulli_real_singleton p (Set.subset_univ b) Set.finite_univ,
+    setBernoulli_real_singleton p (Set.subset_univ _) Set.finite_univ,
+    setBernoulli_real_singleton p (Set.subset_univ _) Set.finite_univ]
+  have h1 : (a ⊓ b).ncard + (a ⊔ b).ncard = a.ncard + b.ncard := by
+    simpa [Set.inf_eq_inter, Set.sup_eq_union] using
+      Set.ncard_inter_add_ncard_union a b (Set.toFinite a) (Set.toFinite b)
+  have h2 : (Set.univ \ (a ⊓ b)).ncard + (Set.univ \ (a ⊔ b)).ncard
+      = (Set.univ \ a).ncard + (Set.univ \ b).ncard := by
+    simp only [← Set.compl_eq_univ_sdiff, Set.inf_eq_inter, Set.sup_eq_union, Set.compl_inter,
+      Set.compl_union]
+    exact Set.ncard_union_add_ncard_inter _ _ (Set.toFinite _) (Set.toFinite _)
+  rw [show (p : ℝ) ^ a.ncard * (1 - (p : ℝ)) ^ (Set.univ \ a).ncard
+        * ((p : ℝ) ^ b.ncard * (1 - (p : ℝ)) ^ (Set.univ \ b).ncard)
+      = (p : ℝ) ^ (a.ncard + b.ncard)
+        * (1 - (p : ℝ)) ^ ((Set.univ \ a).ncard + (Set.univ \ b).ncard) by
+      rw [pow_add, pow_add]; ring,
+    show (p : ℝ) ^ (a ⊓ b).ncard * (1 - (p : ℝ)) ^ (Set.univ \ (a ⊓ b)).ncard
+        * ((p : ℝ) ^ (a ⊔ b).ncard * (1 - (p : ℝ)) ^ (Set.univ \ (a ⊔ b)).ncard)
+      = (p : ℝ) ^ ((a ⊓ b).ncard + (a ⊔ b).ncard)
+        * (1 - (p : ℝ)) ^ ((Set.univ \ (a ⊓ b)).ncard + (Set.univ \ (a ⊔ b)).ncard) by
+      rw [pow_add, pow_add]; ring, h1, h2]
+
 /-- **Harris' inequality in function form** (Zhao, Theorem 7.1.5): two monotone functions of a
 `p`-random subset are non-negatively correlated.
 
@@ -1381,6 +1466,9 @@ theorem setBernoulli_mul_integral_le {ι : Type*} [Fintype ι] (p : I) (f g : Se
     (hf : Monotone f) (hg : Monotone g) :
     (∫ R, f R ∂(setBernoulli Set.univ p)) * (∫ R, g R ∂(setBernoulli Set.univ p))
       ≤ ∫ R, f R * g R ∂(setBernoulli Set.univ p) := by
-  sorry
+  rw [integral_setBernoulli_eq_sum_singleton p f, integral_setBernoulli_eq_sum_singleton p g,
+    integral_setBernoulli_eq_sum_singleton p (fun R ↦ f R * g R)]
+  exact sum_mul_sum_le_sum_mul_weight _ f g (fun _ ↦ measureReal_nonneg)
+    (sum_setBernoulli_real_singleton p) (setBernoulli_real_singleton_supermodular p) hf hg
 
 end ProbMethodCombinatorics
