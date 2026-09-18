@@ -63,10 +63,13 @@ probability `2 ^ -(n-1)`, so the expected count is `n! / 2 ^ (n-1)`.  Formalized
 an average over the `2 ^ (n.choose 2)` tournaments, so the work is a double count of
 pairs `(T, σ)` with `σ` a Hamilton path of `T`.
 
-## `caro_wei` — `exists_isIndepSet_caro_wei`
+## `caro_wei` — `exists_isIndepSet_caro_wei` — **PROVED**
 
 Theorem 2.3.2 (Caro 1979, Wei 1981).  Every graph has an independent set of size at least
-`∑ v, 1 / (d v + 1)`.
+`∑ v, 1 / (d v + 1)`.  **Proved, in `Expectation.lean`** — the greedy form, not the averaging
+one: every vertex subset `A` contains an independent set of size at least
+`∑ v ∈ A, 1/(d v + 1)`, and `A = univ` gives the theorem.  Remark 2.3.4's derandomization was
+indeed the shorter route, as the note below predicted.
 
 The book takes a uniform random vertex ordering and keeps each vertex that precedes all of
 its neighbours; `v` survives with probability `1 / (d v + 1)`.  Formalized: average the
@@ -77,10 +80,17 @@ Remark 2.3.4's greedy derandomization — repeatedly remove a minimum-degree ver
 neighbourhood — is an alternative route that avoids averaging entirely, and may well be
 the shorter formalization.
 
-## `turan_edge_bound` — `card_edgeFinset_le_of_cliqueFree`
+## `turan_edge_bound` — `card_edgeFinset_le_of_cliqueFree` — **PROVED**
 
 Theorem 2.3.6 (Turán 1941), edge-count form: an `n`-vertex `K (r+1)`-free graph has at
-most `(1 - 1/r) · n² / 2` edges.
+most `(1 - 1/r) · n² / 2` edges.  **Proved, in `Expectation.lean`**, by the book's route
+(Caro–Wei on the complement plus convexity).
+
+Two corrections to the note below.  Mathlib **does** state a Turán edge bound —
+`SimpleGraph.CliqueFree.card_edgeFinset_le` in `Extremal/Turan.lean`, giving the *exact*
+Turán number `(n² - (n % r)²)(r-1)/(2r) + (n % r).choose 2`, which is sharper than the book's
+form; so "never states this bound" was wrong.  And the choice between the two routes was
+settled in favour of the book's.
 
 The book's route is Corollary 2.3.5 — Caro–Wei applied to the complement — plus convexity
 of `x ↦ 1/(n - x)`.  Mathlib's `SimpleGraph.IsTuranMaximal` development proves the
@@ -132,3 +142,21 @@ constant-losing proof will do.
 The interesting feature for a reader is that the `Rᵢ = ∑ⱼ aᵢⱼ yⱼ` are **not independent** of one
 another and the proof does not need them to be — only each marginal matters.  The task prose says
 so explicitly, because it is the natural thing to go looking for and it is false.
+
+
+## A note on this file's own reliability, 2026-09-18
+
+On 2026-09-18 I read the two sections above as open work and started restating Caro–Wei and
+Turán in a new file.  `lake build` stopped it — *"`exists_isIndepSet_caro_wei` has already
+been declared"* — because both had been proved in `Expectation.lean` some time earlier and
+these headings were never updated.
+
+This is the same failure as the stale *blockers* recorded elsewhere in the roadmap, running
+the other way: a "planned, not stated" heading that describes finished work.  Six blocker
+entries have now been re-derived and five were wrong; this makes the count of stale entries in
+the other direction one.
+
+**The rule that follows: grep the source tree before believing any roadmap heading, in either
+direction.** `grep -rn "<decl-name>" ProbMethodCombinatorics/*.lean` costs nothing, and for a
+theorem that may already exist upstream, `grep` Mathlib too — that check is what caught
+`CliqueFree.card_edgeFinset_le` one step before I duplicated it.
