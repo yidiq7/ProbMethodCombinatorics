@@ -34,6 +34,13 @@ theorem integral_edgeCountWithin {n : ℕ} (S : Finset (Fin n)) (p : I) :
     ∫ G, edgeCountWithin S G ∂(SimpleGraph.binomialRandom (Fin n) p) = (p : ℝ) * S.card.choose 2 := by
   sorry
 
+/-- **The edge slots inside `S` number `C(|S|, 2)`.**  This is the coordinate count that sets
+the exponent in the bounded differences inequality below. -/
+theorem card_edgeSlots_within {n : ℕ} (S : Finset (Fin n)) :
+    (Finset.univ.filter fun e : EdgeSlot n => (e : Sym2 (Fin n)) ∈ S.sym2).card
+      = S.card.choose 2 := by
+  sorry
+
 /-- **The edge count inside a fixed set concentrates.**  As a function of the `C(|S|, 2)` edge
 slots inside `S` it changes by at most `1` when one slot is toggled and does not depend on the
 other slots at all, so the bounded differences inequality applies with `∑ cᵢ² = C(|S|, 2)`. -/
