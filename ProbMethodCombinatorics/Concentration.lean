@@ -1365,6 +1365,28 @@ theorem abs_sub_edgeDisjointCliqueNumber_le_one (k : ℕ) {n : ℕ} (e : Sym2 (F
       exact_mod_cast h₁
     linarith
 
+/-- **Lemma 9.3.3** (Zhao, §9.3; the same statement as Lemma 8.3.3): the probability that
+`G(n, p)` has no `k`-clique decays like `exp (-2 (𝔼Y)² / binom(n,2))`, where `Y` is the maximum
+number of pairwise edge-disjoint `k`-cliques.
+
+Bounded differences on `Y`, through the edge-exposure product.  `Y = 0` says exactly that no
+`k`-clique is present, so the left side is the clique-free probability; the right side is
+`measure_sub_integral_ge_le` applied to `-Y` at deviation `𝔼Y`, with every `cᵢ = 1` over the
+`binom(n,2)` edge slots.
+
+The source obtains `e^{-n^{2-o(1)}}` from this by showing `𝔼Y ≥ n^{2-o(1)}` at `p = 1/2` and
+`k` near `2 log₂ n`; that estimate is a separate node, and this is the inequality it is fed to.
+
+**Why `Y` and not the clique count.**  One edge can lie in many `k`-cliques, so the count has no
+bounded difference; at most one member of an *edge-disjoint* family contains a given edge, which
+is what caps the change at one.  See `abs_sub_edgeDisjointCliqueNumber_le_one`. -/
+theorem prob_edgeDisjointCliqueNumber_eq_zero_le (k n : ℕ) (hn : 2 ≤ n) (p : I) :
+    (SimpleGraph.binomialRandom (Fin n) p).real
+        {G : SimpleGraph (Fin n) | edgeDisjointCliqueNumber k G = 0}
+      ≤ Real.exp (-2 * (∫ G, (edgeDisjointCliqueNumber k G : ℝ)
+            ∂(SimpleGraph.binomialRandom (Fin n) p)) ^ 2 / (n.choose 2 : ℝ)) := by
+  sorry
+
 end EdgeDisjointCliques
 
 end ProbMethodCombinatorics
