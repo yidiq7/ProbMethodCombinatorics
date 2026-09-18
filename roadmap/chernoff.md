@@ -101,4 +101,13 @@ machinery the corpus lacks, moving the source of the bias is often cheaper than 
 `K_t`-subdivision for `t = ⌈10√n⌉`). Two obstacles, either of which is larger than the
 theorem: it is asymptotic in the same way Chapter 4's headline results are, and graph
 *subdivisions* are not in Mathlib, so the statement needs a definition this project would
-have to author and defend. Revisit when Chapter 4's asymptotic nodes are stated.
+have to author and defend.
+
+**Re-derived 2026-09-17: the first obstacle is gone, the second stands.**  Chapter 4's asymptotic
+nodes *are* stated now and the `whp` idiom is settled, so "asymptotic in the same way" is no
+longer a blocker.  But a fresh search of `Mathlib/Combinatorics/` finds **no graph subdivision
+and no topological minor** — the only `IsMinor` is for matroids — so the definitional obstacle is
+real.  Authoring `IsSubdivision` is possible but it is significant new vocabulary for one
+theorem, and the `boxProd`-versus-tensor episode in §10.2 is the cautionary case: a plausible
+wrong definition makes every downstream theorem true and useless.  Left unstated deliberately,
+not for lack of checking.

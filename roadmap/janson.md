@@ -64,6 +64,11 @@ read that example first.
 
 ## Not stated
 
+**Corrected 2026-09-17: Theorem 8.1.6 and Theorem 8.1.10 are both stated and proved** —
+`prob_no_triangle_le_of_mul_sqrt_le` and the pair `binomialRandom_no_triangle_le` /
+`binomialRandom_no_triangle_le_of_one_le`, together with the general `k`-clique forms.  What
+remains unstated in §8.1 is Corollary 8.1.7's limit and §8.2.5.  The original note follows.
+
 The asymptotic consequences — Theorem 8.1.6, Corollary 8.1.7, Theorem 8.1.10 (the two-regime
 triangle-free estimate), Theorem 8.2.5 (Harel–Mousset–Samotij) and §8.3's chromatic number of
 `G(n,1/2)` (Theorem 8.3.2, Bollobás) — are planned rather than stated. The `whp` convention they

@@ -37,7 +37,9 @@ more versatile: the `cᵢ` there can be smaller than a worst-case Lipschitz boun
 
 ## Planned, not stated
 
-- **Azuma's inequality** (Theorems 9.2.7–9.2.9). Stating it needs martingales with filtrations,
+- ~~**Azuma's inequality** (Theorems 9.2.7–9.2.9)~~ — **proved**, as
+  `measure_martingale_sub_ge_le`; this bullet was stale from 2026-09-15 to 2026-09-17.  Original
+  note kept below for its reasoning. Stating it needs martingales with filtrations,
   which Mathlib has (`MeasureTheory.Martingale`) but which is a heavier commitment than the
   applications require. Worth stating if a contributor wants the source's route to the node
   above; ask first.
