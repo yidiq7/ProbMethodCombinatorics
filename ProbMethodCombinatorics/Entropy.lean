@@ -2257,6 +2257,775 @@ theorem indepSetCount_completeBipartiteGraph (d : ℕ) :
   rw [hcount, pow_succ]
   omega
 
+/-- **Gibbs' inequality with a per-value bonus.**  For a probability weighting `w` on `A` and
+positive weights `b`, `∑ (-w log₂ w + w log₂ b) ≤ log₂ (∑ b)`.  Taking `b = 1` recovers
+`sum_negMulLogb_le_logb_card`; the extra term is what lets an entropy be traded against an
+expectation.  The proof is the same one: `Real.log_le_sub_one_of_pos` at `b s / (w s * ∑ b)`,
+summed over `A`, where the right-hand side telescopes to zero. -/
+private theorem sum_negMulLogb_add_mul_logb_le {σ : Type*} (A : Finset σ) (w b : σ → ℝ)
+    (hw0 : ∀ s ∈ A, 0 ≤ w s) (hw1 : ∑ s ∈ A, w s = 1) (hb : ∀ s ∈ A, 0 < b s) :
+    ∑ s ∈ A, (-w s * Real.logb 2 (w s) + w s * Real.logb 2 (b s))
+      ≤ Real.logb 2 (∑ s ∈ A, b s) := by
+  have hL : (0 : ℝ) < Real.log 2 := Real.log_pos (by norm_num)
+  have hne : A.Nonempty := by
+    rcases A.eq_empty_or_nonempty with rfl | h
+    · rw [Finset.sum_empty] at hw1
+      exact absurd hw1 (by norm_num)
+    · exact h
+  have hM : (0 : ℝ) < ∑ s ∈ A, b s := Finset.sum_pos hb hne
+  have hMne : (∑ s ∈ A, b s) ≠ 0 := ne_of_gt hM
+  have key : ∀ x y : ℝ, 0 ≤ x → 0 < y →
+      -x * Real.log x + x * Real.log y
+        ≤ x * Real.log (∑ s ∈ A, b s) + (y / (∑ s ∈ A, b s) - x) := by
+    intro x y hx hy
+    rcases hx.eq_or_lt with rfl | hx0
+    · simp only [neg_zero, zero_mul, Real.log_zero, mul_zero, zero_add, sub_zero]
+      positivity
+    · have hxm : (0 : ℝ) < x * (∑ s ∈ A, b s) := mul_pos hx0 hM
+      have h1 : Real.log (y / (x * (∑ s ∈ A, b s))) ≤ y / (x * (∑ s ∈ A, b s)) - 1 :=
+        Real.log_le_sub_one_of_pos (div_pos hy hxm)
+      have h2 := mul_le_mul_of_nonneg_left h1 hx
+      rw [Real.log_div (ne_of_gt hy) (ne_of_gt hxm), Real.log_mul (ne_of_gt hx0) hMne] at h2
+      have h3 : x * (y / (x * (∑ s ∈ A, b s)) - 1) = y / (∑ s ∈ A, b s) - x := by
+        field_simp
+      rw [h3] at h2
+      nlinarith [h2]
+  have hsum : ∑ s ∈ A, (-w s * Real.log (w s) + w s * Real.log (b s))
+      ≤ Real.log (∑ s ∈ A, b s) := by
+    have hle : ∑ s ∈ A, (-w s * Real.log (w s) + w s * Real.log (b s))
+        ≤ ∑ s ∈ A, (w s * Real.log (∑ t ∈ A, b t) + (b s / (∑ t ∈ A, b t) - w s)) :=
+      Finset.sum_le_sum fun s hs => key (w s) (b s) (hw0 s hs) (hb s hs)
+    have hrhs : ∑ s ∈ A, (w s * Real.log (∑ t ∈ A, b t) + (b s / (∑ t ∈ A, b t) - w s))
+        = Real.log (∑ s ∈ A, b s) := by
+      rw [Finset.sum_add_distrib, ← Finset.sum_mul, hw1, one_mul, Finset.sum_sub_distrib,
+        hw1, ← Finset.sum_div, div_self hMne, sub_self, add_zero]
+    exact hrhs ▸ hle
+  calc ∑ s ∈ A, (-w s * Real.logb 2 (w s) + w s * Real.logb 2 (b s))
+      = (∑ s ∈ A, (-w s * Real.log (w s) + w s * Real.log (b s))) * (Real.log 2)⁻¹ := by
+        rw [Finset.sum_mul]
+        exact Finset.sum_congr rfl fun s _ => by rw [Real.logb, Real.logb]; ring
+    _ ≤ Real.log (∑ s ∈ A, b s) * (Real.log 2)⁻¹ :=
+        mul_le_mul_of_nonneg_right hsum (le_of_lt (inv_pos.mpr hL))
+    _ = Real.logb 2 (∑ s ∈ A, b s) := by rw [Real.logb]; ring
+
+
+/-- Indexing a tuple by `(univ : Finset W)` rather than by `W` does not change its entropy. -/
+private theorem entropy_pi_univ_eq {Ω W : Type*} [Fintype Ω] [Fintype W] [DecidableEq W]
+    (p : Ω → ℝ) (X : W → Ω → Bool) :
+    entropy p (fun ω (j : (univ : Finset W)) => X j.1 ω) = entropy p (fun ω i => X i ω) := by
+  have hfu : Function.Injective (fun g : W → Bool => fun j : (univ : Finset W) => g j.1) := by
+    intro g g' h
+    funext i
+    exact congrFun h ⟨i, Finset.mem_univ i⟩
+  exact entropy_comp_inj (p := p) hfu (fun ω i => X i ω)
+
+/-- **Shearer's lemma for a sub-family.**  `shearer` bounds the entropy of the *whole* tuple, so
+it needs every index covered `k` times.  Here the sets `D j` all lie inside a fixed `C`, every
+index of `C` is covered `k` times, and the conclusion bounds `H(X_C)` alone.  This is `shearer`
+with the index type taken to be `↥C`, the covering family pulled back along `↥C → W`. -/
+private theorem shearer_subset_le {Ω W : Type*} [Fintype Ω] [Fintype W] [DecidableEq W]
+    (p : Ω → ℝ) (hp : ∀ ω, 0 ≤ p ω) (hp1 : ∑ ω, p ω = 1) (X : W → Ω → Bool)
+    (C : Finset W) (D : W → Finset W) (k : ℕ) (hD : ∀ j, D j ⊆ C)
+    (hk : ∀ i ∈ C, k ≤ #(univ.filter fun j : W => i ∈ D j)) :
+    (k : ℝ) * entropy p (fun ω (i : C) => X i.1 ω)
+      ≤ ∑ j : W, entropy p (fun ω (u : D j) => X u.1 ω) := by
+  have hcov : ∀ i : ↥C, k ≤ #(univ.filter fun j : W =>
+      i ∈ univ.filter fun i' : ↥C => i'.1 ∈ D j) := by
+    intro i
+    have he : (univ.filter fun j : W => i ∈ univ.filter fun i' : ↥C => i'.1 ∈ D j)
+        = (univ.filter fun j : W => i.1 ∈ D j) := by
+      ext j; simp
+    rw [he]
+    exact hk i.1 i.2
+  have hsh := shearer (ι := ↥C) (α := fun _ => Bool) (κ := W) p hp hp1
+    (fun (i : ↥C) ω => X i.1 ω) (fun j => univ.filter fun i' : ↥C => i'.1 ∈ D j) k hcov
+  refine hsh.trans (le_of_eq (Finset.sum_congr rfl fun j _ => ?_))
+  have hsurj : Function.Surjective
+      (fun x : ↥(univ.filter fun i' : ↥C => i'.1 ∈ D j) =>
+        (⟨x.1.1, (Finset.mem_filter.mp x.2).2⟩ : ↥(D j))) := by
+    intro u
+    exact ⟨⟨⟨u.1, hD j u.2⟩, by simp [u.2]⟩, rfl⟩
+  exact entropy_comp_inj (p := p) (hsurj.injective_comp_right)
+    (fun ω (u : ↥(D j)) => X u.1 ω)
+
+/-- An injective rank on `W` that puts every `side`-`false` vertex before every `side`-`true`
+one; this is the vertex order the chain rule is applied along. -/
+private theorem exists_rank_side_lt {W : Type*} [Fintype W] (side : W → Bool) :
+    ∃ r : W → ℕ, Function.Injective r ∧
+      ∀ u v : W, side u = false → side v = true → r u < r v := by
+  refine ⟨fun v => (if side v = true then Fintype.card W else 0)
+      + ((Fintype.equivFin W) v : ℕ), ?_, ?_⟩
+  · intro u v huv
+    have hu := ((Fintype.equivFin W) u).isLt
+    have hv := ((Fintype.equivFin W) v).isLt
+    refine (Fintype.equivFin W).injective (Fin.val_injective ?_)
+    by_cases h1 : side u = true <;> by_cases h2 : side v = true <;>
+      simp only [h1, h2, Bool.false_eq_true, if_true, if_false] at huv <;> omega
+  · intro u v hu hv
+    have h := ((Fintype.equivFin W) u).isLt
+    simp only [hu, hv, if_true, if_false, Bool.false_eq_true]
+    omega
+
+/-- **The chain rule across a cut.**  If the rank `r` orders `C` before its complement, then
+`H(X) - H(X_C)`, which is `H(X_{Cᶜ} ∣ X_C)`, is at most the sum over `j ∉ C` of
+`H(X_j ∣ X_{D j})` for any sets `D j` of coordinates preceding `j`.  The two chain rules along
+`r`, over `univ` and over `C`, share their `C`-terms; the remaining terms are then cut down by
+`condEntropy_pi_le`. -/
+private theorem entropy_sub_le_sum_cond_rank {Ω W : Type*} [Fintype Ω] [Fintype W]
+    [DecidableEq W] {p : Ω → ℝ} (hp : ∀ ω, 0 ≤ p ω) (hp1 : ∑ ω, p ω = 1) (X : W → Ω → Bool)
+    (C : Finset W) (D : W → Finset W) (r : W → ℕ) (hr : Function.Injective r)
+    (hD : ∀ j ∈ univ \ C, D j ⊆ univ.filter fun x => r x < r j)
+    (hCr : ∀ v ∈ C, (univ.filter fun x => r x < r v) = C.filter fun x => r x < r v) :
+    entropy p (fun ω i => X i ω) - entropy p (fun ω (i : C) => X i.1 ω)
+      ≤ ∑ j ∈ univ \ C, condEntropy p (X j) (fun ω (u : D j) => X u.1 ω) := by
+  have h1 := entropy_pi_eq_sum_condEntropy (p := p) hp hp1 X hr univ
+  have h2 := entropy_pi_eq_sum_condEntropy (p := p) hp hp1 X hr C
+  rw [entropy_pi_univ_eq] at h1
+  have h3 : ∑ i ∈ C, condEntropy p (X i)
+        (fun ω (j : (C.filter fun x => r x < r i)) => X j.1 ω)
+      = ∑ i ∈ C, condEntropy p (X i)
+        (fun ω (j : (univ.filter fun x => r x < r i)) => X j.1 ω) :=
+    Finset.sum_congr rfl fun i hi => by rw [hCr i hi]
+  have hsplit := Finset.sum_sdiff (f := fun i => condEntropy p (X i)
+      (fun ω (j : (univ.filter fun x => r x < r i)) => X j.1 ω)) (Finset.subset_univ C)
+  refine le_trans (le_of_eq ?_)
+    (Finset.sum_le_sum fun i hi => condEntropy_pi_le hp hp1 X (hD i hi) i)
+  rw [h1, h2, h3]
+  linarith [hsplit]
+
+/-- **The local bound**, the step where `i(K_{d,d})` enters.  Let `Z` record the independent set
+on a `d`-element neighbourhood and let `Y` be the indicator of its common neighbour.  Then `Y`
+can only be `1` when `Z` is identically `0`, and
+
+    H(Z) + d · H(Y ∣ Z) ≤ log₂ (2 ^ (d + 1) - 1) = log₂ i(K_{d,d}).
+
+`condEntropy_le_sum_probOf_mul_logb` gives `H(Y ∣ Z) ≤ P(Z = 0)`, since outside that fibre `Y`
+is forced.  Then `sum_negMulLogb_add_mul_logb_le`, applied with bonus `2 ^ d` at `Z = 0` and `1`
+elsewhere, bounds the total by `log₂ (2 ^ d + (2 ^ d - 1))`, and the `2 ^ d` subsets of the
+neighbourhood make that exactly `log₂ i(K_{d,d})`.  Equality is the reason no constant in
+Kahn–Zhao can be improved. -/
+private theorem entropy_add_mul_condEntropy_le {Ω : Type*} [Fintype Ω] {p : Ω → ℝ}
+    (hp : ∀ ω, 0 ≤ p ω) (hp1 : ∑ ω, p ω = 1) {ι : Type*} [Fintype ι] [DecidableEq ι]
+    (Z : Ω → (ι → Bool)) (Y : Ω → Bool) (d : ℕ) (hd : Fintype.card ι = d)
+    (hind : ∀ ω, p ω ≠ 0 → Y ω = true → Z ω = fun _ => false) :
+    entropy p Z + (d : ℝ) * condEntropy p Y Z
+      ≤ Real.logb 2 ((2 ^ (d + 1) - 1 : ℕ) : ℝ) := by
+  have h2d : (1 : ℕ) ≤ 2 ^ d := Nat.one_le_two_pow
+  have hcardf : Fintype.card (ι → Bool) = 2 ^ d := by
+    rw [Fintype.card_fun, Fintype.card_bool, hd]
+  have hlogb2 : Real.logb 2 (2 : ℝ) = 1 := Real.logb_self_eq_one (by norm_num : (1:ℝ) < 2)
+  have hbpos : ∀ w ∈ (univ : Finset (ι → Bool)),
+      0 < (if w = (fun _ => false) then (2 : ℝ) ^ d else 1) := by
+    intro w _
+    split <;> positivity
+  have hgibbs := sum_negMulLogb_add_mul_logb_le (univ : Finset (ι → Bool))
+    (probOf p Z) (fun w => if w = (fun _ => false) then (2 : ℝ) ^ d else 1)
+    (fun w _ => probOf_nonneg hp Z w) (by rw [sum_probOf]; exact hp1) hbpos
+  have hsumb : ∑ w : ι → Bool, (if w = (fun _ => false) then (2 : ℝ) ^ d else 1)
+      = ((2 ^ (d + 1) - 1 : ℕ) : ℝ) := by
+    rw [← Finset.add_sum_erase univ _ (Finset.mem_univ (fun _ => false : ι → Bool))]
+    rw [Finset.sum_congr rfl (fun w hw => if_neg (Finset.ne_of_mem_erase hw))]
+    rw [if_pos rfl, Finset.sum_const, Finset.card_erase_of_mem (Finset.mem_univ _),
+      Finset.card_univ, hcardf]
+    have : ((2 ^ d - 1 : ℕ) : ℝ) = (2 : ℝ) ^ d - 1 := by
+      push_cast [h2d]
+      ring
+    rw [nsmul_eq_mul, mul_one, this, Nat.cast_sub Nat.one_le_two_pow]
+    push_cast
+    ring
+  have hcond : condEntropy p Y Z ≤ probOf p Z (fun _ => false) := by
+    have hB := condEntropy_le_sum_probOf_mul_logb hp Y Z
+      (fun w => if w = (fun _ => false) then (univ : Finset Bool) else {false}) ?_
+    · refine hB.trans (le_of_eq ?_)
+      have hterm : ∀ w : ι → Bool, probOf p Z w * Real.logb 2
+          ((((if w = (fun _ => false) then (univ : Finset Bool) else {false})).card : ℕ) : ℝ)
+          = if w = (fun _ => false) then probOf p Z (fun _ => false) else 0 := by
+        intro w
+        by_cases h : w = (fun _ => false)
+        · subst h
+          rw [if_pos rfl, if_pos rfl, Finset.card_univ, Fintype.card_bool]
+          norm_num [hlogb2]
+        · rw [if_neg h, if_neg h, Finset.card_singleton]
+          norm_num
+      rw [Finset.sum_congr rfl fun w _ => hterm w]
+      simp
+    · intro w y hy
+      by_cases hw : w = (fun _ => false)
+      · exact absurd (by rw [if_pos hw]; exact Finset.mem_univ y) hy
+      · rw [if_neg hw, Finset.mem_singleton] at hy
+        have hytrue : y = true := by cases y <;> simp_all
+        subst hytrue
+        refine Finset.sum_eq_zero fun ω hω => ?_
+        by_cases hpω : p ω = 0
+        · exact hpω
+        · exfalso
+          rw [Finset.mem_filter] at hω
+          have h2 : Y ω = true ∧ Z ω = w := Prod.mk.injEq .. ▸ hω.2
+          exact hw (h2.2 ▸ hind ω hpω h2.1)
+  have hterm2 : ∑ w : ι → Bool, probOf p Z w *
+      Real.logb 2 (if w = (fun _ => false) then (2 : ℝ) ^ d else 1)
+      = probOf p Z (fun _ => false) * (d : ℝ) := by
+    have hterm : ∀ w : ι → Bool, probOf p Z w *
+        Real.logb 2 (if w = (fun _ => false) then (2 : ℝ) ^ d else 1)
+        = if w = (fun _ => false) then probOf p Z (fun _ => false) * (d : ℝ) else 0 := by
+      intro w
+      by_cases h : w = (fun _ => false)
+      · subst h
+        rw [if_pos rfl, if_pos rfl, Real.logb_pow, hlogb2, mul_one]
+      · rw [if_neg h, if_neg h, Real.logb_one, mul_zero]
+    rw [Finset.sum_congr rfl fun w _ => hterm w]
+    simp
+  have hdnn : (0 : ℝ) ≤ (d : ℝ) := Nat.cast_nonneg d
+  rw [← hsumb]
+  refine le_trans ?_ hgibbs
+  rw [Finset.sum_add_distrib, hterm2]
+  have : entropy p Z = ∑ w : ι → Bool, -probOf p Z w * Real.logb 2 (probOf p Z w) := rfl
+  rw [this]
+  nlinarith [hcond, hdnn]
+
+omit [Fintype V] in
+/-- `IsIndepSet` on a coerced finset, unpacked; the `x = y` case is looplessness. -/
+private theorem forall_not_adj_of_isIndepSet (G : SimpleGraph V) {S : Finset V}
+    (h : G.IsIndepSet (S : Set V)) : ∀ x ∈ S, ∀ y ∈ S, ¬ G.Adj x y := by
+  rw [SimpleGraph.isIndepSet_iff] at h
+  intro x hx y hy hadj
+  rcases eq_or_ne x y with rfl | hne
+  · exact G.irrefl hadj
+  · exact h (by simpa using hx) (by simpa using hy) hne hadj
+
+omit [Fintype V] in
+/-- The converse of `forall_not_adj_of_isIndepSet`. -/
+private theorem isIndepSet_of_forall_not_adj (G : SimpleGraph V) {S : Finset V}
+    (h : ∀ x ∈ S, ∀ y ∈ S, ¬ G.Adj x y) : G.IsIndepSet (S : Set V) := by
+  rw [SimpleGraph.isIndepSet_iff]
+  intro x hx y hy _ hadj
+  exact h x (by simpa using hx) y (by simpa using hy) hadj
+
+/-- `indepSetCount` as an honest `Finset.card`, available because `∀ x ∈ S, ∀ y ∈ S, ¬ G.Adj x y`
+is decidable while `IsIndepSet` carries no `DecidablePred` instance. -/
+private theorem card_filter_indep_eq (H : SimpleGraph V) [DecidableEq V] [DecidableRel H.Adj] :
+    #(univ.filter fun S : Finset V => ∀ x ∈ S, ∀ y ∈ S, ¬ H.Adj x y) = indepSetCount H := by
+  rw [indepSetCount, Nat.card_congr (Equiv.subtypeEquivRight fun _ : Finset V =>
+      ⟨forall_not_adj_of_isIndepSet H, isIndepSet_of_forall_not_adj H⟩),
+    Nat.card_eq_fintype_card, Fintype.card_subtype]
+
+/-- **Kahn's theorem for a bipartite graph, one side at a time.**  For `H` `d`-regular with
+every edge crossing the `side` cut,
+
+    d · log₂ i(H) ≤ |{v : side v}| · log₂ i(K_{d,d}).
+
+Take `I` uniform among the independent sets of `H`, so that `H(X) = log₂ i(H)`
+(`entropy_uniformPMF_of_injOn`), and split the vertices as `A` (`side` false) and `B`.  Writing
+`H(X) = H(X_A) + (H(X) - H(X_A))`, the first part is bounded by `shearer_subset_le` over the
+cover of `A` by the neighbourhoods `N(b)`, `b ∈ B`, each vertex of `A` being covered exactly `d`
+times; the second by `entropy_sub_le_sum_cond_rank` along a rank that puts `A` first.  That
+leaves `∑_{b ∈ B} (H(X_{N(b)}) + d · H(X_b ∣ X_{N(b)}))`, and
+`entropy_add_mul_condEntropy_le` bounds each summand by `log₂ i(K_{d,d})`. -/
+private theorem indepSetCount_logb_half_le [DecidableEq V] (H : SimpleGraph V)
+    [DecidableRel H.Adj] (d : ℕ) (side : V → Bool)
+    (hcross : ∀ u v, H.Adj u v → side u ≠ side v)
+    (hreg : ∀ v, Nat.card {u // H.Adj v u} = d) :
+    (d : ℝ) * Real.logb 2 (indepSetCount H : ℝ)
+      ≤ (#(univ.filter fun v => side v = true) : ℝ)
+          * Real.logb 2 ((2 ^ (d + 1) - 1 : ℕ) : ℝ) := by
+  obtain ⟨r, hrinj, hrlt⟩ := exists_rank_side_lt side
+  set P : Finset (Finset V) := univ.filter (fun S : Finset V => ∀ x ∈ S, ∀ y ∈ S, ¬ H.Adj x y)
+    with hPdef
+  set A : Finset V := univ.filter (fun v => side v = false) with hAdef
+  set B : Finset V := univ.filter (fun v => side v = true) with hBdef
+  set nb : V → Finset V := fun v => univ.filter (fun u => H.Adj v u) with hnbdef
+  set D : V → Finset V := fun j => (nb j).filter (fun u => side u = false) with hDdef
+  set X : V → Finset V → Bool := fun v S => decide (v ∈ S) with hXdef
+  set p : Finset V → ℝ := uniformPMF P with hpdef
+  have hPne : P.Nonempty := ⟨∅, by simp [hPdef]⟩
+  have hp : ∀ ω, 0 ≤ p ω := by rw [hpdef]; exact uniformPMF_nonneg P
+  have hp1 : ∑ ω, p ω = 1 := by rw [hpdef]; exact sum_uniformPMF hPne
+  have hPmem : ∀ ω : Finset V, p ω ≠ 0 → ω ∈ P := by
+    intro ω hω
+    by_contra h
+    simp [hpdef, uniformPMF, h] at hω
+  have hPprop : ∀ ω ∈ P, ∀ x ∈ ω, ∀ y ∈ ω, ¬ H.Adj x y := by
+    intro ω hω
+    rw [hPdef, Finset.mem_filter] at hω
+    exact hω.2
+  have hXinj : Function.Injective (fun (S : Finset V) (v : V) => X v S) := by
+    intro S T hST
+    ext v
+    have h := congrFun hST v
+    rw [hXdef] at h
+    simpa using h
+  have hent : entropy p (fun ω i => X i ω) = Real.logb 2 (indepSetCount H : ℝ) := by
+    rw [hpdef, entropy_uniformPMF_of_injOn hPne hXinj.injOn, hPdef, card_filter_indep_eq]
+  have hnbcard : ∀ v, #(nb v) = d := by
+    intro v
+    rw [hnbdef]
+    rw [← Fintype.card_subtype (fun u => H.Adj v u), ← Nat.card_eq_fintype_card]
+    exact hreg v
+  have hsideB : ∀ b ∈ B, side b = true := by
+    intro b hb; rw [hBdef, Finset.mem_filter] at hb; exact hb.2
+  have hsideA : ∀ a ∈ A, side a = false := by
+    intro a ha; rw [hAdef, Finset.mem_filter] at ha; exact ha.2
+  have hDsubA : ∀ j, D j ⊆ A := by
+    intro j u hu
+    rw [hDdef, Finset.mem_filter] at hu
+    rw [hAdef, Finset.mem_filter]
+    exact ⟨Finset.mem_univ u, hu.2⟩
+  have hDadj : ∀ j : V, ∀ u ∈ D j, H.Adj j u := by
+    intro j u hu
+    rw [hDdef, Finset.mem_filter, hnbdef, Finset.mem_filter] at hu
+    exact hu.1.2
+  have hDb : ∀ b ∈ B, D b = nb b := by
+    intro b hb
+    rw [hDdef]
+    refine Finset.filter_true_of_mem fun u hu => ?_
+    rw [hnbdef, Finset.mem_filter] at hu
+    have hne := hcross b u hu.2
+    rw [hsideB b hb] at hne
+    cases hu' : side u with
+    | false => rfl
+    | true => exact absurd hu'.symm hne
+  have hDempty : ∀ j, j ∉ B → D j = ∅ := by
+    intro j hj
+    have hjf : side j = false := by
+      rw [hBdef, Finset.mem_filter] at hj
+      simp only [Finset.mem_univ, true_and] at hj
+      cases hj' : side j with
+      | false => rfl
+      | true => exact absurd hj' hj
+    refine Finset.eq_empty_of_forall_notMem fun u hu => ?_
+    rw [hDdef, Finset.mem_filter, hnbdef, Finset.mem_filter] at hu
+    have hne := hcross j u hu.1.2
+    rw [hjf, hu.2] at hne
+    exact hne rfl
+  have hcover : ∀ i ∈ A, d ≤ #(univ.filter fun j : V => i ∈ D j) := by
+    intro i hi
+    have he : (univ.filter fun j : V => i ∈ D j) = nb i := by
+      ext j
+      rw [Finset.mem_filter, hDdef]
+      simp only [Finset.mem_filter, Finset.mem_univ, true_and, hnbdef, hsideA i hi, and_true]
+      exact ⟨fun h => h.symm, fun h => h.symm⟩
+    rw [he, hnbcard i]
+  have hDr : ∀ j ∈ univ \ A, D j ⊆ univ.filter fun x => r x < r j := by
+    intro j hj u hu
+    rw [Finset.mem_sdiff, hAdef, Finset.mem_filter] at hj
+    have hjt : side j = true := by
+      cases hj' : side j with
+      | false => exact absurd ⟨Finset.mem_univ j, hj'⟩ hj.2
+      | true => rfl
+    rw [Finset.mem_filter]
+    exact ⟨Finset.mem_univ u, hrlt u j (hsideA u (hDsubA j hu)) hjt⟩
+  have hAr : ∀ v ∈ A, (univ.filter fun x => r x < r v) = A.filter fun x => r x < r v := by
+    intro v hv
+    ext x
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and]
+    refine ⟨fun h => ⟨?_, h⟩, fun h => h.2⟩
+    rw [hAdef, Finset.mem_filter]
+    refine ⟨Finset.mem_univ x, ?_⟩
+    cases hx : side x with
+    | false => rfl
+    | true => exact absurd (hrlt v x (hsideA v hv) hx) (by omega)
+  have hABuniv : univ \ A = B := by
+    ext v
+    rw [Finset.mem_sdiff, hAdef, hBdef, Finset.mem_filter, Finset.mem_filter]
+    simp only [Finset.mem_univ, true_and]
+    cases hv : side v with
+    | false => simp
+    | true => simp
+  have hsh := shearer_subset_le p hp hp1 X A D d hDsubA hcover
+  have hsum1 : ∑ j : V, entropy p (fun ω (u : D j) => X u.1 ω)
+      = ∑ b ∈ B, entropy p (fun ω (u : D b) => X u.1 ω) := by
+    refine (Finset.sum_subset (Finset.subset_univ B) fun j _ hj => ?_).symm
+    rw [hDempty j hj]
+    have hsubsing : Subsingleton (↥(∅ : Finset V) → Bool) :=
+      ⟨fun f g => funext fun a => absurd a.2 (Finset.notMem_empty a.1)⟩
+    exact entropy_eq_zero_of_subsingleton hp1 _
+  have hchain := entropy_sub_le_sum_cond_rank hp hp1 X A D r hrinj hDr hAr
+  rw [hABuniv] at hchain
+  rw [hsum1] at hsh
+  have hlocal : ∀ b ∈ B, entropy p (fun ω (u : D b) => X u.1 ω)
+      + (d : ℝ) * condEntropy p (X b) (fun ω (u : D b) => X u.1 ω)
+      ≤ Real.logb 2 ((2 ^ (d + 1) - 1 : ℕ) : ℝ) := by
+    intro b hb
+    refine entropy_add_mul_condEntropy_le hp hp1 (fun ω (u : ↥(D b)) => X u.1 ω) (X b) d ?_ ?_
+    · rw [Fintype.card_coe, hDb b hb, hnbcard b]
+    · intro ω hpω hYω
+      funext u
+      have hωP := hPmem ω hpω
+      have hbω : b ∈ ω := by
+        rw [hXdef] at hYω
+        simpa using hYω
+      have hadj : H.Adj b u.1 := hDadj b u.1 u.2
+      rw [hXdef]
+      simp only [decide_eq_false_iff_not]
+      intro huω
+      exact hPprop ω hωP b hbω u.1 huω hadj
+  have hd0 : (0 : ℝ) ≤ (d : ℝ) := Nat.cast_nonneg d
+  have h3 := mul_le_mul_of_nonneg_left hchain hd0
+  calc (d : ℝ) * Real.logb 2 (indepSetCount H : ℝ)
+      = (d : ℝ) * entropy p (fun ω i => X i ω) := by rw [hent]
+    _ ≤ ∑ b ∈ B, (entropy p (fun ω (u : D b) => X u.1 ω)
+          + (d : ℝ) * condEntropy p (X b) (fun ω (u : D b) => X u.1 ω)) := by
+        rw [Finset.sum_add_distrib, ← Finset.mul_sum]
+        linarith [hsh, h3]
+    _ ≤ ∑ _b ∈ B, Real.logb 2 ((2 ^ (d + 1) - 1 : ℕ) : ℝ) := Finset.sum_le_sum hlocal
+    _ = (#B : ℝ) * Real.logb 2 ((2 ^ (d + 1) - 1 : ℕ) : ℝ) := by
+        rw [Finset.sum_const, nsmul_eq_mul]
+
+/-- `Real.logb 2` reflects `≤` on the positives. -/
+private theorem le_of_logb_two_le {x y : ℝ} (hx : 0 < x) (hy : 0 < y)
+    (h : Real.logb 2 x ≤ Real.logb 2 y) : x ≤ y := by
+  have hlog2 : (0 : ℝ) < Real.log 2 := Real.log_pos (by norm_num)
+  simp only [Real.logb] at h
+  have e1 : Real.log x = Real.log x / Real.log 2 * Real.log 2 := by field_simp
+  have e2 : Real.log y = Real.log y / Real.log 2 * Real.log 2 := by field_simp
+  have h1 : Real.log x ≤ Real.log y := by
+    rw [e1, e2]; exact mul_le_mul_of_nonneg_right h hlog2.le
+  have h2 := Real.exp_le_exp.mpr h1
+  rwa [Real.exp_log hx, Real.exp_log hy] at h2
+
+/-- **Kahn's theorem** (Kahn 2001): a `d`-regular graph all of whose edges cross a two-colouring
+of its vertices has `i(H)^{2d} ≤ i(K_{d,d})^{|V|}`.  Applying `indepSetCount_logb_half_le` to
+`side` and to its negation bounds `d · log₂ i(H)` by each side's share of the vertices; adding
+the two gives `2d · log₂ i(H) ≤ |V| · log₂ i(K_{d,d})`, which `le_of_logb_two_le` turns back
+into an inequality of natural numbers. -/
+private theorem indepSetCount_pow_le_of_side [DecidableEq V] (H : SimpleGraph V)
+    [DecidableRel H.Adj] (d : ℕ) (side : V → Bool)
+    (hcross : ∀ u v, H.Adj u v → side u ≠ side v)
+    (hreg : ∀ v, Nat.card {u // H.Adj v u} = d) :
+    indepSetCount H ^ (2 * d) ≤ (2 ^ (d + 1) - 1) ^ Fintype.card V := by
+  have h1 := indepSetCount_logb_half_le H d side hcross hreg
+  have h2 := indepSetCount_logb_half_le H d (fun v => !side v)
+    (fun u v huv hh => hcross u v huv (by cases side u <;> cases side v <;> simp_all)) hreg
+  have hcompl : (univ.filter fun v => (!side v) = true)
+      = (univ.filter fun v => ¬ (side v = true)) := by
+    ext v
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and]
+    cases side v <;> simp
+  have hcard : #(univ.filter fun v => side v = true)
+      + #(univ.filter fun v => (!side v) = true) = Fintype.card V := by
+    rw [hcompl, Finset.card_filter_add_card_filter_not (s := (univ : Finset V))
+      (p := fun v => side v = true), Finset.card_univ]
+  have hipos : 0 < indepSetCount H := by
+    rw [← card_filter_indep_eq H]
+    exact Finset.card_pos.mpr ⟨∅, by simp⟩
+  have hK2 : 2 ≤ 2 ^ (d + 1) := by
+    have h := Nat.pow_le_pow_right (show 1 ≤ 2 by norm_num) (show 1 ≤ d + 1 by omega)
+    simpa using h
+  have hKpos : 0 < 2 ^ (d + 1) - 1 := by omega
+  have hc : ((#(univ.filter fun v => side v = true) : ℝ)
+      + (#(univ.filter fun v => (!side v) = true) : ℝ)) = (Fintype.card V : ℝ) := by
+    rw [← Nat.cast_add, hcard]
+  have hsum : (2 : ℝ) * ((d : ℝ) * Real.logb 2 (indepSetCount H : ℝ))
+      ≤ (Fintype.card V : ℝ) * Real.logb 2 ((2 ^ (d + 1) - 1 : ℕ) : ℝ) := by
+    have h := add_le_add h1 h2
+    have hr : (#(univ.filter fun v => side v = true) : ℝ)
+          * Real.logb 2 ((2 ^ (d + 1) - 1 : ℕ) : ℝ)
+        + (#(univ.filter fun v => (!side v) = true) : ℝ)
+          * Real.logb 2 ((2 ^ (d + 1) - 1 : ℕ) : ℝ)
+        = (Fintype.card V : ℝ) * Real.logb 2 ((2 ^ (d + 1) - 1 : ℕ) : ℝ) := by
+      rw [← add_mul, hc]
+    linarith [h, hr]
+  have hxpos : (0 : ℝ) < ((indepSetCount H ^ (2 * d) : ℕ) : ℝ) := by
+    exact_mod_cast Nat.pow_pos hipos (n := 2 * d)
+  have hypos : (0 : ℝ) < (((2 ^ (d + 1) - 1) ^ Fintype.card V : ℕ) : ℝ) := by
+    exact_mod_cast Nat.pow_pos hKpos (n := Fintype.card V)
+  have hL : Real.logb 2 ((indepSetCount H ^ (2 * d) : ℕ) : ℝ)
+      ≤ Real.logb 2 (((2 ^ (d + 1) - 1) ^ Fintype.card V : ℕ) : ℝ) := by
+    rw [Nat.cast_pow, Nat.cast_pow, Real.logb_pow, Real.logb_pow]
+    push_cast
+    linarith [hsum]
+  exact_mod_cast le_of_logb_two_le hxpos hypos hL
+
+omit [Fintype V] in
+/-- In the graph `G` restricted to `S`, anything reaching a vertex of `S` lies in `S`. -/
+private theorem mem_of_reflTransGen_restrict (G : SimpleGraph V) (S : Finset V) {u v : V}
+    (h : Relation.ReflTransGen (fun a b => G.Adj a b ∧ a ∈ S ∧ b ∈ S) u v) :
+    v ∈ S → u ∈ S := by
+  induction h with
+  | refl => exact fun hv => hv
+  | tail _ hbc ih => exact fun _ => ih hbc.2.1
+
+omit [Fintype V] in
+/-- **Walk parity fixes the side.**  If `σ` and `τ` both flip across every edge of `G`
+restricted to `S`, then `σ = τ` propagates along paths: agreeing at one end of a walk forces
+agreement at the other.  This is what makes the swapping trick injective. -/
+private theorem decide_mem_eq_of_reflTransGen (G : SimpleGraph V) (S : Finset V)
+    (σ τ : V → Bool)
+    (hσ : ∀ a b, G.Adj a b → a ∈ S → b ∈ S → σ a ≠ σ b)
+    (hτ : ∀ a b, G.Adj a b → a ∈ S → b ∈ S → τ a ≠ τ b)
+    {u v : V} (h : Relation.ReflTransGen (fun a b => G.Adj a b ∧ a ∈ S ∧ b ∈ S) u v)
+    (hu : σ u = τ u) : σ v = τ v := by
+  induction h with
+  | refl => exact hu
+  | tail _ hbc ih =>
+      have e1 := Bool.eq_not_iff.mpr (Ne.symm (hσ _ _ hbc.1 hbc.2.1 hbc.2.2))
+      have e2 := Bool.eq_not_iff.mpr (Ne.symm (hτ _ _ hbc.1 hbc.2.1 hbc.2.2))
+      rw [e1, e2, ih]
+
+omit [Fintype V] in
+/-- **The swap kills every crossing edge.**  Let `I, J` be independent, `S = I ∆ J`, and let `P`
+be constant on the `S`-components.  Then no `G`-edge joins `A = (I ∩ J) ∪ {v ∈ S | P v}` to
+`B = (I ∩ J) ∪ {v ∈ S | ¬ P v}`: an edge meeting `I ∩ J` would sit inside `I` or inside `J`, and
+an edge inside `S` has `P` equal at both ends, so it cannot cross from `A` to `B`. -/
+private theorem no_adj_between_sides [DecidableEq V] (G : SimpleGraph V) (I J : Finset V)
+    (hI : ∀ x ∈ I, ∀ y ∈ I, ¬ G.Adj x y) (hJ : ∀ x ∈ J, ∀ y ∈ J, ¬ G.Adj x y)
+    (P : V → Prop) (A B : Finset V)
+    (hA : ∀ v, v ∈ A ↔ (v ∈ I ∧ v ∈ J) ∨ (v ∈ (I \ J) ∪ (J \ I) ∧ P v))
+    (hB : ∀ v, v ∈ B ↔ (v ∈ I ∧ v ∈ J) ∨ (v ∈ (I \ J) ∪ (J \ I) ∧ ¬ P v))
+    (hP : ∀ u v, G.Adj u v → u ∈ (I \ J) ∪ (J \ I) → v ∈ (I \ J) ∪ (J \ I) →
+      (P u ↔ P v)) :
+    ∀ a ∈ A, ∀ b ∈ B, ¬ G.Adj a b := by
+  intro a ha b hb hadj
+  rcases (hA a).mp ha with ⟨haI, haJ⟩ | ⟨haS, haP⟩
+  · rcases (hB b).mp hb with ⟨hbI, _⟩ | ⟨hbS, _⟩
+    · exact hI a haI b hbI hadj
+    · rcases Finset.mem_union.mp hbS with h | h
+      · exact hI a haI b (Finset.mem_sdiff.mp h).1 hadj
+      · exact hJ a haJ b (Finset.mem_sdiff.mp h).1 hadj
+  · rcases (hB b).mp hb with ⟨hbI, hbJ⟩ | ⟨hbS, hbP⟩
+    · rcases Finset.mem_union.mp haS with h | h
+      · exact hI a (Finset.mem_sdiff.mp h).1 b hbI hadj
+      · exact hJ a (Finset.mem_sdiff.mp h).1 b hbJ hadj
+    · exact hbP ((hP a b hadj haS hbS).mp haP)
+
+omit [Fintype V] in
+/-- `A × {false} ∪ B × {true}` is independent in `doubleCover G` exactly when no `G`-edge joins
+`A` to `B`; only this direction is needed. -/
+private theorem isIndepSet_doubleCover_pack [DecidableEq V] (G : SimpleGraph V) (A B : Finset V)
+    (h : ∀ a ∈ A, ∀ b ∈ B, ¬ G.Adj a b) :
+    (doubleCover G).IsIndepSet
+      ((A.image (fun v => (v, false)) ∪ B.image (fun v => (v, true)) : Finset (V × Bool)) :
+        Set (V × Bool)) := by
+  rw [SimpleGraph.isIndepSet_iff]
+  intro x hx y hy _ hadj
+  rw [doubleCover_adj] at hadj
+  simp only [Finset.coe_union, Finset.coe_image, Set.mem_union, Set.mem_image,
+    Finset.mem_coe] at hx hy
+  rcases hx with ⟨a, haA, rfl⟩ | ⟨a, haB, rfl⟩ <;>
+    rcases hy with ⟨b, hbA, rfl⟩ | ⟨b, hbB, rfl⟩
+  · exact hadj.2 rfl
+  · exact h a haA b hbB hadj.1
+  · exact h b hbA a haB hadj.1.symm
+  · exact hadj.2 rfl
+
+omit [Fintype V] in
+/-- `(A, B) ↦ A × {false} ∪ B × {true}` is injective. -/
+private theorem pack_eq_pair [DecidableEq V] {A₁ B₁ A₂ B₂ : Finset V}
+    (h : A₁.image (fun v => (v, false)) ∪ B₁.image (fun v => (v, true))
+       = A₂.image (fun v => (v, false)) ∪ B₂.image (fun v => (v, true))) :
+    A₁ = A₂ ∧ B₁ = B₂ := by
+  refine ⟨Finset.ext fun v => ?_, Finset.ext fun v => ?_⟩
+  · simpa using Finset.ext_iff.mp h (v, false)
+  · simpa using Finset.ext_iff.mp h (v, true)
+
+omit [Fintype V] in
+/-- A least-rank vertex of the `S`-component of `v`. -/
+private theorem exists_min_reflTransGen [DecidableEq V] (G : SimpleGraph V) (S : Finset V)
+    (rk : V → ℕ) {v : V} (hv : v ∈ S) :
+    ∃ u, u ∈ S ∧ Relation.ReflTransGen (fun a b => G.Adj a b ∧ a ∈ S ∧ b ∈ S) u v ∧
+      ∀ w, Relation.ReflTransGen (fun a b => G.Adj a b ∧ a ∈ S ∧ b ∈ S) w v → rk u ≤ rk w := by
+  classical
+  obtain ⟨u, hu, hmin⟩ := Finset.exists_min_image
+    (S.filter fun x => Relation.ReflTransGen (fun a b => G.Adj a b ∧ a ∈ S ∧ b ∈ S) x v) rk
+    ⟨v, Finset.mem_filter.mpr ⟨hv, Relation.ReflTransGen.refl⟩⟩
+  rw [Finset.mem_filter] at hu
+  refine ⟨u, hu.1, hu.2, fun w hw => ?_⟩
+  exact hmin w (Finset.mem_filter.mpr ⟨mem_of_reflTransGen_restrict G S hw hv, hw⟩)
+
+omit [Fintype V] in
+/-- Every edge of `G` inside `I ∆ J` flips membership of `I`: both endpoints in `I` contradicts
+independence of `I`, and neither in `I` puts both in `J`. -/
+private theorem decide_mem_ne_of_adj_symmDiff [DecidableEq V] (G : SimpleGraph V)
+    (I J : Finset V) (hI : ∀ x ∈ I, ∀ y ∈ I, ¬ G.Adj x y)
+    (hJ : ∀ x ∈ J, ∀ y ∈ J, ¬ G.Adj x y) {a b : V} (hab : G.Adj a b)
+    (ha : a ∈ (I \ J) ∪ (J \ I)) (hb : b ∈ (I \ J) ∪ (J \ I)) :
+    decide (a ∈ I) ≠ decide (b ∈ I) := by
+  rcases Finset.mem_union.mp ha with ha' | ha' <;>
+    rcases Finset.mem_union.mp hb with hb' | hb' <;>
+    rw [Finset.mem_sdiff] at ha' hb'
+  · exact absurd hab (hI a ha'.1 b hb'.1)
+  · simp [ha'.1, hb'.2]
+  · simp [ha'.2, hb'.1]
+  · exact absurd hab (hJ a ha'.1 b hb'.1)
+
+omit [Fintype V] in
+/-- **The swap is reversible.**  From `A` and `B` alone one reads off `I ∩ J` as `A ∩ B`, the
+symmetric difference `I ∆ J` as `A ∆ B`, and on `I ∆ J` the value of `P` as membership of `A`. -/
+private theorem sides_determine [DecidableEq V] (I J : Finset V) (P : V → Prop)
+    (A B : Finset V)
+    (hA : ∀ v, v ∈ A ↔ (v ∈ I ∧ v ∈ J) ∨ (v ∈ (I \ J) ∪ (J \ I) ∧ P v))
+    (hB : ∀ v, v ∈ B ↔ (v ∈ I ∧ v ∈ J) ∨ (v ∈ (I \ J) ∪ (J \ I) ∧ ¬ P v)) :
+    (∀ v, (v ∈ A ∧ v ∈ B) ↔ (v ∈ I ∧ v ∈ J))
+      ∧ (∀ v, (v ∈ (I \ J) ∪ (J \ I)) ↔ ¬ (v ∈ A ↔ v ∈ B))
+      ∧ (∀ v ∈ (I \ J) ∪ (J \ I), (v ∈ A ↔ P v)) := by
+  have hS : ∀ v, v ∈ (I \ J) ∪ (J \ I) → ¬ (v ∈ I ∧ v ∈ J) := by
+    intro v hv
+    rcases Finset.mem_union.mp hv with h | h <;> rw [Finset.mem_sdiff] at h
+    · exact fun hc => h.2 hc.2
+    · exact fun hc => h.2 hc.1
+  refine ⟨fun v => ?_, fun v => ?_, fun v hv => ?_⟩
+  · rw [hA, hB]
+    by_cases hv : v ∈ (I \ J) ∪ (J \ I)
+    · have h0 := hS v hv
+      by_cases hp : P v <;> tauto
+    · tauto
+  · rw [hA, hB]
+    by_cases hv : v ∈ (I \ J) ∪ (J \ I)
+    · have h0 := hS v hv
+      by_cases hp : P v <;> simp_all
+    · simp [hv]
+  · rw [hA]
+    have h0 := hS v hv
+    tauto
+
+/-- **Zhao's bipartite swapping trick** (Zhao 2010): `i(G)^2 ≤ i(G × K₂)`.
+
+This is the step of Kahn–Zhao that is not entropy: it upgrades Kahn's bipartite theorem to
+arbitrary regular graphs, since `doubleCover G` is bipartite and `d`-regular whenever `G` is.
+
+An independent set of `doubleCover G` is a pair `(A, B)` of vertex sets with no `G`-edge between
+them, so the claim is an injection from pairs of independent sets into such pairs.  Given
+independent `I, J`, the graph `G` restricted to `S = I ∆ J` has all of its edges between `I \ J`
+and `J \ I`, and none of them meets `I ∩ J`; sending each `S`-component entirely into `A` or
+entirely into `B`, according to whether the component's least-rank vertex lies in `I`, gives a
+pair with no crossing edge (`no_adj_between_sides`).  It is injective because `A` and `B`
+recover `I ∩ J`, `S` and the per-component choice (`sides_determine`), and inside a component
+the side of a vertex is then forced by the side of the least-rank vertex together with the
+parity of a walk to it (`decide_mem_eq_of_reflTransGen`), every edge inside `S` flipping sides
+(`decide_mem_ne_of_adj_symmDiff`). -/
+private theorem indepSetCount_sq_le_doubleCover (G : SimpleGraph V) :
+    indepSetCount G ^ 2 ≤ indepSetCount (doubleCover G) := by
+  classical
+  obtain ⟨rk, hrk⟩ : ∃ rk : V → ℕ, Function.Injective rk :=
+    ⟨fun v => ((Fintype.equivFin V) v : ℕ), fun a b h =>
+      (Fintype.equivFin V).injective (Fin.val_injective h)⟩
+  set Pr : Finset V → Finset V → V → Prop := fun S I v =>
+    ∃ u, Relation.ReflTransGen (fun a b => G.Adj a b ∧ a ∈ S ∧ b ∈ S) u v ∧ u ∈ I ∧
+      ∀ w, Relation.ReflTransGen (fun a b => G.Adj a b ∧ a ∈ S ∧ b ∈ S) w v → rk u ≤ rk w
+    with hPr
+  set Aof : Finset V → Finset V → Finset V := fun I J =>
+    (I ∩ J) ∪ ((I \ J) ∪ (J \ I)).filter (Pr ((I \ J) ∪ (J \ I)) I) with hAof
+  set Bof : Finset V → Finset V → Finset V := fun I J =>
+    (I ∩ J) ∪ ((I \ J) ∪ (J \ I)).filter (fun v => ¬ Pr ((I \ J) ∪ (J \ I)) I v) with hBof
+  set F : Finset V → Finset V → Finset (V × Bool) := fun I J =>
+    ((Aof I J).image fun v => (v, false)) ∪ ((Bof I J).image fun v => (v, true)) with hF
+  have hmemA : ∀ I J v, v ∈ Aof I J ↔
+      (v ∈ I ∧ v ∈ J) ∨ (v ∈ (I \ J) ∪ (J \ I) ∧ Pr ((I \ J) ∪ (J \ I)) I v) := by
+    intro I J v
+    simp only [hAof]
+    rw [Finset.mem_union, Finset.mem_inter, Finset.mem_filter]
+  have hmemB : ∀ I J v, v ∈ Bof I J ↔
+      (v ∈ I ∧ v ∈ J) ∨ (v ∈ (I \ J) ∪ (J \ I) ∧ ¬ Pr ((I \ J) ∪ (J \ I)) I v) := by
+    intro I J v
+    simp only [hBof]
+    rw [Finset.mem_union, Finset.mem_inter, Finset.mem_filter]
+  have hPrcongr : ∀ (S I : Finset V) (u v : V), G.Adj u v → u ∈ S → v ∈ S →
+      (Pr S I u ↔ Pr S I v) := by
+    intro S I u v huv hu hv
+    simp only [hPr]
+    constructor
+    · rintro ⟨w, hw1, hw2, hw3⟩
+      exact ⟨w, hw1.tail ⟨huv, hu, hv⟩, hw2, fun x hx => hw3 x (hx.tail ⟨huv.symm, hv, hu⟩)⟩
+    · rintro ⟨w, hw1, hw2, hw3⟩
+      exact ⟨w, hw1.tail ⟨huv.symm, hv, hu⟩, hw2, fun x hx => hw3 x (hx.tail ⟨huv, hu, hv⟩)⟩
+  have hPrmin : ∀ (S I : Finset V) (v u : V),
+      Relation.ReflTransGen (fun a b => G.Adj a b ∧ a ∈ S ∧ b ∈ S) u v →
+      (∀ w, Relation.ReflTransGen (fun a b => G.Adj a b ∧ a ∈ S ∧ b ∈ S) w v → rk u ≤ rk w) →
+      (Pr S I v ↔ u ∈ I) := by
+    intro S I v u hru hmin
+    simp only [hPr]
+    refine ⟨?_, fun h => ⟨u, hru, h, hmin⟩⟩
+    rintro ⟨u', h1, h2, h3⟩
+    exact (hrk (le_antisymm (hmin u' h1) (h3 u hru))) ▸ h2
+  have hmap : ∀ I J : Finset V, G.IsIndepSet ↑I → G.IsIndepSet ↑J →
+      (doubleCover G).IsIndepSet ↑(F I J) := by
+    intro I J hI hJ
+    simp only [hF]
+    refine isIndepSet_doubleCover_pack G _ _ ?_
+    exact no_adj_between_sides G I J (forall_not_adj_of_isIndepSet G hI)
+      (forall_not_adj_of_isIndepSet G hJ) _ _ _ (hmemA I J) (hmemB I J)
+      (hPrcongr ((I \ J) ∪ (J \ I)) I)
+  have hinj : ∀ I₁ J₁ I₂ J₂ : Finset V, G.IsIndepSet ↑I₁ → G.IsIndepSet ↑J₁ →
+      G.IsIndepSet ↑I₂ → G.IsIndepSet ↑J₂ → F I₁ J₁ = F I₂ J₂ → I₁ = I₂ ∧ J₁ = J₂ := by
+    intro I₁ J₁ I₂ J₂ hI₁ hJ₁ hI₂ hJ₂ heq
+    simp only [hF] at heq
+    obtain ⟨hA, hB⟩ := pack_eq_pair heq
+    obtain ⟨hC1, hS1, hP1⟩ := sides_determine I₁ J₁ (Pr ((I₁ \ J₁) ∪ (J₁ \ I₁)) I₁)
+      (Aof I₁ J₁) (Bof I₁ J₁) (hmemA I₁ J₁) (hmemB I₁ J₁)
+    obtain ⟨hC2, hS2, hP2⟩ := sides_determine I₂ J₂ (Pr ((I₂ \ J₂) ∪ (J₂ \ I₂)) I₂)
+      (Aof I₂ J₂) (Bof I₂ J₂) (hmemA I₂ J₂) (hmemB I₂ J₂)
+    have hCeq : ∀ v, (v ∈ I₁ ∧ v ∈ J₁) ↔ (v ∈ I₂ ∧ v ∈ J₂) := by
+      intro v; rw [← hC1 v, ← hC2 v, hA, hB]
+    have hSeq : ∀ v, v ∈ (I₁ \ J₁) ∪ (J₁ \ I₁) ↔ v ∈ (I₂ \ J₂) ∪ (J₂ \ I₂) := by
+      intro v; rw [hS1 v, hS2 v, hA, hB]
+    have hS2eq : (I₂ \ J₂) ∪ (J₂ \ I₂) = (I₁ \ J₁) ∪ (J₁ \ I₁) :=
+      Finset.ext fun v => (hSeq v).symm
+    have hPeq : ∀ v ∈ (I₁ \ J₁) ∪ (J₁ \ I₁),
+        (Pr ((I₁ \ J₁) ∪ (J₁ \ I₁)) I₁ v ↔ Pr ((I₁ \ J₁) ∪ (J₁ \ I₁)) I₂ v) := by
+      intro v hv
+      have h2 := hP2 v ((hSeq v).mp hv)
+      rw [hS2eq] at h2
+      rw [← hP1 v hv, ← h2, hA]
+    have hflip1 : ∀ a b, G.Adj a b → a ∈ (I₁ \ J₁) ∪ (J₁ \ I₁) → b ∈ (I₁ \ J₁) ∪ (J₁ \ I₁) →
+        decide (a ∈ I₁) ≠ decide (b ∈ I₁) := fun a b hab ha hb =>
+      decide_mem_ne_of_adj_symmDiff G I₁ J₁ (forall_not_adj_of_isIndepSet G hI₁)
+        (forall_not_adj_of_isIndepSet G hJ₁) hab ha hb
+    have hflip2 : ∀ a b, G.Adj a b → a ∈ (I₁ \ J₁) ∪ (J₁ \ I₁) → b ∈ (I₁ \ J₁) ∪ (J₁ \ I₁) →
+        decide (a ∈ I₂) ≠ decide (b ∈ I₂) := fun a b hab ha hb =>
+      decide_mem_ne_of_adj_symmDiff G I₂ J₂ (forall_not_adj_of_isIndepSet G hI₂)
+        (forall_not_adj_of_isIndepSet G hJ₂) hab ((hSeq a).mp ha) ((hSeq b).mp hb)
+    have hIeq : ∀ v ∈ (I₁ \ J₁) ∪ (J₁ \ I₁), decide (v ∈ I₁) = decide (v ∈ I₂) := by
+      intro v hv
+      obtain ⟨u, _, huR, humin⟩ := exists_min_reflTransGen G ((I₁ \ J₁) ∪ (J₁ \ I₁)) rk hv
+      have hu : decide (u ∈ I₁) = decide (u ∈ I₂) := by
+        have e1 := hPrmin ((I₁ \ J₁) ∪ (J₁ \ I₁)) I₁ v u huR humin
+        have e2 := hPrmin ((I₁ \ J₁) ∪ (J₁ \ I₁)) I₂ v u huR humin
+        have e3 := hPeq v hv
+        simp only [decide_eq_decide]
+        rw [← e1, ← e2]
+        exact e3
+      exact decide_mem_eq_of_reflTransGen G ((I₁ \ J₁) ∪ (J₁ \ I₁))
+        (fun x => decide (x ∈ I₁)) (fun x => decide (x ∈ I₂)) hflip1 hflip2 huR hu
+    have hIfin : I₁ = I₂ := by
+      ext v
+      by_cases hv : v ∈ (I₁ \ J₁) ∪ (J₁ \ I₁)
+      · simpa using hIeq v hv
+      · refine ⟨fun h => ?_, fun h => ?_⟩
+        · have hj : v ∈ J₁ := by
+            by_contra hc
+            exact hv (Finset.mem_union_left _ (Finset.mem_sdiff.mpr ⟨h, hc⟩))
+          exact ((hCeq v).mp ⟨h, hj⟩).1
+        · have hj : v ∈ J₂ := by
+            by_contra hc
+            exact hv ((hSeq v).mpr (Finset.mem_union_left _ (Finset.mem_sdiff.mpr ⟨h, hc⟩)))
+          exact ((hCeq v).mpr ⟨h, hj⟩).1
+    refine ⟨hIfin, ?_⟩
+    ext v
+    by_cases hv : v ∈ (I₁ \ J₁) ∪ (J₁ \ I₁)
+    · have h1 : v ∈ J₁ ↔ v ∉ I₁ := by
+        rcases Finset.mem_union.mp hv with h | h <;> rw [Finset.mem_sdiff] at h <;>
+          simp [h.1, h.2]
+      have h2 : v ∈ J₂ ↔ v ∉ I₂ := by
+        rcases Finset.mem_union.mp ((hSeq v).mp hv) with h | h <;> rw [Finset.mem_sdiff] at h <;>
+          simp [h.1, h.2]
+      rw [h1, h2, hIfin]
+    · refine ⟨fun h => ?_, fun h => ?_⟩
+      · have hi : v ∈ I₁ := by
+          by_contra hc
+          exact hv (Finset.mem_union_right _ (Finset.mem_sdiff.mpr ⟨h, hc⟩))
+        exact ((hCeq v).mp ⟨hi, h⟩).2
+      · have hi : v ∈ I₂ := by
+          by_contra hc
+          exact hv ((hSeq v).mpr (Finset.mem_union_right _ (Finset.mem_sdiff.mpr ⟨h, hc⟩)))
+        exact ((hCeq v).mpr ⟨hi, h⟩).2
+  rw [pow_two, indepSetCount, indepSetCount, ← Nat.card_prod]
+  refine Nat.card_le_card_of_injective
+    (fun q => ⟨F q.1.1 q.2.1, hmap _ _ q.1.2 q.2.2⟩) ?_
+  rintro ⟨⟨I₁, hI₁⟩, ⟨J₁, hJ₁⟩⟩ ⟨⟨I₂, hI₂⟩, ⟨J₂, hJ₂⟩⟩ heq
+  obtain ⟨e1, e2⟩ := hinj I₁ J₁ I₂ J₂ hI₁ hJ₁ hI₂ hJ₂ (congrArg Subtype.val heq)
+  subst e1
+  subst e2
+  rfl
 /-- **Kahn–Zhao** (Zhao, Theorem 10.4.12; Kahn 2001 for the bipartite case, Zhao 2010 in
 general): a `d`-regular graph on `n` vertices has at most `i(K_{d,d})^{n/(2d)}` independent sets.
 
@@ -2272,7 +3041,36 @@ graphs.  Equality holds exactly there, so no constant in this statement can be i
 theorem indepSetCount_pow_le (n d : ℕ) (G : SimpleGraph (Fin n)) [DecidableRel G.Adj]
     (hreg : ∀ v, G.degree v = d) :
     indepSetCount G ^ (2 * d) ≤ indepSetCount (completeBipartiteGraph (Fin d) (Fin d)) ^ n := by
-  sorry
+  rw [indepSetCount_completeBipartiteGraph]
+  have : DecidableRel (doubleCover G).Adj := fun a b => decidable_of_iff _ doubleCover_adj.symm
+  have hregD : ∀ a : Fin n × Bool, Nat.card {u // (doubleCover G).Adj a u} = d := by
+    intro a
+    have e : {u // (doubleCover G).Adj a u} ≃ {w // G.Adj a.1 w} :=
+      { toFun := fun u => ⟨u.1.1, (doubleCover_adj.mp u.2).1⟩
+        invFun := fun w => ⟨(w.1, !a.2), doubleCover_adj.mpr ⟨w.2, by simp⟩⟩
+        left_inv := by
+          intro u
+          have hb : (!a.2) = (u.1 : Fin n × Bool).2 :=
+            (Bool.eq_not_iff.mpr (Ne.symm (doubleCover_adj.mp u.2).2)).symm
+          exact Subtype.ext (Prod.ext rfl hb)
+        right_inv := fun w => rfl }
+    have hdeg : Nat.card {w // G.Adj a.1 w} = G.degree a.1 := by
+      rw [Nat.card_eq_fintype_card, Fintype.card_subtype, SimpleGraph.degree,
+        SimpleGraph.neighborFinset_eq_filter]
+    rw [Nat.card_congr e, hdeg, hreg a.1]
+  have hkahn := indepSetCount_pow_le_of_side (doubleCover G) d Prod.snd
+    (fun u v huv => (doubleCover_adj.mp huv).2) hregD
+  have hcard : Fintype.card (Fin n × Bool) = 2 * n := by
+    rw [Fintype.card_prod, Fintype.card_fin, Fintype.card_bool]; ring
+  rw [hcard] at hkahn
+  have hzhao := indepSetCount_sq_le_doubleCover G
+  have hstep : (indepSetCount G ^ (2 * d)) ^ 2 ≤ ((2 ^ (d + 1) - 1) ^ n) ^ 2 := by
+    calc (indepSetCount G ^ (2 * d)) ^ 2 = (indepSetCount G ^ 2) ^ (2 * d) := by
+          rw [← pow_mul, ← pow_mul, Nat.mul_comm]
+      _ ≤ indepSetCount (doubleCover G) ^ (2 * d) := Nat.pow_le_pow_left hzhao _
+      _ ≤ (2 ^ (d + 1) - 1) ^ (2 * n) := hkahn
+      _ = ((2 ^ (d + 1) - 1) ^ n) ^ 2 := by rw [← pow_mul, Nat.mul_comm]
+  exact (Nat.pow_le_pow_iff_left (by norm_num)).mp hstep
 
 end IndepSetCount
 
