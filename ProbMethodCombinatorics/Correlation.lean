@@ -1362,4 +1362,25 @@ theorem prob_notMem_le_pow_of_isUpperSet {ι : Type*} [Countable ι] (F : Set (S
   exact ENNReal.toReal_mono (ENNReal.pow_ne_top (measure_ne_top _ _)) (hcomplle.trans hEle)
 
 
+/-- **Harris' inequality in function form** (Zhao, Theorem 7.1.5): two monotone functions of a
+`p`-random subset are non-negatively correlated.
+
+`setBernoulli_mul_le_inter` is the event form, and follows from this by taking indicators — an
+indicator of an upper set is monotone.  The book states the function form first and derives the
+events; this project did it the other way round because every application in Chapters 7 and 8
+uses events, and the function form needs integrability that the event form does not.
+
+`[Fintype ι]` rather than the `[Countable ι]` of the event form: with finitely many coordinates
+every function on `Set ι` is bounded and measurable, so no integrability hypotheses are needed
+and the statement is clean.  The event form's countability note does not apply, because nothing
+here is an infinite intersection of cylinders.
+
+No sign hypothesis: the covariance of two increasing functions is non-negative regardless of
+their signs, which is why `f` and `g` are unconstrained reals. -/
+theorem setBernoulli_mul_integral_le {ι : Type*} [Fintype ι] (p : I) (f g : Set ι → ℝ)
+    (hf : Monotone f) (hg : Monotone g) :
+    (∫ R, f R ∂(setBernoulli Set.univ p)) * (∫ R, g R ∂(setBernoulli Set.univ p))
+      ≤ ∫ R, f R * g R ∂(setBernoulli Set.univ p) := by
+  sorry
+
 end ProbMethodCombinatorics
