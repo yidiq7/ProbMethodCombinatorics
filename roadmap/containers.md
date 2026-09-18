@@ -427,3 +427,42 @@ The open design question on **#99** is its own **dense corner**: `√d ≳ n`. R
 budgets does not fix it, because the parent's own budget `⌊n/√d⌋₊` is only guaranteed `≥ 1`, so a
 size-2 composite fingerprint does not fit. Either the assembly arithmetic changes or that corner
 gets its own argument.
+
+## The concrete path to de-tainting §11.1 (2026-09-17)
+
+`card_triangleFreeGraphs_le` — §11.1's Erdős–Kleitman–Rothschild bound — is the only headline
+result in the project resting on a `sorry`, through the chain
+
+    exists_containers_fingerprint_three_uniform   (the open corner)
+      → exists_containers_three_uniform
+        → exists_shrunken_containers_of_many_triangles
+          → exists_containers_triangleFree
+            → card_triangleFreeGraphs_le
+
+**It genuinely needs the *hypergraph* container theorem, not §11.2's graph one.**  §11.1's route
+applies containers to the triangle hypergraph, which is the Balogh–Morris–Samotij argument;
+`exists_containers` is `sorryAx`-free but is not the theorem this chain uses.
+
+**The parent is strictly weaker than the held statement, and proving it directly would lift the
+taint from four theorems while leaving the corner open.**  Comparing the two:
+
+* Both have the same counting budget.  `exists_containers_three_uniform` allows
+  `∑_{i ≤ n/√d} binom(n,i)` containers, which in the corner's regime `d > n²/4` is `n + 1` — the
+  same `n + 1` the fingerprint form gets.  So the corner's *counting* pressure is not relieved.
+* But the parent does **not** require the container to be `S I ∪ A (S I)` with `A` a function of
+  the fingerprint alone, and does **not** require the container covering `I` to be indexed by a
+  vertex *of `I`*.  Those two demands are exactly what the corner analysis runs into: they turn
+  the problem into "assign each maximal independent set to one of its own vertices", which is the
+  degree-balancing question that is open.  Without them the family of `n + 1` containers may be
+  chosen freely.
+
+So the next concrete step is **a direct proof of `exists_containers_three_uniform`**, not through
+the fingerprint form.  That is a real piece of work — it means running §11.3's algorithm to a
+container family rather than to a fingerprint function — and **no route for it is recorded here,
+because none is known.**  It is not published as a task for that reason; a node whose route the
+orchestrator cannot supply is what this project's standing rule forbids.
+
+What is ruled out, so nobody re-treads it: the corner cannot be dodged by shrinking `δ`
+(`n/√d` is `δ`-independent), and it is not obstructed by a maximal independent set being too
+large (`card_le_of_forall_not_subset` gives `|I| ≤ 5n/6` in the regime, exactly the `δ = 1/6`
+budget).
