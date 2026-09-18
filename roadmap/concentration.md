@@ -148,3 +148,32 @@ task #332.
 The habit that produced all of this is cheap: before trusting any roadmap entry, grep the
 source tree for the declaration, grep Mathlib for the upstream result, and read what the
 source actually claims to prove.  Three greps and a page of the PDF.
+
+
+## §9.4 refinement, 2026-09-18: the proof machinery exists even though the theorem does not
+
+Re-checking §9.4 once more turned up something the earlier note missed.  Harper's theorem is
+absent from Mathlib, but **its standard proof technique is present**:
+
+- `Mathlib/Combinatorics/SetFamily/Compression/UV.lean` — UV-compression, with
+  `UV.card_compression` (compression preserves size) and
+  `UV.card_shadow_compression_le` (compression does not increase the shadow).
+- `Mathlib/Combinatorics/SetFamily/Compression/Down.lean` — down-compression.
+- `Mathlib/Combinatorics/SetFamily/KruskalKatona.lean` and `Mathlib/Combinatorics/Colex.lean`.
+- `Mathlib/InformationTheory/Hamming.lean` — `hammingDist`.
+
+So "no Hamming-cube isoperimetry" is true of the *theorem* and misleading about the *route*.
+Anyone resuming should start from `UV.compression`.
+
+**But the gap is real and larger than it looks.**  Mathlib's compression results are aimed at
+the **shadow** of a `k`-uniform family, which is what Kruskal–Katona needs.  Harper's
+vertex-isoperimetric inequality concerns the `t`-neighbourhood of an *arbitrary* subset of the
+cube and needs compressions toward initial segments of the **simplicial order** — a related
+but distinct argument, with the simplicial order, the neighbourhood-monotonicity of
+compression, and the initial-segment characterisation all still to be built.
+
+**And it is out of scope for this project anyway**: the source *quotes* Harper (Theorem 9.4.3)
+rather than proving it, exactly as it quotes Euclidean isoperimetry (9.4.1) and omits
+Talagrand outright.  Formalising them extends past the book rather than completing it.  That
+is a separate undertaking of research scale — three major theorems — and should be scoped as
+its own project, not smuggled in as a task here.
