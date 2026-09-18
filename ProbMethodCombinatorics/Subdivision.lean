@@ -175,7 +175,18 @@ mean `C(t, 2) / 2`, since `C(t, 2) ≥ 50n - 5√n`. -/
 theorem half_choose_two_add_twenty_le {n : ℕ} :
     (⌈10 * Real.sqrt n⌉₊.choose 2 : ℝ) / 2 + 20 * n
       ≤ (⌈10 * Real.sqrt n⌉₊.choose 2 : ℝ) - n + ⌈10 * Real.sqrt n⌉₊ := by
-  sorry
+  set t := ⌈10 * Real.sqrt n⌉₊
+  have hn : (0 : ℝ) ≤ (n : ℝ) := Nat.cast_nonneg n
+  have htn : (0 : ℝ) ≤ (t : ℝ) := Nat.cast_nonneg t
+  have hsqrt : (0 : ℝ) ≤ 10 * Real.sqrt n := by positivity
+  have hle : 10 * Real.sqrt n ≤ (t : ℝ) := Nat.le_ceil _
+  have hsq : (10 * Real.sqrt n) * (10 * Real.sqrt n) ≤ (t : ℝ) * (t : ℝ) :=
+    mul_self_le_mul_self hsqrt hle
+  have h100 : 100 * (n : ℝ) ≤ (t : ℝ) ^ 2 := by
+    have hs : Real.sqrt n * Real.sqrt n = (n : ℝ) := Real.mul_self_sqrt hn
+    nlinarith [hsq, hs]
+  rw [Nat.cast_choose_two]
+  nlinarith [h100, htn, hn]
 
 /-- The union bound over the `C(n, t)` candidate branch sets is beaten by the deviation `20 n`:
 its logarithm is `O(√n log n)` while the exponent is `Ω(n)`. -/
