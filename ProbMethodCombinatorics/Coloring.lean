@@ -79,7 +79,19 @@ theorem uniformColorOn_avoid_toReal (T : Finset κ) (b : β) :
 theorem uniformColorOn_not_multicolored_toReal_le (T : Finset κ) :
     (uniformColorOn β κ {x : κ → β | ∃ b : β, ∀ u ∈ T, x u ≠ b}).toReal
       ≤ Fintype.card β * (1 - 1 / (Fintype.card β : ℝ)) ^ T.card := by
-  sorry
+  have hset : {x : κ → β | ∃ b : β, ∀ u ∈ T, x u ≠ b}
+      = ⋃ b : β, {x : κ → β | ∀ u ∈ T, x u ≠ b} := by
+    ext x
+    simp
+  have hfin : ∀ b : β, uniformColorOn β κ {x : κ → β | ∀ u ∈ T, x u ≠ b} ≠ ⊤ :=
+    fun b => measure_ne_top _ _
+  have hsum : (∑ b : β, uniformColorOn β κ {x : κ → β | ∀ u ∈ T, x u ≠ b}) ≠ ⊤ :=
+    ENNReal.sum_ne_top.2 fun b _ => hfin b
+  rw [hset]
+  refine (ENNReal.toReal_mono hsum (measure_iUnion_fintype_le _ _)).trans ?_
+  rw [ENNReal.toReal_sum fun b _ => hfin b]
+  simp only [uniformColorOn_avoid_toReal, Finset.sum_const, Finset.card_univ, nsmul_eq_mul,
+    le_refl]
 
 end UniformColor
 
