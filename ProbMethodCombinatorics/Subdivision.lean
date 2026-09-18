@@ -32,7 +32,44 @@ noncomputable def edgeCountWithin {n : ℕ} (S : Finset (Fin n)) (G : SimpleGrap
 ordered pairs contributes `p`, and the `/ 2` turns that into the unordered count. -/
 theorem integral_edgeCountWithin {n : ℕ} (S : Finset (Fin n)) (p : I) :
     ∫ G, edgeCountWithin S G ∂(SimpleGraph.binomialRandom (Fin n) p) = (p : ℝ) * S.card.choose 2 := by
-  sorry
+  classical
+  have hmeas : ∀ q : Fin n × Fin n,
+      MeasurableSet {K : SimpleGraph (Fin n) | K.Adj q.1 q.2} :=
+    fun q => (Set.to_countable _).measurableSet
+  have hprob : ∀ q ∈ S.offDiag,
+      (SimpleGraph.binomialRandom (Fin n) p {K : SimpleGraph (Fin n) | K.Adj q.1 q.2}).toReal
+        = (p : ℝ) := by
+    intro q hq
+    have hne : q.1 ≠ q.2 := (Finset.mem_offDiag.1 hq).2.2
+    have hnd : ∀ e ∈ ({s(q.1, q.2)} : Finset (Sym2 (Fin n))), ¬ e.IsDiag := by
+      intro e he
+      rw [Finset.mem_singleton] at he
+      simpa [he, Sym2.mk_isDiag_iff] using hne
+    have hset : {K : SimpleGraph (Fin n) | K.Adj q.1 q.2}
+        = {K : SimpleGraph (Fin n) |
+            ↑({s(q.1, q.2)} : Finset (Sym2 (Fin n))) ⊆ K.edgeSet} := by
+      ext K
+      simp [Set.subset_def, SimpleGraph.mem_edgeSet]
+    rw [hset, binomialRandom_setOf_subset_edgeSet p _ hnd]
+    simp [unitInterval.coe_toNNReal]
+  have hcongr : ∀ q ∈ S.offDiag,
+      ∫ G, ({K : SimpleGraph (Fin n) | K.Adj q.1 q.2}).indicator (fun _ => (1 : ℝ)) G
+          ∂(SimpleGraph.binomialRandom (Fin n) p) = (p : ℝ) := by
+    intro q hq
+    rw [MeasureTheory.integral_indicator_const _ (hmeas q), smul_eq_mul, mul_one, Measure.real]
+    exact hprob q hq
+  have hle : S.card ≤ S.card * S.card := by
+    rcases Nat.eq_zero_or_pos S.card with h0 | h0
+    · simp [h0]
+    · exact Nat.le_mul_of_pos_left _ h0
+  simp only [edgeCountWithin]
+  rw [MeasureTheory.integral_div,
+    MeasureTheory.integral_finsetSum _ fun q _ =>
+      (integrable_const (1 : ℝ)).indicator (hmeas q),
+    Finset.sum_congr rfl hcongr, Finset.sum_const, nsmul_eq_mul, Finset.offDiag_card,
+    Nat.cast_sub hle, Nat.cast_choose_two]
+  push_cast
+  ring
 
 /-- **The edge slots inside `S` number `C(|S|, 2)`.**  This is the coordinate count that sets
 the exponent in the bounded differences inequality below. -/
