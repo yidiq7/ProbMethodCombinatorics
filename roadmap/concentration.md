@@ -93,3 +93,32 @@ distinction that has now produced two wrong roadmap notes elsewhere in this proj
 Note the project already has the chapter's headline result — the bounded differences inequality
 — proved via the *independent* route rather than through martingales, so nothing here blocks
 Chapter 9's existing content.
+
+
+## §9.4 re-derived 2026-09-18: blocked, and the blocker is deeper than recorded
+
+The old entry said §9.4 "needs a concentration function on the Hamming cube".  Re-checking
+against Mathlib turns up more than that, and nothing that has since appeared:
+
+- **Brunn–Minkowski**: absent.  The only occurrence of "Brunn" anywhere in Mathlib is a
+  bibliography line in `Analysis/Convex/Intrinsic.lean`'s docstring.  Theorem 9.4.1
+  (Euclidean isoperimetry) is the source's first tool and it *cites* Brunn–Minkowski rather
+  than proving it, so 9.4.1 is not a target either way.
+- **Harper 1966** (isoperimetry in the Hamming cube, Theorem 9.4.3): absent, and quoted by
+  the source rather than proved.
+- **Johnson–Lindenstrauss** (Theorem 9.4.22): absent.
+- **Concentration of measure on the sphere** (Corollaries 9.4.12, 9.4.14): absent, and
+  derived in the source from the quoted isoperimetry.
+
+So the shape of §9.4 is: two quoted geometric inputs, then consequences drawn from them.  The
+consequences are the interesting mathematics but they are not reachable without the inputs,
+and the inputs are not in Mathlib and are not proved by the source.  **Blocked, confirmed by
+re-derivation rather than assumed** — unlike five of the other blockers in this roadmap, which
+turned out stale when checked.
+
+Note the contrast with §7.2, checked the same day.  There the *headline* results were equally
+out of reach (Theorem 7.2.5 quoted, Proposition 7.2.6 sketched with a Laplace-method constant),
+but the source's Harris remark alongside them **was** reachable once restated for
+`binomialRandom` instead of the Gaussian surrogate — it is now
+`prod_le_binomialRandom_forall_ncard_neighborSet_le`.  §9.4 has no analogous salvageable
+remark: every consequence runs through a quoted input.
