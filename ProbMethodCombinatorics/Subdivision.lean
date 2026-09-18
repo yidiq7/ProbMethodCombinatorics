@@ -110,6 +110,132 @@ theorem card_edgeSlots_within {n : ℕ} (S : Finset (Fin n)) :
   rw [hcoe]
   omega
 
+/-- `graphOfEdgeSlots` is measurable: for distinct `a` and `b` adjacency in the assembled graph
+is the single coordinate `s(a, b)`, and for `a = b` it is `False`. -/
+private theorem measurable_graphOfEdgeSlots_aux {n : ℕ} :
+    Measurable (graphOfEdgeSlots : (EdgeSlot n → Prop) → SimpleGraph (Fin n)) := by
+  rw [SimpleGraph.measurable_iff_adj]
+  intro a b
+  by_cases hab : a = b
+  · subst hab
+    simp [graphOfEdgeSlots]
+  · have key : (fun x : EdgeSlot n → Prop => (graphOfEdgeSlots x).Adj a b)
+        = fun x => x ⟨s(a, b), by simpa using hab⟩ := by
+      funext x
+      simp only [graphOfEdgeSlots, SimpleGraph.fromEdgeSet_adj, Set.mem_ofPred_eq]
+      exact propext ⟨fun h => h.1.2, fun h => ⟨⟨by simpa using hab, h⟩, hab⟩⟩
+    rw [key]
+    exact measurable_pi_apply _
+
+/-- Adjacency of two distinct vertices in an assembled graph is the value at their slot. -/
+private theorem adj_graphOfEdgeSlots_mk_iff {n : ℕ} (x : EdgeSlot n → Prop) {a b : Fin n}
+    (hab : a ≠ b) (he : ¬ (s(a, b) : Sym2 (Fin n)).IsDiag) :
+    (graphOfEdgeSlots x).Adj a b ↔ x ⟨s(a, b), he⟩ := by
+  simp only [graphOfEdgeSlots, SimpleGraph.fromEdgeSet_adj, Set.mem_ofPred_eq]
+  exact ⟨fun h => h.1.2, fun h => ⟨⟨he, h⟩, hab⟩⟩
+
+/-- An unordered pair arises as `s(q.1, q.2)` from at most two ordered pairs. -/
+private theorem card_filter_mk_eq_le_two {n : ℕ} (s : Finset (Fin n × Fin n))
+    (e : Sym2 (Fin n)) :
+    (s.filter fun q : Fin n × Fin n => (s(q.1, q.2) : Sym2 (Fin n)) = e).card ≤ 2 := by
+  induction e using Sym2.ind with
+  | _ a b =>
+    have hsub : (s.filter fun q : Fin n × Fin n => (s(q.1, q.2) : Sym2 (Fin n)) = s(a, b))
+        ⊆ ({(a, b), (b, a)} : Finset (Fin n × Fin n)) := by
+      intro q hq
+      simp only [Finset.mem_filter, Sym2.eq_iff] at hq
+      simp only [Finset.mem_insert, Finset.mem_singleton, Prod.ext_iff]
+      exact hq.2
+    exact (Finset.card_le_card hsub).trans ((Finset.card_insert_le _ _).trans (by simp))
+
+/-- **The bounded difference of `edgeCountWithin`.**  Toggling one edge slot changes only the
+summands of the `S.offDiag` sum whose pair is that slot, and there are at most the two ordered
+versions of it, each moving by at most `1`; the `/ 2` turns that into `1`.  A slot that is not a
+pair inside `S` changes nothing at all. -/
+private theorem abs_sub_edgeCountWithin_graphOfEdgeSlots_le {n : ℕ} (S : Finset (Fin n))
+    (i : EdgeSlot n) (x y : EdgeSlot n → Prop) (hxy : ∀ j, j ≠ i → x j = y j) :
+    |edgeCountWithin S (graphOfEdgeSlots x) - edgeCountWithin S (graphOfEdgeSlots y)|
+      ≤ if (i : Sym2 (Fin n)) ∈ S.sym2 then (1 : ℝ) else 0 := by
+  set T := S.offDiag.filter fun q : Fin n × Fin n =>
+    (s(q.1, q.2) : Sym2 (Fin n)) = (i : Sym2 (Fin n)) with hTdef
+  have hTsub : T ⊆ S.offDiag := by
+    rw [hTdef]
+    exact Finset.filter_subset _ _
+  have hIcc : ∀ (G : SimpleGraph (Fin n)) (q : Fin n × Fin n),
+      0 ≤ ({K : SimpleGraph (Fin n) | K.Adj q.1 q.2}).indicator (fun _ => (1 : ℝ)) G
+        ∧ ({K : SimpleGraph (Fin n) | K.Adj q.1 q.2}).indicator (fun _ => (1 : ℝ)) G ≤ 1 := by
+    intro G q
+    by_cases h : G ∈ {K : SimpleGraph (Fin n) | K.Adj q.1 q.2}
+    · rw [Set.indicator_of_mem h]
+      norm_num
+    · rw [Set.indicator_of_notMem h]
+      norm_num
+  have hzero : ∀ q ∈ S.offDiag, q ∉ T →
+      ({K : SimpleGraph (Fin n) | K.Adj q.1 q.2}).indicator (fun _ => (1 : ℝ))
+            (graphOfEdgeSlots x)
+          - ({K : SimpleGraph (Fin n) | K.Adj q.1 q.2}).indicator (fun _ => (1 : ℝ))
+            (graphOfEdgeSlots y) = 0 := by
+    intro q hq hqT
+    rw [hTdef] at hqT
+    have hne : q.1 ≠ q.2 := (Finset.mem_offDiag.1 hq).2.2
+    have hd : ¬ (s(q.1, q.2) : Sym2 (Fin n)).IsDiag := by simpa using hne
+    have hslot : (⟨s(q.1, q.2), hd⟩ : EdgeSlot n) ≠ i := fun hcon =>
+      hqT (Finset.mem_filter.2 ⟨hq, congrArg Subtype.val hcon⟩)
+    have hadj : (graphOfEdgeSlots x).Adj q.1 q.2 ↔ (graphOfEdgeSlots y).Adj q.1 q.2 := by
+      rw [adj_graphOfEdgeSlots_mk_iff x hne hd, adj_graphOfEdgeSlots_mk_iff y hne hd,
+        hxy _ hslot]
+    have hmem : graphOfEdgeSlots x ∈ {K : SimpleGraph (Fin n) | K.Adj q.1 q.2}
+        ↔ graphOfEdgeSlots y ∈ {K : SimpleGraph (Fin n) | K.Adj q.1 q.2} := hadj
+    by_cases hx : graphOfEdgeSlots x ∈ {K : SimpleGraph (Fin n) | K.Adj q.1 q.2}
+    · rw [Set.indicator_of_mem hx, Set.indicator_of_mem (hmem.1 hx)]
+      norm_num
+    · rw [Set.indicator_of_notMem hx, Set.indicator_of_notMem fun hc => hx (hmem.2 hc)]
+      norm_num
+  have hfin : |(∑ q ∈ S.offDiag, ({K : SimpleGraph (Fin n) | K.Adj q.1 q.2}).indicator
+          (fun _ => (1 : ℝ)) (graphOfEdgeSlots x))
+        - ∑ q ∈ S.offDiag, ({K : SimpleGraph (Fin n) | K.Adj q.1 q.2}).indicator
+          (fun _ => (1 : ℝ)) (graphOfEdgeSlots y)| ≤ (T.card : ℝ) := by
+    have hsum_eq : (∑ q ∈ S.offDiag, ({K : SimpleGraph (Fin n) | K.Adj q.1 q.2}).indicator
+            (fun _ => (1 : ℝ)) (graphOfEdgeSlots x))
+          - ∑ q ∈ S.offDiag, ({K : SimpleGraph (Fin n) | K.Adj q.1 q.2}).indicator
+            (fun _ => (1 : ℝ)) (graphOfEdgeSlots y)
+        = ∑ q ∈ T, (({K : SimpleGraph (Fin n) | K.Adj q.1 q.2}).indicator
+            (fun _ => (1 : ℝ)) (graphOfEdgeSlots x)
+          - ({K : SimpleGraph (Fin n) | K.Adj q.1 q.2}).indicator
+            (fun _ => (1 : ℝ)) (graphOfEdgeSlots y)) := by
+      rw [← Finset.sum_sub_distrib]
+      exact (Finset.sum_subset hTsub hzero).symm
+    rw [hsum_eq]
+    refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
+    refine (Finset.sum_le_card_nsmul T _ 1 ?_).trans ?_
+    · intro q _
+      obtain ⟨hx0, hx1⟩ := hIcc (graphOfEdgeSlots x) q
+      obtain ⟨hy0, hy1⟩ := hIcc (graphOfEdgeSlots y) q
+      exact abs_le.2 ⟨by linarith, by linarith⟩
+    · simp
+  have hhalf : |edgeCountWithin S (graphOfEdgeSlots x) - edgeCountWithin S (graphOfEdgeSlots y)|
+      ≤ (T.card : ℝ) / 2 := by
+    simp only [edgeCountWithin]
+    obtain ⟨h1, h2⟩ := abs_le.1 hfin
+    exact abs_le.2 ⟨by linarith, by linarith⟩
+  by_cases hi : (i : Sym2 (Fin n)) ∈ S.sym2
+  · rw [if_pos hi]
+    have hT2 : (T.card : ℝ) ≤ 2 := by
+      have h := card_filter_mk_eq_le_two S.offDiag (i : Sym2 (Fin n))
+      rw [← hTdef] at h
+      exact_mod_cast h
+    linarith
+  · rw [if_neg hi]
+    have hT0 : T = ∅ := by
+      rw [hTdef, Finset.filter_eq_empty_iff]
+      intro q hq hcon
+      refine hi ?_
+      rw [← hcon]
+      exact Finset.mk_mem_sym2_iff.2 ⟨(Finset.mem_offDiag.1 hq).1,
+        (Finset.mem_offDiag.1 hq).2.1⟩
+    rw [hT0] at hhalf
+    simpa using hhalf
+
 /-- **The edge count inside a fixed set concentrates.**  As a function of the `C(|S|, 2)` edge
 slots inside `S` it changes by at most `1` when one slot is toggled and does not depend on the
 other slots at all, so the bounded differences inequality applies with `∑ cᵢ² = C(|S|, 2)`. -/
@@ -118,7 +244,53 @@ theorem binomialRandom_edgeCountWithin_ge_le {n : ℕ} (S : Finset (Fin n)) (hS 
     (SimpleGraph.binomialRandom (Fin n) p).real
         {G | lam ≤ edgeCountWithin S G - (p : ℝ) * S.card.choose 2}
       ≤ Real.exp (-2 * lam ^ 2 / S.card.choose 2) := by
-  sorry
+  have hpr : ∀ _ : EdgeSlot n, IsProbabilityMeasure
+      ((toNNReal p) • Measure.dirac True + (toNNReal (σ p)) • Measure.dirac False) :=
+    fun _ => ⟨by simp⟩
+  have hpi : edgeSlotMeasure n p = Measure.pi (fun _ : EdgeSlot n =>
+      (toNNReal p) • Measure.dirac True + (toNNReal (σ p)) • Measure.dirac False) := rfl
+  have hYmeas : Measurable fun G : SimpleGraph (Fin n) => edgeCountWithin S G :=
+    Measurable.of_discrete
+  have hf : Measurable fun x : EdgeSlot n → Prop => edgeCountWithin S (graphOfEdgeSlots x) :=
+    hYmeas.comp measurable_graphOfEdgeSlots_aux
+  -- The weights are the indicators of the slots inside `S`, so `∑ cᵢ² = C(|S|, 2)`.
+  have hcsum : ∑ e : EdgeSlot n,
+      (if (e : Sym2 (Fin n)) ∈ S.sym2 then (1 : ℝ) else 0) ^ 2 = (S.card.choose 2 : ℝ) := by
+    have h1 : ∀ e : EdgeSlot n, (if (e : Sym2 (Fin n)) ∈ S.sym2 then (1 : ℝ) else 0) ^ 2
+        = if (e : Sym2 (Fin n)) ∈ S.sym2 then (1 : ℝ) else 0 := by
+      intro e
+      by_cases he : (e : Sym2 (Fin n)) ∈ S.sym2 <;> simp [he]
+    simp only [h1]
+    rw [Finset.sum_boole, card_edgeSlots_within S]
+  have hchoose : (0 : ℝ) < (S.card.choose 2 : ℝ) := by
+    have h := Nat.choose_pos hS
+    exact_mod_cast h
+  have hsum : 0 < ∑ e : EdgeSlot n,
+      (if (e : Sym2 (Fin n)) ∈ S.sym2 then (1 : ℝ) else 0) ^ 2 := by
+    rw [hcsum]
+    exact hchoose
+  -- Move the event to the edge-exposure product.
+  have hstep : (SimpleGraph.binomialRandom (Fin n) p).real
+        {G | lam ≤ edgeCountWithin S G - (p : ℝ) * S.card.choose 2}
+      = (edgeSlotMeasure n p).real
+        {x | lam ≤ edgeCountWithin S (graphOfEdgeSlots x) - (p : ℝ) * S.card.choose 2} := by
+    rw [binomialRandom_eq_map_graphOfEdgeSlots n p,
+      map_measureReal_apply measurable_graphOfEdgeSlots_aux MeasurableSet.of_discrete,
+      Set.preimage_ofPred_eq]
+  -- The mean is the one computed in `integral_edgeCountWithin`.
+  have hint : ∫ x, edgeCountWithin S (graphOfEdgeSlots x) ∂(edgeSlotMeasure n p)
+      = (p : ℝ) * S.card.choose 2 := by
+    rw [← integral_edgeCountWithin S p, binomialRandom_eq_map_graphOfEdgeSlots n p,
+      integral_map measurable_graphOfEdgeSlots_aux.aemeasurable hYmeas.aestronglyMeasurable]
+  have hmain := measure_sub_integral_ge_le
+    (fun _ : EdgeSlot n =>
+      (toNNReal p) • Measure.dirac True + (toNNReal (σ p)) • Measure.dirac False)
+    (fun x => edgeCountWithin S (graphOfEdgeSlots x))
+    (fun e : EdgeSlot n => if (e : Sym2 (Fin n)) ∈ S.sym2 then (1 : ℝ) else 0)
+    hf (fun e x y h => abs_sub_edgeCountWithin_graphOfEdgeSlots_le S e x y h) hsum hlam
+  rw [← hpi, hcsum, ← measureReal_def, hint] at hmain
+  rw [hstep]
+  exact hmain
 
 /-- **Union bound over the candidate branch sets**: no `t`-set at all is that dense, at the cost
 of a factor `C(n, t)`. -/
