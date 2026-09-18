@@ -169,6 +169,30 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   inline block now calls it, `1d33a6d`, fifteen lines shorter.  **Retiring duplicates stays
   orchestrator work** — a contributor cannot see the other three copies from inside one task.
 
+- **2026-09-17 — verified project state: 236 public theorems, 228 `sorryAx`-free.**
+  `#print axioms` over every public theorem in the build, not a `grep` for `sorry`.  Eight are
+  tainted and they split into two groups:
+
+  * **Three are the currently-published statements themselves** — `indepSetCount_pow_le` (#245),
+    `binomialRandom_no_clique_le_of_mu_le` (#249), `prob_edgeDisjointCliqueNumber_eq_zero_le`
+    (#250).  Expected; they are the open tasks.
+  * **Five are the §11.3 chain**, rooted at the one genuinely open corner:
+    `exists_containers_fingerprint_three_uniform` → `exists_containers_three_uniform` →
+    `exists_shrunken_containers_of_many_triangles` → `exists_containers_triangleFree` →
+    `card_triangleFreeGraphs_le`.
+
+  **So the project has exactly one unresolved mathematical question**, and everything else that
+  is stated is proved.
+
+  **A caution about my own earlier "remaining work" lists.**  Several items I carried as open
+  turned out to be already done — §4.3's finite content is complete
+  (`prob_mem_mono_of_isUpperSet` is Theorem 4.3.5, `prob_notMem_le_pow_of_isUpperSet` is Lemma
+  4.3.7, both `sorryAx`-free), §2.4 was complete before I "assessed" it, and §9.2's Azuma had
+  been proved for days.  Four "blocked on Mathlib" notes were also stale.  The pattern is
+  consistent: **a written status list decays faster than the repository, and re-deriving it costs
+  minutes.**  Per-file theorem counts and an axiom sweep are the cheap ground truth; the prose
+  audit is not.
+
 - **2026-09-17 — I pushed a non-compiling commit, because my build check inverted on failure.**
   `c06edc6` did not compile; `c29903c` fixed it about two minutes later.  The cause was not the
   Lean error — a section that opened `SimpleGraph` but not `unitInterval`, so `I` did not resolve
