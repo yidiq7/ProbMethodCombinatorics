@@ -700,6 +700,22 @@ def branchNonAdj {V : Type*} [Fintype V] (G : SimpleGraph V) [DecidableRel G.Adj
     {t : ℕ} (br : Fin t → V) : Finset (Fin t × Fin t) :=
   Finset.univ.filter fun q => q.1 < q.2 ∧ ¬ G.Adj (br q.1) (br q.2)
 
+/-- A non-adjacent pair of branch vertices is joined by a walk with an interior vertex: the
+walk cannot be `nil`, and the second vertex of a `cons` is neither endpoint. -/
+private theorem exists_mem_support_ne_branch_of_not_adj {V : Type*} {G : SimpleGraph V}
+    {t : ℕ} {br : Fin t → V} {P : ∀ i j : Fin t, i ≠ j → G.Walk (br i) (br j)}
+    (h : IsKSubdivision G t br P) (i j : Fin t) (hij : i ≠ j)
+    (hnadj : ¬ G.Adj (br i) (br j)) :
+    ∃ v : V, v ∈ (P i j hij).support ∧ v ≠ br i ∧ v ≠ br j := by
+  have hne : br i ≠ br j := fun e => hij (h.inj e)
+  obtain ⟨u, hadj, q, hq⟩ :=
+    Walk.not_nil_iff.mp (Walk.not_nil_of_ne (p := P i j hij) hne)
+  refine ⟨u, ?_, hadj.ne', ?_⟩
+  · rw [hq, Walk.support_cons]
+    exact List.mem_cons_of_mem _ (Walk.start_mem_support q)
+  · rintro rfl
+    exact hnadj hadj
+
 /-- **The counting core of Theorem 5.3.2.**  Every non-adjacent pair of branch vertices is
 joined by a path of length at least two, so it consumes an interior vertex, and interiors of
 different paths are disjoint from each other and from all `t` branch vertices.  Hence the
@@ -708,7 +724,68 @@ theorem card_branchNonAdj_add_le_of_isKSubdivision {V : Type*} [Fintype V] [Deci
     {G : SimpleGraph V} [DecidableRel G.Adj] {t : ℕ} {br : Fin t → V}
     {P : ∀ i j : Fin t, i ≠ j → G.Walk (br i) (br j)} (h : IsKSubdivision G t br P) :
     (branchNonAdj G br).card + t ≤ Fintype.card V := by
-  sorry
+  have hmem : ∀ q : Fin t × Fin t, q ∈ branchNonAdj G br →
+      q.1 < q.2 ∧ ¬ G.Adj (br q.1) (br q.2) := by
+    intro q hq
+    simpa [branchNonAdj] using hq
+  -- Ordered pairs are determined by their unordered pair.
+  have hpair : ∀ i j i' j' : Fin t, i < j → i' < j' → (i, j) ≠ (i', j') →
+      ({i, j} : Finset (Fin t)) ≠ {i', j'} := by
+    intro i j i' j' hlt hlt' hne hset
+    have h1 : i ∈ ({i', j'} : Finset (Fin t)) := by rw [← hset]; simp
+    have h2 : j ∈ ({i', j'} : Finset (Fin t)) := by rw [← hset]; simp
+    simp only [Finset.mem_insert, Finset.mem_singleton] at h1 h2
+    rcases h1 with h1 | h1 <;> rcases h2 with h2 | h2
+    · exact absurd (h1.trans h2.symm) (ne_of_lt hlt)
+    · exact hne (by rw [h1, h2])
+    · rw [← h1, ← h2] at hlt'; exact absurd hlt (lt_asymm hlt')
+    · exact absurd (h1.trans h2.symm) (ne_of_lt hlt)
+  -- Choose an interior vertex for every non-adjacent pair.
+  have hex : ∀ q : Fin t × Fin t, ∃ v : V, q ∈ branchNonAdj G br →
+      (∀ hij : q.1 ≠ q.2, v ∈ (P q.1 q.2 hij).support) ∧ v ≠ br q.1 ∧ v ≠ br q.2 := by
+    intro q
+    by_cases hq : q ∈ branchNonAdj G br
+    · obtain ⟨hlt, hnadj⟩ := hmem q hq
+      obtain ⟨v, hv, hv1, hv2⟩ :=
+        exists_mem_support_ne_branch_of_not_adj h q.1 q.2 (ne_of_lt hlt) hnadj
+      exact ⟨v, fun _ => ⟨fun _ => hv, hv1, hv2⟩⟩
+    · exact ⟨br q.1, fun hq' => absurd hq' hq⟩
+  choose f hf using hex
+  have hcard : (branchNonAdj G br).card ≤
+      (Finset.univ \ Finset.image br Finset.univ).card := by
+    refine Finset.card_le_card_of_injOn f ?_ ?_
+    · intro q hq
+      rw [Finset.mem_coe] at hq
+      obtain ⟨hsupp, hne1, hne2⟩ := hf q hq
+      obtain ⟨hlt, -⟩ := hmem q hq
+      rw [Finset.mem_coe, Finset.mem_sdiff]
+      refine ⟨Finset.mem_univ _, ?_⟩
+      rw [Finset.mem_image]
+      rintro ⟨k, -, hk⟩
+      exact h.interior_avoids_branch q.1 q.2 (ne_of_lt hlt) k (f q)
+        (hsupp (ne_of_lt hlt)) hne1 hne2 hk.symm
+    · intro q hq q' hq' heq
+      rw [Finset.mem_coe] at hq hq'
+      obtain ⟨i, j⟩ := q
+      obtain ⟨i', j'⟩ := q'
+      obtain ⟨hsupp, hne1, hne2⟩ := hf (i, j) hq
+      obtain ⟨hsupp', -, -⟩ := hf (i', j') hq'
+      obtain ⟨hlt, -⟩ := hmem (i, j) hq
+      obtain ⟨hlt', -⟩ := hmem (i', j') hq'
+      by_contra hqq
+      have hmem2 : f (i, j) ∈ (P i' j' (ne_of_lt hlt')).support := by
+        rw [heq]; exact hsupp' (ne_of_lt hlt')
+      rcases h.interior_disjoint i j (ne_of_lt hlt) i' j' (ne_of_lt hlt')
+        (hpair i j i' j' hlt hlt' hqq) (f (i, j))
+        (hsupp (ne_of_lt hlt)) hmem2 with e | e
+      · exact hne1 e
+      · exact hne2 e
+  have himg : (Finset.image br Finset.univ).card = t := by
+    rw [Finset.card_image_of_injective _ h.inj, Finset.card_univ, Fintype.card_fin]
+  rw [Finset.card_univ_sdiff, himg] at hcard
+  have ht : t ≤ Fintype.card V := by
+    simpa using Fintype.card_le_of_injective br h.inj
+  omega
 
 end Subdivision
 
