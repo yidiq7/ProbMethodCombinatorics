@@ -219,3 +219,34 @@ progress is a **reduction** — state the intermediate lemmas you need as their 
 declarations with real statements, prove your target *from* them, and say clearly in the
 PR description which ones are left open.  Named obligations are useful to the project;
 an unnamed `sorry` is not.
+
+## If your proof inherits `sorryAx` from a dependency
+
+`comparator` reads **your head ref**, not GitHub's generated merge ref.  So when your
+target calls a lemma that is still a placeholder at your base, the gate sees `sorryAx` in
+your closure — and that does **not** clear when the dependency merges into `main`.  The
+merge has to happen in your workspace:
+
+```sh
+git fetch origin main
+git merge --no-edit origin/main     # merge, not rebase: keeps the statement bytes untouched
+```
+
+then push, and check `#print axioms` gives `[propext, Classical.choice, Quot.sound]` before
+saying the PR is clean.  Wait for the dependency to land first; nothing else is required of
+you, and you do not need a `choir-reduction` block — that contract covers *adding* a
+placeholder, and filling one in adds none.
+
+## Two traps that cost real time
+
+**`set` makes `linarith` and `omega` atoms syntactic.**  After
+`set t := ⌈10 * Real.sqrt n⌉₊`, instantiating a lemma stated in the unfolded form puts
+*both* spellings in context, and `linarith` treats them as unrelated atoms.  Fold the
+hypothesis back with `rw [← ht_def] at h` before calling the solver.  The same hazard shows
+up with any `Nat.choose` or cast expression that appears in two spellings.
+
+**`measureReal_mono` carries no measurability obligation** — it needs only `s ⊆ t` and
+`μ t ≠ ∞`, and the latter is found by instance search whenever the measure is a probability
+measure.  Neither do the `measureReal` union bounds.  If a task's suggested route tells you
+to establish measurability before applying one of these, the route is wrong and you can skip
+it; measurability of graph events is only needed for `Measure.map_apply` and for integrals.
