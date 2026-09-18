@@ -16,6 +16,13 @@ Both should be `1/n`: the probability that `σ` fixes `i` is `1/n`, and it is `x
 makes `∏ (1 - xᵢ)` equal the stated `(1 - 1/n) ^ n`.  With `xᵢ = 1 - 1/n` the conclusion would
 read `(1/n) ^ n`.
 
+**The instances below are explicitly named, and that is not cosmetic.**  `MeasurableSpace
+(Equiv.Perm (Fin n))` appears inside the term of every statement in this file, and an
+*anonymous* instance's auto-generated name does not survive the `ChoirBase.` module prefixing
+that `comparator` applies to the base tree — the gate then reports `statement-mismatch` on a
+statement whose bytes are identical.  `Concentration.lean`'s named instances never had the
+problem.  See `skills/conventions.md`.
+
 Both facts below were checked by exhaustive enumeration before being stated: the negative
 dependency inequality has no violations over every `n ≤ 7`, every `i`, and every `S`, and the
 corollary holds at `n = 1, …, 8`.
@@ -27,15 +34,16 @@ open Finset MeasureTheory ProbabilityTheory
 
 variable {n : ℕ}
 
-instance : MeasurableSpace (Equiv.Perm (Fin n)) := ⊤
+instance instMeasurableSpacePermFin : MeasurableSpace (Equiv.Perm (Fin n)) := ⊤
 
-instance : MeasurableSingletonClass (Equiv.Perm (Fin n)) := ⟨fun _ => trivial⟩
+instance instMeasurableSingletonClassPermFin :
+    MeasurableSingletonClass (Equiv.Perm (Fin n)) := ⟨fun _ => trivial⟩
 
 /-- The uniform measure on permutations of `Fin n`. -/
 noncomputable def uniformPerm (n : ℕ) : Measure (Equiv.Perm (Fin n)) :=
   uniformOn (Set.univ : Set (Equiv.Perm (Fin n)))
 
-instance : IsProbabilityMeasure (uniformPerm n) := by
+instance instIsProbabilityMeasureUniformPerm : IsProbabilityMeasure (uniformPerm n) := by
   rw [uniformPerm]; infer_instance
 
 /-- The event that `i` is a fixed point of the permutation. -/
