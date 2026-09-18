@@ -56,6 +56,23 @@ theorem not_isKChoosable_completeBipartiteGraph {α : Type} [Fintype α] [Decida
     {n k : ℕ} (H : Finset (Finset α)) (huniform : ∀ e ∈ H, e.card = k) (hn : H.card = n)
     (hnot : ¬ TwoColorable H) :
     ¬ IsKChoosable (completeBipartiteGraph (Fin n) (Fin n)) k := by
-  sorry
+  subst hn
+  intro hchoose
+  apply hnot
+  obtain ⟨c, hc, hsep⟩ :=
+    hchoose α (fun v => ((H.equivFin.symm (v.elim id id) : {e // e ∈ H}) : Finset α))
+      (fun v => huniform _ (H.equivFin.symm (v.elim id id)).2)
+  refine ⟨fun a => decide (∃ i, c (Sum.inl i) = a), fun e he => ?_⟩
+  have hie : ((H.equivFin.symm (H.equivFin ⟨e, he⟩) : {e // e ∈ H}) : Finset α) = e := by
+    rw [Equiv.symm_apply_apply]
+  set i : Fin H.card := H.equivFin ⟨e, he⟩
+  refine ⟨c (Sum.inl i), ?_, c (Sum.inr i), ?_, ?_⟩
+  · simpa [hie] using hc (Sum.inl i)
+  · simpa [hie] using hc (Sum.inr i)
+  · have hleft : ∃ j, c (Sum.inl j) = c (Sum.inl i) := ⟨i, rfl⟩
+    have hright : ¬ ∃ j, c (Sum.inl j) = c (Sum.inr i) := by
+      rintro ⟨j, hj⟩
+      exact hsep (Sum.inl j) (Sum.inr i) (Or.inl ⟨rfl, rfl⟩) hj
+    simp [hleft, hright]
 
 end ProbMethodCombinatorics
