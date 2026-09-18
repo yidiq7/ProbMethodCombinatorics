@@ -31,9 +31,14 @@ def IsTransversalEdge (e : Finset (Fin k × Fin n)) : Prop :=
   ∀ i : Fin k, (e.filter fun v => v.1 = i).card = 1
 
 /-- **Theorem 2.5.2.**  The constant is uniform in `n` and in the colouring; that uniformity
-is inherited from `exists_pos_forall_exists_abs_eval_ge` and is the substance of the result. -/
+is inherited from `exists_pos_forall_exists_abs_eval_ge` and is the substance of the result.
+
+**`0 < n` is required, and without it the statement is false.**  At `n = 0` the vertex set is
+empty, the only `S` is `∅`, both colour counts are `0`, and the claim reads `c * 0 ^ k < 0`.
+The source states the theorem for parts "of size `n`" without comment, as it does elsewhere;
+this is the same kind of unstated hypothesis as §2.4.4's `5 ≤ n` and §9.3.1's `2 ≤ n`. -/
 theorem exists_subset_colour_discrepancy {k : ℕ} (hk : 2 ≤ k) :
-    ∃ c : ℝ, 0 < c ∧ ∀ (n : ℕ) (col : Finset (Fin k × Fin n) → Bool),
+    ∃ c : ℝ, 0 < c ∧ ∀ (n : ℕ), 0 < n → ∀ col : Finset (Fin k × Fin n) → Bool,
       (∀ e : Finset (Fin k × Fin n), e.card = k → IsTransversalEdge e → col e = true) →
       ∃ S : Finset (Fin k × Fin n),
         c * (n : ℝ) ^ k <
