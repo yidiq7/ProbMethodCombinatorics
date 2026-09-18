@@ -153,3 +153,43 @@ walk, no directed cycle** — so the closing step, extracting a cycle from the f
 of "successor with label `+1`", has nothing to be stated against.  This is the same shape of
 obstacle §5.3 had, and it was resolved there by authoring the vocabulary and validating it by
 exhaustive small-case search before any theorem was stated.  The same discipline applies here.
+
+
+## §6.2's infinite-vertex-set material, stated 2026-09-17/18
+
+**Lemma 6.2.7 (compactness)** is `exists_forall_notMem_of_forall_finset`, proved in #275.  It
+is pure Tychonoff — no probability, no local lemma: give each variable type the discrete
+topology, observe that `hdet` makes every bad event a union of basic open boxes, and run
+`elim_finite_subfamily_closed` against the finite-intersection property supplied by the
+hypothesis.  The index type of the *events* is unrestricted (it is `ℝ` in both applications);
+what must be finite is the set of values each *variable* can take, which is Remark 6.2.8's
+point.
+
+It lives in a new `Compactness` section rather than `Applications`, because that section's
+`variable` line fixes `[Fintype α]` and the whole purpose here is an infinite vertex set.  The
+same constraint forced `twoColorable_of_le_card_inter_card_le`, which is
+`twoColorable_of_inter_card_le` with two restrictions lifted: edges may have *at least* `k`
+vertices, and `α` need not be a `Fintype`.  Neither lift needs the local lemma re-derived —
+non-uniform reduces to uniform by shrinking each edge to a `k`-subset (neighbour counts only
+shrink), and an arbitrary vertex type reduces to `H.sup id`.
+
+**Theorem 6.2.10 (multicoloured translates)** is stated in `Coloring.lean`, again a separate
+file so that nothing is added to `LocalLemma.lean` while tasks are pinned to it.
+
+The reason this was cheap: Chapter 6's existing colouring machinery is `Bool`-valued
+(`fairCoin`, `uniformColoring`), and more than two colours looked like it would need the whole
+independence layer rebuilt.  It does not.  Mathlib's `uniformOn_pi` already proves that the
+uniform measure on `κ → β` *is* `Measure.pi`, and this project's `measure_pi_inter_eq_mul` was
+written index-generically rather than for `Bool`, so it applies unchanged.
+`instIsProbabilityMeasure_uniformOn_univ` comes free as well.  The lesson is the mirror of the
+stale-blocker one: a piece of infrastructure written generically once pays out at a distance,
+and it is worth checking how general the existing lemma actually is before generalising it.
+
+The hypothesis was checked non-vacuous before stating: the least admissible `m` is `9, 20, 33,
+46, 123` for `k = 2, 3, 4, 5, 10`.  The degenerate corner needs no guard — `m = 0` would force
+`e·k ≤ 1`, impossible for `k ≥ 1`.
+
+**This also unblocks half of §6.4.**  Alon–Linial labels vertices by `ZMod k`, and the
+non-`Bool` uniform colouring was one of its two obstacles.  The other — no directed walk or
+cycle anywhere in Mathlib's `Combinatorics/Digraph/` — stands, and is an authoring job of the
+same shape as `IsKSubdivision`.
