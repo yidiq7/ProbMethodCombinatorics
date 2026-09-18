@@ -5,8 +5,9 @@ a statistic over a family of objects, then take an object at least as good as th
 No independence is needed anywhere in it, which is exactly why the finite-averaging
 formalization works.
 
-Two of the chapter's six sections are stated so far.  The other four are unstated, and as of
-2026-09-15 each has a **named blocker** rather than merely being pending:
+Five of the chapter's six sections are stated as of 2026-09-17; only §2.6 remains, and it has a
+**named blocker** rather than merely being pending.  The per-section notes below record how each
+blocker was assessed — several turned out to be wrong on inspection, which is why they are kept.
 
 - **§2.2 (large sum-free subsets)** — blocked twice over.  Mathlib has no `IsSumFree`
   (`ThreeAPFree` is a different notion — three-term progressions, not sums), so the predicate
