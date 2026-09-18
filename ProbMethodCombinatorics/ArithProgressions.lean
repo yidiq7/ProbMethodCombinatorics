@@ -528,6 +528,46 @@ theorem exists_twoColoring_no_monochromatic_ap {ε : ℝ} (hε : 0 < ε) :
     ∃ k₀ : ℕ, ∃ c : ℤ → Bool, ∀ (a d : ℤ) (k : ℕ), k₀ ≤ k → 0 < d →
       (d : ℝ) < (2 : ℝ) ^ ((1 - ε) * (k : ℝ)) →
       ∃ u ∈ apSet a d k, ∃ v ∈ apSet a d k, c u ≠ c v := by
-  sorry
+  classical
+  obtain ⟨k₀, hk₀⟩ := exists_twoColoring_forall_mem_not_monochromatic hε
+  refine ⟨k₀, ?_⟩
+  -- Index the bad events by the progressions the statement constrains: those of length at
+  -- least `k₀` whose common difference is positive and below the bound.
+  set E : {p : ℤ × ℤ × ℕ //
+      k₀ ≤ p.2.2 ∧ 0 < p.2.1 ∧ (p.2.1 : ℝ) < (2 : ℝ) ^ ((1 - ε) * (p.2.2 : ℝ))} →
+        Set (ℤ → Bool) :=
+    fun j => {c : ℤ → Bool | ∀ u ∈ apSet j.1.1 j.1.2.1 j.1.2.2,
+      ∀ v ∈ apSet j.1.1 j.1.2.1 j.1.2.2, c u = c v} with hEdef
+  -- Whether a progression is monochromatic only depends on the colours of its terms.
+  have hdet : ∀ (j : {p : ℤ × ℤ × ℕ //
+      k₀ ≤ p.2.2 ∧ 0 < p.2.1 ∧ (p.2.1 : ℝ) < (2 : ℝ) ^ ((1 - ε) * (p.2.2 : ℝ))})
+      (x y : ℤ → Bool),
+      (∀ i ∈ apSet j.1.1 j.1.2.1 j.1.2.2, x i = y i) → (x ∈ E j ↔ y ∈ E j) := by
+    intro j x y hxy
+    simp only [hEdef, Set.mem_ofPred_eq]
+    constructor
+    · intro hx u hu v hv; rw [← hxy u hu, ← hxy v hv]; exact hx u hu v hv
+    · intro hy u hu v hv; rw [hxy u hu, hxy v hv]; exact hy u hu v hv
+  -- Finitely many progressions at a time is exactly the previous theorem.
+  have hfin : ∀ F : Finset {p : ℤ × ℤ × ℕ //
+      k₀ ≤ p.2.2 ∧ 0 < p.2.1 ∧ (p.2.1 : ℝ) < (2 : ℝ) ^ ((1 - ε) * (p.2.2 : ℝ))},
+      ∃ x : ℤ → Bool, ∀ j ∈ F, x ∉ E j := by
+    intro F
+    obtain ⟨c, hc⟩ := hk₀ (F.image Subtype.val) (by
+      intro p hp
+      obtain ⟨j, -, rfl⟩ := Finset.mem_image.1 hp
+      exact j.2)
+    refine ⟨c, fun j hj => ?_⟩
+    obtain ⟨u, hu, v, hv, huv⟩ := hc j.1 (Finset.mem_image_of_mem _ hj)
+    intro hmono
+    exact huv (hmono u hu v hv)
+  -- Compactness glues the finite colourings into a single colouring of all of `ℤ`.
+  obtain ⟨c, hc⟩ := exists_forall_notMem_of_forall_finset (α := fun _ : ℤ => Bool) E
+    (fun j => apSet j.1.1 j.1.2.1 j.1.2.2) hdet hfin
+  refine ⟨c, fun a d k hk hd hlt => ?_⟩
+  have hcj := hc ⟨(a, d, k), hk, hd, hlt⟩
+  simp only [hEdef, Set.mem_ofPred_eq] at hcj
+  push Not at hcj
+  exact hcj
 
 end ProbMethodCombinatorics
