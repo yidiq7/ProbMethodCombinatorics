@@ -2156,6 +2156,292 @@ theorem perfectMatchingCount_doubleCover {n : ℕ} (G : SimpleGraph (Fin n)) [De
         subst hd
         exact Or.inr (by rw [hcoe, hσ₀u v u hadj.symm])
 
+/-- The subgraph of `G` picked out by a vertex map `f`: the edges are the `v — f v`, and every
+vertex is included.  The adjacency relation carries `G`'s own adjacency, so the subgraph is
+defined for every `f`; it is a perfect matching exactly when `f` is a fixed-point-free
+involution moving every vertex along an edge of `G`. -/
+private def involSubgraph (G : SimpleGraph V) (f : V → V) : G.Subgraph where
+  verts := Set.univ
+  Adj a b := G.Adj a b ∧ (b = f a ∨ a = f b)
+  adj_sub h := h.1
+  edge_vert _ := Set.mem_univ _
+  symm := ⟨fun _ _ h => ⟨h.1.symm, h.2.symm⟩⟩
+
+/-- `involSubgraph G f` is a perfect matching as soon as `f` is an involution moving every
+vertex along an edge of `G`: the unique neighbour of `v` is `f v`, since `v = f w` forces
+`w = f v`. -/
+private theorem involSubgraph_isPerfectMatching {G : SimpleGraph V} {f : V → V}
+    (hadj : ∀ v, G.Adj v (f v)) (hinv : ∀ v, f (f v) = v) :
+    (involSubgraph G f).IsPerfectMatching := by
+  rw [SimpleGraph.Subgraph.isPerfectMatching_iff]
+  intro v
+  refine ⟨f v, ⟨hadj v, Or.inl rfl⟩, ?_⟩
+  intro w hw
+  rcases hw.2 with h | h
+  · exact h
+  · rw [h, hinv]
+
+/-- **Perfect matchings are involutions.**  A perfect matching of `G` is the same data as a map
+`f : V → V` with `v` and `f v` adjacent and `f ∘ f = id`; looplessness of `G` then makes `f`
+fixed-point-free automatically.  This is the form in which the symmetric-difference argument
+manipulates matchings, and it applies verbatim to `doubleCover G` on `V × Bool`. -/
+private theorem perfectMatchingCount_eq_card_invol [Fintype V] (G : SimpleGraph V) :
+    perfectMatchingCount G
+      = Nat.card {f : V → V // (∀ v, G.Adj v (f v)) ∧ ∀ v, f (f v) = v} := by
+  rw [perfectMatchingCount]
+  refine (Nat.card_eq_of_bijective
+    (fun f => (⟨involSubgraph G f.1, involSubgraph_isPerfectMatching f.2.1 f.2.2⟩ :
+      {M : G.Subgraph // M.IsPerfectMatching})) ⟨?_, ?_⟩).symm
+  · rintro ⟨f, hf⟩ ⟨g, hg⟩ h
+    simp only [Subtype.mk_eq_mk] at h
+    refine Subtype.ext (funext fun v => ?_)
+    show f v = g v
+    have h1 : (involSubgraph G g).Adj v (f v) := by
+      rw [← h]; exact ⟨hf.1 v, Or.inl rfl⟩
+    rcases h1.2 with h2 | h2
+    · exact h2
+    · have e : g (g (f v)) = f v := hg.2 (f v)
+      rw [← h2] at e
+      exact e.symm
+  · rintro ⟨M, hM⟩
+    have hu : ∀ v : V, ∃! w, M.Adj v w := SimpleGraph.Subgraph.isPerfectMatching_iff.mp hM
+    choose f hf hfu using hu
+    have hadj : ∀ v, G.Adj v (f v) := fun v => M.adj_sub (hf v)
+    have hinv : ∀ v, f (f v) = v := fun v => (hfu (f v) v (hf v).symm).symm
+    refine ⟨⟨f, hadj, hinv⟩, Subtype.ext ?_⟩
+    refine SimpleGraph.Subgraph.ext ((Set.eq_univ_iff_forall.mpr hM.2).symm) ?_
+    funext a b
+    simp only [eq_iff_iff]
+    constructor
+    · rintro ⟨h1, h2 | h2⟩
+      · rw [h2]; exact hf a
+      · rw [h2]; exact (hf b).symm
+    · intro hab
+      exact ⟨M.adj_sub hab, Or.inl (hfu a b hab)⟩
+
+/-- **The union of two perfect matchings has no odd closed walk.**  For fixed-point-free
+involutions `m` and `n` write `s = m ∘ n`; the `s`-orbits are the two colour classes of each
+component of `m ∪ n`, so no vertex shares its `s`-orbit with its `m`-partner.
+
+The halving argument is the whole content: an orbit step `s^[k] v = m v` yields a fixed point of
+`m` at `s^[k/2] v` when `k` is even, and a fixed point of `n` at `s^[(k-1)/2] v` when `k` is
+odd.  A walk in the orbit relation, which may run either way along `s`, is reduced to a one-sided
+orbit step by cancelling the common prefix. -/
+private theorem not_orbit_rel_invol (m n : V → V) (R : V → V → Prop)
+    (hR : ∀ x y, R x y ↔ (y = m (n x) ∨ x = m (n y)))
+    (hm : ∀ v, m (m v) = v) (hn : ∀ v, n (n v) = v)
+    (hm' : ∀ v, m v ≠ v) (hn' : ∀ v, n v ≠ v) (v : V) :
+    ¬ Relation.ReflTransGen R v (m v) := by
+  obtain ⟨s, hsd⟩ : ∃ s : V → V, ∀ x, s x = m (n x) := ⟨_, fun _ => rfl⟩
+  obtain ⟨t, htd⟩ : ∃ t : V → V, ∀ x, t x = n (m x) := ⟨_, fun _ => rfl⟩
+  have hminj : Function.Injective m := fun a b h => by rw [← hm a, h, hm b]
+  have hninj : Function.Injective n := fun a b h => by rw [← hn a, h, hn b]
+  have hsinj : Function.Injective s := by
+    intro a b h
+    rw [hsd a, hsd b] at h
+    exact hninj (hminj h)
+  have hts : ∀ x, t (s x) = x := by intro x; simp only [hsd, htd, hm, hn]
+  have hms1 : ∀ x, m (s x) = n x := by intro x; simp only [hsd, hm]
+  have htm : ∀ x, t (m x) = n x := by intro x; simp only [htd, hm]
+  have hcomm : ∀ (j : ℕ) (y : V), s (s^[j] y) = s^[j] (s y) := fun j y =>
+    (Function.iterate_succ_apply' s j y).symm.trans (Function.iterate_succ_apply s j y)
+  have htiters : ∀ (j : ℕ) (x : V), t^[j] (s^[j] x) = x := by
+    intro j
+    induction j with
+    | zero => intro x; simp
+    | succ k ih =>
+        intro x
+        rw [Function.iterate_succ_apply (f := s), Function.iterate_succ_apply' (f := t), ih, hts]
+  have hms : ∀ (j : ℕ) (x : V), m (s^[j] x) = t^[j] (m x) := by
+    intro j
+    induction j with
+    | zero => intro x; simp
+    | succ k ih =>
+        intro x
+        simp only [Function.iterate_succ_apply]
+        rw [ih (s x), hms1, htm]
+  have hkey : ∀ (k : ℕ) (x : V), s^[k] x ≠ m x := by
+    intro k x h
+    rcases Nat.even_or_odd k with ⟨j, hj⟩ | ⟨j, hj⟩
+    · have ha : s^[j] (s^[j] x) = m x := by
+        rw [← Function.iterate_add_apply, ← hj]; exact h
+      have hfix : m (s^[j] x) = s^[j] x := by rw [hms j x, ← ha, htiters]
+      exact hm' _ hfix
+    · have ha : s^[j] (s (s^[j] x)) = m x := by
+        rw [hcomm, ← Function.iterate_succ_apply (f := s), ← Function.iterate_add_apply]
+        simp only [Nat.succ_eq_add_one]
+        rw [show j + (j + 1) = k by omega]
+        exact h
+      have hfix : m (s^[j] x) = s (s^[j] x) := by rw [hms j x, ← ha, htiters]
+      rw [hsd] at hfix
+      exact hn' _ (hminj hfix).symm
+  have horb_ex : ∀ a b, Relation.ReflTransGen R a b → ∃ p q : ℕ, s^[p] a = s^[q] b := by
+    intro a b h
+    induction h with
+    | refl => exact ⟨0, 0, rfl⟩
+    | @tail x y hax hxy ih =>
+        obtain ⟨p, q, hpq⟩ := ih
+        rcases (hR x y).mp hxy with hc | hc
+        · refine ⟨p + 1, q, ?_⟩
+          rw [hc, ← hsd, Function.iterate_succ_apply' (f := s), hpq, hcomm]
+        · refine ⟨p, q + 1, ?_⟩
+          rw [hpq, hc, ← hsd, Function.iterate_succ_apply]
+  intro h
+  obtain ⟨p, q, hpq⟩ := horb_ex v (m v) h
+  rcases le_total p q with hle | hle
+  · obtain ⟨r, hr⟩ := Nat.exists_eq_add_of_le hle
+    rw [hr, Function.iterate_add_apply] at hpq
+    have he := hsinj.iterate p hpq
+    exact hkey r (m v) (by rw [hm]; exact he.symm)
+  · obtain ⟨r, hr⟩ := Nat.exists_eq_add_of_le hle
+    rw [hr, Function.iterate_add_apply] at hpq
+    exact hkey r v (hsinj.iterate q hpq)
+
+/-- **The union of two perfect matchings is bipartite, canonically.**  For fixed-point-free
+involutions `m` and `n` there is a two-colouring `c` of `V` flipping across every `m`-edge and
+every `n`-edge, normalised so that the least-rank vertex of each component gets `true`.
+
+The colour of `v` records whether the least-rank vertex of `v`'s component lies in the
+`m ∘ n`-orbit of `v` or in the other orbit of that component; `not_orbit_rel_invol` is what makes
+those two orbits distinct, and the normalisation is what makes the colouring depend only on the
+unordered pair `{m, n}`.  As in `indepSetCount_sq_le_doubleCover` the least-rank vertex enters as
+a bare existential rather than as a representative function. -/
+private theorem exists_flip_coloring [Fintype V] (rk : V → ℕ)
+    (hrk : Function.Injective rk) (m n : V → V)
+    (hm : ∀ v, m (m v) = v) (hn : ∀ v, n (n v) = v)
+    (hm' : ∀ v, m v ≠ v) (hn' : ∀ v, n v ≠ v) :
+    ∃ c : V → Bool, (∀ v, c (m v) = !c v) ∧ (∀ v, c (n v) = !c v) ∧
+      ∀ u, (∀ w, Relation.ReflTransGen (fun x y => y = m x ∨ y = n x) w u → rk u ≤ rk w) →
+        c u = true := by
+  classical
+  obtain ⟨R, hRd⟩ : ∃ R : V → V → Prop, ∀ x y, R x y ↔ (y = m (n x) ∨ x = m (n y)) :=
+    ⟨_, fun _ _ => Iff.rfl⟩
+  obtain ⟨O, hOd⟩ : ∃ O : V → V → Prop, ∀ x y, O x y ↔ Relation.ReflTransGen R x y :=
+    ⟨_, fun _ _ => Iff.rfl⟩
+  obtain ⟨K, hKd⟩ : ∃ K : V → V → Prop,
+      ∀ x y, K x y ↔ Relation.ReflTransGen (fun a b => b = m a ∨ b = n a) x y :=
+    ⟨_, fun _ _ => Iff.rfl⟩
+  -- basic closure properties of the orbit relation `O`
+  have hOrefl : ∀ v, O v v := fun v => (hOd v v).mpr Relation.ReflTransGen.refl
+  have hOtrans : ∀ a b c, O a b → O b c → O a c := fun a b c hab hbc =>
+    (hOd a c).mpr (((hOd a b).mp hab).trans ((hOd b c).mp hbc))
+  have hOsymm : ∀ a b, O a b → O b a := by
+    intro a b hab
+    rw [hOd] at hab ⊢
+    induction hab with
+    | refl => exact Relation.ReflTransGen.refl
+    | @tail x y _ hxy ih =>
+        refine (Relation.ReflTransGen.single ?_).trans ih
+        rw [hRd] at hxy ⊢
+        exact hxy.symm
+  have hOstep : ∀ v, O v (m (n v)) := fun v =>
+    (hOd _ _).mpr (Relation.ReflTransGen.single ((hRd _ _).mpr (Or.inl rfl)))
+  have hOnm : ∀ v, O (n v) (m v) := fun v =>
+    (hOd _ _).mpr (Relation.ReflTransGen.single ((hRd _ _).mpr (Or.inl (by rw [hn]))))
+  have hOnot : ∀ v, ¬ O v (m v) := by
+    intro v hv
+    exact not_orbit_rel_invol m n R hRd hm hn hm' hn' v ((hOd _ _).mp hv)
+  -- basic closure properties of the component relation `K`
+  have hKrefl : ∀ v, K v v := fun v => (hKd v v).mpr Relation.ReflTransGen.refl
+  have hKtrans : ∀ a b c, K a b → K b c → K a c := fun a b c hab hbc =>
+    (hKd a c).mpr (((hKd a b).mp hab).trans ((hKd b c).mp hbc))
+  have hKsymm : ∀ a b, K a b → K b a := by
+    intro a b hab
+    rw [hKd] at hab ⊢
+    induction hab with
+    | refl => exact Relation.ReflTransGen.refl
+    | @tail x y _ hxy ih =>
+        refine (Relation.ReflTransGen.single ?_).trans ih
+        rcases hxy with h | h
+        · exact Or.inl (by rw [h, hm])
+        · exact Or.inr (by rw [h, hn])
+  have hKm : ∀ v, K v (m v) := fun v => (hKd _ _).mpr (Relation.ReflTransGen.single (Or.inl rfl))
+  have hKn : ∀ v, K v (n v) := fun v => (hKd _ _).mpr (Relation.ReflTransGen.single (Or.inr rfl))
+  have hOK : ∀ a b, O a b → K a b := by
+    intro a b hab
+    rw [hOd] at hab
+    induction hab with
+    | refl => exact hKrefl _
+    | @tail x y _ hxy ih =>
+        refine hKtrans _ _ _ ih ?_
+        rcases (hRd x y).mp hxy with h | h
+        · exact h ▸ hKtrans _ _ _ (hKn x) (hKm (n x))
+        · exact hKsymm _ _ (h ▸ hKtrans _ _ _ (hKn y) (hKm (n y)))
+  -- least-rank element of an orbit
+  have hmin : ∀ v : V, ∃ x, O x v ∧ ∀ w, O w v → rk x ≤ rk w := by
+    intro v
+    obtain ⟨x, hx, hxmin⟩ := Finset.exists_min_image (univ.filter fun x => O x v) rk
+      ⟨v, Finset.mem_filter.mpr ⟨Finset.mem_univ _, hOrefl v⟩⟩
+    rw [Finset.mem_filter] at hx
+    exact ⟨x, hx.2, fun w hw => hxmin w (Finset.mem_filter.mpr ⟨Finset.mem_univ _, hw⟩)⟩
+  obtain ⟨P, hPd⟩ : ∃ P : V → Prop,
+      ∀ v, P v ↔ (∃ x, O x v ∧ ∀ w, O w (m v) → rk x < rk w) := ⟨_, fun _ => Iff.rfl⟩
+  have hPchar : ∀ (v a b : V), O a v → (∀ w, O w v → rk a ≤ rk w) → O b (m v) →
+      (∀ w, O w (m v) → rk b ≤ rk w) → (P v ↔ rk a < rk b) := by
+    intro v a b hav hamin hbmv hbmin
+    rw [hPd]
+    refine ⟨?_, fun hlt => ⟨a, hav, fun w hw => lt_of_lt_of_le hlt (hbmin w hw)⟩⟩
+    rintro ⟨x, hx, hxlt⟩
+    exact lt_of_le_of_lt (hamin x hx) (hxlt b hbmv)
+  have hxor : ∀ v, P v ↔ ¬ P (m v) := by
+    intro v
+    obtain ⟨a, hav, hamin⟩ := hmin v
+    obtain ⟨b, hbmv, hbmin⟩ := hmin (m v)
+    have h1 : P v ↔ rk a < rk b := hPchar v a b hav hamin hbmv hbmin
+    have h2 : P (m v) ↔ rk b < rk a := by
+      refine hPchar (m v) b a hbmv hbmin ?_ ?_
+      · rw [hm]; exact hav
+      · rw [hm]; exact hamin
+    have hne : rk a ≠ rk b := by
+      intro he
+      have : a = b := hrk he
+      exact hOnot v (hOtrans v a (m v) (hOsymm a v hav) (this ▸ hbmv))
+    rw [h1, h2]
+    omega
+  have hPmn : ∀ v, P (m (n v)) ↔ P v := by
+    intro v
+    rw [hPd, hPd, hm]
+    constructor
+    · rintro ⟨x, hx, hxlt⟩
+      exact ⟨x, hOtrans _ _ _ hx (hOsymm _ _ (hOstep v)),
+        fun w hw => hxlt w (hOtrans _ _ _ hw (hOsymm _ _ (hOnm v)))⟩
+    · rintro ⟨x, hx, hxlt⟩
+      exact ⟨x, hOtrans _ _ _ hx (hOstep v),
+        fun w hw => hxlt w (hOtrans _ _ _ hw (hOnm v))⟩
+  refine ⟨fun v => decide (P v), ?_, ?_, ?_⟩
+  · intro v
+    show decide (P (m v)) = !decide (P v)
+    by_cases hp : P v
+    · rw [decide_eq_false ((hxor v).mp hp), decide_eq_true hp]; rfl
+    · rw [decide_eq_true (not_not.mp fun hc => hp ((hxor v).mpr hc)), decide_eq_false hp]; rfl
+  · intro v
+    show decide (P (n v)) = !decide (P v)
+    have hnv : P (n v) ↔ ¬ P v := by
+      have e1 : P (m (n v)) ↔ ¬ P (n v) := by
+        have := hxor (m (n v)); rw [hm] at this; exact this
+      have e2 := hPmn v
+      tauto
+    by_cases hp : P v
+    · rw [decide_eq_false (fun hc => (hnv.mp hc) hp), decide_eq_true hp]; rfl
+    · rw [decide_eq_true (hnv.mpr hp), decide_eq_false hp]; rfl
+  · intro u hu
+    have hu' : ∀ w, K w u → rk u ≤ rk w := fun w hw => hu w ((hKd w u).mp hw)
+    show decide (P u) = true
+    refine decide_eq_true ((hPd u).mpr ⟨u, hOrefl u, fun w hw => ?_⟩)
+    have h1 : K w u := hKtrans _ _ _ (hOK _ _ hw) (hKsymm _ _ (hKm u))
+    rcases eq_or_lt_of_le (hu' w h1) with he | hlt
+    · exact absurd ((hrk he.symm) ▸ hw) (hOnot u)
+    · exact hlt
+
+/-- **Walk parity fixes a two-colouring.**  Two `Bool`-valued functions that both flip across
+every step of `R` and agree at one end of an `R`-walk agree at the other. -/
+private theorem flip_agree_of_reflTransGen {R : V → V → Prop} (c d : V → Bool)
+    (hc : ∀ x y, R x y → c y = !c x) (hd : ∀ x y, R x y → d y = !d x)
+    {u v : V} (h : Relation.ReflTransGen R u v) (hu : c u = d u) : c v = d v := by
+  induction h with
+  | refl => exact hu
+  | tail _ hbc ih => rw [hc _ _ hbc, hd _ _ hbc, ih]
+
 /-- **The second half of Kahn–Lovász** (Zhao, Corollary 10.2.2): squaring the perfect-matching
 count is dominated by passing to the double cover.
 
@@ -2178,7 +2464,106 @@ The component-orientation device is what repairs it, and it only became availabl
 theorem perfectMatchingCount_sq_le_doubleCover [Fintype V] [DecidableEq V]
     (G : SimpleGraph V) :
     perfectMatchingCount G ^ 2 ≤ perfectMatchingCount (doubleCover G) := by
-  sorry
+  classical
+  obtain ⟨rk, hrk⟩ : ∃ rk : V → ℕ, Function.Injective rk :=
+    ⟨fun v => ((Fintype.equivFin V) v : ℕ), fun a b h =>
+      (Fintype.equivFin V).injective (Fin.val_injective h)⟩
+  rw [perfectMatchingCount_eq_card_invol G, perfectMatchingCount_eq_card_invol (doubleCover G),
+    pow_two, ← Nat.card_prod]
+  have hcol : ∀ q : {f : V → V // (∀ v, G.Adj v (f v)) ∧ ∀ v, f (f v) = v} ×
+      {f : V → V // (∀ v, G.Adj v (f v)) ∧ ∀ v, f (f v) = v},
+      ∃ c : V → Bool, (∀ v, c (q.1.1 v) = !c v) ∧ (∀ v, c (q.2.1 v) = !c v) ∧
+        ∀ u, (∀ w, Relation.ReflTransGen (fun x y => y = q.1.1 x ∨ y = q.2.1 x) w u →
+          rk u ≤ rk w) → c u = true :=
+    fun q => exists_flip_coloring rk hrk q.1.1 q.2.1 q.1.2.2 q.2.2.2
+      (fun v => (G.ne_of_adj (q.1.2.1 v)).symm) (fun v => (G.ne_of_adj (q.2.2.1 v)).symm)
+  choose col hcol1 hcol2 hcol3 using hcol
+  obtain ⟨F, hF⟩ : ∃ F : ({f : V → V // (∀ v, G.Adj v (f v)) ∧ ∀ v, f (f v) = v} ×
+      {f : V → V // (∀ v, G.Adj v (f v)) ∧ ∀ v, f (f v) = v}) → (V × Bool → V × Bool),
+      ∀ q (v : V) (b : Bool),
+        F q (v, b) = (if col q v = b then q.1.1 v else q.2.1 v, !b) :=
+    ⟨fun q p => (if col q p.1 = p.2 then q.1.1 p.1 else q.2.1 p.1, !p.2), fun _ _ _ => rfl⟩
+  have hFadj : ∀ q p, (doubleCover G).Adj p (F q p) := by
+    intro q p
+    obtain ⟨v, b⟩ := p
+    rw [hF, doubleCover_adj]
+    refine ⟨?_, by simp⟩
+    by_cases hc : col q v = b
+    · simpa [hc] using q.1.2.1 v
+    · simpa [hc] using q.2.2.1 v
+  have hFinv : ∀ q p, F q (F q p) = p := by
+    intro q p
+    obtain ⟨v, b⟩ := p
+    rw [hF q v b]
+    by_cases hc : col q v = b
+    · rw [if_pos hc, hF q (q.1.1 v) (!b), if_pos (by rw [hcol1 q v, hc]), q.1.2.2 v, Bool.not_not]
+    · have hcb : col q v = !b := by revert hc; cases b <;> cases col q v <;> simp
+      rw [if_neg hc, hF q (q.2.1 v) (!b),
+        if_neg (by rw [hcol2 q v, hcb, Bool.not_not]; simp), q.2.2.2 v, Bool.not_not]
+  refine Nat.card_le_card_of_injective (fun q => ⟨F q, hFadj q, hFinv q⟩) ?_
+  intro q₁ q₂ heq
+  have hFeq : F q₁ = F q₂ := congrArg Subtype.val heq
+  have hE : ∀ (v : V) (b : Bool),
+      (if col q₁ v = b then q₁.1.1 v else q₁.2.1 v)
+        = (if col q₂ v = b then q₂.1.1 v else q₂.2.1 v) := by
+    intro v b
+    have h := congrFun hFeq (v, b)
+    rw [hF, hF] at h
+    exact ((Prod.mk.injEq _ _ _ _).mp h).1
+  have hA : ∀ v, col q₁ v = col q₂ v → q₁.1.1 v = q₂.1.1 v ∧ q₁.2.1 v = q₂.2.1 v := by
+    intro v hcv
+    have e1 := hE v (col q₁ v)
+    have e2 := hE v (!(col q₁ v))
+    rw [if_pos rfl, if_pos hcv.symm] at e1
+    rw [if_neg (by simp), if_neg (by rw [← hcv]; simp)] at e2
+    exact ⟨e1, e2⟩
+  have hB : ∀ v, col q₁ v ≠ col q₂ v → q₁.1.1 v = q₂.2.1 v ∧ q₁.2.1 v = q₂.1.1 v := by
+    intro v hcv
+    have hcb : col q₂ v = !(col q₁ v) := by
+      revert hcv; cases col q₁ v <;> cases col q₂ v <;> simp
+    have e1 := hE v (col q₁ v)
+    have e2 := hE v (!(col q₁ v))
+    rw [if_pos rfl, if_neg (by rw [hcb]; simp)] at e1
+    rw [if_neg (by simp), if_pos hcb] at e2
+    exact ⟨e1, e2⟩
+  have hsame : ∀ x y : V, (y = q₁.1.1 x ∨ y = q₁.2.1 x) ↔ (y = q₂.1.1 x ∨ y = q₂.2.1 x) := by
+    intro x y
+    by_cases hcv : col q₁ x = col q₂ x
+    · obtain ⟨h1, h2⟩ := hA x hcv; rw [h1, h2]
+    · obtain ⟨h1, h2⟩ := hB x hcv; rw [h1, h2]; tauto
+  have hf1 : ∀ x y : V, (y = q₁.1.1 x ∨ y = q₁.2.1 x) → col q₁ y = !col q₁ x := by
+    intro x y h
+    rcases h with h | h
+    · rw [h]; exact hcol1 q₁ x
+    · rw [h]; exact hcol2 q₁ x
+  have hf2 : ∀ x y : V, (y = q₁.1.1 x ∨ y = q₁.2.1 x) → col q₂ y = !col q₂ x := by
+    intro x y h
+    rcases (hsame x y).mp h with h' | h'
+    · rw [h']; exact hcol1 q₂ x
+    · rw [h']; exact hcol2 q₂ x
+  have hmono : ∀ w u : V,
+      Relation.ReflTransGen (fun x y => y = q₂.1.1 x ∨ y = q₂.2.1 x) w u →
+      Relation.ReflTransGen (fun x y => y = q₁.1.1 x ∨ y = q₁.2.1 x) w u := by
+    intro w u h
+    induction h with
+    | refl => exact Relation.ReflTransGen.refl
+    | tail _ hbc ih => exact ih.tail ((hsame _ _).mpr hbc)
+  have hcoleq : ∀ v, col q₁ v = col q₂ v := by
+    intro v
+    obtain ⟨u, hu, humin⟩ := Finset.exists_min_image
+      (univ.filter fun w =>
+        Relation.ReflTransGen (fun x y => y = q₁.1.1 x ∨ y = q₁.2.1 x) w v) rk
+      ⟨v, Finset.mem_filter.mpr ⟨Finset.mem_univ _, Relation.ReflTransGen.refl⟩⟩
+    rw [Finset.mem_filter] at hu
+    have humin' : ∀ w, Relation.ReflTransGen (fun x y => y = q₁.1.1 x ∨ y = q₁.2.1 x) w u →
+        rk u ≤ rk w := fun w hw =>
+      humin w (Finset.mem_filter.mpr ⟨Finset.mem_univ _, hw.trans hu.2⟩)
+    have h1 : col q₁ u = true := hcol3 q₁ u humin'
+    have h2 : col q₂ u = true := hcol3 q₂ u fun w hw =>
+      humin' w (hmono w u hw)
+    exact flip_agree_of_reflTransGen (col q₁) (col q₂) hf1 hf2 hu.2 (by rw [h1, h2])
+  exact Prod.ext (Subtype.ext (funext fun v => (hA v (hcoleq v)).1))
+    (Subtype.ext (funext fun v => (hA v (hcoleq v)).2))
 
 end DoubleCover
 
