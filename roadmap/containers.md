@@ -466,3 +466,37 @@ What is ruled out, so nobody re-treads it: the corner cannot be dodged by shrink
 (`n/√d` is `δ`-independent), and it is not obstructed by a maximal independent set being too
 large (`card_le_of_forall_not_subset` gives `|I| ≤ 5n/6` in the regime, exactly the `δ = 1/6`
 budget).
+
+
+## Theorem 11.1.5 re-assessed 2026-09-18: blocked by the §11.3 corner, transitively
+
+The note above says of Theorem 11.1.5 (Mantel in `G(n,p)`) that "the `whp` idiom was settled
+2026-09-17, so that half of the blocker is gone; what remains is `container_triangle_free`".
+Both halves now read as resolved — the container theorem **is** in the file, as
+`exists_containers_triangleFree` — so on the face of it 11.1.5 became statable.  It did not,
+and the reason is worth recording because it is invisible from the source text.
+
+An axiom check at current `main`:
+
+```
+exists_triangle_supersaturation   [propext, Classical.choice, Quot.sound]
+exists_containers_triangleFree    [propext, sorryAx, Classical.choice, Quot.sound]
+card_triangleFreeGraphs_le        [propext, sorryAx, Classical.choice, Quot.sound]
+exists_containers_three_uniform   [propext, sorryAx, Classical.choice, Quot.sound]
+```
+
+Supersaturation is clean; the container theorem is **conditional**, inheriting `sorryAx` from
+`exists_containers_fingerprint_three_uniform` — the project's sole remaining placeholder, and
+the one documented open corner of §11.3.  Anything built on `exists_containers_triangleFree`
+inherits it too, so a Theorem 11.1.5 node would fail `axiom-honesty` on arrival no matter how
+good its proof was.
+
+**So Theorem 11.1.5 is blocked by open mathematics, not by missing formalization.**  That is a
+different kind of blocker from §2.6's (Mathlib lacks planarity) and from §9.4–9.6's (Mathlib
+lacks Talagrand), and it is the only one of the three that no amount of Mathlib development
+would clear.  It will become statable exactly when the §11.3 corner is settled, and not before.
+
+The general lesson: "is the prerequisite present?" and "is the prerequisite *unconditional*?"
+are different questions, and in a corpus with even one placeholder the second is the one that
+decides whether a downstream node can be published.  Checking a dependency's axioms — not just
+its existence — belongs in the pre-publication routine alongside the small-case numeric check.
