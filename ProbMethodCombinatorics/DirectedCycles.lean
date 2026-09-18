@@ -410,7 +410,29 @@ theorem exists_directed_cycle_length_dvd {k : ℕ} [NeZero k] [Nonempty V] (G : 
     (hloop : ∀ u : V, ¬ G.Adj u u)
     (h : (k : ℝ) * (1 + Real.log ((1 + d) * (1 + D))) ≤ d) :
     ∃ m : ℕ, k ∣ m ∧ HasDirectedCycleOfLength G m := by
-  sorry
+  -- The local lemma supplies a labelling in which every vertex has a successor.
+  obtain ⟨x, hx⟩ := exists_labelling_forall_exists_succ G hout hin hloop h
+  choose f hadj hsucc using hx
+  -- Iterating `f` on a finite vertex set must close up into a cycle.
+  obtain ⟨m, v, hmpos, hstep, hper, hinj⟩ := exists_periodic_orbit f
+  refine ⟨m, ?_, v, ⟨hmpos, fun i => ?_, hper, hinj⟩⟩
+  · -- Each step raises the label by one, so after `i` steps it has risen by `i`.
+    have key : ∀ i : ℕ, x (v i) = x (v 0) + (i : ZMod k) := by
+      intro i
+      induction i with
+      | zero => simp
+      | succ n ih =>
+          rw [hstep n, hsucc, ih]
+          push_cast
+          ring
+    have h0 : v m = v 0 := by simpa using hper 0
+    have hkey := key m
+    rw [h0] at hkey
+    -- One full turn returns to the start, so the total rise `m` is zero in `ZMod k`.
+    have hm : x (v 0) + (m : ZMod k) = x (v 0) + 0 := by rw [add_zero, ← hkey]
+    exact (ZMod.natCast_eq_zero_iff m k).mp (add_left_cancel hm)
+  · rw [hstep i]
+    exact hadj (v i)
 
 end AlonLinial
 
