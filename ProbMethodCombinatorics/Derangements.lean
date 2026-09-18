@@ -49,10 +49,38 @@ instance instIsProbabilityMeasureUniformPerm : IsProbabilityMeasure (uniformPerm
 /-- The event that `i` is a fixed point of the permutation. -/
 def fixedPointEvent (i : Fin n) : Set (Equiv.Perm (Fin n)) := {σ | σ i = i}
 
+private lemma card_perm_fiber_eq (i j : Fin n) :
+    (univ.filter fun σ : Equiv.Perm (Fin n) => σ i = j).card
+      = (univ.filter fun σ : Equiv.Perm (Fin n) => σ i = i).card := by
+  refine Finset.card_equiv (Equiv.mulLeft (Equiv.swap j i)) fun σ => ?_
+  simp only [Finset.mem_filter, Finset.mem_univ, true_and, Equiv.coe_mulLeft,
+    Equiv.Perm.mul_apply, Equiv.swap_apply_eq_iff, Equiv.swap_apply_right]
+
+private lemma card_perm_fixed_mul (i : Fin n) :
+    n * (univ.filter fun σ : Equiv.Perm (Fin n) => σ i = i).card = Nat.factorial n := by
+  have h : (univ : Finset (Equiv.Perm (Fin n))).card
+      = ∑ _j : Fin n, (univ.filter fun σ : Equiv.Perm (Fin n) => σ i = i).card := by
+    rw [Finset.card_eq_sum_card_fiberwise (f := fun σ : Equiv.Perm (Fin n) => σ i)
+      (t := (univ : Finset (Fin n))) fun σ _ => Finset.mem_univ _]
+    exact Finset.sum_congr rfl fun j _ => card_perm_fiber_eq i j
+  rw [Finset.sum_const, smul_eq_mul] at h
+  simp only [Finset.card_univ, Fintype.card_perm, Fintype.card_fin] at h
+  exact h.symm
+
 /-- **A uniform permutation fixes a given point with probability `1/n`.** -/
 theorem uniformPerm_fixedPointEvent [NeZero n] (i : Fin n) :
     (uniformPerm n).real (fixedPointEvent i) = 1 / (n : ℝ) := by
-  sorry
+  have hn : (0 : ℝ) < n := Nat.cast_pos.mpr (Nat.pos_of_ne_zero (NeZero.ne n))
+  have hfac : (0 : ℝ) < (Nat.factorial n : ℕ) := Nat.cast_pos.mpr n.factorial_pos
+  have hset : fixedPointEvent i
+      = ((univ.filter fun σ : Equiv.Perm (Fin n) => σ i = i : Finset (Equiv.Perm (Fin n)))
+          : Set (Equiv.Perm (Fin n))) := by
+    ext σ
+    simp [fixedPointEvent]
+  rw [measureReal_def, uniformPerm, hset, uniformOn_univ, Measure.count_apply_finset,
+    Fintype.card_perm, Fintype.card_fin, ENNReal.toReal_div, ENNReal.toReal_natCast,
+    ENNReal.toReal_natCast, div_eq_div_iff hfac.ne' hn.ne', one_mul, mul_comm]
+  exact_mod_cast card_perm_fixed_mul i
 
 /-- **Fixed points are negatively dependent** (Zhao, Theorem 6.5.5 for pairwise disjoint single
 edges): knowing that some other points are *not* fixed never makes `i` more likely to be fixed.
