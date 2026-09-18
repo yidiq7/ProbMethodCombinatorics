@@ -1660,3 +1660,47 @@ constant was transcribed from the source and is *wrong for the dependency count 
 establishes* — `(1+d)(1+D)-1`, not `dD`; it fails at `k=5, d=21, D=1`.  Caught before any
 worker saw it, unlike the four source errata in §2.4.4, §9.3.1, §6.3 and §6.5.6, which were
 the source's own.
+
+
+# Final state, 2026-09-18 (end of session)
+
+**281 theorems, 24,965 lines, 27 files, one `sorry`.**  `lake build` green, board empty, no PR
+open.  The single `sorry` is `Containers.lean:2548`,
+`exists_containers_fingerprint_three_uniform` — the §11.3 corner, an **open mathematical
+problem**, not unfinished formalization.
+
+Completed today: §1.4, §2.5, §5.3, all of Chapter 6, §7.2's Harris remark, §9.3.4.  38 PRs
+merged.
+
+## Coverage of all 47 sections
+
+Every section of the book is now formalized, staged, or blocked with a re-derived and named
+cause.  The three real blockers are:
+
+| Section | Missing | Clearable by Mathlib work? |
+|---|---|---|
+| §2.6 | planarity, Euler's formula, `crossingNumber` | yes |
+| §9.4 | Brunn–Minkowski, Harper, Johnson–Lindenstrauss, sphere concentration | yes |
+| §9.5–9.6 | Talagrand's inequality (also *omitted by the source*) | yes |
+| §11.1.5 | inherits `sorryAx` from the §11.3 corner | **no** |
+
+Quoted or sketched by the source, therefore never targets: Theorems 6.6.3, 7.2.5, 9.4.1,
+9.4.3, Proposition 7.2.6, Talagrand's inequality, and the second half of Lemma 9.3.3.
+**Open problems, which must never be stated as theorems**: Question 2.4.1, Conjecture 4.6.2
+(Erdős, $300), Conjectures 6.5.8 and 6.5.9 (Ryser, Ryser–Brualdi–Stein), Conjecture 11.1.4,
+and Question 1.4.1.
+
+## The three habits that produced the last stretch
+
+1. **Re-derive a recorded blocker before trusting it.**  Nine checked: five wholly stale, one
+   half-stale, three real.  Two more were stale in the opposite direction — a heading claiming
+   "planned, not stated" for work finished long ago, which `lake build` caught only when the
+   duplicate declaration collided.
+2. **Sweep the table of contents against the corpus.**  With the board empty and one `sorry`
+   left, extracting all 47 section headings and grepping each against the code found §1.4,
+   which had been sitting unstated behind a roadmap line that said exactly that.  Nothing else
+   had surfaced it in months.
+3. **Instantiate a copied numeric hypothesis at its smallest case.**  §6.4's constant was
+   transcribed from the source and was wrong for the dependency count the argument supports;
+   Theorem 2.5.2 was outright false at `n = 0`.  Both were caught before a worker saw them.
+   This is also how the five source errata were found.
