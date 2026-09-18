@@ -100,4 +100,26 @@ theorem card_le_of_forall_apSet_inter_nonempty {k l : ℕ} {a d : ℤ} {D : ℕ}
     _ ≤ k * (l * D) := Nat.mul_le_mul_right _ hk
     _ = k * l * D := (mul_assoc _ _ _).symm
 
+/-- **Beck's theorem for finitely many progressions.**  The asymmetric local lemma reaches
+exactly this far; `exists_forall_notMem_of_forall_finset` carries it to all of `ℤ` below.
+
+A progression is named by its first term, its common difference, and its length, so the
+family is a `Finset (ℤ × ℤ × ℕ)`.  Note `k₀` is chosen before the family, which is what the
+compactness step needs. -/
+theorem exists_twoColoring_forall_mem_not_monochromatic {ε : ℝ} (hε : 0 < ε) :
+    ∃ k₀ : ℕ, ∀ F : Finset (ℤ × ℤ × ℕ),
+      (∀ p ∈ F, k₀ ≤ p.2.2 ∧ 0 < p.2.1 ∧ (p.2.1 : ℝ) < (2 : ℝ) ^ ((1 - ε) * (p.2.2 : ℝ))) →
+      ∃ c : ℤ → Bool, ∀ p ∈ F,
+        ∃ u ∈ apSet p.1 p.2.1 p.2.2, ∃ v ∈ apSet p.1 p.2.1 p.2.2, c u ≠ c v := by
+  sorry
+
+/-- **Theorem 6.2.11** (Beck 1980): for every `ε > 0` there is a `k₀` and a 2-colouring of `ℤ`
+with no monochromatic `k`-term arithmetic progression of common difference below
+`2 ^ ((1 - ε) k)`, for any `k ≥ k₀`. -/
+theorem exists_twoColoring_no_monochromatic_ap {ε : ℝ} (hε : 0 < ε) :
+    ∃ k₀ : ℕ, ∃ c : ℤ → Bool, ∀ (a d : ℤ) (k : ℕ), k₀ ≤ k → 0 < d →
+      (d : ℝ) < (2 : ℝ) ^ ((1 - ε) * (k : ℝ)) →
+      ∃ u ∈ apSet a d k, ∃ v ∈ apSet a d k, c u ≠ c v := by
+  sorry
+
 end ProbMethodCombinatorics
