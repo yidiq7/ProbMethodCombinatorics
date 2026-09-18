@@ -238,3 +238,35 @@ demands equality, so the existing induction transfers with `le_trans` in place o
 **Still unstated in Chapter 6**: §6.5's Latin transversal application (Erdős–Spencer 1991),
 and §6.6 (Moser–Tardos), which needs a model of the resampling process and is the chapter's
 largest single item.
+
+
+### §6.5's Latin transversal application — assessed 2026-09-18, not yet stated
+
+**Conjectures 6.5.8 (Ryser 1967) and 6.5.9 (Ryser–Brualdi–Stein) are OPEN PROBLEMS and must
+never be stated as theorems**, exactly like Question 2.4.1 in Chapter 2.  Remark 6.5.10 records
+partial progress (Keevash–Pokrovskiy–Sudakov–Yepremyan 2022, and an announced proof by
+Montgomery for large `n`) — announced and unpublished results are not targets either.  The only
+provable thing in this stretch is Theorem 6.5.11.
+
+**Theorem 6.5.11 (Erdős–Spencer 1991)**: every `n × n` array in which each symbol appears at
+most `n / (4e)` times has a Latin transversal.  The conclusion is clean to state — a transversal
+is a permutation `σ`, and "Latin" is `Function.Injective fun i => A i (σ i)` — so unlike §2.6
+there is no definitional obstacle in the *statement*.
+
+The obstacle is the *route*, which needs two things this project does not have:
+
+- **Setup 6.5.4, the random injection model**: a uniformly random injection `X → Y` read as a
+  matching, with `A F` the event that the matching contains `F`.  This is new vocabulary, and
+  it is the measure that the bad events live on — not `uniformColorOn`, because the coordinates
+  are not independent.
+- **Theorem 6.5.5, nonnegative dependence for random injections**: the statement that the
+  canonical negative dependency graph (join two events when their matchings share a vertex) is
+  valid.  Its proof is a counting injection between families of complete matchings, showing
+  `|M_{F₀}| ≤ |M_T|` for every `T : X₀ ↪ Y`.  This is the real content, and it is what makes the
+  lopsided lemma applicable at all.
+
+So the chain is: random injection model → Theorem 6.5.5 → Theorem 6.5.11, on top of
+`lopsided_local_lemma_symmetric`.  Not blocked on Mathlib, unlike §2.6 — blocked only on work,
+and worth doing once the lopsided core lands.  Deliberately left unstated until then rather than
+published against a route I have not worked out, which is the rule that caught §6.4's constant
+one step too late.
