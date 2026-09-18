@@ -65,7 +65,27 @@ combinatorial half of Theorem 6.4.3, with no probability in it. -/
 theorem exists_periodic_orbit [Finite V] [Nonempty V] (f : V → V) :
     ∃ (m : ℕ) (v : ℕ → V), 0 < m ∧ (∀ i, v (i + 1) = f (v i)) ∧
       (∀ i, v (i + m) = v i) ∧ (∀ i < m, ∀ j < m, v i = v j → i = j) := by
-  sorry
+  obtain ⟨b, hmem⟩ : ∃ b : V, b ∈ Function.periodicPts f := by
+    obtain ⟨a⟩ := ‹Nonempty V›
+    have key : ∀ r s : ℕ, r < s → f^[r] a = f^[s] a → ∃ b : V, b ∈ Function.periodicPts f := by
+      intro r s hrs h
+      refine ⟨f^[r] a, Function.mk_mem_periodicPts (Nat.sub_pos_of_lt hrs) ?_⟩
+      show f^[s - r] (f^[r] a) = f^[r] a
+      rw [← Function.iterate_add_apply, Nat.sub_add_cancel hrs.le]
+      exact h.symm
+    obtain ⟨p, q, hpq, hfe⟩ := Finite.exists_ne_map_eq_of_infinite fun i : ℕ => f^[i] a
+    rcases Nat.lt_or_ge p q with h | h
+    · exact key p q h hfe
+    · exact key q p (by omega) hfe.symm
+  have hfix : f^[Function.minimalPeriod f b] b = b :=
+    Function.isPeriodicPt_minimalPeriod f b
+  refine ⟨Function.minimalPeriod f b, fun i => f^[i] b,
+    Function.minimalPeriod_pos_of_mem_periodicPts hmem, fun i => ?_, fun i => ?_,
+    fun i hi j hj hij => ?_⟩
+  · exact Function.iterate_succ_apply' f i b
+  · show f^[i + Function.minimalPeriod f b] b = f^[i] b
+    rw [Function.iterate_add_apply, hfix]
+  · exact (Function.iterate_eq_iterate_iff_of_lt_minimalPeriod hi hj).mp hij
 
 end DirectedCycles
 
