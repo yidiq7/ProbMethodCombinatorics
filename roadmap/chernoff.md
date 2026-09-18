@@ -95,7 +95,7 @@ the remaining `m = n - k`: the frozen block supplies the mean `k/n ≈ α`, the 
 within `β`, and the uniform bound suffices.  Worth remembering — when the source's route needs
 machinery the corpus lacks, moving the source of the bias is often cheaper than building it.
 
-## Not stated
+## §5.3 (Hajós): stated
 
 **§5.3, the Hajós conjecture counterexample** (Theorem 5.3.2: whp `G(n, 1/2)` has no
 `K_t`-subdivision for `t = ⌈10√n⌉`). Two obstacles, either of which is larger than the
@@ -111,3 +111,32 @@ real.  Authoring `IsSubdivision` is possible but it is significant new vocabular
 theorem, and the `boxProd`-versus-tensor episode in §10.2 is the cautionary case: a plausible
 wrong definition makes every downstream theorem true and useless.  Left unstated deliberately,
 not for lack of checking.
+
+
+**Stated 2026-09-17.**  Both obstacles are resolved.  `IsKSubdivision` / `HasKSubdivision`
+(`Chernoff.lean`) were authored and then checked the way `doubleCover` was: 67720/67720 anchor
+checks over every graph on `n ≤ 6`, plus six discriminating cases — `K₄`, `K₄` with an edge
+subdivided and `K₃₃` contain a `K₄`-subdivision, while `C₅`, a star, and two triangles sharing
+a vertex do not.  A too-permissive definition fails the last three.
+
+The theorem splits into a counting core and a probabilistic half.
+
+*Counting core* (`Chernoff.lean`): `card_branchNonAdj_add_le_of_isKSubdivision`.  Each
+non-adjacent branch pair is joined by a path of length ≥ 2, so it consumes an interior vertex;
+`interior_disjoint` makes the choice injective and `interior_avoids_branch` lands it outside the
+branch set.  Tight at `K₄` with an edge subdivided and at `K₃₃`.
+
+*Probabilistic half* (`Subdivision.lean`, the one file importing both Chapter 5 and Chapter 9):
+`edgeCountWithin` → `integral_edgeCountWithin` → `binomialRandom_edgeCountWithin_ge_le`
+(bounded differences over the edge slots inside `S`) → `binomialRandom_exists_edgeCountWithin_ge_le`
+(union bound) → `binomialRandom_hasKSubdivision_lt`.
+
+The margin is what makes it work, and the first route tried did not have it.  Applying Chernoff
+with a *fixed* `ε = 0.05` uniformly over all `t`-subsets fails: `log C(n,t) − 2ε²C(t,2)` is
+`−24.8` at `n = 100` but `+370.5` at `n = 1000`.  The fix is not a different inequality but a
+larger deviation.  Taking the threshold the counting core actually forces,
+`lam = C(t,2)/2 − n + t ≈ 24n`, the exponent `2·lam²/C(t,2) ≈ 23n` beats even the crude union
+bound `C(n,t) ≤ nᵗ`, whose logarithm is `t log n = Θ(√n log n)`.  With that choice
+`t log n − 2·lam²/C(t,2)` is negative at *every* `n ≥ 1`, so no threshold is needed inside the
+counting and `N` depends only on `δ`.  Worth remembering: when a union bound fails, check
+whether the deviation was chosen for convenience before concluding the route is wrong.

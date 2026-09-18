@@ -837,7 +837,7 @@ private theorem measurable_graphOfExposure_blocks {n : ℕ} :
     rw [key]
     exact (measurable_pi_apply _).comp (measurable_pi_apply a)
 
-private theorem measurableSet_simpleGraph_singleton {n : ℕ} (G : SimpleGraph (Fin n)) :
+theorem measurableSet_simpleGraph_singleton {n : ℕ} (G : SimpleGraph (Fin n)) :
     MeasurableSet ({G} : Set (SimpleGraph (Fin n))) := by
   have h : ({G} : Set (SimpleGraph (Fin n))) = SimpleGraph.Adj ⁻¹' {G.Adj} := by
     ext H
@@ -845,6 +845,13 @@ private theorem measurableSet_simpleGraph_singleton {n : ℕ} (G : SimpleGraph (
     exact ⟨fun h => h ▸ rfl, fun h => SimpleGraph.ext h⟩
   rw [h]
   exact SimpleGraph.measurable_adj (measurableSet_singleton _)
+
+instance instCountableSimpleGraphFin {n : ℕ} : Countable (SimpleGraph (Fin n)) :=
+  SimpleGraph.adj_injective.countable
+
+instance instMeasurableSingletonClassSimpleGraphFin {n : ℕ} :
+    MeasurableSingletonClass (SimpleGraph (Fin n)) :=
+  ⟨measurableSet_simpleGraph_singleton⟩
 
 /-- The coordinate measure of `setBernoulli`, evaluated at a singleton of `Prop`. -/
 private theorem bernoulliProp_singleton (p : I) (P : Prop) [Decidable P] :
