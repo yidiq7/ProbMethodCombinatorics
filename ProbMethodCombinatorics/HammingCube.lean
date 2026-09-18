@@ -90,11 +90,78 @@ def cubeCompress (i : Fin n) (A : Finset (Fin n → Bool)) : Finset (Fin n → B
     if x i then x ∈ A ∧ Function.update x i false ∈ A
     else x ∈ A ∨ Function.update x i true ∈ A
 
+private lemma update_false_eq_self {i : Fin n} {x : Fin n → Bool} (hx : x i = false) :
+    Function.update x i false = x :=
+  Function.update_eq_self_iff.mpr hx.symm
+
+private lemma mem_cubeCompress_true {i : Fin n} {A : Finset (Fin n → Bool)}
+    {x : Fin n → Bool} (hx : x i = true) :
+    x ∈ cubeCompress i A ↔ x ∈ A ∧ Function.update x i false ∈ A := by
+  simp [cubeCompress, hx]
+
+private lemma mem_cubeCompress_false {i : Fin n} {A : Finset (Fin n → Bool)}
+    {x : Fin n → Bool} (hx : x i = false) :
+    x ∈ cubeCompress i A ↔ x ∈ A ∨ Function.update x i true ∈ A := by
+  simp [cubeCompress, hx]
+
+/-- A point of the compression that was not already in `A` sits on the `false` side of
+coordinate `i`, and its partner is the point of `A` that pushed it there. -/
+private lemma cubeCompress_of_notMem {i : Fin n} {A : Finset (Fin n → Bool)}
+    {x : Fin n → Bool} (hx : x ∈ cubeCompress i A) (hxA : x ∉ A) :
+    x i = false ∧ Function.update x i true ∈ A := by
+  rcases Bool.dichotomy (x i) with hb | hb
+  · exact ⟨hb, ((mem_cubeCompress_false hb).1 hx).resolve_left hxA⟩
+  · exact absurd ((mem_cubeCompress_true hb).1 hx).1 hxA
+
 /-- **Compression preserves size.**  Each partner pair contributes the same number of points
 before and after. -/
 theorem card_cubeCompress (i : Fin n) (A : Finset (Fin n → Bool)) :
     (cubeCompress i A).card = A.card := by
-  sorry
+  refine Finset.card_nbij'
+      (fun x => if x ∈ A then x else Function.update x i true)
+      (fun y => if Function.update y i false ∈ A then y else Function.update y i false)
+      ?_ ?_ ?_ ?_
+  · intro x hx
+    simp only [Finset.mem_coe] at hx ⊢
+    by_cases hxA : x ∈ A
+    · rwa [if_pos hxA]
+    · rw [if_neg hxA]
+      exact (cubeCompress_of_notMem hx hxA).2
+  · intro y hy
+    simp only [Finset.mem_coe] at hy ⊢
+    by_cases hy' : Function.update y i false ∈ A
+    · rw [if_pos hy']
+      rcases Bool.dichotomy (y i) with hb | hb
+      · exact (mem_cubeCompress_false hb).2 (Or.inl hy)
+      · exact (mem_cubeCompress_true hb).2 ⟨hy, hy'⟩
+    · have hb : y i = true := by
+        rcases Bool.dichotomy (y i) with hb | hb
+        · exact absurd (by rwa [update_false_eq_self hb]) hy'
+        · exact hb
+      rw [if_neg hy']
+      refine (mem_cubeCompress_false (Function.update_self i false y)).2 (Or.inr ?_)
+      rwa [Function.update_idem, Function.update_eq_self_iff.mpr hb.symm]
+  · intro x hx
+    simp only [Finset.mem_coe] at hx
+    dsimp only
+    by_cases hxA : x ∈ A
+    · rw [if_pos hxA]
+      rcases Bool.dichotomy (x i) with hb | hb
+      · rw [if_pos (by rwa [update_false_eq_self hb])]
+      · rw [if_pos ((mem_cubeCompress_true hb).1 hx).2]
+    · obtain ⟨hb, -⟩ := cubeCompress_of_notMem hx hxA
+      rw [if_neg hxA, Function.update_idem, update_false_eq_self hb, if_neg hxA]
+  · intro y hy
+    simp only [Finset.mem_coe] at hy
+    dsimp only
+    by_cases hy' : Function.update y i false ∈ A
+    · rw [if_pos hy', if_pos hy]
+    · have hb : y i = true := by
+        rcases Bool.dichotomy (y i) with hb | hb
+        · exact absurd (by rwa [update_false_eq_self hb]) hy'
+        · exact hb
+      rw [if_neg hy', if_neg hy', Function.update_idem]
+      exact Function.update_eq_self_iff.mpr hb.symm
 
 /-- **Compression does not increase the neighbourhood.**  This is the step that makes the
 compression argument work at all, and the one Mathlib's `UV`/`Down` results do *not* give —
