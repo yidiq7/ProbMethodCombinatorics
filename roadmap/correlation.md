@@ -151,3 +151,40 @@ the σ-algebra. That stays inside `setBernoulli` throughout; the coupling route 
 an auxiliary `[0,1]`-valued field. The `p = 1` branch has to be split out — `1 - p = 0` forces
 `q = 1`, available only because `p ≤ q ≤ 1` — and for `p < 1` the witness `(q-p)/(1-p)` needs
 *both* endpoints of `I` to be placed.
+
+
+## §7.2.6 re-derived 2026-09-18: one half of the blocker was stale, the other stands
+
+The old note said Proposition 7.2.6 "needs Gaussian random variables and a Laplace-method
+estimate".  **The Gaussian half is stale** — Mathlib has
+`Mathlib/Probability/Distributions/Gaussian`.  The rest of the assessment survives, and splits
+into two independent obstacles.
+
+**The proposition itself is not a target.**  Its conclusion is
+`ℙ(W_v ≤ 0 ∀v) = (0.6102… + o(1))ⁿ`, where `0.6102…` is not a closed form but the value of a
+Laplace-method integral; stating it honestly means first *defining* the constant.  And the
+source gives a **proof sketch**, not a proof — the same reason Theorem 7.2.5 and Theorem 6.6.3
+are excluded.
+
+**Its one clean corollary is blocked on machinery nobody has.**  The source observes that each
+`{W_v ≤ 0}` is a decreasing event of independent edge labels, so Harris gives
+`ℙ(W_v ≤ 0 ∀v) ≥ 2⁻ⁿ`.  That is a genuine, self-contained statement — but it needs Harris/FKG
+for a product of *continuous* measures.  This project's Chapter 7 machinery is
+`setBernoulli`-only, and Mathlib's is entirely finite-lattice: `Finset.four_functions_theorem`
+and `four_functions_theorem` for finite distributive lattices, `HarrisKleitman`, `Kleitman`.
+There is no FKG for product measures on `ℝ`.
+
+So §7.2.6 joins §2.6 and §9.4–9.6 as blocked-on-absent-machinery, and is distinct from Theorem
+11.1.5, which is blocked on open mathematics.  Recording the taxonomy since it now has four
+members and they are not interchangeable:
+
+| Section | Blocker | Would Mathlib development clear it? |
+|---|---|---|
+| §2.6 | no planarity, Euler's formula, crossing number | yes |
+| §7.2.6 | no FKG for continuous product measures | yes |
+| §9.4–9.6 | no Hamming-cube isoperimetry, Talagrand's convex distance, subadditive Euclidean functionals | yes |
+| §11.1.5 | inherits `sorryAx` from the §11.3 corner | **no** — needs the mathematics settled |
+
+Separately excluded, and not blockers at all: Theorem 7.2.5, Theorem 6.6.3 and Proposition
+7.2.6 are *quoted or sketched* rather than proved in the source; Question 2.4.1, Conjecture
+11.1.4 and Conjectures 6.5.8/6.5.9 are **open problems** and must never be stated.
