@@ -122,9 +122,20 @@ remarks in the notes and are not stated.
   corollary becomes a statement about a permanent, which the proved `permanent_le_prod_factorial`
   bounds.  Verified exhaustively over all graphs on `n ≤ 5`: 1098/1098.
 
-  The second half, `pm(G)² ≤ pm(doubleCover G)`, is **verified but unstated** — 33866/33866 over
-  all graphs on `n ≤ 6`.  Held deliberately: the statement is true and I have no proof route for
-  it, and publishing a node whose route I cannot supply is what the standing rule forbids.
+  The second half, `pm(G)² ≤ pm(doubleCover G)`, is **stated as #254 since 2026-09-17**, having
+  been held as verified-but-unstated for exactly as long as I had no route for it.
+
+  **What unblocked it: #252's proof of Kahn–Zhao.**  Buried in that 800-line development is
+  `indepSetCount_sq_le_doubleCover`, which runs the device I could not construct — decompose by
+  symmetric difference, orient each component by a canonical representative (least-rank vertex),
+  and recover injectivity from the sides.  For matchings `M ∆ N` decomposes into even alternating
+  cycles rather than components of a restricted graph, which is more structure, not less, and the
+  same orientation argument applies.
+
+  **The lesson is about holding rather than guessing.**  I had the statement verified and the
+  obstruction correctly diagnosed — the naive map fails because `(u, false)` is claimed twice —
+  and publishing then would have handed a contributor a node with a wrong route attached.  Waiting
+  cost nothing, and the route arrived from a different task's proof.
 
   Below is what was missing before; kept because the `boxProd` warning still matters:
 
