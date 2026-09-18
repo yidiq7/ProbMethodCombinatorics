@@ -18,3 +18,6 @@ import ProbMethodCombinatorics.ArithProgressions
 import ProbMethodCombinatorics.DirectedCycles
 import ProbMethodCombinatorics.Lopsided
 import ProbMethodCombinatorics.Derangements
+import ProbMethodCombinatorics.LatinTransversal
+import ProbMethodCombinatorics.Sat
+import ProbMethodCombinatorics.ChromaticConcentration

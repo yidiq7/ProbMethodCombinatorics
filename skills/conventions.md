@@ -220,9 +220,42 @@ declarations with real statements, prove your target *from* them, and say clearl
 PR description which ones are left open.  Named obligations are useful to the project;
 an unnamed `sorry` is not.
 
+## Name every `instance`, especially one that appears in a statement
+
+`comparator` builds a *challenge* tree from the base with every module renamed under a
+`ChoirBase.` prefix, and compares the target's elaborated statement there against the one in
+your tree.  An **anonymous** `instance` gets an auto-generated name that does not survive that
+renaming, so if the instance appears inside the statement's term the two sides differ as terms
+while their bytes are identical — and the gate reports `statement-mismatch` on a statement
+nobody touched.
+
+This actually happened: `Derangements.lean` declared
+`instance : MeasurableSpace (Equiv.Perm (Fin n)) := ⊤` anonymously, that instance rides inside
+every statement mentioning `uniformPerm`, and all five such PRs went red while
+`statement-immutability` and `statement-equiv` stayed green.  `Concentration.lean`'s
+`instCountableSimpleGraphFin` and friends are named and never had the problem.
+
+So: give instances explicit names.  It costs nothing and it is the difference between a gate
+that works and one that rejects correct proofs.
+
+## If `comparator` disagrees with the byte-level checks
+
+`comparator` rebuilds; `statement-immutability` and `statement-equiv` compare bytes.  When the
+first is red and the other two are green, **something about elaboration differs, not your
+proof.**  Two causes seen so far, in order of likelihood:
+
+1. An anonymous instance in the statement's term — see above.  This is a defect in the
+   *statement file* and the orchestrator must fix it; do not work around it.
+2. Your branch is far behind `main`.  Merge `origin/main` in and push.
+
+Try (2) first because it is free, but if `comparator` is still red afterwards, **stop and say
+so on the thread.**  Do not start editing your proof, and never edit the statement to make a
+gate pass.  A second red after a clean re-merge is information the orchestrator needs.
+
 ## If your proof inherits `sorryAx` from a dependency
 
-`comparator` reads **your head ref**, not GitHub's generated merge ref.  So when your
+`comparator` checks out GitHub's generated merge ref for the workspace, but empirically an
+inherited `sorryAx` has cleared only once the contributor merged `main` in and pushed.  So when your
 target calls a lemma that is still a placeholder at your base, the gate sees `sorryAx` in
 your closure — and that does **not** clear when the dependency merges into `main`.  The
 merge has to happen in your workspace:
@@ -244,6 +277,18 @@ placeholder, and filling one in adds none.
 *both* spellings in context, and `linarith` treats them as unrelated atoms.  Fold the
 hypothesis back with `rw [← ht_def] at h` before calling the solver.  The same hazard shows
 up with any `Nat.choose` or cast expression that appears in two spellings.
+
+**Names that do not exist, and their replacements.**  `Measure.real` is a def, not a rewrite
+lemma — use `measureReal_def` (or the alias `Measure.real_def`).  For counting measure on a
+`Finset`, `Measure.count_apply_finset` is the one you want; `Measure.count_apply_finite` drags
+in `Set.Finite.toFinset` bookkeeping.  When a map is a bijection of the *whole* type,
+`Finset.card_equiv` with e.g. `Equiv.mulLeft` beats `Finset.card_nbij'`, which makes you
+discharge `MapsTo`/`LeftInvOn`/`RightInvOn`.
+
+**Factorial notation is scoped.**  `n !` only parses where `Nat` is open.  Several files in this
+project open only `Finset MeasureTheory ProbabilityTheory`, and there `n !` fails with
+`unexpected token ':='; expected term` because `!` is read as boolean negation.  Write
+`Nat.factorial n`.
 
 **`measureReal_mono` carries no measurability obligation** — it needs only `s ⊆ t` and
 `μ t ≠ ∞`, and the latter is found by instance search whenever the measure is a probability
