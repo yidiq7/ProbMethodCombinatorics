@@ -1372,7 +1372,37 @@ theorem exists_forall_notMem_of_forall_finset {ι κ : Type*} {α : ι → Type*
     (hdet : ∀ (j : κ) (x y : ∀ i, α i), (∀ i ∈ s j, x i = y i) → (x ∈ E j ↔ y ∈ E j))
     (h : ∀ F : Finset κ, ∃ x, ∀ j ∈ F, x ∉ E j) :
     ∃ x, ∀ j, x ∉ E j := by
-  sorry
+  classical
+  -- Give each variable type the discrete topology; finiteness makes the product compact.
+  let _ : ∀ i, TopologicalSpace (α i) := fun _ => ⊥
+  have : ∀ i, DiscreteTopology (α i) := fun _ => ⟨rfl⟩
+  -- `hdet` says each `E j` contains the basic open box cut out by the coordinates in `s j`.
+  have hopen : ∀ j, IsOpen (E j) := by
+    intro j
+    rw [isOpen_iff_forall_mem_open]
+    intro x hx
+    refine ⟨⋂ i ∈ s j, (fun y : ∀ i, α i => y i) ⁻¹' {x i}, ?_, ?_, ?_⟩
+    · intro y hy
+      simp only [Set.mem_iInter, Set.mem_preimage, Set.mem_singleton_iff] at hy
+      exact (hdet j y x hy).2 hx
+    · exact isOpen_biInter_finset fun i _ =>
+        (continuous_apply i).isOpen_preimage _ (isOpen_discrete _)
+    · simp
+  by_contra hcon
+  push Not at hcon
+  -- The closed sets `(E j)ᶜ` have the finite intersection property, so compactness of the
+  -- product gives a point avoiding every `E j`.
+  have hempty : (Set.univ ∩ ⋂ j, (E j)ᶜ : Set (∀ i, α i)) = ∅ := by
+    ext x
+    simp only [Set.mem_inter_iff, Set.mem_univ, true_and, Set.mem_iInter, Set.mem_compl_iff,
+      Set.mem_empty_iff_false, iff_false, not_forall, not_not]
+    exact hcon x
+  obtain ⟨u, hu⟩ := (CompactSpace.isCompact_univ (X := ∀ i, α i)).elim_finite_subfamily_closed
+      (fun j => (E j)ᶜ) (fun j => (hopen j).isClosed_compl) hempty
+  obtain ⟨x, hx⟩ := h u
+  have hmem : x ∈ Set.univ ∩ ⋂ j ∈ u, (E j)ᶜ := ⟨Set.mem_univ x, by simpa using hx⟩
+  rw [hu] at hmem
+  exact hmem
 
 /-- **The symmetric condition without uniformity, on an arbitrary vertex type.**  Relative to
 `twoColorable_of_inter_card_le` this asks only `k ≤ e.card` rather than `e.card = k`, and drops
