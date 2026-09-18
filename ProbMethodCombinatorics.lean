@@ -13,3 +13,4 @@ import ProbMethodCombinatorics.Concentration
 import ProbMethodCombinatorics.Entropy
 import ProbMethodCombinatorics.Containers
 import ProbMethodCombinatorics.Subdivision
+import ProbMethodCombinatorics.Coloring

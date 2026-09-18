@@ -1372,7 +1372,113 @@ theorem exists_forall_notMem_of_forall_finset {ι κ : Type*} {α : ι → Type*
     (hdet : ∀ (j : κ) (x y : ∀ i, α i), (∀ i ∈ s j, x i = y i) → (x ∈ E j ↔ y ∈ E j))
     (h : ∀ F : Finset κ, ∃ x, ∀ j ∈ F, x ∉ E j) :
     ∃ x, ∀ j, x ∉ E j := by
-  sorry
+  classical
+  -- Give each variable type the discrete topology; finiteness makes the product compact.
+  let _ : ∀ i, TopologicalSpace (α i) := fun _ => ⊥
+  have : ∀ i, DiscreteTopology (α i) := fun _ => ⟨rfl⟩
+  -- `hdet` says each `E j` contains the basic open box cut out by the coordinates in `s j`.
+  have hopen : ∀ j, IsOpen (E j) := by
+    intro j
+    rw [isOpen_iff_forall_mem_open]
+    intro x hx
+    refine ⟨⋂ i ∈ s j, (fun y : ∀ i, α i => y i) ⁻¹' {x i}, ?_, ?_, ?_⟩
+    · intro y hy
+      simp only [Set.mem_iInter, Set.mem_preimage, Set.mem_singleton_iff] at hy
+      exact (hdet j y x hy).2 hx
+    · exact isOpen_biInter_finset fun i _ =>
+        (continuous_apply i).isOpen_preimage _ (isOpen_discrete _)
+    · simp
+  by_contra hcon
+  push Not at hcon
+  -- The closed sets `(E j)ᶜ` have the finite intersection property, so compactness of the
+  -- product gives a point avoiding every `E j`.
+  have hempty : (Set.univ ∩ ⋂ j, (E j)ᶜ : Set (∀ i, α i)) = ∅ := by
+    ext x
+    simp only [Set.mem_inter_iff, Set.mem_univ, true_and, Set.mem_iInter, Set.mem_compl_iff,
+      Set.mem_empty_iff_false, iff_false, not_forall, not_not]
+    exact hcon x
+  obtain ⟨u, hu⟩ := (CompactSpace.isCompact_univ (X := ∀ i, α i)).elim_finite_subfamily_closed
+      (fun j => (E j)ᶜ) (fun j => (hopen j).isClosed_compl) hempty
+  obtain ⟨x, hx⟩ := h u
+  have hmem : x ∈ Set.univ ∩ ⋂ j ∈ u, (E j)ᶜ := ⟨Set.mem_univ x, by simpa using hx⟩
+  rw [hu] at hmem
+  exact hmem
+
+/-- `twoColorable_of_inter_card_le` on an arbitrary vertex type.  Only the vertices occurring
+in `H` matter, and there are finitely many of them, so the `[Fintype α]` version applies after
+restricting every edge to the subtype of `H.sup id`. -/
+private theorem twoColorable_of_inter_card_le' {k : ℕ} (hk : 2 ≤ k) {H : Finset (Finset α)}
+    (huniform : ∀ e ∈ H, e.card = k) {d : ℕ}
+    (hd : ∀ e ∈ H, ((H.erase e).filter fun f => (e ∩ f).Nonempty).card ≤ d)
+    (h : Real.exp 1 * (d + 1) ≤ 2 ^ (k - 1)) :
+    TwoColorable H := by
+  classical
+  set V : Finset α := H.sup id
+  have hsubV : ∀ e ∈ H, e ⊆ V := fun e he => Finset.le_sup (f := id) he
+  set Φ : Finset α → Finset {a // a ∈ V} := fun e => e.subtype (· ∈ V) with hΦ
+  have hmemΦ : ∀ (e : Finset α) (a : {a // a ∈ V}), a ∈ Φ e ↔ (a : α) ∈ e := by
+    intro e a; simp [hΦ]
+  have hcardΦ : ∀ e ∈ H, (Φ e).card = e.card := by
+    intro e he
+    rw [hΦ]
+    simp only [Finset.card_subtype]
+    congr 1
+    exact Finset.filter_true_of_mem fun a ha => hsubV e he ha
+  have hinj : Set.InjOn Φ H := by
+    intro e he f hf hef
+    ext a
+    constructor
+    · intro hae
+      have hmem : (⟨a, hsubV e he hae⟩ : {a // a ∈ V}) ∈ Φ e := (hmemΦ e _).2 hae
+      rw [hef] at hmem
+      exact (hmemΦ f _).1 hmem
+    · intro haf
+      have hmem : (⟨a, hsubV f hf haf⟩ : {a // a ∈ V}) ∈ Φ f := (hmemΦ f _).2 haf
+      rw [← hef] at hmem
+      exact (hmemΦ e _).1 hmem
+  have hinter : ∀ e ∈ H, ∀ f ∈ H, ((Φ e ∩ Φ f).Nonempty ↔ (e ∩ f).Nonempty) := by
+    intro e he f hf
+    constructor
+    · rintro ⟨a, ha⟩
+      rw [Finset.mem_inter, hmemΦ, hmemΦ] at ha
+      exact ⟨a, Finset.mem_inter.2 ha⟩
+    · rintro ⟨a, ha⟩
+      rw [Finset.mem_inter] at ha
+      exact ⟨⟨a, hsubV e he ha.1⟩,
+        Finset.mem_inter.2 ⟨(hmemΦ e _).2 ha.1, (hmemΦ f _).2 ha.2⟩⟩
+  set H' : Finset (Finset {a // a ∈ V}) := H.image Φ with hH'
+  have hmemH' : ∀ e ∈ H, Φ e ∈ H' := by
+    intro e he; rw [hH']; exact Finset.mem_image_of_mem Φ he
+  have huniform' : ∀ e' ∈ H', e'.card = k := by
+    intro e' he'
+    rw [hH', Finset.mem_image] at he'
+    obtain ⟨e, he, rfl⟩ := he'
+    rw [hcardΦ e he, huniform e he]
+  have hd' : ∀ e' ∈ H', ((H'.erase e').filter fun f' => (e' ∩ f').Nonempty).card ≤ d := by
+    intro e' he'
+    rw [hH', Finset.mem_image] at he'
+    obtain ⟨e, he, rfl⟩ := he'
+    calc ((H'.erase (Φ e)).filter fun f' => (Φ e ∩ f').Nonempty).card
+        ≤ (((H.erase e).filter fun f => (e ∩ f).Nonempty).image Φ).card := by
+          refine Finset.card_le_card ?_
+          intro g' hg'
+          rw [Finset.mem_filter, Finset.mem_erase] at hg'
+          obtain ⟨⟨hne, hmem⟩, hne'⟩ := hg'
+          rw [hH', Finset.mem_image] at hmem
+          obtain ⟨f, hf, rfl⟩ := hmem
+          refine Finset.mem_image.2 ⟨f, Finset.mem_filter.2
+            ⟨Finset.mem_erase.2 ⟨fun hfe => hne (by rw [hfe]), hf⟩, ?_⟩, rfl⟩
+          exact (hinter e he f hf).1 hne'
+      _ = ((H.erase e).filter fun f => (e ∩ f).Nonempty).card := by
+          refine Finset.card_image_of_injOn fun a ha b hb hab => hinj ?_ ?_ hab
+          · exact Finset.mem_of_mem_erase (Finset.mem_filter.1 ha).1
+          · exact Finset.mem_of_mem_erase (Finset.mem_filter.1 hb).1
+      _ ≤ d := hd e he
+  obtain ⟨g, hg⟩ := twoColorable_of_inter_card_le hk huniform' hd' h
+  refine ⟨fun a => if ha : a ∈ V then g ⟨a, ha⟩ else false, fun e he => ?_⟩
+  obtain ⟨u, hu, v, hv, huv⟩ := hg (Φ e) (hmemH' e he)
+  refine ⟨u, (hmemΦ e u).1 hu, v, (hmemΦ e v).1 hv, ?_⟩
+  simpa [dif_pos u.2, dif_pos v.2] using huv
 
 /-- **The symmetric condition without uniformity, on an arbitrary vertex type.**  Relative to
 `twoColorable_of_inter_card_le` this asks only `k ≤ e.card` rather than `e.card = k`, and drops
@@ -1383,7 +1489,39 @@ theorem twoColorable_of_le_card_inter_card_le {k : ℕ} (hk : 2 ≤ k) {H : Fins
     (hd : ∀ e ∈ H, ((H.erase e).filter fun f => (e ∩ f).Nonempty).card ≤ d)
     (h : Real.exp 1 * (d + 1) ≤ 2 ^ (k - 1)) :
     TwoColorable H := by
-  sorry
+  classical
+  choose! φ hφsub hφcard using fun e (he : e ∈ H) => Finset.exists_subset_card_eq (hcard e he)
+  set H₀ : Finset (Finset α) := H.image φ with hH₀
+  have hmemH₀ : ∀ e ∈ H, φ e ∈ H₀ := by
+    intro e he; rw [hH₀]; exact Finset.mem_image_of_mem φ he
+  have huniform : ∀ e₀ ∈ H₀, e₀.card = k := by
+    intro e₀ he₀
+    rw [hH₀, Finset.mem_image] at he₀
+    obtain ⟨e, he, rfl⟩ := he₀
+    exact hφcard e he
+  have hd₀ : ∀ e₀ ∈ H₀, ((H₀.erase e₀).filter fun f₀ => (e₀ ∩ f₀).Nonempty).card ≤ d := by
+    intro e₀ he₀
+    rw [hH₀, Finset.mem_image] at he₀
+    obtain ⟨e, he, rfl⟩ := he₀
+    calc ((H₀.erase (φ e)).filter fun f₀ => (φ e ∩ f₀).Nonempty).card
+        ≤ (((H.erase e).filter fun f => (e ∩ f).Nonempty).image φ).card := by
+          refine Finset.card_le_card ?_
+          intro g hg
+          rw [Finset.mem_filter, Finset.mem_erase] at hg
+          obtain ⟨⟨hne, hmem⟩, hne'⟩ := hg
+          rw [hH₀, Finset.mem_image] at hmem
+          obtain ⟨f, hf, rfl⟩ := hmem
+          refine Finset.mem_image.2 ⟨f, Finset.mem_filter.2
+            ⟨Finset.mem_erase.2 ⟨fun hfe => hne (by rw [hfe]), hf⟩, ?_⟩, rfl⟩
+          obtain ⟨a, ha⟩ := hne'
+          rw [Finset.mem_inter] at ha
+          exact ⟨a, Finset.mem_inter.2 ⟨hφsub e he ha.1, hφsub f hf ha.2⟩⟩
+      _ ≤ ((H.erase e).filter fun f => (e ∩ f).Nonempty).card := Finset.card_image_le
+      _ ≤ d := hd e he
+  obtain ⟨g, hg⟩ := twoColorable_of_inter_card_le' hk huniform hd₀ h
+  refine ⟨g, fun e he => ?_⟩
+  obtain ⟨u, hu, v, hv, huv⟩ := hg (φ e) (hmemH₀ e he)
+  exact ⟨u, hφsub e he hu, v, hφsub e he hv, huv⟩
 
 /-- Proper 2-colourability of a possibly infinite hypergraph: every edge sees both colours. -/
 def SetTwoColorable (H : Set (Finset α)) : Prop :=
