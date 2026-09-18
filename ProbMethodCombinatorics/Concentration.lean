@@ -1365,6 +1365,17 @@ theorem abs_sub_edgeDisjointCliqueNumber_le_one (k : ℕ) {n : ℕ} (e : Sym2 (F
       exact_mod_cast h₁
     linarith
 
+/-- Membership in the edge set of an assembled graph is exactly the value at that slot: the slot
+is off the diagonal, so `edgeSet_fromEdgeSet` removes nothing. -/
+private theorem mem_edgeSet_graphOfEdgeSlots_iff {n : ℕ} (x : EdgeSlot n → Prop)
+    {e : Sym2 (Fin n)} (he : ¬ e.IsDiag) :
+    e ∈ (graphOfEdgeSlots x).edgeSet ↔ x ⟨e, he⟩ := by
+  simp only [graphOfEdgeSlots, SimpleGraph.edgeSet_fromEdgeSet, Set.mem_sdiff,
+    Set.mem_ofPred_eq, Sym2.mem_diagSet]
+  refine ⟨fun h => ?_, fun h => ⟨⟨he, h⟩, he⟩⟩
+  obtain ⟨⟨h', hx⟩, -⟩ := h
+  exact hx
+
 /-- **Lemma 9.3.3** (Zhao, §9.3; the same statement as Lemma 8.3.3): the probability that
 `G(n, p)` has no `k`-clique decays like `exp (-2 (𝔼Y)² / binom(n,2))`, where `Y` is the maximum
 number of pairwise edge-disjoint `k`-cliques.
@@ -1385,7 +1396,84 @@ theorem prob_edgeDisjointCliqueNumber_eq_zero_le (k n : ℕ) (hn : 2 ≤ n) (p :
         {G : SimpleGraph (Fin n) | edgeDisjointCliqueNumber k G = 0}
       ≤ Real.exp (-2 * (∫ G, (edgeDisjointCliqueNumber k G : ℝ)
             ∂(SimpleGraph.binomialRandom (Fin n) p)) ^ 2 / (n.choose 2 : ℝ)) := by
-  sorry
+  classical
+  -- Each slot carries an independent Bernoulli(`p`) coordinate.
+  have hpr : ∀ _ : EdgeSlot n, IsProbabilityMeasure
+      ((toNNReal p) • Measure.dirac True + (toNNReal (σ p)) • Measure.dirac False) :=
+    fun _ => ⟨by simp⟩
+  have hpi : edgeSlotMeasure n p = Measure.pi (fun _ : EdgeSlot n =>
+      (toNNReal p) • Measure.dirac True + (toNNReal (σ p)) • Measure.dirac False) := rfl
+  have hprob : IsProbabilityMeasure (edgeSlotMeasure n p) := by
+    rw [hpi]; infer_instance
+  -- `SimpleGraph (Fin n)` is countable with measurable singletons, hence discrete: the event
+  -- and `Y` are measurable there.
+  have hcount : Countable (SimpleGraph (Fin n)) := SimpleGraph.adj_injective.countable
+  have hsingle : MeasurableSingletonClass (SimpleGraph (Fin n)) :=
+    ⟨measurableSet_simpleGraph_singleton⟩
+  have hYmeas : Measurable fun G : SimpleGraph (Fin n) =>
+      (edgeDisjointCliqueNumber k G : ℝ) := Measurable.of_discrete
+  have hf : Measurable fun x : EdgeSlot n → Prop =>
+      (edgeDisjointCliqueNumber k (graphOfEdgeSlots x) : ℝ) :=
+    hYmeas.comp measurable_graphOfEdgeSlots
+  -- Changing one slot rewires one edge, so `-Y` has bounded difference `1` at every slot.
+  have hc : ∀ i (x y : EdgeSlot n → Prop), (∀ j, j ≠ i → x j = y j) →
+      |(-(edgeDisjointCliqueNumber k (graphOfEdgeSlots x) : ℝ))
+          - (-(edgeDisjointCliqueNumber k (graphOfEdgeSlots y) : ℝ))| ≤ 1 := by
+    intro i x y hxy
+    rw [show -(edgeDisjointCliqueNumber k (graphOfEdgeSlots x) : ℝ)
+            - -(edgeDisjointCliqueNumber k (graphOfEdgeSlots y) : ℝ)
+          = (edgeDisjointCliqueNumber k (graphOfEdgeSlots y) : ℝ)
+            - (edgeDisjointCliqueNumber k (graphOfEdgeSlots x) : ℝ) from by ring]
+    refine abs_sub_edgeDisjointCliqueNumber_le_one k (i : Sym2 (Fin n)) _ _ ?_
+    intro e he
+    by_cases hd : e.IsDiag
+    · simp [graphOfEdgeSlots, SimpleGraph.edgeSet_fromEdgeSet, hd]
+    · rw [mem_edgeSet_graphOfEdgeSlots_iff y hd, mem_edgeSet_graphOfEdgeSlots_iff x hd,
+        hxy ⟨e, hd⟩ fun hcon => he (congrArg Subtype.val hcon)]
+  -- No coordinate is empty here, so every weight is `1` and `∑ cᵢ² = binom(n,2)`.
+  have hcsum : ∑ _i : EdgeSlot n, (1 : ℝ) ^ 2 = (n.choose 2 : ℝ) := by
+    rw [Finset.sum_const, Finset.card_univ, Sym2.card_subtype_not_diag, Fintype.card_fin]
+    simp
+  have hchoose : (0 : ℝ) < (n.choose 2 : ℝ) := by
+    have h := Nat.choose_pos hn
+    exact_mod_cast h
+  have hsum : 0 < ∑ _i : EdgeSlot n, (1 : ℝ) ^ 2 := by rw [hcsum]; exact hchoose
+  -- `Y ≥ 0`, so its mean is a legitimate deviation for the lower tail.
+  have hmean : 0 ≤ ∫ x, (edgeDisjointCliqueNumber k (graphOfEdgeSlots x) : ℝ)
+      ∂(edgeSlotMeasure n p) := integral_nonneg fun x => by positivity
+  -- Move the event and the mean to the edge-exposure product.
+  have hstep : (SimpleGraph.binomialRandom (Fin n) p).real
+        {G : SimpleGraph (Fin n) | edgeDisjointCliqueNumber k G = 0}
+      = (edgeSlotMeasure n p).real
+        {x | edgeDisjointCliqueNumber k (graphOfEdgeSlots x) = 0} := by
+    rw [binomialRandom_eq_map_graphOfEdgeSlots n p,
+      map_measureReal_apply measurable_graphOfEdgeSlots MeasurableSet.of_discrete,
+      Set.preimage_ofPred_eq]
+  have hint : (∫ G, (edgeDisjointCliqueNumber k G : ℝ)
+        ∂(SimpleGraph.binomialRandom (Fin n) p))
+      = ∫ x, (edgeDisjointCliqueNumber k (graphOfEdgeSlots x) : ℝ) ∂(edgeSlotMeasure n p) := by
+    rw [binomialRandom_eq_map_graphOfEdgeSlots n p,
+      integral_map measurable_graphOfEdgeSlots.aemeasurable hYmeas.aestronglyMeasurable]
+  -- The one-sided bounded differences inequality for `-Y` at deviation `𝔼Y`.
+  have hmain := measure_sub_integral_ge_le
+    (fun _ : EdgeSlot n =>
+      (toNNReal p) • Measure.dirac True + (toNNReal (σ p)) • Measure.dirac False)
+    (fun x => -(edgeDisjointCliqueNumber k (graphOfEdgeSlots x) : ℝ))
+    (fun _ : EdgeSlot n => (1 : ℝ)) hf.neg hc hsum hmean
+  rw [← hpi, hcsum, ← measureReal_def] at hmain
+  -- `Y = 0` forces `Y ≤ 0`, which is the lower tail at deviation `𝔼Y`.
+  have hsubset : {x : EdgeSlot n → Prop | edgeDisjointCliqueNumber k (graphOfEdgeSlots x) = 0}
+      ⊆ {x : EdgeSlot n → Prop |
+          (∫ y, (edgeDisjointCliqueNumber k (graphOfEdgeSlots y) : ℝ) ∂(edgeSlotMeasure n p))
+            ≤ -(edgeDisjointCliqueNumber k (graphOfEdgeSlots x) : ℝ)
+              - ∫ y, -(edgeDisjointCliqueNumber k (graphOfEdgeSlots y) : ℝ)
+                  ∂(edgeSlotMeasure n p)} := by
+    intro x hx
+    simp only [Set.mem_ofPred_eq] at hx ⊢
+    rw [integral_neg, hx]
+    simp
+  rw [hstep, hint]
+  exact (measureReal_mono hsubset).trans hmain
 
 end EdgeDisjointCliques
 
