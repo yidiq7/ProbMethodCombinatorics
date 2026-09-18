@@ -300,7 +300,27 @@ theorem binomialRandom_exists_edgeCountWithin_ge_le {n t : ℕ} (ht : 2 ≤ t) (
         {G | ∃ S : Finset (Fin n), S.card = t ∧
           lam ≤ edgeCountWithin S G - (p : ℝ) * t.choose 2}
       ≤ n.choose t * Real.exp (-2 * lam ^ 2 / t.choose 2) := by
-  sorry
+  classical
+  have hset : {G : SimpleGraph (Fin n) | ∃ S : Finset (Fin n), S.card = t ∧
+        lam ≤ edgeCountWithin S G - (p : ℝ) * t.choose 2}
+      = ⋃ S ∈ Finset.powersetCard t (Finset.univ : Finset (Fin n)),
+          {G : SimpleGraph (Fin n) | lam ≤ edgeCountWithin S G - (p : ℝ) * t.choose 2} := by
+    ext G
+    simp [Finset.mem_powersetCard]
+  have hbound : ∀ S ∈ Finset.powersetCard t (Finset.univ : Finset (Fin n)),
+      (SimpleGraph.binomialRandom (Fin n) p).real
+          {G | lam ≤ edgeCountWithin S G - (p : ℝ) * t.choose 2}
+        ≤ Real.exp (-2 * lam ^ 2 / t.choose 2) := by
+    intro S hS
+    have hcard : S.card = t := (Finset.mem_powersetCard.1 hS).2
+    have hle : 2 ≤ S.card := by rw [hcard]; exact ht
+    have h := binomialRandom_edgeCountWithin_ge_le S hle p hlam
+    rwa [hcard] at h
+  rw [hset]
+  refine (measureReal_biUnion_finset_le _ _).trans ?_
+  refine (Finset.sum_le_sum hbound).trans ?_
+  rw [Finset.sum_const, Finset.card_powersetCard, Finset.card_univ, Fintype.card_fin,
+    nsmul_eq_mul]
 
 /-- The ordered non-adjacent branch pairs number twice the `i < j` ones: swapping the two
 coordinates matches the `i > j` half of the filtered off-diagonal with `branchNonAdj G br`. -/
