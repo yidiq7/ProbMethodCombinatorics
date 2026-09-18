@@ -169,6 +169,28 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   inline block now calls it, `1d33a6d`, fifteen lines shorter.  **Retiring duplicates stays
   orchestrator work** — a contributor cannot see the other three copies from inside one task.
 
+- **2026-09-17 — I pushed a non-compiling commit, because my build check inverted on failure.**
+  `c06edc6` did not compile; `c29903c` fixed it about two minutes later.  The cause was not the
+  Lean error — a section that opened `SimpleGraph` but not `unitInterval`, so `I` did not resolve
+  — but the shell:
+
+      lake build 2>&1 | grep -E "^error|✖" | head -3; echo "build ok"; git commit && git push
+
+  **`grep` exits 0 when it *finds* errors.**  The chain therefore proceeded exactly when the build
+  was broken, and printed "build ok" over a real failure.  I had been using that pattern all
+  session and it only ever looked fine because the builds were passing.
+
+  Worse than the broken commit: I reported "build ok" in my own output.  That is asserting
+  success from a command whose output I had misread.
+
+  **Rule: verification keys on the exit code, never on a grep that succeeds when things break.**
+
+      if lake build >/tmp/b.log 2>&1; then echo OK; else echo FAILED; tail -5 /tmp/b.log; fi
+
+  And the standalone probe that passed beforehand is not evidence: it had `open unitInterval`,
+  which the target section does not.  **A probe file's context is not the file's context** —
+  typecheck in place before committing, not just in `/tmp`.
+
 - **2026-09-17 — never add a declaration to a file that has an open task pinned to it.**
   #234 was published in `SecondMoment.lean` pinned to `bb591afb`; the contributor branched from
   exactly that, correctly.  I then pushed `8053d5b`, adding three declarations to the same file
