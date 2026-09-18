@@ -122,3 +122,29 @@ but the source's Harris remark alongside them **was** reachable once restated fo
 `binomialRandom` instead of the Gaussian surrogate — it is now
 `prod_le_binomialRandom_forall_ncard_neighborSet_le`.  §9.4 has no analogous salvageable
 remark: every consequence runs through a quoted input.
+
+
+## §9.5 and §9.6 re-derived 2026-09-18: blocked twice over
+
+**§9.5 (Talagrand).**  The source is explicit: *"We omit the proof of Talagrand's inequality
+(see the Alon–Spencer textbook or Tao's blog post) and instead focus on examples."*  So the
+central theorem of the section is **quoted, not proved** — the same category as Theorem 6.6.3,
+Theorem 7.2.5 and Proposition 7.2.6, and therefore not a target regardless of Mathlib.  It is
+*also* absent from Mathlib (no `Talagrand`, no convex distance).  The section's applications
+all run through it.
+
+**§9.6 (Euclidean travelling salesman).**  No subadditive-Euclidean-functional framework in
+Mathlib, and the section's method is Talagrand's inequality, so it inherits §9.5's blocker.
+
+This completes the re-derivation of every blocker in this project.  The final tally over
+nine checked: **five wholly stale** (Chapter 8's G(n,p) API, §9.2's Azuma, §11.1's `ex(n,H)`,
+§2.2's Dirichlet, §7.1.5's function form), **one half-stale** (§7.2.6 — Mathlib does have
+Gaussians, but FKG for continuous product measures is genuinely missing), and **three
+confirmed real** (§2.6, §9.4, §9.5–9.6).  Two further entries turned out stale in the
+opposite direction — §2.3's "planned, not stated" headings described work finished long ago,
+and §2.5's "harder, a compactness argument" was Lemma 2.5.3, four lines in the source and now
+task #332.
+
+The habit that produced all of this is cheap: before trusting any roadmap entry, grep the
+source tree for the declaration, grep Mathlib for the upstream result, and read what the
+source actually claims to prove.  Three greps and a page of the PDF.
