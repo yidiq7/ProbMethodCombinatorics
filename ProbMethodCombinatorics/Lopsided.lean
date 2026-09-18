@@ -32,7 +32,10 @@ def IsNegativeDependencyGraph (μ : Measure Ω) (A : ι → Set Ω) (N : ι → 
 and the all-negative pattern is one of the patterns `IndepFrom` covers. -/
 theorem IsDependencyGraph.isNegativeDependencyGraph {A : ι → Set Ω} {N : ι → Finset ι}
     (h : IsDependencyGraph μ A N) : IsNegativeDependencyGraph μ A N := by
-  sorry
+  intro i s hs
+  have key := h i s hs (fun _ => false)
+  simp only [pattern] at key
+  exact le_of_eq key
 
 variable [Fintype ι]
 
