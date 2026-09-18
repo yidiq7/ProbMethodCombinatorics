@@ -1428,7 +1428,58 @@ theorem setTwoColorable_of_le_card_inter_card_le {k : ℕ} (hk : 2 ≤ k) {H : S
     (hd : ∀ e ∈ H, {f | f ∈ H ∧ f ≠ e ∧ (e ∩ f).Nonempty}.ncard ≤ d)
     (h : Real.exp 1 * (d + 1) ≤ 2 ^ (k - 1)) :
     SetTwoColorable H := by
-  sorry
+  classical
+  -- The bad event for an edge `j`: every colouring that makes `j` monochromatic.
+  set E : {e // e ∈ H} → Set (α → Bool) :=
+    fun j => {x : α → Bool | ∀ u ∈ (j : Finset α), ∀ v ∈ (j : Finset α), x u = x v} with hEdef
+  -- Membership in `E j` only depends on the colours of the vertices of `j`.
+  have hdet : ∀ (j : {e // e ∈ H}) (x y : α → Bool),
+      (∀ a ∈ (j : Finset α), x a = y a) → (x ∈ E j ↔ y ∈ E j) := by
+    intro j x y hxy
+    simp only [hEdef, Set.mem_ofPred_eq]
+    constructor
+    · intro hx u hu v hv; rw [← hxy u hu, ← hxy v hv]; exact hx u hu v hv
+    · intro hy u hu v hv; rw [hxy u hu, hxy v hv]; exact hy u hu v hv
+  -- Every finite subhypergraph is 2-colourable, by the finite local lemma statement.
+  have hfin : ∀ F : Finset {e // e ∈ H}, ∃ x : α → Bool, ∀ j ∈ F, x ∉ E j := by
+    intro F
+    have hmemH : ∀ e ∈ F.image (Subtype.val : {e // e ∈ H} → Finset α), e ∈ H := by
+      intro e he
+      obtain ⟨j, -, rfl⟩ := Finset.mem_image.1 he
+      exact j.2
+    have hdF : ∀ e ∈ F.image (Subtype.val : {e // e ∈ H} → Finset α),
+        (((F.image (Subtype.val : {e // e ∈ H} → Finset α)).erase e).filter
+          fun f => (e ∩ f).Nonempty).card ≤ d := by
+      intro e he
+      have hsub : (↑(((F.image (Subtype.val : {e // e ∈ H} → Finset α)).erase e).filter
+          fun f => (e ∩ f).Nonempty) : Set (Finset α))
+          ⊆ {f | f ∈ H ∧ f ≠ e ∧ (e ∩ f).Nonempty} := by
+        intro f hf
+        simp only [Finset.coe_filter, Set.mem_ofPred_eq, Finset.mem_erase] at hf
+        exact ⟨hmemH f hf.1.2, hf.1.1, hf.2⟩
+      calc (((F.image (Subtype.val : {e // e ∈ H} → Finset α)).erase e).filter
+              fun f => (e ∩ f).Nonempty).card
+          = (↑(((F.image (Subtype.val : {e // e ∈ H} → Finset α)).erase e).filter
+              fun f => (e ∩ f).Nonempty) : Set (Finset α)).ncard := (Set.ncard_coe_finset _).symm
+        _ ≤ {f | f ∈ H ∧ f ≠ e ∧ (e ∩ f).Nonempty}.ncard :=
+            Set.ncard_le_ncard hsub (hdfin e (hmemH e he))
+        _ ≤ d := hd e (hmemH e he)
+    obtain ⟨x, hx⟩ := twoColorable_of_le_card_inter_card_le hk
+      (H := F.image (Subtype.val : {e // e ∈ H} → Finset α))
+      (fun e he => hcard e (hmemH e he)) hdF h
+    refine ⟨x, fun j hj => ?_⟩
+    obtain ⟨u, hu, v, hv, huv⟩ := hx (j : Finset α) (Finset.mem_image_of_mem _ hj)
+    intro hmono
+    exact huv (hmono u hu v hv)
+  -- Compactness glues the finite colourings into one colouring of the whole vertex set.
+  obtain ⟨x, hx⟩ := exists_forall_notMem_of_forall_finset (α := fun _ : α => Bool) E
+    (fun j => (j : Finset α)) hdet hfin
+  refine ⟨x, fun e he => ?_⟩
+  have hxe := hx ⟨e, he⟩
+  simp only [hEdef, Set.mem_ofPred_eq] at hxe
+  push Not at hxe
+  obtain ⟨u, hu, v, hv, huv⟩ := hxe
+  exact ⟨u, hu, v, hv, huv⟩
 
 end Compactness
 
