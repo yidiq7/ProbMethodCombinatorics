@@ -43,7 +43,10 @@ def cubeSlice (A : Finset (Fin (n + 1) → Bool)) (b : Bool) : Finset (Fin n →
 /-- Neighbourhoods are monotone in the set. -/
 theorem cubeNbhd_mono {A B : Finset (Fin n → Bool)} (h : A ⊆ B) (t : ℕ) :
     cubeNbhd A t ⊆ cubeNbhd B t := by
-  sorry
+  intro x hx
+  simp only [cubeNbhd, mem_filter, mem_univ, true_and] at hx ⊢
+  obtain ⟨a, haA, hd⟩ := hx
+  exact ⟨a, h haA, hd⟩
 
 /-- **The slice decomposition**, the inductive engine of Harper's theorem: a point of the
 smaller cube lands in the `b`-slice of `A`'s neighbourhood as soon as it is either adjacent to
