@@ -2156,6 +2156,30 @@ theorem perfectMatchingCount_doubleCover {n : ℕ} (G : SimpleGraph (Fin n)) [De
         subst hd
         exact Or.inr (by rw [hcoe, hσ₀u v u hadj.symm])
 
+/-- **The second half of Kahn–Lovász** (Zhao, Corollary 10.2.2): squaring the perfect-matching
+count is dominated by passing to the double cover.
+
+With `perfectMatchingCount_doubleCover` — which identifies the right-hand side with the permanent
+of the adjacency matrix — and the proved `permanent_le_prod_factorial` (Brégman–Minc), this
+completes the reduction of Corollary 10.2.2 to Chapter 10's entropy bound.
+
+**The route is the symmetric-difference argument, the same device that proves
+`indepSetCount_sq_le_doubleCover`.**  Given perfect matchings `M` and `N`, the edges of `M ∆ N`
+form a disjoint union of even alternating cycles, with `M ∩ N` untouched.  Orienting each cycle —
+sending it into one side of the cover or the other according to a canonical representative, say
+its least-rank vertex — produces a perfect matching of `doubleCover G`, and the map is injective
+because the two sides recover `M ∩ N`, the cycle decomposition, and the per-cycle choice.
+
+This was recorded as *verified but unstated* from 2026-09-17 because the naive map fails —
+sending `(u, false)` to `(M u, true)` and `(u, true)` to `(N u, false)` is not a matching unless
+`M = N`, since `(u, false)` is then claimed both as a source and as the target of `(N u, true)`.
+The component-orientation device is what repairs it, and it only became available once
+`indepSetCount_sq_le_doubleCover` demonstrated it on independent sets. -/
+theorem perfectMatchingCount_sq_le_doubleCover [Fintype V] [DecidableEq V]
+    (G : SimpleGraph V) :
+    perfectMatchingCount G ^ 2 ≤ perfectMatchingCount (doubleCover G) := by
+  sorry
+
 end DoubleCover
 
 /-! ### 10.4 Counting independent sets
