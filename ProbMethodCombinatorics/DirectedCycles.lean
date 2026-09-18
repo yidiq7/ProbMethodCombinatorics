@@ -6,7 +6,17 @@ import ProbMethodCombinatorics.Coloring
 
 Zhao, *Probabilistic Methods in Combinatorics* (MIT 18.226), Theorem 6.4.3 (Alon–Linial 1989):
 a digraph with minimum out-degree `d` and maximum in-degree `D` has a directed cycle of length
-divisible by `k` whenever `k (1 + log (1 + d D)) ≤ d`.
+divisible by `k` whenever `k (1 + log ((1 + d)(1 + D))) ≤ d`.
+
+**The constant differs from the source.**  Zhao states the hypothesis as
+`k (1 + log (1 + d D)) ≤ d`, but the dependency degree that this argument actually
+establishes is `(1 + d)(1 + D) - 1`, not `d D`: two bad events interact when their closed
+out-neighbourhoods meet, which happens for the `d` out-neighbours of `v`, the at most `D`
+in-neighbours of `v`, *and* the at most `d D` vertices sharing an out-neighbour with `v`.
+With the source's constant the local lemma inequality genuinely fails — `k = 5, d = 21,
+D = 1` is a counterexample, where `e (1 - 1/k)^d (1+d)(1+D) = 1.103 > 1`.  The corrected
+hypothesis costs almost nothing: in the `d`-regular case the least admissible `d` moves from
+`4, 12, 22, 43` to `5, 13, 22, 43` for `k = 1, 2, 3, 5`.
 
 Mathlib's `Digraph` is a bare relation — `Combinatorics/Digraph/` has only `Basic.lean` and
 `Orientation.lean`, with no directed walk and no directed cycle — so the cycle vocabulary is
@@ -174,7 +184,7 @@ theorem exists_labelling_forall_exists_succ {k : ℕ} [NeZero k] (G : Digraph V)
     (hout : ∀ u : V, d ≤ (univ.filter fun w => G.Adj u w).card)
     (hin : ∀ w : V, (univ.filter fun u => G.Adj u w).card ≤ D)
     (hloop : ∀ u : V, ¬ G.Adj u u)
-    (h : (k : ℝ) * (1 + Real.log (1 + d * D)) ≤ d) :
+    (h : (k : ℝ) * (1 + Real.log ((1 + d) * (1 + D))) ≤ d) :
     ∃ x : V → ZMod k, ∀ u : V, ∃ w, G.Adj u w ∧ x w = x u + 1 := by
   sorry
 
@@ -183,13 +193,13 @@ in-degree `D` has a directed cycle whose length is divisible by `k`, as soon as
 `k (1 + log (1 + d D)) ≤ d`.
 
 The hypothesis is satisfiable: in the `d`-regular case the least admissible `d` is
-`4, 12, 22, 43` for `k = 1, 2, 3, 5`. -/
+`5, 13, 22, 43` for `k = 1, 2, 3, 5`. -/
 theorem exists_directed_cycle_length_dvd {k : ℕ} [NeZero k] [Nonempty V] (G : Digraph V)
     [DecidableRel G.Adj] {d D : ℕ}
     (hout : ∀ u : V, d ≤ (univ.filter fun w => G.Adj u w).card)
     (hin : ∀ w : V, (univ.filter fun u => G.Adj u w).card ≤ D)
     (hloop : ∀ u : V, ¬ G.Adj u u)
-    (h : (k : ℝ) * (1 + Real.log (1 + d * D)) ≤ d) :
+    (h : (k : ℝ) * (1 + Real.log ((1 + d) * (1 + D))) ≤ d) :
     ∃ m : ℕ, k ∣ m ∧ HasDirectedCycleOfLength G m := by
   sorry
 
