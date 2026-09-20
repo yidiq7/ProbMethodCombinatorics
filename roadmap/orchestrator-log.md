@@ -360,40 +360,44 @@ Checking it costs nothing, but note two traps in this repo:
 rather than forbidding import changes outright.  The blanket "leave imports untouched" belongs in
 a `prove` brief, where the header really is not the contributor's to change.
 
-## 2026-09-20 — never publish a task whose target inherits `sorryAx`; comparator blocks on it
+## 2026-09-20 — an inherited `sorryAx` needs a reduction block; a plain `golf` PR cannot carry one
 
-#353 asked for a golf of `exists_shrunken_containers_of_many_triangles`.  PR #357 came back
-correct — eight checks green, three of five collapses landed, reviewed in full — and
-`comparator` failed it with `illegal-axiom: Illegal axiom detected: 'sorryAx'`.
+#353 asked for a golf of `exists_shrunken_containers_of_many_triangles`, one of the four theorems
+the README names as inheriting `sorryAx` from the §11.3 corner at `Containers.lean:2548`.  PR
+#357 came back correct — eight checks green, three of five collapses landed, reviewed in full —
+and `comparator` failed it with `illegal-axiom: 'sorryAx'`.
 
-**The task could never have gone green.**  Comparator audits the target's **axiom closure**
-against the permitted set (`propext`, `Quot.sound`, `Classical.choice`).  That theorem is one of
-the four the README names as inheriting `sorryAx` from the §11.3 corner at `Containers.lean:2548`,
-so the closure contains `sorryAx` at base, and every PR against the target fails regardless of
-content.  Mis-specified by me, not a contributor defect.
+**Comparator's permitted set is conditional on the submission, not fixed.**
+`gate/verify/comparator.py::permitted_axioms` grants `sorryAx` when either the PR declares a
+reduction naming this exact target, or the project's sorry policy is `report`.  This project is
+on the default `block`, so the reduction block is the only channel.
 
-**The tell I had and did not read.**  I wrote a paragraph into the brief warning that
-`lake build` would emit pre-existing `declaration uses 'sorry'` warnings for this target and that
-they were not the contributor's failure — and did not connect that to the axiom closure
-comparator would compute over the same declaration.  Noticing the target is downstream of a
-`sorry` is exactly the observation that should have stopped the publication.
+The same declaration passed comparator before, on **PR #159** (2026-09-15), which logged
+`permitted: propext, Quot.sound, Classical.choice, sorryAx` and `outcome: match` — because its
+body carried a `choir-reduction` block with
+`parent: ProbMethodCombinatorics.exists_shrunken_containers_of_many_triangles` and a child of
+`exists_containers_three_uniform`.  A golf PR carries no such block, so the same declaration,
+with the same axiom closure, is refused.
 
-The other audits do not catch this and are right not to: `axiom-honesty` is **net-zero against
-base**, so an inherited axiom passes; `sorry-delta` counts literal `sorry` tokens in changed
-files; `trust-report` never blocks.  Only comparator reads the closure, and only on a task with a
-target.
+**So the target is not unpublishable — an *ordinary* submission against it is.**  The axiom
+closure has been unchanged since September; nothing about the golf introduced it, and no policy
+was tightened.  What differs is only whether the submission declares the obligation it rests on.
 
-**Before publishing any task, check the target against the inherited-`sorryAx` list.**  On this
-project that is `exists_containers_fingerprint_three_uniform` and the four theorems below it:
+**Before publishing a task, check the target against the inherited-`sorryAx` list**
+(`exists_containers_fingerprint_three_uniform` and the four below it:
 `exists_containers_three_uniform`, `exists_shrunken_containers_of_many_triangles`,
-`exists_containers_triangleFree`, `card_triangleFreeGraphs_le`.  **The whole §11.3 chain is
-unpublishable until 2548 closes** — for `golf` and for anything else with a target.
-`choir orch inventory scan` reports the `sorry` itself but not what inherits from it, so the
-README table is the list to read.
+`exists_containers_triangleFree`, `card_triangleFreeGraphs_le`).  A `prove` task there works,
+because the submission declares a reduction.  A `golf` task needs the brief to tell the
+contributor to carry the parent's reduction block forward — it is an accurate description of the
+submission, since the golfed proof still derives the target from the same open obligation — or it
+must not be published at all.
 
-This also retroactively justifies skipping `exists_run_of_container_round`, which was held back
-for a different reason (no consumer, likely to be revised).  It is downstream of the same corner
-and would have failed the same way.
+`choir orch inventory scan` reports the `sorry` but not what inherits from it, so the README
+table is the list to read.  The other audits do not catch this and are right not to:
+`axiom-honesty` is **net-zero against base**, so an inherited axiom passes; `sorry-delta` counts
+literal tokens in changed files; `trust-report` never blocks.  Only comparator reads the closure.
 
-Upstream targets in the same file are unaffected — `exists_greedy_rule` and
-`exists_dense_fingerprint` sit above 2548 and carry a clean closure.
+**Worth reporting upstream.**  A `golf` task on a legitimately conditional theorem has no clean
+channel to say "this target's conditionality was ratified when it was proved".  Re-declaring a
+reduction on a golf PR works and is honest, but it is the reduction mechanism used at a moment it
+was not designed for.
