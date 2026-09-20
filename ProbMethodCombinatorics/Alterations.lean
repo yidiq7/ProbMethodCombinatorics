@@ -1549,24 +1549,17 @@ theorem uniformWeights_heaviest_lightest_le {α : Type*} [Fintype α] [Decidable
         (∀ u ∈ e, w u ≤ w v) ∧ (∀ u ∈ f, w v ≤ w u)}
       ≤ ENNReal.ofReal (∫ x in (1 - p) / 2..(1 + p) / 2, x ^ n * (1 - x) ^ n) := by
   have hpow : ∀ (m : ℕ) (x y : ℝ), 0 ≤ x → x ≤ y → y ≤ 1 → y ^ m - x ^ m ≤ m * (y - x) := by
-    intro m
-    induction m with
-    | zero => intro x y _ _ _; simp
-    | succ m ih =>
-      intro x y hx hxy hy
-      have h1 := ih x y hx hxy hy
-      have hy0 : (0:ℝ) ≤ y := le_trans hx hxy
-      have hxm0 : (0:ℝ) ≤ x ^ m := pow_nonneg hx m
-      have hxm1 : x ^ m ≤ 1 := pow_le_one₀ hx (le_trans hxy hy)
-      have hd : (0:ℝ) ≤ y - x := by linarith
-      have hym : (0:ℝ) ≤ y ^ m - x ^ m := by
-        have h := pow_le_pow_left₀ hx hxy m
-        linarith
-      have hid : y ^ (m + 1) - x ^ (m + 1) = y * (y ^ m - x ^ m) + (y - x) * x ^ m := by ring
-      have t1 : y * (y ^ m - x ^ m) ≤ y ^ m - x ^ m := by nlinarith
-      have t2 : (y - x) * x ^ m ≤ y - x := by nlinarith
-      push_cast
-      linarith
+    intro m x y hx hxy hy
+    have h0 : (0:ℝ) ≤ y - x := by linarith
+    have hb : max |y| |x| ^ (m - 1) ≤ 1 :=
+      pow_le_one₀ ((abs_nonneg y).trans (le_max_left _ _))
+        (max_le (abs_le.mpr ⟨by linarith, hy⟩) (abs_le.mpr ⟨by linarith, by linarith⟩))
+    calc y ^ m - x ^ m ≤ |y - x| * m * max |y| |x| ^ (m - 1) :=
+          (le_abs_self _).trans (abs_pow_sub_pow_le y x m)
+      _ ≤ (y - x) * m := by
+          rw [abs_of_nonneg h0]
+          exact mul_le_of_le_one_right (mul_nonneg h0 m.cast_nonneg) hb
+      _ = m * (y - x) := mul_comm _ _
   have hpoint : ∀ r s x : ℝ, 0 ≤ r → r ≤ x → x ≤ s → s ≤ 1 →
       s ^ n * (1 - r) ^ n - n * (s - r) ≤ x ^ n * (1 - x) ^ n := by
     intro r s x hr0 hrx hxs hs1
@@ -1588,11 +1581,11 @@ theorem uniformWeights_heaviest_lightest_le {α : Type*} [Fintype α] [Decidable
     have hid : s ^ n * (1 - r) ^ n - x ^ n * (1 - x) ^ n
         = (1 - r) ^ n * (s ^ n - x ^ n) + x ^ n * ((1 - r) ^ n - (1 - x) ^ n) := by ring
     nlinarith [hid, h1, h2, h3, h4, h5, h6, h7, h8]
+  have hcont : Continuous fun x : ℝ => x ^ n * (1 - x) ^ n := by fun_prop
   have hint : ∀ r s : ℝ, 0 ≤ r → r ≤ s → s ≤ 1 →
       (s - r) * (s ^ n * (1 - r) ^ n)
         ≤ (∫ x in r..s, x ^ n * (1 - x) ^ n) + n * (s - r) ^ 2 := by
     intro r s hr0 hrs hs1
-    have hcont : Continuous fun x : ℝ => x ^ n * (1 - x) ^ n := by fun_prop
     have hmono : (∫ _ in r..s, (s ^ n * (1 - r) ^ n - n * (s - r)))
         ≤ ∫ x in r..s, x ^ n * (1 - x) ^ n :=
       intervalIntegral.integral_mono_on hrs (continuous_const.intervalIntegrable _ _)
@@ -1605,7 +1598,6 @@ theorem uniformWeights_heaviest_lightest_le {α : Type*} [Fintype α] [Decidable
         = ENNReal.ofReal ((s - r) * (s ^ n * (1 - r) ^ n)) := by
     intro r s hr0 hrs hs1
     have hs0 : (0:ℝ) ≤ s := le_trans hr0 hrs
-    have hr1 : r ≤ (1:ℝ) := le_trans hrs hs1
     have hconv : ENNReal.ofReal ((s - r) * (s ^ n * (1 - r) ^ n))
         = ENNReal.ofReal (s - r) * ENNReal.ofReal s ^ n * ENNReal.ofReal (1 - r) ^ n := by
       rw [ENNReal.ofReal_mul (by linarith : (0:ℝ) ≤ s - r),
@@ -1613,102 +1605,60 @@ theorem uniformWeights_heaviest_lightest_le {α : Type*} [Fintype α] [Decidable
         ENNReal.ofReal_pow (by linarith : (0:ℝ) ≤ 1 - r)]
       ring
     rw [hconv]
+    have hEv : ∀ {i : α}, i ∈ e → ¬ i = v := fun hi hc => hve (hc ▸ hi)
+    have hFv : ∀ {i : α}, i ∈ f → ¬ i = v := fun hi hc => hvf (hc ▸ hi)
+    have hFe : ∀ {i : α}, i ∈ f → i ∉ e := fun hi => Finset.disjoint_right.mp hef hi
     have hset : {w : α → ℝ | (r ≤ w v ∧ w v ≤ s) ∧ (∀ u ∈ e, w u ≤ s) ∧ (∀ u ∈ f, r ≤ w u)}
         = Set.univ.pi (fun i => if i = v then Set.Icc r s else if i ∈ e then Set.Iic s
             else if i ∈ f then Set.Ici r else Set.univ) := by
       ext w
+      simp only [Set.mem_univ_pi]
       constructor
-      · rintro ⟨hv, hE, hF⟩ i _
-        show w i ∈ (if i = v then Set.Icc r s else if i ∈ e then Set.Iic s
-            else if i ∈ f then Set.Ici r else Set.univ)
-        by_cases h1 : i = v
-        · rw [if_pos h1, h1]
-          exact ⟨hv.1, hv.2⟩
-        · rw [if_neg h1]
-          by_cases h2 : i ∈ e
-          · rw [if_pos h2]
-            exact hE i h2
-          · rw [if_neg h2]
-            by_cases h3 : i ∈ f
-            · rw [if_pos h3]
-              exact hF i h3
-            · rw [if_neg h3]
-              exact Set.mem_univ _
+      · rintro ⟨hv, hE, hF⟩ i
+        split_ifs with h1 h2 h3
+        · exact h1 ▸ hv
+        · exact hE i h2
+        · exact hF i h3
+        · trivial
       · intro h
-        have hget : ∀ i : α, w i ∈ (if i = v then Set.Icc r s else if i ∈ e then Set.Iic s
-            else if i ∈ f then Set.Ici r else Set.univ) := fun i => h i (Set.mem_univ i)
-        refine ⟨?_, ?_, ?_⟩
-        · have hi := hget v
-          rw [if_pos rfl] at hi
-          exact ⟨hi.1, hi.2⟩
-        · intro u hu
-          have hi := hget u
-          rw [if_neg (fun hc : u = v => hve (hc ▸ hu)), if_pos hu] at hi
-          exact hi
-        · intro u hu
-          have hi := hget u
-          rw [if_neg (fun hc : u = v => hvf (hc ▸ hu)),
-            if_neg (Finset.disjoint_right.mp hef hu), if_pos hu] at hi
-          exact hi
+        refine ⟨?_, fun u hu => ?_, fun u hu => ?_⟩
+        · have hi := h v; rw [if_pos rfl] at hi; exact hi
+        · have hi := h u; rw [if_neg (hEv hu), if_pos hu] at hi; exact hi
+        · have hi := h u; rw [if_neg (hFv hu), if_neg (hFe hu), if_pos hu] at hi; exact hi
     rw [hset, uniformWeights_pi]
+    have hIic : Set.Iic s ∩ Set.Icc (0:ℝ) 1 = Set.Icc 0 s := by
+      rw [← Set.Ici_inter_Iic, ← Set.Ici_inter_Iic, Set.inter_left_comm, Set.Iic_inter_Iic,
+        inf_eq_left.mpr hs1]
+    have hIci : Set.Ici r ∩ Set.Icc (0:ℝ) 1 = Set.Icc r 1 := by
+      rw [← Set.Ici_inter_Iic, ← Set.Ici_inter_Iic, ← Set.inter_assoc, Set.Ici_inter_Ici,
+        sup_eq_left.mpr hr0]
     have hG : ∀ i : α, MeasureTheory.volume ((if i = v then Set.Icc r s else if i ∈ e then Set.Iic s
         else if i ∈ f then Set.Ici r else Set.univ) ∩ Set.Icc (0:ℝ) 1)
         = if i = v then ENNReal.ofReal (s - r) else if i ∈ e then ENNReal.ofReal s
           else if i ∈ f then ENNReal.ofReal (1 - r) else 1 := by
       intro i
-      by_cases h1 : i = v
-      · rw [if_pos h1, if_pos h1,
-          Set.inter_eq_self_of_subset_left (Set.Icc_subset_Icc hr0 hs1), Real.volume_Icc]
-      · rw [if_neg h1, if_neg h1]
-        by_cases h2 : i ∈ e
-        · rw [if_pos h2, if_pos h2, show Set.Iic s ∩ Set.Icc (0:ℝ) 1 = Set.Icc 0 s from ?_,
-            Real.volume_Icc, sub_zero]
-          ext x
-          simp only [Set.mem_inter_iff, Set.mem_Iic, Set.mem_Icc]
-          constructor
-          · rintro ⟨h1', h2', -⟩
-            exact ⟨h2', h1'⟩
-          · rintro ⟨h1', h2'⟩
-            exact ⟨h2', h1', le_trans h2' hs1⟩
-        · rw [if_neg h2, if_neg h2]
-          by_cases h3 : i ∈ f
-          · rw [if_pos h3, if_pos h3, show Set.Ici r ∩ Set.Icc (0:ℝ) 1 = Set.Icc r 1 from ?_,
-              Real.volume_Icc]
-            ext x
-            simp only [Set.mem_inter_iff, Set.mem_Ici, Set.mem_Icc]
-            constructor
-            · rintro ⟨h1', -, h3'⟩
-              exact ⟨h1', h3'⟩
-            · rintro ⟨h1', h2'⟩
-              exact ⟨h1', le_trans hr0 h1', h2'⟩
-          · rw [if_neg h3, if_neg h3, Set.univ_inter, Real.volume_Icc]
-            norm_num
+      split_ifs
+      · rw [Set.inter_eq_self_of_subset_left (Set.Icc_subset_Icc hr0 hs1), Real.volume_Icc]
+      · rw [hIic, Real.volume_Icc, sub_zero]
+      · rw [hIci, Real.volume_Icc]
+      · rw [Set.univ_inter, Real.volume_Icc]
+        norm_num
     rw [Finset.prod_congr rfl (fun i _ => hG i)]
     have hsub : insert v (e ∪ f) ⊆ (Finset.univ : Finset α) := Finset.subset_univ _
     rw [← Finset.prod_subset hsub (by
       intro i _ hi
-      have h1 : i ≠ v := fun hc => hi (Finset.mem_insert.mpr (Or.inl hc))
-      have h2 : i ∉ e := fun hc => hi (Finset.mem_insert.mpr (Or.inr (Finset.mem_union_left _ hc)))
-      have h3 : i ∉ f := fun hc => hi (Finset.mem_insert.mpr (Or.inr (Finset.mem_union_right _ hc)))
-      rw [if_neg h1, if_neg h2, if_neg h3])]
-    rw [Finset.prod_insert (by
-      intro hc
-      rcases Finset.mem_union.mp hc with h | h
-      · exact hve h
-      · exact hvf h), Finset.prod_union hef]
+      simp only [Finset.mem_insert, Finset.mem_union, not_or] at hi
+      rw [if_neg hi.1, if_neg hi.2.1, if_neg hi.2.2])]
+    rw [Finset.prod_insert (Finset.notMem_union.mpr ⟨hve, hvf⟩), Finset.prod_union hef]
     have hev : ∀ i ∈ e, (if i = v then ENNReal.ofReal (s - r) else if i ∈ e then ENNReal.ofReal s
-        else if i ∈ f then ENNReal.ofReal (1 - r) else 1) = ENNReal.ofReal s := by
-      intro i hi
-      rw [if_neg (fun hc : i = v => hve (hc ▸ hi)), if_pos hi]
+        else if i ∈ f then ENNReal.ofReal (1 - r) else 1) = ENNReal.ofReal s :=
+      fun i hi => by rw [if_neg (hEv hi), if_pos hi]
     have hfv : ∀ i ∈ f, (if i = v then ENNReal.ofReal (s - r) else if i ∈ e then ENNReal.ofReal s
-        else if i ∈ f then ENNReal.ofReal (1 - r) else 1) = ENNReal.ofReal (1 - r) := by
-      intro i hi
-      rw [if_neg (fun hc : i = v => hvf (hc ▸ hi)), if_neg (Finset.disjoint_right.mp hef hi),
-        if_pos hi]
+        else if i ∈ f then ENNReal.ofReal (1 - r) else 1) = ENNReal.ofReal (1 - r) :=
+      fun i hi => by rw [if_neg (hFv hi), if_neg (hFe hi), if_pos hi]
     rw [Finset.prod_congr rfl hev, Finset.prod_congr rfl hfv, Finset.prod_const, Finset.prod_const,
       he, hf, if_pos rfl, mul_assoc]
 
-  have hcont : Continuous fun x : ℝ => x ^ n * (1 - x) ^ n := by fun_prop
   have hp2 : (0:ℝ) ≤ (1 - p) / 2 := by linarith
   have hI0 : (0:ℝ) ≤ ∫ x in (1 - p) / 2..(1 + p) / 2, x ^ n * (1 - x) ^ n := by
     refine intervalIntegral.integral_nonneg (by linarith) ?_
