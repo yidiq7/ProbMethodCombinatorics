@@ -1,5 +1,6 @@
 import ProbMethodCombinatorics.SecondMoment
 import Mathlib.Probability.Moments.SubGaussian
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
 import Mathlib.Probability.Martingale.Basic
 import Mathlib.Combinatorics.SimpleGraph.Coloring.Vertex
 import Mathlib.Probability.Combinatorics.BinomialRandomGraph.Defs
@@ -570,39 +571,6 @@ theorem measure_martingale_sub_ge_le {Ω : Type*} {m0 : MeasurableSpace Ω} {μ 
     calc s * g ω ≤ |s * g ω| := le_abs_self _
       _ = |s| * |g ω| := abs_mul _ _
       _ ≤ |s| * b := by gcongr
-  -- Hoeffding's lemma in its analytic form `cosh y ≤ exp (y² / 2)`.  It is Mathlib's
-  -- `hasSubgaussianMGF_of_mem_Icc_of_integral_eq_zero` read on the two-point space: the
-  -- moment generating function of a symmetric `±y` random variable is `cosh y`.
-  have hcosh : ∀ y : ℝ, Real.cosh y ≤ Real.exp (y ^ 2 / 2) := by
-    intro y
-    set ν : Measure Bool := ((2 : ℝ≥0∞)⁻¹) • (Measure.dirac true + Measure.dirac false) with hν
-    have hprob : IsProbabilityMeasure ν := by
-      refine ⟨?_⟩
-      rw [hν]
-      simp only [Measure.smul_apply, Measure.coe_add, Pi.add_apply, measure_univ, smul_eq_mul]
-      rw [one_add_one_eq_two, ENNReal.inv_mul_cancel (by norm_num) (by norm_num)]
-    set X : Bool → ℝ := fun b ↦ if b then y else -y with hX
-    have hmean : ∫ b, X b ∂ν = 0 := by
-      rw [hν, integral_smul_measure, integral_add_measure (by simp) (by simp)]
-      simp [hX]
-    have hmgf : mgf X ν 1 = Real.cosh y := by
-      rw [mgf, hν, integral_smul_measure, integral_add_measure (by simp) (by simp)]
-      simp [hX, Real.cosh_eq]
-      ring
-    have hicc : ∀ᵐ b ∂ν, X b ∈ Set.Icc (-|y|) |y| := by
-      filter_upwards with b
-      cases b <;> simp [hX, neg_abs_le, le_abs_self, neg_le_abs]
-    have hle := (hasSubgaussianMGF_of_mem_Icc_of_integral_eq_zero (μ := ν) (X := X)
-      measurable_from_top.aemeasurable hicc hmean).mgf_le 1
-    rw [hmgf] at hle
-    refine hle.trans_eq ?_
-    rw [Real.exp_eq_exp]
-    have hcast : (((‖|y| - -|y|‖₊ / 2) ^ 2 : NNReal) : ℝ) = y ^ 2 := by
-      push_cast
-      rw [Real.norm_eq_abs, abs_of_nonneg (by linarith [abs_nonneg y] : (0:ℝ) ≤ |y| - -|y|),
-        sub_neg_eq_add, ← two_mul, mul_div_cancel_left₀ _ (by norm_num : (2:ℝ) ≠ 0), sq_abs]
-    rw [hcast]
-    ring
   -- The conditional form of Hoeffding's lemma: a `μ[· | m]`-centred variable bounded by `b`
   -- has conditional moment generating function at most `exp (s² b² / 2)`.  Mathlib's
   -- `HasCondSubgaussianMGF` says this, but only for `[StandardBorelSpace Ω]`, since it is
@@ -654,7 +622,7 @@ theorem measure_martingale_sub_ge_le {Ω : Type*} {m0 : MeasurableSpace Ω} {μ 
         simp [condExp_const hm A, hω, hω0]
       filter_upwards [h1, h2] with ω hω hω2
       rw [hω2] at hω
-      refine hω.trans ((hcosh (s * b)).trans_eq ?_)
+      refine hω.trans ((Real.cosh_le_exp_half_sq (s * b)).trans_eq ?_)
       rw [Real.exp_eq_exp]; ring
   -- Setup.  `t` is the value of the Chernoff parameter that optimises the final bound.
   set S := ∑ i ∈ Finset.Icc 1 n, c i ^ 2 with hSdef
