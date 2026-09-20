@@ -4,6 +4,10 @@ A [Choir](https://github.com/Weber-GeoML/Choir)-managed formalization, in Lean 4
 Mathlib, of Yufei Zhao's lecture notes *Probabilistic Methods in Combinatorics*
 (MIT 18.226, Fall 2022).
 
+**[See the proof tree ↗](https://yidiq7.github.io/ProbMethodCombinatorics/choir-proof-tree.html)** —
+every declaration and the dependencies between them, with a scrubber that replays how the
+corpus was built, task by task and merge by merge.
+
 The source is in [`sources/`](sources/README.md); the plan and a per-chapter log are in
 [`roadmap/`](roadmap/README.md); project conventions contributors should follow are in
 [`skills/`](skills/conventions.md).
