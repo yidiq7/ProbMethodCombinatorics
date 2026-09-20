@@ -1704,3 +1704,85 @@ and Question 1.4.1.
    transcribed from the source and was wrong for the dependency count the argument supports;
    Theorem 2.5.2 was outright false at `n = 0`.  Both were caught before a worker saw them.
    This is also how the five source errata were found.
+
+# Annealing pass, 2026-09-20: four golf tasks published
+
+The board was empty — no open tasks, no open PRs, no axioms, one `sorry`, `sync-graph --check`
+clean.  With the corpus stable in every chapter, the ready frontier is `golf`, which on this
+toolchain (`v4.33.0`) is also the best-verified task type the project has: the target exists in
+base, so `verify-comparator` binds the statement at the kernel level over its whole dependency
+closure.
+
+**Targets were chosen from the gate's own style audit, not by eye.**  `gate.verify.style`'s
+`find_decl_spans` over all 29 files: 683 declarations, 16 at or above 150 lines, 9 above the
+project's 200-line threshold.  Each candidate was then read for a *nameable* collapse, because
+this project's golf tasks specify the exact edit (#145 named the block to delete, the line to
+replace it with, and predicted −134 to within one).  A task that only says "this is long" is
+below that bar and produces churn.
+
+Published, all `choir/priority:low`:
+
+| # | target | lines | expected | difficulty |
+|---|---|---|---|---|
+| 350 | `lovasz_local_lemma_symmetric` | 175 | −120 | easy |
+| 351 | `measure_martingale_sub_ge_le` | 209 | −40 to −55 | easy |
+| 352 | `uniformWeights_heaviest_lightest_le` | 321 | −45 to −70 | medium |
+| 353 | `exists_shrunken_containers_of_many_triangles` | 595 | −100 to −170 | hard |
+
+#350 is the candidate recorded on 2026-09-13 and never published: the inline re-derivation of
+the general local lemma, which was correct when written (PR #44 opened 73 seconds before #41
+merged) and has been redundant ever since.  Verified still present at HEAD, lines 252–368, and
+`lovasz_local_lemma`'s signature does discharge it at the constant weight `1/(d+2)`.
+
+#351 and #352 rest on **Mathlib lemmas re-derived inline** — `Real.cosh_le_exp_half_sq` (36
+lines of two-point-measure construction proving a statement Mathlib states verbatim, and which
+this project already calls at `Chernoff.lean:90`) and `abs_pow_sub_pow_le`.  Both were confirmed
+present in the pinned Mathlib and in scope from the target's file before publishing.
+
+**Skipped, with reasons**, so the list is not re-derived next pass:
+
+- `exists_run_of_container_round` (221) — **has no consumer anywhere in the repo.**  It exists
+  to be fed to the `sorry` at `Containers.lean:2548`.  Until that closes, its intermediate shape
+  may still be revised, which would invalidate the golf.  Reward ~20 lines, real invalidation
+  risk.  Revisit only if 2548 ever closes.
+- `janson_lower_tail_step_le` (391) — worst payoff per unit effort in the corpus: ~40 real lines
+  out of 391, inside a 1960-line file where every iteration is an expensive rebuild.
+- `le_card_of_distinctSubsetSums` (242) — ~25 lines, and two calibrated spots a golfer would be
+  tempted to "clean": the `7/8 · n · √k` Chebyshev radius (a deliberate shade inside `2σ`) and
+  the `interval_cases k <;> nlinarith` finish with six hand-picked `sq_nonneg` hints.
+- `exists_independent_transversal` (218) — ~12 lines, against a docstring documenting two tight
+  constants (the strict `<` in `hsize`, the `- 1` in `d = 2mΔ - 1`) that an arithmetic tidy-up
+  can silently break.
+- `card_lt_of_triangleIntersecting` (208) — only ~8 safe lines.  The real win is extracting the
+  intersecting-family bound as a reusable lemma, which is a **refactor, not a golf**.
+- `exists_dense_fingerprint` (284) and `exists_greedy_rule` (182) — most of their duplication
+  needs shared private lemmas, so most of the win is not available to a golf task.
+
+**Duplication is largely already annealed.**  A 10-significant-line window scan across the whole
+corpus found only 7 cross-declaration duplicate groups, and most are the LocalLemma/Lopsided
+mirror, which is mathematically expected.  The shape that produced #147 is close to exhausted;
+remaining golf value is per-proof length and inlined Mathlib, not de-duplication.
+
+## Orchestrator work queued, not publishable as tasks
+
+Each of these needs a deletion, a visibility change, or a new shared declaration, all of which
+`skills/conventions.md` puts outside a `golf` task.  **Do these before the next golf batch, not
+after** — committing to a target file re-pins every open task against it.
+
+1. `uniformColoring_monochromatic_toReal_le` is duplicated verbatim in `ArithProgressions.lean`
+   as `uniformColoring_monochromatic_toReal_le'`, with a docstring admitting it is "a deliberate
+   copy … which module-scoped privacy puts out of reach here".  Promote the `LocalLemma` original
+   and delete the copy.  This is the same `private`-unreachability failure the first lesson in
+   `orchestrator-log.md` records.
+2. `Alterations.lean` 1756–1797 duplicates 1452–1478 (find `j < N` with `t j ≤ w v ≤ t (j+1)`
+   via `min ⌊y⌋₊ (N-1)`, including the `hcast` sub-block) across `uniformWeights_eq_null` and
+   `uniformWeights_heaviest_lightest_le`.  A shared private lemma cuts ~40 and ~25.  #352's brief
+   tells its contributor explicitly to leave this alone.
+3. `Entropy.lean` — extract the intersecting-family bound from `card_lt_of_triangleIntersecting`
+   (1331–1370) as `two_mul_card_le_two_pow_of_intersecting`.  Mathlib's `Finset.Intersecting.card_le`
+   does **not** apply off the shelf: it is over `univ` in a BooleanAlgebra, while here the ground
+   set is `powerset (A S)` and `{X // X ⊆ A S}` carries no BooleanAlgebra instance.
+4. `Containers.lean` — the ord/decode weight encoding at 212–235 inside `exists_greedy_rule` is a
+   near-verbatim specialization of `exists_degree_order` (1189–1215).  A generalized private lemma
+   serves both (−20 and −27).  Note the doc comments at 1181–1183 and 1361–1367 deliberately
+   explain why the graph and hypergraph weights differ: generalize, do not "unify".

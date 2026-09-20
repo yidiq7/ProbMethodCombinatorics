@@ -275,3 +275,54 @@ pins — a strictly worse outcome than two odd commits. The fix is procedural:
 
 The general form: **an orchestrator that delegates work into its own working directory has to
 treat that directory as shared state.** The subagent did nothing wrong; the concurrency was mine.
+
+## 2026-09-20 — `create-task --label` silently kills the intake workflow
+
+Publishing #350–#353 with `--label choir/priority:low --label choir/difficulty:…` left all four
+without `choir/type:golf` and without an intake acknowledgement comment.  The task records
+themselves were fine — `choir orch tasks` parsed all four correctly — but `choir orch metrics`
+reads the type from the **label**, so the run would have been invisible to it.
+
+`issue-intake.yml` declares `concurrency: group: choir-intake-<issue number>` with
+`cancel-in-progress: true`, and its job-level `if` skips `labeled` events whose label is not
+`choir/available` or `choir/invalid`.  **A run whose only job skips still occupies the
+concurrency group**, so each `--label` flag fires a `labeled` event whose skipped run cancels
+whatever eligible run is still in flight.  With two labels the eligible `opened` and
+`labeled: choir/available` runs both got cancelled; the history shows five runs per issue, every
+eligible one cancelled and only the skips surviving.  A task published with **no** extra labels
+races two eligible runs and the second completes, which is why every earlier task on this board
+has its type label.
+
+- **Publish first, label second.**  Create the task bare, let intake finish, then apply
+  `choir/priority:*` and `choir/difficulty:*`.
+- **Check the type label after every `create-task`.**  It is one `gh issue view --json labels`
+  and it is the only visible symptom.
+- Repairing it afterwards is just `gh issue edit --add-label`; the ack comment does not come
+  back, which costs nothing but is worth knowing before hunting for it.
+
+The workflow itself is off-limits — `.github/` is a protected path, and a concurrency group that
+counts skipped runs is a Choir-wide defect rather than a project one.  **Escalated to the
+overseer; not fixed here.**
+
+## 2026-09-20 — Pick golf targets from the style audit, and only publish a nameable edit
+
+Two habits, both of which paid immediately this pass.
+
+**Run the gate's own audit instead of reading for length.**  `gate.verify.style.find_decl_spans`
+over the corpus is about ten lines of Python and returns every declaration with its span; it
+found 9 over the project's 200-line threshold out of 683, which is the candidate list.  Reading
+files to find long proofs would have cost far more and missed some.
+
+**Then refuse to publish anything without a specific edit.**  Of those 9, only 3 survived a read
+for a *nameable* collapse; a fourth was the recorded-but-unpublished #350.  Five were skipped —
+see the 2026-09-20 entry in `roadmap/README.md` for which and why.  The distinction that decides
+it is almost always **can the fix live inside the proof body?**  `skills/conventions.md` forbids
+a golf task from adding a declaration, so "extract this block as a private lemma" — which is what
+the biggest duplications usually want — is orchestrator work, and a brief that asks for it is
+mis-specified.  Split every candidate's findings into in-body and needs-a-declaration before
+writing the task, and put the second list in the roadmap instead.
+
+Corollary worth keeping: **the highest-value golf shape in this corpus is a Mathlib lemma
+re-derived inline**, not internal repetition.  #351 deletes 36 lines that prove
+`Real.cosh_le_exp_half_sq`, which this project already calls elsewhere.  Check candidates against
+Mathlib before checking them against themselves.
