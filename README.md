@@ -5,7 +5,7 @@ Mathlib, of Yufei Zhao's lecture notes *Probabilistic Methods in Combinatorics*
 (MIT 18.226, Fall 2022).
 
 See a visualization of this project's formalization history here:
-**[the proof tree ↗](https://yidiq7.github.io/ProbMethodCombinatorics/choir-proof-tree.html)**
+**[the proof tree](https://yidiq7.github.io/ProbMethodCombinatorics/choir-proof-tree.html)**
 
 The source is in [`sources/`](sources/README.md); the plan and a per-chapter log are in
 [`roadmap/`](roadmap/README.md); project conventions contributors should follow are in
