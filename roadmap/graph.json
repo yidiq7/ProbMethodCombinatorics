@@ -1730,7 +1730,7 @@
       "decl": "ProbMethodCombinatorics.exists_containers_three_uniform",
       "doc": "containers.md#113-the-hypergraph-container-theorem",
       "statement": "formalized",
-      "proof": "formalized",
+      "proof": "planned",
       "uses": [
         "containers_maxCodegree"
       ],
@@ -1745,7 +1745,7 @@
       "decl": "ProbMethodCombinatorics.exists_containers_triangleFree",
       "doc": "containers.md#111-containers-for-triangle-free-graphs",
       "statement": "formalized",
-      "proof": "formalized",
+      "proof": "planned",
       "uses": [
         "containers_triangleFreeGraphs"
       ],
@@ -1763,7 +1763,7 @@
       "decl": "ProbMethodCombinatorics.card_triangleFreeGraphs_le",
       "doc": "containers.md#111-containers-for-triangle-free-graphs",
       "statement": "formalized",
-      "proof": "formalized",
+      "proof": "planned",
       "uses": [
         "containers_triangleFreeGraphs"
       ],
@@ -1980,7 +1980,7 @@
       "decl": "ProbMethodCombinatorics.exists_shrunken_containers_of_many_triangles",
       "doc": "containers.md#111-containers-for-triangle-free-graphs",
       "statement": "formalized",
-      "proof": "formalized",
+      "proof": "planned",
       "uses": [
         "containers_triangleFreeEdgeSet",
         "entropy_triangleEdges"
@@ -3807,7 +3807,7 @@
       "file": "ProbMethodCombinatorics/Containers.lean",
       "decl": "ProbMethodCombinatorics.exists_container_round",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "IsContainerRound"
       ],
@@ -4350,7 +4350,7 @@
       "file": "ProbMethodCombinatorics/LocalLemma.lean",
       "decl": "ProbMethodCombinatorics.exists_independent_transversal",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": [
         "isProbabilityMeasure_unifChoice",
@@ -4571,7 +4571,7 @@
       "file": "ProbMethodCombinatorics/SecondMoment.lean",
       "decl": "ProbMethodCombinatorics.prob_triangle_of_le_mul",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "binomial_random_graph",
         "triangleCount"
@@ -4591,7 +4591,7 @@
       "file": "ProbMethodCombinatorics/LocalLemma.lean",
       "decl": "ProbMethodCombinatorics.twoColorable_of_sum_inv_two_pow_le",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "two_colorable"
       ],
@@ -4642,7 +4642,7 @@
       "file": "ProbMethodCombinatorics/SecondMoment.lean",
       "decl": "ProbMethodCombinatorics.integral_copyCount",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "binomial_random_graph",
         "copyCount"
@@ -4658,7 +4658,7 @@
       "file": "ProbMethodCombinatorics/Janson.lean",
       "decl": "ProbMethodCombinatorics.map_inter_setBernoulli",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": []
     },
@@ -4722,7 +4722,7 @@
       "file": "ProbMethodCombinatorics/Concentration.lean",
       "decl": "ProbMethodCombinatorics.binomialRandom_eq_map_graphOfExposure",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "ExposureBlock",
         "binomial_random_graph",
@@ -4746,7 +4746,7 @@
       "file": "ProbMethodCombinatorics/Janson.lean",
       "decl": "ProbMethodCombinatorics.binomialRandom_setOf_forall_not_subset",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "binomial_random_graph"
       ],
@@ -4770,7 +4770,7 @@
       "file": "ProbMethodCombinatorics/Expectation.lean",
       "decl": "ProbMethodCombinatorics.card_le_of_tetrahedronFree_sample_five",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": [
         "card_choose_two_le_card_filter_five_superset",
@@ -4956,7 +4956,7 @@
       "file": "ProbMethodCombinatorics/Janson.lean",
       "decl": "ProbMethodCombinatorics.jansonMu_triangleFamily",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "janson_mu",
         "offDiagPairs"
