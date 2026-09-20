@@ -1730,7 +1730,7 @@
       "decl": "ProbMethodCombinatorics.exists_containers_three_uniform",
       "doc": "containers.md#113-the-hypergraph-container-theorem",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "containers_maxCodegree"
       ],
@@ -1745,7 +1745,7 @@
       "decl": "ProbMethodCombinatorics.exists_containers_triangleFree",
       "doc": "containers.md#111-containers-for-triangle-free-graphs",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "containers_triangleFreeGraphs"
       ],
@@ -1763,7 +1763,7 @@
       "decl": "ProbMethodCombinatorics.card_triangleFreeGraphs_le",
       "doc": "containers.md#111-containers-for-triangle-free-graphs",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "containers_triangleFreeGraphs"
       ],
@@ -1980,7 +1980,7 @@
       "decl": "ProbMethodCombinatorics.exists_shrunken_containers_of_many_triangles",
       "doc": "containers.md#111-containers-for-triangle-free-graphs",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "containers_triangleFreeEdgeSet",
         "entropy_triangleEdges"
