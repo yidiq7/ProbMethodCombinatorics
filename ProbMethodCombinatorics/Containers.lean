@@ -2755,9 +2755,8 @@ theorem exists_shrunken_containers_of_many_triangles (c : ℝ) (hc : 0 < c) :
       exact hGF
   have hnR : (1:ℝ) ≤ (n:ℝ) := by exact_mod_cast hn1
   have hTpos : 0 < Tset.card := by
-    have hnpos : (0:ℝ) < (n:ℝ) := by linarith
-    have h1 : (0:ℝ) < c * (n:ℝ)^3 := mul_pos hc (pow_pos hnpos 3)
-    have : (0:ℝ) < (Tset.card : ℝ) := lt_of_lt_of_le h1 hTcard
+    have : (0:ℝ) < (Tset.card : ℝ) :=
+      lt_of_lt_of_le (mul_pos hc (pow_pos (by linarith) 3)) hTcard
     exact_mod_cast this
   -- For `n ≥ 1` the count is positive, so `F` really does span a triangle: hence `3 ≤ n` and
   -- `3 ≤ |F|`, and `n ∈ {1, 2}` is vacuous.
@@ -2791,32 +2790,32 @@ theorem exists_shrunken_containers_of_many_triangles (c : ℝ) (hc : 0 < c) :
       (x = p ∨ x = q ∨ x = r) ∧ (y = p ∨ y = q ∨ y = r) := by
     intro x y p q r h
     rcases (htri _ _ _ _).mp h with h' | h' | h' <;>
-      [exact (fun h => ⟨by tauto, by tauto⟩) (hpair x y p q h');
-       exact (fun h => ⟨by tauto, by tauto⟩) (hpair x y p r h');
-       exact (fun h => ⟨by tauto, by tauto⟩) (hpair x y q r h')]
+      (obtain ⟨h1, h2⟩ := hpair _ _ _ _ h'; exact ⟨by tauto, by tauto⟩)
   have hSym2 : ∀ z : Sym2 (Fin n), ∃ x y : Fin n, z = s(x, y) :=
     fun z => Sym2.ind (fun x y => ⟨x, y, rfl⟩) z
-  have hle3 : ∀ x y z : Fin n, ({x, y, z} : Finset (Fin n)).card ≤ 3 := by
-    intro x y z
-    calc ({x, y, z} : Finset (Fin n)).card ≤ ({y, z} : Finset (Fin n)).card + 1 :=
-          card_insert_le _ _
-      _ ≤ (({z} : Finset (Fin n)).card + 1) + 1 := by gcongr; exact card_insert_le _ _
-      _ = 3 := by simp
-  have hle4 : ∀ w x y z : Fin n, ({w, x, y, z} : Finset (Fin n)).card ≤ 4 := by
-    intro w x y z
-    calc ({w, x, y, z} : Finset (Fin n)).card ≤ ({x, y, z} : Finset (Fin n)).card + 1 :=
-          card_insert_le _ _
-      _ ≤ 3 + 1 := by gcongr; exact hle3 x y z
-      _ = 4 := by norm_num
+  have hS2 : ∀ x y : Fin n, ({x, y} : Finset (Fin n)).card ≤ 2 := fun _ _ =>
+    (card_insert_le _ _).trans (by simp)
+  have hle3 : ∀ x y z : Fin n, ({x, y, z} : Finset (Fin n)).card ≤ 3 := fun _ y z =>
+    (card_insert_le _ _).trans (by have := hS2 y z; omega)
+  have hle4 : ∀ w x y z : Fin n, ({w, x, y, z} : Finset (Fin n)).card ≤ 4 := fun _ x y z =>
+    (card_insert_le _ _).trans (by have := hle3 x y z; omega)
+  -- A triple product is bounded coordinatewise; every cardinality bound below is an instance.
+  have hprod : ∀ (A B D : Finset (Fin n)) (a b e : ℕ), A.card ≤ a → B.card ≤ b → D.card ≤ e →
+      (A ×ˢ (B ×ˢ D)).card ≤ a * (b * e) := fun _ _ _ _ _ _ hA hB hD => by
+    rw [card_product, card_product]
+    exact Nat.mul_le_mul hA (Nat.mul_le_mul hB hD)
   have hδsmall : δ ≤ 1 / ((n₀:ℝ)^2 + 1) := by rw [hδdef]; exact min_le_right _ _
   have hn2 : (2:ℝ) ≤ (n:ℝ) := by exact_mod_cast le_trans (by norm_num) hn3
   have hnpos : (0:ℝ) < (n:ℝ) := by linarith
+  -- The exponent split `n^{1/2} · n^{3/2} = n²` behind both container-count estimates.
+  have hsplit : (n:ℝ) ^ ((1:ℝ)/2) * (n:ℝ) ^ ((3:ℝ)/2) = (n:ℝ) * (n:ℝ) := by
+    rw [← Real.rpow_add hnpos, show (1:ℝ)/2 + 3/2 = 2 by norm_num,
+      show (2:ℝ) = ((2:ℕ):ℝ) by norm_num, Real.rpow_natCast]
+    ring
   have hFn2 : (F.card : ℝ) ≤ (n:ℝ) * (n:ℝ) := by
-    have h0 : F.card ≤ n * n := by
-      refine le_trans (Finset.card_le_univ F) ?_
-      have h := Fintype.card_le_of_surjective
+    have h0 : F.card ≤ n * n := (Finset.card_le_univ F).trans <| by
+      simpa [Fintype.card_prod] using Fintype.card_le_of_surjective
         (Function.uncurry (Sym2.mk (α := Fin n))) Sym2.mk_surjective
-      simpa [Fintype.card_prod] using h
     exact_mod_cast h0
   have h6c : (0:ℝ) < 6 / Real.sqrt c := by positivity
   by_cases hbig : n₀ ≤ n
@@ -2827,14 +2826,11 @@ theorem exists_shrunken_containers_of_many_triangles (c : ℝ) (hc : 0 < c) :
     -- index set and `pull` carries it back, and the two are mutually inverse on subsets of `F`.
     obtain ⟨ψ, hψF, hψinj, hψsurj⟩ : ∃ ψ : Fin N → Sym2 (Fin n),
         (∀ i, ψ i ∈ F) ∧ Function.Injective ψ ∧ ∀ p ∈ F, ∃ i, ψ i = p := by
-      refine ⟨fun i => ((F.equivFin.symm i : {x // x ∈ F}) : Sym2 (Fin n)),
-        fun i => (F.equivFin.symm i).2, ?_, ?_⟩
-      · intro i j h
-        exact F.equivFin.symm.injective (Subtype.coe_injective h)
-      · intro p hp
-        refine ⟨F.equivFin ⟨p, hp⟩, ?_⟩
-        show ((F.equivFin.symm (F.equivFin ⟨p, hp⟩) : {x // x ∈ F}) : Sym2 (Fin n)) = p
-        rw [Equiv.symm_apply_apply]
+      exact ⟨fun i => ((F.equivFin.symm i : {x // x ∈ F}) : Sym2 (Fin n)),
+        fun i => (F.equivFin.symm i).2,
+        fun _ _ h => F.equivFin.symm.injective (Subtype.coe_injective h),
+        fun p hp => ⟨F.equivFin ⟨p, hp⟩,
+          congrArg Subtype.val (F.equivFin.symm_apply_apply ⟨p, hp⟩)⟩⟩
     clear_value N
     set pull : Finset (Fin N) → Finset (Sym2 (Fin n)) := fun A => A.image ψ with hpulldef
     set push : Finset (Sym2 (Fin n)) → Finset (Fin N) :=
@@ -2863,9 +2859,6 @@ theorem exists_shrunken_containers_of_many_triangles (c : ℝ) (hc : 0 < c) :
     have hcardpush : ∀ D : Finset (Sym2 (Fin n)), D ⊆ F → (push D).card = D.card := by
       intro D hD
       rw [← hcardpull (push D), hpullpush D hD]
-    have hpushmono : ∀ D E : Finset (Sym2 (Fin n)), D ⊆ E → push D ⊆ push E := by
-      intro D E hDE i hi
-      exact (hmempush E i).mpr (hDE ((hmempush D i).mp hi))
     have hpullmono : ∀ A B : Finset (Fin N), A ⊆ B → pull A ⊆ pull B := by
       intro A B hAB p hp
       obtain ⟨i, hi, rfl⟩ := (hmempull A p).mp hp
@@ -2877,6 +2870,9 @@ theorem exists_shrunken_containers_of_many_triangles (c : ℝ) (hc : 0 < c) :
     have hgapp : ∀ t : Fin n × Fin n × Fin n, g t = push (triangleEdges t.1 t.2.1 t.2.2) :=
       fun _ => rfl
     clear_value g H
+    have hgmem : ∀ (t : Fin n × Fin n × Fin n) (i : Fin N),
+        i ∈ g t ↔ ψ i ∈ triangleEdges t.1 t.2.1 t.2.2 := by
+      intro t i; rw [hgapp]; exact hmempush _ i
     -- At most `27` ordered triples give the same hyperedge: an edge set determines the triangle's
     -- three vertices, and each coordinate is one of them.  So the hypergraph has at least
     -- `|Tset| / 27` edges, which is what turns `c n³` triangles into `d ≥ c n / 9`.
@@ -2904,30 +2900,19 @@ theorem exists_shrunken_containers_of_many_triangles (c : ℝ) (hc : 0 < c) :
         obtain ⟨-, hz⟩ := hend _ _ _ _ _ e2
         simp only [mem_product, mem_insert, mem_singleton]
         exact ⟨ha, hb, hz⟩
-      refine le_trans (Finset.card_le_card hsubset) ?_
-      rw [card_product, card_product]
       have h3 := hle3 t₁.1 t₁.2.1 t₁.2.2
-      calc ({t₁.1, t₁.2.1, t₁.2.2} : Finset (Fin n)).card *
-            (({t₁.1, t₁.2.1, t₁.2.2} : Finset (Fin n)).card *
-              ({t₁.1, t₁.2.1, t₁.2.2} : Finset (Fin n)).card)
-          ≤ 3 * (3 * 3) := Nat.mul_le_mul h3 (Nat.mul_le_mul h3 h3)
-        _ = 27 := by norm_num
-    have hHpos : 0 < H.card := by
-      rcases Nat.eq_zero_or_pos H.card with h | h
-      · rw [h] at hfiber; omega
-      · exact h
+      exact (Finset.card_le_card hsubset).trans (hprod _ _ _ 3 3 3 h3 h3 h3)
     have hNR : (0:ℝ) < (N:ℝ) := by exact_mod_cast hNpos
     set d : ℝ := 3 * (H.card : ℝ) / (N : ℝ) with hddef
     have hdeq : 3 * (H.card : ℝ) = d * (N:ℝ) := by
       rw [hddef]; field_simp
-    have hdlb0 : c * (n:ℝ) / 9 ≤ d := by
+    have hdlb : c * (n:ℝ) / 9 ≤ d := by
       rw [hddef, div_le_div_iff₀ (by norm_num) hNR]
       have h1 : (Tset.card : ℝ) ≤ 27 * (H.card : ℝ) := by exact_mod_cast hfiber
       have h2 : c * (n:ℝ) * (N:ℝ) ≤ c * (n:ℝ) * ((n:ℝ) * (n:ℝ)) :=
         mul_le_mul_of_nonneg_left hFn2 (by positivity)
       nlinarith [hTcard]
     clear_value d
-    have hdlb : c * (n:ℝ) / 9 ≤ d := hdlb0
     have hdpos : 0 < d := lt_of_lt_of_le (by positivity) hdlb
     have hnn₀ : (n₀:ℝ) ≤ (n:ℝ) := by exact_mod_cast hbig
     have hd1 : (1:ℝ) ≤ d := by
@@ -2948,11 +2933,7 @@ theorem exists_shrunken_containers_of_many_triangles (c : ℝ) (hc : 0 < c) :
       obtain ⟨t, ht, rfl⟩ := he
       obtain ⟨h1, h2, h3, h4⟩ := hTmem t ht
       rw [hgapp, hcardpush _ h4, hcard3 _ _ _ h1 h2 h3]
-    have hS2 : ∀ x y : Fin n, ({x, y} : Finset (Fin n)).card ≤ 2 := by
-      intro x y
-      calc ({x, y} : Finset (Fin n)).card ≤ ({y} : Finset (Fin n)).card + 1 := card_insert_le _ _
-        _ = 2 := by simp
-    have hU : (univ : Finset (Fin n)).card = n := by simp
+    have hU : (univ : Finset (Fin n)).card ≤ n := by simp
     -- `Δ₁ ≤ 12 n`: an ordered triple spanning a given pair has two of its three coordinates
     -- pinned to that pair's endpoints, leaving one free.
     have hΔ1 : maxCodegree 1 H ≤ 12 * n := by
@@ -2967,10 +2948,8 @@ theorem exists_shrunken_containers_of_many_triangles (c : ℝ) (hc : 0 < c) :
         intro e he
         rw [mem_filter, hHdef, mem_image] at he
         obtain ⟨⟨t, ht, rfl⟩, hi⟩ := he
-        refine mem_image_of_mem g (mem_filter.mpr ⟨ht, ?_⟩)
-        have hig : i ∈ g t := hi (mem_singleton_self i)
-        rw [hgapp] at hig
-        exact (hmempush _ i).mp hig
+        exact mem_image_of_mem g
+          (mem_filter.mpr ⟨ht, (hgmem t i).mp (hi (mem_singleton_self i))⟩)
       refine le_trans (Finset.card_le_card hsub) (le_trans Finset.card_image_le ?_)
       have hsub2 : Tset.filter (fun t => ψ i ∈ triangleEdges t.1 t.2.1 t.2.2) ⊆
           (({x, y} : Finset (Fin n)) ×ˢ (({x, y} : Finset (Fin n)) ×ˢ (univ : Finset (Fin n)))) ∪
@@ -2981,9 +2960,8 @@ theorem exists_shrunken_containers_of_many_triangles (c : ℝ) (hc : 0 < c) :
         rw [mem_filter] at ht
         obtain ⟨-, hmem⟩ := ht
         rw [hxy, htri] at hmem
-        have hVxy : ∀ w : Fin n, (w = x ∨ w = y) → w ∈ ({x, y} : Finset (Fin n)) := by
-          intro w hw
-          rcases hw with rfl | rfl <;> simp
+        have hVxy : ∀ w : Fin n, (w = x ∨ w = y) → w ∈ ({x, y} : Finset (Fin n)) :=
+          fun _ hw => by rcases hw with rfl | rfl <;> simp
         rcases hmem with h | h | h
         · obtain ⟨h1, h2⟩ := hpair t.1 t.2.1 x y h.symm
           exact mem_union_left _
@@ -2995,36 +2973,11 @@ theorem exists_shrunken_containers_of_many_triangles (c : ℝ) (hc : 0 < c) :
           exact mem_union_right _ (mem_union_right _
             (mem_product.mpr ⟨mem_univ _, mem_product.mpr ⟨hVxy _ h1, hVxy _ h2⟩⟩))
       refine le_trans (Finset.card_le_card hsub2) ?_
-      have hB1 : ((({x, y} : Finset (Fin n)) ×ˢ
-          (({x, y} : Finset (Fin n)) ×ˢ (univ : Finset (Fin n))))).card ≤ 4 * n := by
-        rw [card_product, card_product, hU]
-        calc ({x, y} : Finset (Fin n)).card * (({x, y} : Finset (Fin n)).card * n)
-            ≤ 2 * (2 * n) := Nat.mul_le_mul (hS2 x y) (Nat.mul_le_mul (hS2 x y) le_rfl)
-          _ = 4 * n := by ring
-      have hB2 : ((({x, y} : Finset (Fin n)) ×ˢ
-          ((univ : Finset (Fin n)) ×ˢ ({x, y} : Finset (Fin n))))).card ≤ 4 * n := by
-        rw [card_product, card_product, hU]
-        calc ({x, y} : Finset (Fin n)).card * (n * ({x, y} : Finset (Fin n)).card)
-            ≤ 2 * (n * 2) := Nat.mul_le_mul (hS2 x y) (Nat.mul_le_mul le_rfl (hS2 x y))
-          _ = 4 * n := by ring
-      have hB3 : (((univ : Finset (Fin n)) ×ˢ
-          (({x, y} : Finset (Fin n)) ×ˢ ({x, y} : Finset (Fin n))))).card ≤ 4 * n := by
-        rw [card_product, card_product, hU]
-        calc n * (({x, y} : Finset (Fin n)).card * ({x, y} : Finset (Fin n)).card)
-            ≤ n * (2 * 2) := Nat.mul_le_mul le_rfl (Nat.mul_le_mul (hS2 x y) (hS2 x y))
-          _ = 4 * n := by ring
-      have hu1 := Finset.card_union_le
-        (((({x, y} : Finset (Fin n)) ×ˢ
-          (({x, y} : Finset (Fin n)) ×ˢ (univ : Finset (Fin n))))))
-        (((({x, y} : Finset (Fin n)) ×ˢ
-          ((univ : Finset (Fin n)) ×ˢ ({x, y} : Finset (Fin n))))) ∪
-            (((univ : Finset (Fin n)) ×ˢ
-              (({x, y} : Finset (Fin n)) ×ˢ ({x, y} : Finset (Fin n))))))
-      have hu2 := Finset.card_union_le
-        (((({x, y} : Finset (Fin n)) ×ˢ
-          ((univ : Finset (Fin n)) ×ˢ ({x, y} : Finset (Fin n))))))
-        (((univ : Finset (Fin n)) ×ˢ
-          (({x, y} : Finset (Fin n)) ×ˢ ({x, y} : Finset (Fin n)))))
+      have h2 := hS2 x y
+      refine (Finset.card_union_le _ _).trans ?_
+      refine (Nat.add_le_add (hprod _ _ _ 2 2 n h2 h2 hU)
+        ((Finset.card_union_le _ _).trans (Nat.add_le_add (hprod _ _ _ 2 n 2 h2 hU h2)
+          (hprod _ _ _ n 2 2 hU h2 h2)))).trans ?_
       omega
     -- `Δ₂ ≤ 64`: two *distinct* pairs of a triangle are two distinct edges of it, so between them
     -- they cover all three vertices and every coordinate is one of their four endpoints.
@@ -3045,13 +2998,9 @@ theorem exists_shrunken_containers_of_many_triangles (c : ℝ) (hc : 0 < c) :
         intro e he
         rw [mem_filter, hHdef, mem_image] at he
         obtain ⟨⟨t, ht, rfl⟩, hsubij⟩ := he
-        refine mem_image_of_mem g (mem_filter.mpr ⟨ht, ?_, ?_⟩)
-        · have hh : i ∈ g t := hsubij (mem_insert_self i {j})
-          rw [hgapp] at hh
-          exact (hmempush _ i).mp hh
-        · have hh : j ∈ g t := hsubij (mem_insert_of_mem (mem_singleton_self j))
-          rw [hgapp] at hh
-          exact (hmempush _ j).mp hh
+        exact mem_image_of_mem g (mem_filter.mpr ⟨ht,
+          (hgmem t i).mp (hsubij (mem_insert_self i {j})),
+          (hgmem t j).mp (hsubij (mem_insert_of_mem (mem_singleton_self j)))⟩)
       refine le_trans (Finset.card_le_card hsub) (le_trans Finset.card_image_le ?_)
       have hsub2 : Tset.filter (fun t => ψ i ∈ triangleEdges t.1 t.2.1 t.2.2 ∧
             ψ j ∈ triangleEdges t.1 t.2.1 t.2.2) ⊆
@@ -3062,12 +3011,10 @@ theorem exists_shrunken_containers_of_many_triangles (c : ℝ) (hc : 0 < c) :
         obtain ⟨-, hi1, hj1⟩ := ht
         rw [hxy, htri] at hi1
         rw [huv, htri] at hj1
-        have hVxy : ∀ w : Fin n, (w = x ∨ w = y) → w ∈ ({x, y, u, v} : Finset (Fin n)) := by
-          intro w hw
-          rcases hw with rfl | rfl <;> simp
-        have hVuv : ∀ w : Fin n, (w = u ∨ w = v) → w ∈ ({x, y, u, v} : Finset (Fin n)) := by
-          intro w hw
-          rcases hw with rfl | rfl <;> simp
+        have hVxy : ∀ w : Fin n, (w = x ∨ w = y) → w ∈ ({x, y, u, v} : Finset (Fin n)) :=
+          fun _ hw => by rcases hw with rfl | rfl <;> simp
+        have hVuv : ∀ w : Fin n, (w = u ∨ w = v) → w ∈ ({x, y, u, v} : Finset (Fin n)) :=
+          fun _ hw => by rcases hw with rfl | rfl <;> simp
         have hmk : t.1 ∈ ({x, y, u, v} : Finset (Fin n)) →
             t.2.1 ∈ ({x, y, u, v} : Finset (Fin n)) → t.2.2 ∈ ({x, y, u, v} : Finset (Fin n)) →
             t ∈ ({x, y, u, v} : Finset (Fin n)) ×ˢ
@@ -3089,22 +3036,15 @@ theorem exists_shrunken_containers_of_many_triangles (c : ℝ) (hc : 0 < c) :
           · exact hmk (hVuv _ (hpair t.1 t.2.1 u v b.symm).1) (hVxy _ p1) (hVxy _ p2)
           · exact hmk (hVuv _ (hpair t.1 t.2.2 u v b.symm).1) (hVxy _ p1) (hVxy _ p2)
           · exact absurd (a.trans b.symm) hxyuv
-      refine le_trans (Finset.card_le_card hsub2) ?_
-      rw [card_product, card_product]
       have h4 := hle4 x y u v
-      calc ({x, y, u, v} : Finset (Fin n)).card *
-            (({x, y, u, v} : Finset (Fin n)).card * ({x, y, u, v} : Finset (Fin n)).card)
-          ≤ 4 * (4 * 4) := Nat.mul_le_mul h4 (Nat.mul_le_mul h4 h4)
-        _ = 64 := by norm_num
+      exact (Finset.card_le_card hsub2).trans (hprod _ _ _ 4 4 4 h4 h4 h4)
     have hmax1 : (maxCodegree 1 H : ℝ) ≤ (108 / c + 64 / Real.sqrt (c / 3) + 1) * d := by
       have h1 : (maxCodegree 1 H : ℝ) ≤ 12 * (n:ℝ) := by exact_mod_cast hΔ1
       refine h1.trans ?_
       calc 12 * (n:ℝ) = (108 / c) * (c * (n:ℝ) / 9) := by field_simp; ring
         _ ≤ (108 / c) * d := mul_le_mul_of_nonneg_left hdlb h108.le
-        _ ≤ (108 / c + 64 / Real.sqrt (c / 3) + 1) * d := by
-            have hz : (0:ℝ) ≤ (64 / Real.sqrt (c / 3) + 1) * d :=
-              mul_nonneg (by linarith) hdpos.le
-            nlinarith
+        _ ≤ (108 / c + 64 / Real.sqrt (c / 3) + 1) * d :=
+            mul_le_mul_of_nonneg_right (by linarith) hdpos.le
     have hmax2 : (maxCodegree 2 H : ℝ)
         ≤ (108 / c + 64 / Real.sqrt (c / 3) + 1) * Real.sqrt d := by
       have h1 : (maxCodegree 2 H : ℝ) ≤ 64 := by exact_mod_cast hΔ2
@@ -3117,20 +3057,17 @@ theorem exists_shrunken_containers_of_many_triangles (c : ℝ) (hc : 0 < c) :
       have hsdnn : (0:ℝ) ≤ Real.sqrt d := Real.sqrt_nonneg d
       calc (64:ℝ) = (64 / Real.sqrt (c / 3)) * Real.sqrt (c / 3) := by field_simp
         _ ≤ (64 / Real.sqrt (c / 3)) * Real.sqrt d := mul_le_mul_of_nonneg_left hs h64.le
-        _ ≤ (108 / c + 64 / Real.sqrt (c / 3) + 1) * Real.sqrt d := by
-            nlinarith [mul_nonneg (show (0:ℝ) ≤ 108 / c + 1 by linarith) hsdnn]
+        _ ≤ (108 / c + 64 / Real.sqrt (c / 3) + 1) * Real.sqrt d :=
+            mul_le_mul_of_nonneg_right (by linarith) hsdnn
     obtain ⟨𝒞, hcard𝒞, hcov𝒞, hsize𝒞⟩ := hcont N H d hH3 hdinv hdeq hmax1 hmax2
     refine ⟨𝒞.image pull, ?_, ?_, ?_⟩
-    · have hcard1 : (((𝒞.image pull)).card : ℝ) ≤ (𝒞.card : ℝ) := by
-        exact_mod_cast Finset.card_image_le
-      refine hcard1.trans (hcard𝒞.trans ?_)
+    · refine (Nat.cast_le.mpr Finset.card_image_le).trans (hcard𝒞.trans ?_)
       -- `∑_{i ≤ M} binom(N, i) ≤ (M + 1) N ^ M ≤ n ^ (2M + 3)`, and the fingerprint budget
       -- `M = ⌊N / √d⌋₊` is at most `(3 / √c) n ^ (3/2)` because `N ≤ n²` and `d ≥ c n / 9`.
       set M' : ℕ := ⌊(N:ℝ) / Real.sqrt d⌋₊ with hM'def
       have hsdpos : (0:ℝ) < Real.sqrt d := Real.sqrt_pos.mpr hdpos
       have hsd1 : (1:ℝ) ≤ Real.sqrt d := by
-        rw [show (1:ℝ) = Real.sqrt 1 by simp]
-        exact Real.sqrt_le_sqrt hd1
+        simpa using Real.sqrt_le_sqrt hd1
       have hNn : N ≤ n * n := by exact_mod_cast hFn2
       have hM'N : M' ≤ N := by
         rw [hM'def]
@@ -3160,9 +3097,7 @@ theorem exists_shrunken_containers_of_many_triangles (c : ℝ) (hc : 0 < c) :
           _ = n ^ (2 * M' + 3) := by ring
       have hscne : Real.sqrt c ≠ 0 := ne_of_gt hsc
       have hns : (n:ℝ) ^ ((3:ℝ)/2) * Real.sqrt (n:ℝ) = (n:ℝ) * (n:ℝ) := by
-        rw [Real.sqrt_eq_rpow, ← Real.rpow_add hnpos, show (3:ℝ)/2 + 1/2 = 2 by norm_num,
-          show (2:ℝ) = ((2:ℕ):ℝ) by norm_num, Real.rpow_natCast]
-        ring
+        rw [Real.sqrt_eq_rpow, mul_comm]; exact hsplit
       have hsqd : Real.sqrt c * Real.sqrt (n:ℝ) / 3 ≤ Real.sqrt d := by
         rw [show Real.sqrt c * Real.sqrt (n:ℝ) / 3 = Real.sqrt (c * (n:ℝ) / 9) by
           rw [Real.sqrt_div (by positivity), Real.sqrt_mul hc.le,
@@ -3170,8 +3105,7 @@ theorem exists_shrunken_containers_of_many_triangles (c : ℝ) (hc : 0 < c) :
         exact Real.sqrt_le_sqrt hdlb
       have hn32pos : (0:ℝ) < (n:ℝ) ^ ((3:ℝ)/2) := Real.rpow_pos_of_pos hnpos _
       have hn321 : (1:ℝ) ≤ (n:ℝ) ^ ((3:ℝ)/2) := by
-        have h := Real.rpow_le_rpow_of_exponent_le hnR (show (0:ℝ) ≤ 3/2 by norm_num)
-        rwa [Real.rpow_zero] at h
+        simpa using Real.rpow_le_rpow_of_exponent_le hnR (show (0:ℝ) ≤ 3/2 by norm_num)
       have hkey : (M':ℝ) ≤ 3 / Real.sqrt c * (n:ℝ) ^ ((3:ℝ)/2) := by
         rw [hM'def]
         refine le_trans (Nat.floor_le (by positivity)) ?_
@@ -3187,14 +3121,13 @@ theorem exists_shrunken_containers_of_many_triangles (c : ℝ) (hc : 0 < c) :
         have hA : 2 * (M':ℝ) ≤ 6 / Real.sqrt c * (n:ℝ) ^ ((3:ℝ)/2) := by
           calc 2 * (M':ℝ) ≤ 2 * (3 / Real.sqrt c * (n:ℝ) ^ ((3:ℝ)/2)) := by linarith
             _ = 6 / Real.sqrt c * (n:ℝ) ^ ((3:ℝ)/2) := by ring
-        have hB : (3:ℝ) ≤ 3 * (n:ℝ) ^ ((3:ℝ)/2) := by linarith
         have hC0 : (0:ℝ) ≤ (n₀:ℝ) * (n:ℝ) ^ ((3:ℝ)/2) := mul_nonneg hn₀pos.le hn32pos.le
         have hD : C * (n:ℝ) ^ ((3:ℝ)/2)
             = 6 / Real.sqrt c * (n:ℝ) ^ ((3:ℝ)/2) + 3 * (n:ℝ) ^ ((3:ℝ)/2)
               + (n₀:ℝ) * (n:ℝ) ^ ((3:ℝ)/2) := by rw [hCdef]; ring
         push_cast
         rw [hD]
-        linarith
+        linarith [hkey, hn321]
       calc ∑ i ∈ range (M' + 1), (N.choose i : ℝ)
           = ((∑ i ∈ range (M' + 1), N.choose i : ℕ) : ℝ) := by push_cast; ring
         _ ≤ ((n ^ (2 * M' + 3) : ℕ) : ℝ) := by exact_mod_cast le_trans hsum1 hnat
@@ -3227,26 +3160,18 @@ theorem exists_shrunken_containers_of_many_triangles (c : ℝ) (hc : 0 < c) :
     rw [not_le] at hbig
     have hnn₀ : (n:ℝ) ≤ (n₀:ℝ) := by exact_mod_cast hbig.le
     refine ⟨F.powerset.filter (fun D => IsTriangleFreeEdgeSet D), ?_, ?_, ?_⟩
-    · have h1 : ((F.powerset.filter (fun D => IsTriangleFreeEdgeSet D)).card : ℝ)
+    · have h2 := Finset.card_filter_le F.powerset (fun D => IsTriangleFreeEdgeSet D)
+      rw [Finset.card_powerset] at h2
+      have h1 : ((F.powerset.filter (fun D => IsTriangleFreeEdgeSet D)).card : ℝ)
           ≤ (2:ℝ) ^ ((F.card : ℝ)) := by
-        have h2 := Finset.card_filter_le F.powerset (fun D => IsTriangleFreeEdgeSet D)
-        rw [Finset.card_powerset] at h2
-        calc ((F.powerset.filter (fun D => IsTriangleFreeEdgeSet D)).card : ℝ)
-            ≤ ((2 ^ F.card : ℕ) : ℝ) := by exact_mod_cast h2
-          _ = (2:ℝ) ^ ((F.card : ℝ)) := by
-              rw [Real.rpow_natCast]; push_cast; ring
+        rw [Real.rpow_natCast]
+        exact_mod_cast h2
       refine h1.trans ?_
-      have hsplit : (n:ℝ) * (n:ℝ) = (n:ℝ) ^ ((1:ℝ)/2) * (n:ℝ) ^ ((3:ℝ)/2) := by
-        rw [← Real.rpow_add hnpos, show (1:ℝ)/2 + 3/2 = 2 by norm_num,
-          show (2:ℝ) = ((2:ℕ):ℝ) by norm_num, Real.rpow_natCast]
-        ring
       have hhalf : (n:ℝ) ^ ((1:ℝ)/2) ≤ (n:ℝ) := by
-        calc (n:ℝ) ^ ((1:ℝ)/2) ≤ (n:ℝ) ^ (1:ℝ) :=
-              Real.rpow_le_rpow_of_exponent_le (by linarith) (by norm_num)
-          _ = (n:ℝ) := Real.rpow_one _
+        simpa using Real.rpow_le_rpow_of_exponent_le hnR (by norm_num : (1:ℝ)/2 ≤ 1)
       have hexp : (F.card : ℝ) ≤ C * (n:ℝ) ^ ((3:ℝ)/2) := by
         refine hFn2.trans ?_
-        rw [hsplit]
+        rw [← hsplit]
         refine mul_le_mul_of_nonneg_right ?_ (Real.rpow_nonneg hnpos.le _)
         rw [hCdef]
         linarith
@@ -3267,16 +3192,12 @@ theorem exists_shrunken_containers_of_many_triangles (c : ℝ) (hc : 0 < c) :
       have hlt : D.card + 1 ≤ F.card := Finset.card_lt_card (lt_of_le_of_ne hDF hne)
       have hltR : (D.card : ℝ) ≤ (F.card : ℝ) - 1 := by
         have : ((D.card + 1 : ℕ) : ℝ) ≤ (F.card : ℝ) := by exact_mod_cast hlt
-        push_cast at this
-        linarith
+        push_cast at this; linarith
       have hFn₀ : (F.card : ℝ) ≤ (n₀:ℝ)^2 := by nlinarith
       have hδF : δ * (F.card : ℝ) ≤ 1 := by
-        have h1 : δ * (F.card:ℝ) ≤ (1/((n₀:ℝ)^2+1)) * (n₀:ℝ)^2 :=
-          mul_le_mul hδsmall hFn₀ (by positivity) (by positivity)
-        have h2 : (1/((n₀:ℝ)^2+1)) * (n₀:ℝ)^2 ≤ 1 := by
-          rw [div_mul_eq_mul_div, div_le_one (by positivity)]
-          nlinarith
-        linarith
+        refine (mul_le_mul hδsmall hFn₀ (by positivity) (by positivity)).trans ?_
+        rw [div_mul_eq_mul_div, div_le_one (by positivity)]
+        nlinarith
       linarith
     · intro G hGtf hGF
       exact ⟨G, mem_filter.mpr ⟨mem_powerset.mpr hGF, hGtf⟩, subset_rfl⟩
