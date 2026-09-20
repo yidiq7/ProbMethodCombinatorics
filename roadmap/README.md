@@ -1648,6 +1648,23 @@ corpus found only 7 cross-declaration duplicate groups, and most are the LocalLe
 mirror, which is mathematically expected.  The shape that produced #147 is close to exhausted;
 remaining golf value is per-proof length and inlined Mathlib, not de-duplication.
 
+## Owed: `sync-graph` after the annealing pass
+
+#350 and #351 merged (`lovasz_local_lemma_symmetric` −112, `measure_martingale_sub_ge_le` −43).
+Both changed `proof_uses` edges — the first now depends on `lovasz_local_lemma`, the second on
+upstream `Real.cosh_le_exp_half_sq` instead of its own construction — so `roadmap/graph.json` is
+behind by two nodes' proof edges.
+
+**Not run, deliberately.** `sync-graph` needs a current build, and the standing rule above is not
+to `lake build` in this checkout while contributors are working: #352 and #353 are both claimed,
+and #353 is a 595-line proof in a 3608-line file, which is exactly the expensive build loop the
+rule protects. No readiness computation depends on these edges — every node involved is already
+`formalized`, and a golf adds and removes no declarations — so the staleness is edges only, not
+structure.
+
+**Run `choir orch sync-graph <checkout>` once #352 and #353 land and the board is quiet**, after
+one `lake build`. Anything it reports then is these two golfs, not a merge that skipped a sync.
+
 ## Orchestrator work queued, not publishable as tasks
 
 Each of these needs a deletion, a visibility change, or a new shared declaration, all of which
