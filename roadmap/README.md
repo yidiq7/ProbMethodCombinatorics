@@ -151,24 +151,6 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   reference node had to end in a `measureReal_def` dance purely because I wrote `.toReal`.  This
   is the template every later `whp` node copies, so it is worth getting right once.
 
-- **2026-09-17 — six merges, and the board saturated for the first time.**
-  `prob_triangle_of_le_mul` (#191) closes §4.1's threshold in both directions; Zhao 6.2.4 (#192);
-  `map_inter_setBernoulli` (#194); `integral_copyCount` (#197), §4.2's first moment; Lemma 2.4.3
-  (#199).  Every task published this session was claimed within minutes and three returned a PR
-  inside ten.
-
-  **Two contributor proofs reused existing vocabulary instead of copying it**, which is the habit
-  the consolidation notes have been trying to buy.  #199's `card_filter_notMem_le_three` is a
-  thin adapter onto Proposition 2.4.2's existing `card_filter_subset_le_three` — for `|e| = 3` in
-  `Fin 5`, `v ∉ e` and `e ⊆ univ.erase v` are the same condition — so the "a 4-set carries at most
-  three edges" argument still has one home.  #197 added no declarations at all.
-
-  Against that, #192 *did* land a fourth copy of an argument, and the fix was mine rather than
-  the contributor's: `twoColorable_of_inter_card_le` had inlined the monochromatic-edge
-  probability, so `uniformColoring_monochromatic_toReal_le` moved above both consumers and the
-  inline block now calls it, `1d33a6d`, fifteen lines shorter.  **Retiring duplicates stays
-  orchestrator work** — a contributor cannot see the other three copies from inside one task.
-
 - **2026-09-17 — verified project state: 236 public theorems, 228 `sorryAx`-free.**
   `#print axioms` over every public theorem in the build, not a `grep` for `sorry`.  Eight are
   tainted and they split into two groups:
@@ -654,26 +636,6 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   case split on `3d ≤ 2δn` rather than the `⌊2B/3⌋ + 1 ≤ B` route in the prose; equivalent, and
   `hdn : d ≤ δ*n` is genuinely spent in the second case.
 
-- **2026-09-16 — the analytic core of 11.2.3 is proved (#173); two sorries left in the project.**
-  `exists_greedy_rule` merged, 0 axioms / 2 sorries.  The `private`→public fix was the whole
-  blocker: the branch went green on rebase with no content change, which confirms the diagnosis
-  rather than leaving it a plausible story.
-
-  **Zero new top-level declarations again** — seven of the nine PRs merged today had none.  The
-  witnesses are built as three `obtain … : ∃ …` blocks with explicit witnesses, so the places a
-  statement *could* have been smuggled are all discharged rather than assumed.  Two details worth
-  keeping:
-  - **The double count is honest in the conservative direction.**  Replacing `#(A \ kill A v)` by
-    `n` inflates the upper bound on the degree sum and therefore *weakens* the lower bound on `t`;
-    the `4` in `d*n - 4*c*d*δ*n` is two genuine losses of `2δn·cd`.  Worked by hand the proof gives
-    `t ≳ 0.95*d` against a required `3*d/4` — established with slack, not by absorbing it.
-  - **Clause 2 (stability) is proved in full strength**, over all `A T T'`, for the same `ord A`
-    that `kill` and the clause-4 minimality argument use, with uniqueness from genuine injectivity
-    of the weight.  That matters because #170's replay rests on exactly this clause; a subtly weaker
-    version here would have been expensive one task later.
-  - `pick`/`kill` are plain total functions rather than the `dite` the task prose suggested, and no
-    clause rides on the junk branch.  Better than what was asked for.
-
 - **2026-09-16 — PR bodies over-reported twice today.  Harmless individually; worth naming as a pattern.**
   #166's body miscounted the file's declarations (13 vs 15) and attributed a `sorry` to
   `exists_containers_triangleFree`, which carries none.  #173's body claimed "`c ≥ 1` is derived
@@ -730,21 +692,6 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   **One decision deliberately deferred**, and safe only because the node is unpublished: whether the
   child carries §11.2's stability conjunct.  Nothing needs it today.  Reshaping an unpublished node is
   free; changing a published task's statement is not.
-
-- **2026-09-16 — the dense corner is proved (#175), and publishing it over its author's objection was right.**
-  `exists_dense_fingerprint` merged, 0 axioms / 3 sorries.  The contributor followed the greedy-order
-  route published in the task prose: `hstep` states the extension lemma with `P` universal and no
-  extra side condition, the double count is the honest `P`–`Pᶜ` edge count in `ℕ`
-  (`Finset.sum_sdiff` + `card_sdiff_add_card_inter`, with the factor 2 present), `c ≥ 1` is derived
-  from `hsum` + `hdeg` rather than assumed, and the `⌈δn⌉` boundary uses `Nat.lt_ceil` in the
-  direction that gives the strict real bound at the last step.  **Zero new top-level declarations** —
-  the whole argument is inline, so there is no worker-authored statement to audit.
-
-  **Worth stating plainly: the reduction's author believed this obligation might be false and asked
-  that it not be published, and they were wrong.**  Verifying the mathematics myself before
-  overriding them was the step that made the override legitimate rather than reckless — and the
-  contributor then closed it in one PR.  The cost of having deferred to the author's reservation
-  would have been an indefinite hold on a provable node.
 
 - **2026-09-16 — `private` in a published statement silently disables `comparator`.  My mistake, and the most expensive one of the session.**
   PRs #173 and #174 both failed `comparator` with `statement-mismatch` while every other check,
@@ -993,10 +940,6 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   `metrics struggle` reports nothing for abandoned claims.  **Read the statement of any task
   that gets released without a PR.**
 
-- **2026-09-13 — first golf landed; two measure-layer copies left.**  PR #62 rewrote
-  `twoColorable_of_regular` through `twoColorable_of_inter_card_le`: **163 lines removed, 15
-  added.**  Golf tasks #54 and #55 will take the other two copies through the extracted
-  `uniformColoring` layer.
 - **2026-09-13 — this machine is memory-constrained.**  The contributor agents build Lean
   locally, several `lean` processes at ~1.3 GB each, and a background poller was killed under
   the pressure.  **Don't run `lake build` in the orchestrator checkout except to verify a
@@ -1026,17 +969,6 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   build is clean.  **This is an overseer-visible change: the project's Chernoff bounds now say
   slightly less than they did.**  Anything downstream must dispose of `n = 0` itself; #23
   (discrepancy) is unaffected because its `2 ≤ F.card` is unsatisfiable at `n = 0`.
-
-- **2026-09-13 — the uniform two-colouring measure is duplicated, and that is my fault.**
-  #49 and #50 each build it from scratch in `LocalLemma.lean` (`Measure.pi` over `Bool`, the
-  cylinder probability, disjoint-support independence via `iIndepFun_pi`, the dependency
-  graph) — about 100 lines twice, in an 846-line file.  #28's prose said that machinery was
-  "worth stating as their own declarations" but left it to contributors; **a definition other
-  tasks depend on is an interface and should have been authored centrally before those tasks
-  were published.**  Mitigations: golf task #52 rewrites `twoColorable_of_regular` to go
-  through `twoColorable_of_inter_card_le`, which removes one copy; #30's prose now points at
-  the template and asks its holder to flag rather than write a third copy.  **If #30 needs
-  more than the `key` lemma, extract the layer centrally instead.**
 
 - **2026-09-13 — re-pinning is necessary but not sufficient; warn claimed tasks too.**
   Stale-pin reverts hit twice (#42, #48).  Re-pinning an issue does not help a worker whose
@@ -1085,24 +1017,6 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   still right, but expect the dependents to land as reductions, or to land after their
   dependency merges.
 
-- **2026-09-12 — overlay resynced to Choir `e8a1d24`.** Protocol still 8; the change touched
-  only `scripts/` (iCloud-sync detection and environment relocation in `orchestrator-init.sh`
-  and `join.sh`) plus `client/update.py`, so no gate behaviour moved and no open work was
-  affected.  Contributors already set up should run `choir worker update` to pick up the new
-  `join.sh`.
-- **2026-09-12 — the gate is confirmed working end to end (PR #31).** The repo's first pull
-  request, a README-only change, ran all nine checks green: `rebuild` 2m17s (the Mathlib
-  cache step works), `comparator` 1m12s (the comparator builds at the `v4.33.0` pin and
-  runs), `trust-report` 2m23s, and the six string-level audits in about 7s each.  Merged
-  through `choir orch merge`, so the preflight is exercised too.  **Still unverified: the
-  fork-PR path** — a same-repo branch raises no held workflow runs, so the first genuine
-  contributor PR is the first test of the approval sweep.
-- **2026-09-12 — overlay upgraded.** Protocol 8 → 8 (unchanged), Choir commit
-  `1c85185` → `6b40b47`; `gate/checks.py` and so `REQUIRED_PRESENT` were unchanged, and the
-  fingerprint guard passed, so no PR was at risk of the absent-check refusal.
-  `verify-pr.yml` was left untouched (it carries this project's Mathlib cache step).
-  Branch protection's required contexts were confirmed to match.
-
 - **2026-09-12 — project bootstrapped.** Toolchain pinned to `leanprover/lean4:v4.33.0`
   (Mathlib `v4.33.0`): the newest release the comparator tags, so the kernel statement
   gate runs on every PR.  Lean's own newest is `v4.33.1`, which the comparator does not
@@ -1114,12 +1028,6 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   non-empty — and Mathlib has no Ramsey theorem to supply that.  `exists_ramseyProperty`
   now states it, and `lt_ramsey_number` depends on it.  Only existence is stated; the
   quantitative Erdős–Szekeres bound is a later refinement.
-- **2026-09-12 — first frontier stated and published.** Ten declarations committed with
-  `sorry` bodies across five files, and a task published for each (issues #4–#13, all
-  pinned to `dcaf5da`; each carries its node id as `blueprint_ref`).  Issues #1–#3 were an
-  earlier batch closed unclaimed and republished so the whole frontier shares one base
-  commit.  Chapters 3–11 remain unstated by design: the plan stays shallow and deepens as
-  reductions come back.
 - **2026-09-12 — Chapters 5 and 6 stated and published** as issues #21–#30, pinned to `c943f93`.  The convention question recurred and was settled per chapter, not
   per node: **Chapter 5 is counting**, because both its applications end in existence claims
   about finite objects and its proofs are "Chernoff, then union bound", which is a count;
@@ -1350,15 +1258,6 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   published route has been wrong where the statement was fine.  When a task is abandoned with no
   note, **re-read the route before concluding the task is hard** — the diagnostic order is
   statement, then route, then decomposition.
-- **2026-09-15 — Chapter 3 is complete.**  `exists_isDominating_card_le` (#140) proved Theorem
-  3.1.1 directly, and `Alterations.lean` is at zero `sorry`s.  **7 sorries project-wide, zero
-  custom axioms**, all in Chapters 10 and 11.
-  #124 retired as superseded — the same pattern as #126/#127, and for the same reason.  Its
-  content was reproved inline as a `have`, in full generality, by the PR that proved the parent.
-  **The decisive check before retiring is lease activity**: no claim, no lease comments, so no
-  work was lost.  The declaration was removed rather than left as a `sorry` nothing uses, since
-  leaving a published node open while its proof sits unreachable inside another theorem would
-  have guaranteed the next claimant redid 131 lines.
 - **2026-09-15 — I corrupted two commits by running `git add -A` while a review subagent held a
   patch in the shared checkout.**  `07a2f6b` and `726e414` each carry 147 lines of PR #140's
   proof, added then removed, contradicting their own commit messages.  The tip was correct and
@@ -1379,13 +1278,6 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   goes away.  So the retirement was wrong on the merits too, not just on process — which is what
   the rule about not re-routing finished work was trying to protect in the first place, applied
   in the wrong direction.
-- **2026-09-15 — #141 and #142 merged; 6 sorries left, zero custom axioms.**  Chapter 3 is
-  complete again (`Alterations.lean` at zero), and the remaining work is entirely Chapters 10 and
-  11: `entropy_le_logb_card`, `shearer_triple`, and the four Containers nodes.
-  **`entropy_le_logb_card` (#84) is now the sole open obligation beneath five merged theorems** —
-  `card_sq_le_prod_card_image`, `card_lt_of_triangleIntersecting`, `permanent_le_prod_factorial`,
-  `card_pow_le_prod_card_image_inter` and `condEntropy_le_expected_logb_availCount`. Proving it
-  makes Brégman–Minc and the triangle-intersecting bound unconditional at a stroke.
 - **2026-09-15 — two contributors independently produced the same 128-line proof.**  #140 inlined
   the averaging argument of Theorem 3.1.1 as an anonymous `have`; #141 proved it as the top-level
   lemma. Character-for-character identical bodies, committed five minutes apart, neither able to
@@ -1435,13 +1327,6 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   Its companion red, `sorry-delta`, was a false alarm: the audit reported `submission: proof`
   despite a well-formed reduction block, because the body was edited **one second** after the
   check fired.  The `submission:` line is the tell.
-- **2026-09-15 — triangle supersaturation is reachable from Mathlib after all.**  #146 points out
-  that `SimpleGraph.CliqueFree.card_edgeFinset_le` at `r = 2` gives Mantel,
-  `SimpleGraph.farFromTriangleFree_iff` converts it, and
-  `SimpleGraph.FarFromTriangleFree.le_card_cliqueFinset` — the triangle removal lemma — supplies
-  the count with `c = SimpleGraph.triangleRemovalBound ε`.  `containers.md` had it recorded as
-  **missing from Mathlib and the most useful thing anyone could add**; it is instead a
-  transcription away.  Correcting that entry.
 - **2026-09-15 — #147 merged: the project's first `golf` task to land.**  One line in, 135 out,
   collapsing the duplicated averaging argument so that `exists_isDominating_card_le` calls
   `exists_isDominating_card_le_of_mem_Icc` instead of inlining it.  The earlier golf attempt
