@@ -359,3 +359,41 @@ Checking it costs nothing, but note two traps in this repo:
 **When a task brief names a Mathlib lemma, say "add the import if it is not already in scope"**
 rather than forbidding import changes outright.  The blanket "leave imports untouched" belongs in
 a `prove` brief, where the header really is not the contributor's to change.
+
+## 2026-09-20 — never publish a task whose target inherits `sorryAx`; comparator blocks on it
+
+#353 asked for a golf of `exists_shrunken_containers_of_many_triangles`.  PR #357 came back
+correct — eight checks green, three of five collapses landed, reviewed in full — and
+`comparator` failed it with `illegal-axiom: Illegal axiom detected: 'sorryAx'`.
+
+**The task could never have gone green.**  Comparator audits the target's **axiom closure**
+against the permitted set (`propext`, `Quot.sound`, `Classical.choice`).  That theorem is one of
+the four the README names as inheriting `sorryAx` from the §11.3 corner at `Containers.lean:2548`,
+so the closure contains `sorryAx` at base, and every PR against the target fails regardless of
+content.  Mis-specified by me, not a contributor defect.
+
+**The tell I had and did not read.**  I wrote a paragraph into the brief warning that
+`lake build` would emit pre-existing `declaration uses 'sorry'` warnings for this target and that
+they were not the contributor's failure — and did not connect that to the axiom closure
+comparator would compute over the same declaration.  Noticing the target is downstream of a
+`sorry` is exactly the observation that should have stopped the publication.
+
+The other audits do not catch this and are right not to: `axiom-honesty` is **net-zero against
+base**, so an inherited axiom passes; `sorry-delta` counts literal `sorry` tokens in changed
+files; `trust-report` never blocks.  Only comparator reads the closure, and only on a task with a
+target.
+
+**Before publishing any task, check the target against the inherited-`sorryAx` list.**  On this
+project that is `exists_containers_fingerprint_three_uniform` and the four theorems below it:
+`exists_containers_three_uniform`, `exists_shrunken_containers_of_many_triangles`,
+`exists_containers_triangleFree`, `card_triangleFreeGraphs_le`.  **The whole §11.3 chain is
+unpublishable until 2548 closes** — for `golf` and for anything else with a target.
+`choir orch inventory scan` reports the `sorry` itself but not what inherits from it, so the
+README table is the list to read.
+
+This also retroactively justifies skipping `exists_run_of_container_round`, which was held back
+for a different reason (no consumer, likely to be revised).  It is downstream of the same corner
+and would have failed the same way.
+
+Upstream targets in the same file are unaffected — `exists_greedy_rule` and
+`exists_dense_fingerprint` sit above 2548 and carry a clean closure.
