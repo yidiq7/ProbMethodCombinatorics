@@ -1,5 +1,6 @@
 import ProbMethodCombinatorics.SecondMoment
 import Mathlib.Probability.Moments.SubGaussian
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
 import Mathlib.Probability.Martingale.Basic
 import Mathlib.Combinatorics.SimpleGraph.Coloring.Vertex
 import Mathlib.Probability.Combinatorics.BinomialRandomGraph.Defs
@@ -557,39 +558,19 @@ theorem measure_martingale_sub_ge_le {Ω : Type*} {m0 : MeasurableSpace Ω} {μ 
     {lam : ℝ} (hlam : 0 < lam) (hsum : 0 < ∑ i ∈ Finset.Icc 1 n, c i ^ 2) :
     (μ {ω | lam ≤ Z n ω - Z 0 ω}).toReal
       ≤ Real.exp (-lam ^ 2 / (2 * ∑ i ∈ Finset.Icc 1 n, c i ^ 2)) := by
-  -- Hoeffding's lemma in its analytic form `cosh y ≤ exp (y² / 2)`.  It is Mathlib's
-  -- `hasSubgaussianMGF_of_mem_Icc_of_integral_eq_zero` read on the two-point space: the
-  -- moment generating function of a symmetric `±y` random variable is `cosh y`.
-  have hcosh : ∀ y : ℝ, Real.cosh y ≤ Real.exp (y ^ 2 / 2) := by
-    intro y
-    set ν : Measure Bool := ((2 : ℝ≥0∞)⁻¹) • (Measure.dirac true + Measure.dirac false) with hν
-    have hprob : IsProbabilityMeasure ν := by
-      refine ⟨?_⟩
-      rw [hν]
-      simp only [Measure.smul_apply, Measure.coe_add, Pi.add_apply, measure_univ, smul_eq_mul]
-      rw [one_add_one_eq_two, ENNReal.inv_mul_cancel (by norm_num) (by norm_num)]
-    set X : Bool → ℝ := fun b ↦ if b then y else -y with hX
-    have hmean : ∫ b, X b ∂ν = 0 := by
-      rw [hν, integral_smul_measure, integral_add_measure (by simp) (by simp)]
-      simp [hX]
-    have hmgf : mgf X ν 1 = Real.cosh y := by
-      rw [mgf, hν, integral_smul_measure, integral_add_measure (by simp) (by simp)]
-      simp [hX, Real.cosh_eq]
-      ring
-    have hicc : ∀ᵐ b ∂ν, X b ∈ Set.Icc (-|y|) |y| := by
-      filter_upwards with b
-      cases b <;> simp [hX, neg_abs_le, le_abs_self, neg_le_abs]
-    have hle := (hasSubgaussianMGF_of_mem_Icc_of_integral_eq_zero (μ := ν) (X := X)
-      measurable_from_top.aemeasurable hicc hmean).mgf_le 1
-    rw [hmgf] at hle
-    refine hle.trans_eq ?_
-    rw [Real.exp_eq_exp]
-    have hcast : (((‖|y| - -|y|‖₊ / 2) ^ 2 : NNReal) : ℝ) = y ^ 2 := by
-      push_cast
-      rw [Real.norm_eq_abs, abs_of_nonneg (by linarith [abs_nonneg y] : (0:ℝ) ≤ |y| - -|y|),
-        sub_neg_eq_add, ← two_mul, mul_div_cancel_left₀ _ (by norm_num : (2:ℝ) ≠ 0), sq_abs]
-    rw [hcast]
-    ring
+  -- `exp (s * g)` is integrable whenever `g` is a.e. bounded by `b`: it is then dominated by the
+  -- constant `exp (|s| * b)`.
+  have hexpInt : ∀ (g : Ω → ℝ) (b s : ℝ), AEStronglyMeasurable g μ →
+      (∀ᵐ ω ∂μ, |g ω| ≤ b) → Integrable (fun ω ↦ Real.exp (s * g ω)) μ := by
+    intro g b s hg hb
+    refine Integrable.mono' (integrable_const (Real.exp (|s| * b)))
+      (Real.continuous_exp.comp_aestronglyMeasurable (hg.const_mul s)) ?_
+    filter_upwards [hb] with ω hω
+    rw [Real.norm_eq_abs, abs_of_pos (Real.exp_pos _)]
+    refine Real.exp_le_exp.mpr ?_
+    calc s * g ω ≤ |s * g ω| := le_abs_self _
+      _ = |s| * |g ω| := abs_mul _ _
+      _ ≤ |s| * b := by gcongr
   -- The conditional form of Hoeffding's lemma: a `μ[· | m]`-centred variable bounded by `b`
   -- has conditional moment generating function at most `exp (s² b² / 2)`.  Mathlib's
   -- `HasCondSubgaussianMGF` says this, but only for `[StandardBorelSpace Ω]`, since it is
@@ -600,16 +581,8 @@ theorem measure_martingale_sub_ge_le {Ω : Type*} {m0 : MeasurableSpace Ω} {μ 
       Integrable D μ → μ[D | m] =ᵐ[μ] 0 → (∀ᵐ ω ∂μ, |D ω| ≤ b) →
       μ[fun ω ↦ Real.exp (s * D ω) | m] ≤ᵐ[μ] fun _ ↦ Real.exp (s ^ 2 * b ^ 2 / 2) := by
     intro m hm D b s hD hD0 hb
-    have hmeas : AEStronglyMeasurable[m0] (fun ω ↦ Real.exp (s * D ω)) μ :=
-      Real.continuous_exp.comp_aestronglyMeasurable (hD.aestronglyMeasurable.const_mul s)
-    have hint1 : Integrable (fun ω ↦ Real.exp (s * D ω)) μ := by
-      refine Integrable.mono' (integrable_const (Real.exp (|s| * b))) hmeas ?_
-      filter_upwards [hb] with ω hω
-      rw [Real.norm_eq_abs, abs_of_pos (Real.exp_pos _)]
-      refine Real.exp_le_exp.mpr ?_
-      calc s * D ω ≤ |s * D ω| := le_abs_self _
-        _ = |s| * |D ω| := abs_mul _ _
-        _ ≤ |s| * b := by gcongr
+    have hint1 : Integrable (fun ω ↦ Real.exp (s * D ω)) μ :=
+      hexpInt D b s hD.aestronglyMeasurable hb
     rcases le_or_gt b 0 with hb0 | hb0
     · have hD00 : ∀ᵐ ω ∂μ, D ω = 0 := by
         filter_upwards [hb] with ω hω
@@ -649,7 +622,7 @@ theorem measure_martingale_sub_ge_le {Ω : Type*} {m0 : MeasurableSpace Ω} {μ 
         simp [condExp_const hm A, hω, hω0]
       filter_upwards [h1, h2] with ω hω hω2
       rw [hω2] at hω
-      refine hω.trans ((hcosh (s * b)).trans_eq ?_)
+      refine hω.trans ((Real.cosh_le_exp_half_sq (s * b)).trans_eq ?_)
       rw [Real.exp_eq_exp]; ring
   -- Setup.  `t` is the value of the Chernoff parameter that optimises the final bound.
   set S := ∑ i ∈ Finset.Icc 1 n, c i ^ 2 with hSdef
@@ -674,17 +647,9 @@ theorem measure_martingale_sub_ge_le {Ω : Type*} {m0 : MeasurableSpace Ω} {μ 
         _ ≤ |Z (k + 1) ω - Z k ω| + |Z k ω - Z 0 ω| := abs_add_le _ _
         _ ≤ c (k + 1) + ∑ i ∈ Finset.Icc 1 k, c i := add_le_add h2 h1
         _ = (∑ i ∈ Finset.Icc 1 k, c i) + c (k + 1) := by ring
-  have hexpint : ∀ k, k ≤ n → Integrable (fun ω ↦ Real.exp (t * (Z k ω - Z 0 ω))) μ := by
-    intro k hk
-    refine Integrable.mono' (integrable_const (Real.exp (|t| * ∑ i ∈ Finset.Icc 1 k, c i)))
-      (Real.continuous_exp.comp_aestronglyMeasurable
-        ((((hZmeas k).sub (hZmeas 0)).aestronglyMeasurable).const_mul t)) ?_
-    filter_upwards [hbd k hk] with ω hω
-    rw [Real.norm_eq_abs, abs_of_pos (Real.exp_pos _)]
-    refine Real.exp_le_exp.mpr ?_
-    calc t * (Z k ω - Z 0 ω) ≤ |t * (Z k ω - Z 0 ω)| := le_abs_self _
-      _ = |t| * |Z k ω - Z 0 ω| := abs_mul _ _
-      _ ≤ |t| * ∑ i ∈ Finset.Icc 1 k, c i := by gcongr
+  have hexpint : ∀ k, k ≤ n → Integrable (fun ω ↦ Real.exp (t * (Z k ω - Z 0 ω))) μ := fun k hk ↦
+    hexpInt (fun ω ↦ Z k ω - Z 0 ω) _ t ((hZmeas k).sub (hZmeas 0)).aestronglyMeasurable
+      (hbd k hk)
   -- The moment generating function bound, by induction on the tower property.
   have key : ∀ k, k ≤ n → (∫ ω, Real.exp (t * (Z k ω - Z 0 ω)) ∂μ)
       ≤ Real.exp (t ^ 2 * (∑ i ∈ Finset.Icc 1 k, c i ^ 2) / 2) := by
@@ -714,16 +679,8 @@ theorem measure_martingale_sub_ge_le {Ω : Type*} {m0 : MeasurableSpace Ω} {μ 
       have hFmeas : StronglyMeasurable[ℱ k] F :=
         Real.continuous_exp.comp_stronglyMeasurable
           (((hZ.1 k).sub ((hZ.1 0).mono (ℱ.mono (Nat.zero_le k)))).const_mul t)
-      have hGint : Integrable G μ := by
-        refine Integrable.mono' (integrable_const (Real.exp (|t| * c (k + 1))))
-          (Real.continuous_exp.comp_aestronglyMeasurable
-            (hDint.aestronglyMeasurable.const_mul t)) ?_
-        filter_upwards [hincr k hk] with ω hω
-        rw [Real.norm_eq_abs, abs_of_pos (Real.exp_pos _)]
-        refine Real.exp_le_exp.mpr ?_
-        calc t * D ω ≤ |t * D ω| := le_abs_self _
-          _ = |t| * |D ω| := abs_mul _ _
-          _ ≤ |t| * c (k + 1) := by gcongr
+      have hGint : Integrable G μ :=
+        hexpInt D (c (k + 1)) t hDint.aestronglyMeasurable (hincr k hk)
       have hFGint : Integrable (F * G) μ := by rw [hFG]; exact hexpint (k + 1) hk
       have hstep : (∫ ω, (F * G) ω ∂μ)
           ≤ (∫ ω, F ω ∂μ) * Real.exp (t ^ 2 * c (k + 1) ^ 2 / 2) := by
