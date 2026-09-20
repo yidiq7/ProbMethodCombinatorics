@@ -14,8 +14,22 @@ The source is in [`sources/`](sources/README.md); the plan and a per-chapter log
 
 Every result the source *proves* is formalized.  The single remaining `sorry` is
 `Containers.lean`'s `exists_containers_fingerprint_three_uniform` — the §11.3 corner, which
-is an **open mathematical problem**, not unfinished formalization.  Theorem 11.1.5 inherits
-`sorryAx` from it and so is not stated.
+is an **open mathematical problem**, not unfinished formalization
+([`roadmap/containers.md`](roadmap/containers.md) records what is known about it and what has
+been ruled out).
+
+Four stated theorems are proved *from* that obligation and so inherit `sorryAx`.  Their proofs
+are complete; they are conditional on the corner, and an axiom check reports them as such:
+
+| | |
+|---|---|
+| `exists_containers_three_uniform` | Theorem 11.3.1 |
+| `exists_shrunken_containers_of_many_triangles` | |
+| `exists_containers_triangleFree` | |
+| `card_triangleFreeGraphs_le` | §11.1, Erdős–Kleitman–Rothschild |
+
+Everything else in the corpus is unconditional.  Theorem 11.1.5 would inherit `sorryAx` too and
+so is not stated at all.
 
 Three sections stop short, and in each case the obstacle is a theorem the source **quotes
 rather than proves**:
