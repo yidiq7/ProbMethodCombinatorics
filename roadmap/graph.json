@@ -3811,7 +3811,9 @@
       "uses": [
         "IsContainerRound"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "exists_container_round_of_pos"
+      ]
     },
     "exists_fingerprint_of_dense_pairs": {
       "kind": "theorem",
@@ -4282,6 +4284,7 @@
       "statement": "formalized",
       "proof": "formalized",
       "uses": [
+        "binomial_random_graph",
         "triangleCount"
       ],
       "proof_uses": [
@@ -4307,6 +4310,7 @@
       "statement": "formalized",
       "proof": "formalized",
       "uses": [
+        "binomial_random_graph",
         "triangleCount"
       ],
       "proof_uses": [
@@ -4329,6 +4333,7 @@
       "statement": "formalized",
       "proof": "formalized",
       "uses": [
+        "binomial_random_graph",
         "triangleCount"
       ],
       "proof_uses": [
@@ -4364,7 +4369,9 @@
       "decl": "ProbMethodCombinatorics.binomialRandom_forall_mem_edgeSet",
       "statement": "formalized",
       "proof": "formalized",
-      "uses": [],
+      "uses": [
+        "binomial_random_graph"
+      ],
       "proof_uses": [
         "binomialRandom_setOf_subset_edgeSet"
       ]
@@ -4387,9 +4394,11 @@
       "statement": "formalized",
       "proof": "formalized",
       "uses": [
+        "binomial_random_graph",
         "triangleCount"
       ],
       "proof_uses": [
+        "integrable_sum_indicator_one",
         "measurableSet_setOf_forall_adj"
       ]
     },
@@ -4413,7 +4422,8 @@
         "triangleCount"
       ],
       "proof_uses": [
-        "measurableSet_setOf_forall_adj"
+        "measurableSet_setOf_forall_adj",
+        "measurable_sum_indicator_one"
       ]
     },
     "one_le_triangleCount_of_ne_zero": {
@@ -4425,7 +4435,9 @@
       "uses": [
         "triangleCount"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "one_le_sum_indicator_one_of_ne_zero"
+      ]
     },
     "triangleCount_nonneg": {
       "kind": "theorem",
@@ -4436,7 +4448,9 @@
       "uses": [
         "triangleCount"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "sum_indicator_one_nonneg"
+      ]
     },
     "binomialRandom_setOf_subset_edgeSet": {
       "kind": "theorem",
@@ -4444,7 +4458,9 @@
       "decl": "ProbMethodCombinatorics.binomialRandom_setOf_subset_edgeSet",
       "statement": "formalized",
       "proof": "formalized",
-      "uses": [],
+      "uses": [
+        "binomial_random_graph"
+      ],
       "proof_uses": [
         "measurableSet_setOf_subset_edgeSet"
       ]
@@ -4541,10 +4557,12 @@
       "statement": "formalized",
       "proof": "formalized",
       "uses": [
+        "binomial_random_graph",
         "triangleCount"
       ],
       "proof_uses": [
-        "measurableSet_setOf_forall_adj"
+        "measurableSet_setOf_forall_adj",
+        "memLp_sum_indicator_one"
       ]
     },
     "prob_triangle_of_le_mul": {
@@ -4555,9 +4573,11 @@
       "statement": "formalized",
       "proof": "planned",
       "uses": [
+        "binomial_random_graph",
         "triangleCount"
       ],
       "proof_uses": [
+        "cube_div_twelve_le_choose_three",
         "integral_triangleCount",
         "measurable_triangleCount",
         "memLp_triangleCount",
@@ -4624,6 +4644,7 @@
       "statement": "formalized",
       "proof": "planned",
       "uses": [
+        "binomial_random_graph",
         "copyCount"
       ],
       "proof_uses": [
@@ -4704,6 +4725,7 @@
       "proof": "planned",
       "uses": [
         "ExposureBlock",
+        "binomial_random_graph",
         "exposureMeasure",
         "graphOfExposure"
       ],
@@ -4713,6 +4735,7 @@
         "exists_exposureIndex_of_not_isDiag",
         "graphOfExposure_eq_iff_eq_adjBlocks",
         "injective_sym2_ofExposureIndex",
+        "instCountableSimpleGraphFin",
         "measurableSet_simpleGraph_singleton",
         "measurable_graphOfExposure_blocks",
         "sum_val_univ_eq_choose_two"
@@ -4724,7 +4747,9 @@
       "decl": "ProbMethodCombinatorics.binomialRandom_setOf_forall_not_subset",
       "statement": "formalized",
       "proof": "planned",
-      "uses": [],
+      "uses": [
+        "binomial_random_graph"
+      ],
       "proof_uses": [
         "map_inter_setBernoulli"
       ]
@@ -4936,7 +4961,9 @@
         "janson_mu",
         "offDiagPairs"
       ],
-      "proof_uses": []
+      "proof_uses": [
+        "jansonMu_cliqueFamily"
+      ]
     },
     "le_card_free_graphs": {
       "kind": "theorem",
@@ -4976,7 +5003,9 @@
       "decl": "ProbMethodCombinatorics.measure_abs_sub_integral_chromaticNumber_ge_le",
       "statement": "formalized",
       "proof": "formalized",
-      "uses": [],
+      "uses": [
+        "binomial_random_graph"
+      ],
       "proof_uses": [
         "ExposureBlock",
         "abs_sub_chromaticNumber_graphOfExposure_le",
@@ -5089,6 +5118,3918 @@
       "uses": [
         "unifChoice"
       ],
+      "proof_uses": []
+    },
+    "Clause": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Sat.lean",
+      "decl": "ProbMethodCombinatorics.Clause",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "Literal"
+      ]
+    },
+    "EdgeSlot": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.EdgeSlot",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "HasDirectedCycleOfLength": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/DirectedCycles.lean",
+      "decl": "ProbMethodCombinatorics.HasDirectedCycleOfLength",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "IsDirectedCycle"
+      ]
+    },
+    "HasKSubdivision": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Chernoff.lean",
+      "decl": "ProbMethodCombinatorics.HasKSubdivision",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "IsKSubdivision"
+      ]
+    },
+    "isNegativeDependencyGraph": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Lopsided.lean",
+      "decl": "ProbMethodCombinatorics.IsDependencyGraph.isNegativeDependencyGraph",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsNegativeDependencyGraph",
+        "is_dependency_graph"
+      ],
+      "proof_uses": [
+        "pattern"
+      ]
+    },
+    "IsDirectedCycle": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/DirectedCycles.lean",
+      "decl": "ProbMethodCombinatorics.IsDirectedCycle",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "mk"
+      ]
+    },
+    "casesOn": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/DirectedCycles.lean",
+      "decl": "ProbMethodCombinatorics.IsDirectedCycle.casesOn",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsDirectedCycle",
+        "mk"
+      ],
+      "proof_uses": [
+        "rec"
+      ]
+    },
+    "inj": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/DirectedCycles.lean",
+      "decl": "ProbMethodCombinatorics.IsDirectedCycle.inj",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsDirectedCycle"
+      ],
+      "proof_uses": []
+    },
+    "mk": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/DirectedCycles.lean",
+      "decl": "ProbMethodCombinatorics.IsDirectedCycle.mk",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsDirectedCycle"
+      ],
+      "proof_uses": []
+    },
+    "periodic": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/DirectedCycles.lean",
+      "decl": "ProbMethodCombinatorics.IsDirectedCycle.periodic",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsDirectedCycle"
+      ],
+      "proof_uses": []
+    },
+    "pos": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/DirectedCycles.lean",
+      "decl": "ProbMethodCombinatorics.IsDirectedCycle.pos",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsDirectedCycle"
+      ],
+      "proof_uses": []
+    },
+    "rec": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/DirectedCycles.lean",
+      "decl": "ProbMethodCombinatorics.IsDirectedCycle.rec",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsDirectedCycle",
+        "mk"
+      ],
+      "proof_uses": []
+    },
+    "recOn": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/DirectedCycles.lean",
+      "decl": "ProbMethodCombinatorics.IsDirectedCycle.recOn",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsDirectedCycle",
+        "mk"
+      ],
+      "proof_uses": [
+        "rec"
+      ]
+    },
+    "step": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/DirectedCycles.lean",
+      "decl": "ProbMethodCombinatorics.IsDirectedCycle.step",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsDirectedCycle"
+      ],
+      "proof_uses": []
+    },
+    "IsEdgeDisjointCliqueFamily": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.IsEdgeDisjointCliqueFamily",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "offDiagPairs"
+      ]
+    },
+    "IsKChoosable": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/ListColouring.lean",
+      "decl": "ProbMethodCombinatorics.IsKChoosable",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "IsKSubdivision": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Chernoff.lean",
+      "decl": "ProbMethodCombinatorics.IsKSubdivision",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "ProbMethodCombinatorics_IsKSubdivision_mk"
+      ]
+    },
+    "ProbMethodCombinatorics_IsKSubdivision_casesOn": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Chernoff.lean",
+      "decl": "ProbMethodCombinatorics.IsKSubdivision.casesOn",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsKSubdivision",
+        "ProbMethodCombinatorics_IsKSubdivision_mk"
+      ],
+      "proof_uses": [
+        "ProbMethodCombinatorics_IsKSubdivision_rec"
+      ]
+    },
+    "ProbMethodCombinatorics_IsKSubdivision_inj": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Chernoff.lean",
+      "decl": "ProbMethodCombinatorics.IsKSubdivision.inj",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsKSubdivision"
+      ],
+      "proof_uses": []
+    },
+    "interior_avoids_branch": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Chernoff.lean",
+      "decl": "ProbMethodCombinatorics.IsKSubdivision.interior_avoids_branch",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsKSubdivision"
+      ],
+      "proof_uses": []
+    },
+    "interior_disjoint": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Chernoff.lean",
+      "decl": "ProbMethodCombinatorics.IsKSubdivision.interior_disjoint",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsKSubdivision"
+      ],
+      "proof_uses": []
+    },
+    "isPath": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Chernoff.lean",
+      "decl": "ProbMethodCombinatorics.IsKSubdivision.isPath",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsKSubdivision"
+      ],
+      "proof_uses": []
+    },
+    "ProbMethodCombinatorics_IsKSubdivision_mk": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Chernoff.lean",
+      "decl": "ProbMethodCombinatorics.IsKSubdivision.mk",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsKSubdivision"
+      ],
+      "proof_uses": []
+    },
+    "ProbMethodCombinatorics_IsKSubdivision_rec": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Chernoff.lean",
+      "decl": "ProbMethodCombinatorics.IsKSubdivision.rec",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsKSubdivision",
+        "ProbMethodCombinatorics_IsKSubdivision_mk"
+      ],
+      "proof_uses": []
+    },
+    "ProbMethodCombinatorics_IsKSubdivision_recOn": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Chernoff.lean",
+      "decl": "ProbMethodCombinatorics.IsKSubdivision.recOn",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsKSubdivision",
+        "ProbMethodCombinatorics_IsKSubdivision_mk"
+      ],
+      "proof_uses": [
+        "ProbMethodCombinatorics_IsKSubdivision_rec"
+      ]
+    },
+    "IsNegativeDependencyGraph": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Lopsided.lean",
+      "decl": "ProbMethodCombinatorics.IsNegativeDependencyGraph",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "IsPartialMatching": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/LatinTransversal.lean",
+      "decl": "ProbMethodCombinatorics.IsPartialMatching",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "IsSumFree": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Expectation.lean",
+      "decl": "ProbMethodCombinatorics.IsSumFree",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "IsTransversalEdge": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/ColourDiscrepancy.lean",
+      "decl": "ProbMethodCombinatorics.IsTransversalEdge",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "Literal": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Sat.lean",
+      "decl": "ProbMethodCombinatorics.Literal",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "Satisfies": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Sat.lean",
+      "decl": "ProbMethodCombinatorics.Satisfies",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "Clause"
+      ],
+      "proof_uses": [
+        "Literal"
+      ]
+    },
+    "SetTwoColorable": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.SetTwoColorable",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "VertexDisjoint": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/LatinTransversal.lean",
+      "decl": "ProbMethodCombinatorics.VertexDisjoint",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "abs_coeff_disc_poly_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ColourDiscrepancy.lean",
+      "decl": "ProbMethodCombinatorics.abs_coeff_disc_poly_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "card_profile_le",
+        "coeff_disc_poly"
+      ]
+    },
+    "abs_sub_deletionNumber_le_one": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.abs_sub_deletionNumber_le_one",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "deletionNumber"
+      ],
+      "proof_uses": [
+        "deletionNumber_le_succ_of_adj_off"
+      ]
+    },
+    "abs_sub_edgeCountWithin_graphOfEdgeSlots_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Subdivision.lean",
+      "decl": "ProbMethodCombinatorics.abs_sub_edgeCountWithin_graphOfEdgeSlots_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "EdgeSlot",
+        "edgeCountWithin",
+        "graphOfEdgeSlots"
+      ],
+      "proof_uses": [
+        "adj_graphOfEdgeSlots_mk_iff",
+        "card_filter_mk_eq_le_two"
+      ]
+    },
+    "abs_sub_edgeDisjointCliqueNumber_le_one": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.abs_sub_edgeDisjointCliqueNumber_le_one",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "edgeDisjointCliqueNumber"
+      ],
+      "proof_uses": [
+        "edgeDisjointCliqueNumber_le_succ_of_edgeSet_agree"
+      ]
+    },
+    "adj_graphOfEdgeSlots_mk_iff": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Subdivision.lean",
+      "decl": "ProbMethodCombinatorics.adj_graphOfEdgeSlots_mk_iff",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "EdgeSlot",
+        "graphOfEdgeSlots"
+      ],
+      "proof_uses": []
+    },
+    "adj_graphOfExposure_iff_lt": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.adj_graphOfExposure_iff_lt",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "ExposureBlock",
+        "graphOfExposure"
+      ],
+      "proof_uses": []
+    },
+    "allOnes": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/PolyLowerBound.lean",
+      "decl": "ProbMethodCombinatorics.allOnes",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "allOnes_apply": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/PolyLowerBound.lean",
+      "decl": "ProbMethodCombinatorics.allOnes_apply",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "allOnes"
+      ],
+      "proof_uses": []
+    },
+    "allOnes_apply'": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ColourDiscrepancy.lean",
+      "decl": "ProbMethodCombinatorics.allOnes_apply'",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "allOnes"
+      ],
+      "proof_uses": []
+    },
+    "apSet": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/ArithProgressions.lean",
+      "decl": "ProbMethodCombinatorics.apSet",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "base_eq_rpow": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.base_eq_rpow",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "bddAbove_setOf_card_isEdgeDisjointCliqueFamily": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.bddAbove_setOf_card_isEdgeDisjointCliqueFamily",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsEdgeDisjointCliqueFamily"
+      ],
+      "proof_uses": []
+    },
+    "binomialRandom_edgeCountWithin_ge_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Subdivision.lean",
+      "decl": "ProbMethodCombinatorics.binomialRandom_edgeCountWithin_ge_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "binomial_random_graph",
+        "edgeCountWithin"
+      ],
+      "proof_uses": [
+        "EdgeSlot",
+        "abs_sub_edgeCountWithin_graphOfEdgeSlots_le",
+        "binomialRandom_eq_map_graphOfEdgeSlots",
+        "bounded_differences",
+        "card_edgeSlots_within",
+        "edgeSlotMeasure",
+        "graphOfEdgeSlots",
+        "instCountableSimpleGraphFin",
+        "instMeasurableSingletonClassSimpleGraphFin",
+        "integral_edgeCountWithin",
+        "measurable_graphOfEdgeSlots_aux"
+      ]
+    },
+    "binomialRandom_eq_map_graphOfEdgeSlots": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.binomialRandom_eq_map_graphOfEdgeSlots",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "EdgeSlot",
+        "binomial_random_graph",
+        "edgeSlotMeasure",
+        "graphOfEdgeSlots"
+      ],
+      "proof_uses": [
+        "bernoulliProp_singleton",
+        "graphOfEdgeSlots_eq_iff_eq_edgeSlots",
+        "instCountableSimpleGraphFin",
+        "measurableSet_simpleGraph_singleton",
+        "measurable_graphOfEdgeSlots"
+      ]
+    },
+    "binomialRandom_exists_edgeCountWithin_ge_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Subdivision.lean",
+      "decl": "ProbMethodCombinatorics.binomialRandom_exists_edgeCountWithin_ge_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "binomial_random_graph",
+        "edgeCountWithin"
+      ],
+      "proof_uses": [
+        "binomialRandom_edgeCountWithin_ge_le"
+      ]
+    },
+    "binomialRandom_hasKSubdivision_lt": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Subdivision.lean",
+      "decl": "ProbMethodCombinatorics.binomialRandom_hasKSubdivision_lt",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "HasKSubdivision",
+        "binomial_random_graph"
+      ],
+      "proof_uses": [
+        "binomialRandom_exists_edgeCountWithin_ge_le",
+        "edgeCountWithin",
+        "exists_card_eq_and_le_edgeCountWithin_of_hasKSubdivision",
+        "exists_forall_choose_mul_exp_lt",
+        "half_choose_two_add_twenty_le",
+        "two_le_ceil_ten_sqrt"
+      ]
+    },
+    "binomialRandom_no_clique_le_of_mu_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.binomialRandom_no_clique_le_of_mu_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "binomial_random_graph",
+        "cliqueDependency",
+        "janson_delta",
+        "janson_mu",
+        "offDiagPairs"
+      ],
+      "proof_uses": [
+        "binomialRandom_setOf_forall_not_subset",
+        "disjoint_offDiagPairs_of_card_inter_le_one",
+        "janson_two",
+        "not_isDiag_of_mem_offDiagPairs"
+      ]
+    },
+    "binomialRandom_no_triangle_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.binomialRandom_no_triangle_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "binomial_random_graph",
+        "offDiagPairs"
+      ],
+      "proof_uses": [
+        "binomialRandom_setOf_forall_not_subset",
+        "disjoint_offDiagPairs_of_notMem_triangleDependency",
+        "jansonDelta_triangleFamily_le",
+        "jansonMu_triangleFamily",
+        "janson_delta",
+        "janson_mu",
+        "janson_one",
+        "not_isDiag_of_mem_offDiagPairs",
+        "triangleDependency"
+      ]
+    },
+    "binomialRandom_no_triangle_le_of_one_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.binomialRandom_no_triangle_le_of_one_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "binomial_random_graph",
+        "offDiagPairs"
+      ],
+      "proof_uses": [
+        "binomialRandom_setOf_forall_not_subset",
+        "disjoint_offDiagPairs_of_notMem_triangleDependency",
+        "jansonDelta_triangleFamily",
+        "jansonMu_triangleFamily",
+        "janson_delta",
+        "janson_mu",
+        "janson_two",
+        "not_isDiag_of_mem_offDiagPairs",
+        "triangleDependency"
+      ]
+    },
+    "branchNonAdj": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Chernoff.lean",
+      "decl": "ProbMethodCombinatorics.branchNonAdj",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "card_apSet": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ArithProgressions.lean",
+      "decl": "ProbMethodCombinatorics.card_apSet",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "apSet"
+      ],
+      "proof_uses": []
+    },
+    "card_branchNonAdj_add_le_of_isKSubdivision": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Chernoff.lean",
+      "decl": "ProbMethodCombinatorics.card_branchNonAdj_add_le_of_isKSubdivision",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsKSubdivision",
+        "branchNonAdj"
+      ],
+      "proof_uses": [
+        "ProbMethodCombinatorics_IsKSubdivision_inj",
+        "exists_mem_support_ne_branch_of_not_adj",
+        "interior_avoids_branch",
+        "interior_disjoint"
+      ]
+    },
+    "card_cliqueDependency_grade": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.card_cliqueDependency_grade",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "cliqueDependency"
+      ],
+      "proof_uses": [
+        "inter_union_eq_cliqueGrade"
+      ]
+    },
+    "card_cubeCompress": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/HammingCube.lean",
+      "decl": "ProbMethodCombinatorics.card_cubeCompress",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "cubeCompress"
+      ],
+      "proof_uses": [
+        "cubeCompress_of_notMem",
+        "mem_cubeCompress_false",
+        "mem_cubeCompress_true",
+        "update_false_eq_self"
+      ]
+    },
+    "card_cubeNbhd_cubeCompress_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/HammingCube.lean",
+      "decl": "ProbMethodCombinatorics.card_cubeNbhd_cubeCompress_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "cubeCompress",
+        "cubeNbhd"
+      ],
+      "proof_uses": [
+        "card_cubeCompress",
+        "cubeNbhd_cubeCompress_subset"
+      ]
+    },
+    "card_dependents_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/DirectedCycles.lean",
+      "decl": "ProbMethodCombinatorics.card_dependents_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "card_edgeSlots_within": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Subdivision.lean",
+      "decl": "ProbMethodCombinatorics.card_edgeSlots_within",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "EdgeSlot"
+      ],
+      "proof_uses": []
+    },
+    "card_filter_forall_isLeft_pow": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.card_filter_forall_isLeft_pow",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "card_filter_forall_isRight_pow": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.card_filter_forall_isRight_pow",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "card_filter_forced_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ListColouring.lean",
+      "decl": "ProbMethodCombinatorics.card_filter_forced_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "card_filter_indep_eq": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.card_filter_indep_eq",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "indepSetCount"
+      ],
+      "proof_uses": [
+        "forall_not_adj_of_isIndepSet",
+        "isIndepSet_of_forall_not_adj"
+      ]
+    },
+    "card_filter_mk_eq_le_two": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Subdivision.lean",
+      "decl": "ProbMethodCombinatorics.card_filter_mk_eq_le_two",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "card_filter_mul_mem_window": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Expectation.lean",
+      "decl": "ProbMethodCombinatorics.card_filter_mul_mem_window",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "sumFreeWindow"
+      ],
+      "proof_uses": []
+    },
+    "card_fixedPoint_le_card_fiber": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Derangements.lean",
+      "decl": "ProbMethodCombinatorics.card_fixedPoint_le_card_fiber",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "card_image_fun": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ColourDiscrepancy.lean",
+      "decl": "ProbMethodCombinatorics.card_image_fun",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "card_image_offDiag_filter_adj_eq": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Subdivision.lean",
+      "decl": "ProbMethodCombinatorics.card_image_offDiag_filter_adj_eq",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "card_inter_eq_two_of_mem_triangleDependency": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.card_inter_eq_two_of_mem_triangleDependency",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "triangleDependency"
+      ],
+      "proof_uses": []
+    },
+    "card_le_compl_mul_choose_two_aux": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.card_le_compl_mul_choose_two_aux",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "card_le_edgeDisjointCliqueNumber": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.card_le_edgeDisjointCliqueNumber",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsEdgeDisjointCliqueFamily",
+        "edgeDisjointCliqueNumber"
+      ],
+      "proof_uses": [
+        "bddAbove_setOf_card_isEdgeDisjointCliqueFamily"
+      ]
+    },
+    "card_le_of_forall_apSet_inter_nonempty": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ArithProgressions.lean",
+      "decl": "ProbMethodCombinatorics.card_le_of_forall_apSet_inter_nonempty",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "apSet"
+      ],
+      "proof_uses": []
+    },
+    "card_le_of_forall_not_subset": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.card_le_of_forall_not_subset",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "card_le_compl_mul_choose_two_aux",
+        "two_mul_choose_two_le_sq_aux"
+      ]
+    },
+    "card_le_of_length_eq": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ArithProgressions.lean",
+      "decl": "ProbMethodCombinatorics.card_le_of_length_eq",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "apSet"
+      ],
+      "proof_uses": [
+        "card_le_of_forall_apSet_inter_nonempty"
+      ]
+    },
+    "card_offDiagPairs_cliqueGrade": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.card_offDiagPairs_cliqueGrade",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "offDiagPairs"
+      ],
+      "proof_uses": [
+        "card_offDiagPairs_add"
+      ]
+    },
+    "card_offDiag_filter_not_adj_eq_two_mul": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Subdivision.lean",
+      "decl": "ProbMethodCombinatorics.card_offDiag_filter_not_adj_eq_two_mul",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "branchNonAdj"
+      ],
+      "proof_uses": []
+    },
+    "card_perm_fiber_eq": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Derangements.lean",
+      "decl": "ProbMethodCombinatorics.card_perm_fiber_eq",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "card_perm_fiber_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Derangements.lean",
+      "decl": "ProbMethodCombinatorics.card_perm_fiber_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "card_perm_fixed_mul": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Derangements.lean",
+      "decl": "ProbMethodCombinatorics.card_perm_fixed_mul",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "card_perm_fiber_eq"
+      ]
+    },
+    "card_profile_allOnes": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ColourDiscrepancy.lean",
+      "decl": "ProbMethodCombinatorics.card_profile_allOnes",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "allOnes"
+      ],
+      "proof_uses": [
+        "allOnes_apply'",
+        "card_image_fun",
+        "filter_image_fun",
+        "pair_fst_snd",
+        "profile_apply"
+      ]
+    },
+    "card_profile_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ColourDiscrepancy.lean",
+      "decl": "ProbMethodCombinatorics.card_profile_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "image_filter_injective",
+        "profile_apply"
+      ]
+    },
+    "card_sumFreeWindow": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Expectation.lean",
+      "decl": "ProbMethodCombinatorics.card_sumFreeWindow",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "sumFreeWindow"
+      ],
+      "proof_uses": []
+    },
+    "card_triangleDependency_exact": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.card_triangleDependency_exact",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "triangleDependency"
+      ],
+      "proof_uses": [
+        "card_inter_eq_two_of_mem_triangleDependency"
+      ]
+    },
+    "choose_le_exp_card": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Subdivision.lean",
+      "decl": "ProbMethodCombinatorics.choose_le_exp_card",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "choose_le_three_mul_div_pow": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.choose_le_three_mul_div_pow",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "pow_self_le_three_pow_mul_factorial"
+      ]
+    },
+    "choose_two_ceil_ten_sqrt_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Subdivision.lean",
+      "decl": "ProbMethodCombinatorics.choose_two_ceil_ten_sqrt_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "choose_two_ceil_ten_sqrt_pos": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Subdivision.lean",
+      "decl": "ProbMethodCombinatorics.choose_two_ceil_ten_sqrt_pos",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "two_le_ceil_ten_sqrt"
+      ]
+    },
+    "chromaticNumber_toNat_le_add_three": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.chromaticNumber_toNat_le_add_three",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "deletionNumber"
+      ],
+      "proof_uses": [
+        "chromaticNumber_toNat_le_of_colorable",
+        "colorable_add_of_induce",
+        "deletionNumber_spec"
+      ]
+    },
+    "chromaticNumber_toNat_le_of_colorable": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.chromaticNumber_toNat_le_of_colorable",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "clauseVars": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Sat.lean",
+      "decl": "ProbMethodCombinatorics.clauseVars",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "Clause"
+      ],
+      "proof_uses": []
+    },
+    "cliqueDependency": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.cliqueDependency",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "coeff_allOnes_disc_poly": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ColourDiscrepancy.lean",
+      "decl": "ProbMethodCombinatorics.coeff_allOnes_disc_poly",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsTransversalEdge",
+        "allOnes"
+      ],
+      "proof_uses": [
+        "allOnes_apply'",
+        "card_profile_allOnes",
+        "coeff_disc_poly",
+        "profile_apply"
+      ]
+    },
+    "coeff_disc_poly": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ColourDiscrepancy.lean",
+      "decl": "ProbMethodCombinatorics.coeff_disc_poly",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "prod_X_eq_monomial"
+      ]
+    },
+    "colorable_add_of_induce": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.colorable_add_of_induce",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "colorable_induce_of_subset_of_adj": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.colorable_induce_of_subset_of_adj",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "colorable_of_chromaticNumber_toNat_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.colorable_of_chromaticNumber_toNat_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "colorable_three_of_color_unused": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.colorable_three_of_color_unused",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "containsEntries": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/LatinTransversal.lean",
+      "decl": "ProbMethodCombinatorics.containsEntries",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "copyCount_nonneg": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.copyCount_nonneg",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "copyCount"
+      ],
+      "proof_uses": [
+        "sum_indicator_one_nonneg",
+        "transportedEdges"
+      ]
+    },
+    "cubeBall": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/HammingCube.lean",
+      "decl": "ProbMethodCombinatorics.cubeBall",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "cubeCompress": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/HammingCube.lean",
+      "decl": "ProbMethodCombinatorics.cubeCompress",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "cubeCompress_of_notMem": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/HammingCube.lean",
+      "decl": "ProbMethodCombinatorics.cubeCompress_of_notMem",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "cubeCompress"
+      ],
+      "proof_uses": [
+        "mem_cubeCompress_false",
+        "mem_cubeCompress_true"
+      ]
+    },
+    "cubeNbhd": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/HammingCube.lean",
+      "decl": "ProbMethodCombinatorics.cubeNbhd",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "cubeNbhd_cubeCompress_subset": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/HammingCube.lean",
+      "decl": "ProbMethodCombinatorics.cubeNbhd_cubeCompress_subset",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "cubeCompress",
+        "cubeNbhd"
+      ],
+      "proof_uses": [
+        "cubeCompress_of_notMem",
+        "hammingDist_update_le_one",
+        "hammingDist_update_update_le",
+        "mem_cubeCompress_false",
+        "mem_cubeCompress_true",
+        "mem_cubeNbhd_of",
+        "update_eq_of_hammingDist_le_one",
+        "update_false_mem_of_mem"
+      ]
+    },
+    "cubeNbhd_mono": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/HammingCube.lean",
+      "decl": "ProbMethodCombinatorics.cubeNbhd_mono",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "cubeNbhd"
+      ],
+      "proof_uses": []
+    },
+    "cubeNbhd_one_slice_superset": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/HammingCube.lean",
+      "decl": "ProbMethodCombinatorics.cubeNbhd_one_slice_superset",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "cubeNbhd",
+        "cubeSlice"
+      ],
+      "proof_uses": [
+        "hammingDist_snoc_not",
+        "hammingDist_snoc_same"
+      ]
+    },
+    "cubeSlice": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/HammingCube.lean",
+      "decl": "ProbMethodCombinatorics.cubeSlice",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "cube_div_twelve_le_choose_three": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.cube_div_twelve_le_choose_three",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "decide_mem_eq_of_reflTransGen": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.decide_mem_eq_of_reflTransGen",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "decide_mem_ne_of_adj_symmDiff": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.decide_mem_ne_of_adj_symmDiff",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "deletionNumber": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.deletionNumber",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "deletionNumber_eq_zero_iff": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.deletionNumber_eq_zero_iff",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "deletionNumber"
+      ],
+      "proof_uses": [
+        "colorable_induce_of_subset_of_adj",
+        "deletionNumber_le",
+        "deletionNumber_spec"
+      ]
+    },
+    "deletionNumber_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.deletionNumber_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "deletionNumber"
+      ],
+      "proof_uses": []
+    },
+    "deletionNumber_le_succ_of_adj_off": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.deletionNumber_le_succ_of_adj_off",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "deletionNumber"
+      ],
+      "proof_uses": [
+        "colorable_induce_of_subset_of_adj",
+        "deletionNumber_le",
+        "deletionNumber_spec"
+      ]
+    },
+    "deletionNumber_spec": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.deletionNumber_spec",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "deletionNumber"
+      ],
+      "proof_uses": [
+        "nonempty_setOf_deletion"
+      ]
+    },
+    "disc_eq_sum": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ColourDiscrepancy.lean",
+      "decl": "ProbMethodCombinatorics.disc_eq_sum",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "disjoint_offDiagPairs_of_card_inter_le_one": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.disjoint_offDiagPairs_of_card_inter_le_one",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "offDiagPairs"
+      ],
+      "proof_uses": [
+        "card_offDiagPairs_add",
+        "offDiagPairs_inter"
+      ]
+    },
+    "disjoint_offDiagPairs_of_notMem_triangleDependency": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.disjoint_offDiagPairs_of_notMem_triangleDependency",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "offDiagPairs",
+        "triangleDependency"
+      ],
+      "proof_uses": [
+        "disjoint_offDiagPairs_of_card_inter_le_one"
+      ]
+    },
+    "doubleCover": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.doubleCover",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "doubleCoverSubgraphOfPerm": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.doubleCoverSubgraphOfPerm",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "doubleCover"
+      ],
+      "proof_uses": []
+    },
+    "doubleCoverSubgraphOfPerm_isPerfectMatching": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.doubleCoverSubgraphOfPerm_isPerfectMatching",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "doubleCover",
+        "doubleCoverSubgraphOfPerm"
+      ],
+      "proof_uses": [
+        "doubleCover_adj"
+      ]
+    },
+    "doubleCover_adj": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.doubleCover_adj",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "doubleCover"
+      ],
+      "proof_uses": []
+    },
+    "edgeCountWithin": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Subdivision.lean",
+      "decl": "ProbMethodCombinatorics.edgeCountWithin",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "edgeDisjointCliqueNumber": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.edgeDisjointCliqueNumber",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "IsEdgeDisjointCliqueFamily"
+      ]
+    },
+    "edgeDisjointCliqueNumber_le_succ_of_edgeSet_agree": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.edgeDisjointCliqueNumber_le_succ_of_edgeSet_agree",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "edgeDisjointCliqueNumber"
+      ],
+      "proof_uses": [
+        "IsEdgeDisjointCliqueFamily",
+        "card_le_edgeDisjointCliqueNumber",
+        "nonempty_setOf_card_isEdgeDisjointCliqueFamily",
+        "offDiagPairs"
+      ]
+    },
+    "edgeSlotMeasure": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.edgeSlotMeasure",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "EdgeSlot"
+      ],
+      "proof_uses": []
+    },
+    "entropy_add_mul_condEntropy_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.entropy_add_mul_condEntropy_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_condEntropy",
+        "entropy_def"
+      ],
+      "proof_uses": [
+        "condEntropy_le_sum_probOf_mul_logb",
+        "entropy_probOf",
+        "probOf_nonneg",
+        "sum_negMulLogb_add_mul_logb_le",
+        "sum_probOf"
+      ]
+    },
+    "entropy_pi_univ_eq": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.entropy_pi_univ_eq",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_def"
+      ],
+      "proof_uses": [
+        "entropy_comp_inj"
+      ]
+    },
+    "entropy_sub_le_sum_cond_rank": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.entropy_sub_le_sum_cond_rank",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_condEntropy",
+        "entropy_def"
+      ],
+      "proof_uses": [
+        "condEntropy_pi_le",
+        "entropy_pi_eq_sum_condEntropy",
+        "entropy_pi_univ_eq"
+      ]
+    },
+    "eq_allOnes_of_forall_ne_zero": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/PolyLowerBound.lean",
+      "decl": "ProbMethodCombinatorics.eq_allOnes_of_forall_ne_zero",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "allOnes"
+      ],
+      "proof_uses": [
+        "allOnes_apply"
+      ]
+    },
+    "eq_of_exposureBlock_zero": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.eq_of_exposureBlock_zero",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "ExposureBlock"
+      ],
+      "proof_uses": []
+    },
+    "eval_disc_poly": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ColourDiscrepancy.lean",
+      "decl": "ProbMethodCombinatorics.eval_disc_poly",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "exists_card_eq_and_le_edgeCountWithin_of_hasKSubdivision": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Subdivision.lean",
+      "decl": "ProbMethodCombinatorics.exists_card_eq_and_le_edgeCountWithin_of_hasKSubdivision",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "HasKSubdivision",
+        "edgeCountWithin"
+      ],
+      "proof_uses": [
+        "IsKSubdivision",
+        "ProbMethodCombinatorics_IsKSubdivision_inj",
+        "branchNonAdj",
+        "card_branchNonAdj_add_le_of_isKSubdivision",
+        "card_image_offDiag_filter_adj_eq",
+        "card_offDiag_filter_not_adj_eq_two_mul"
+      ]
+    },
+    "exists_chromaticNumber_four_values": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.exists_chromaticNumber_four_values",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "binomial_random_graph"
+      ],
+      "proof_uses": [
+        "chromaticNumber_toNat_le_add_three",
+        "deletionNumber",
+        "exists_chromaticNumber_level",
+        "forall_small_induced_threeColorable",
+        "instCountableSimpleGraphFin",
+        "instMeasurableSingletonClassSimpleGraphFin",
+        "integral_deletionNumber_lt",
+        "measure_deletionNumber_sub_mean_ge_le",
+        "one_sub_three_le_measureReal"
+      ]
+    },
+    "exists_chromaticNumber_level": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.exists_chromaticNumber_level",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "binomial_random_graph"
+      ],
+      "proof_uses": [
+        "chromaticNumber_toNat_le_of_colorable",
+        "exists_least_mem"
+      ]
+    },
+    "exists_color_unused_on_neighbors": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.exists_color_unused_on_neighbors",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "exists_coloring_forall_mem_multicolored": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Coloring.lean",
+      "decl": "ProbMethodCombinatorics.exists_coloring_forall_mem_multicolored",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "instIsProbabilityMeasureForallUniformColorOn",
+        "is_dependency_graph",
+        "lll_symmetric",
+        "measure_pi_inter_eq_mul",
+        "pattern",
+        "uniformColorOn",
+        "uniformColorOn_not_multicolored_toReal_le"
+      ]
+    },
+    "exists_coloring_forall_translate_multicolored": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Coloring.lean",
+      "decl": "ProbMethodCombinatorics.exists_coloring_forall_translate_multicolored",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "exists_coloring_forall_mem_multicolored",
+        "exists_forall_notMem_of_forall_finset"
+      ]
+    },
+    "exists_coloring_not_monochromatic": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ArithProgressions.lean",
+      "decl": "ProbMethodCombinatorics.exists_coloring_not_monochromatic",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "instIsProbabilityMeasureForallBoolUniformColoring",
+        "isDependencyGraph_monochromatic",
+        "is_dependency_graph",
+        "lll_general",
+        "uniformColoring_monochromatic_toReal_le'",
+        "uniform_coloring"
+      ]
+    },
+    "exists_container_round_of_pos": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.exists_container_round_of_pos",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsContainerRound"
+      ],
+      "proof_uses": [
+        "card_filter_mem_le_codegree",
+        "containers_maxCodegree",
+        "exists_degree_order"
+      ]
+    },
+    "exists_degree_order": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.exists_degree_order",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "exists_directed_cycle_length_dvd": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/DirectedCycles.lean",
+      "decl": "ProbMethodCombinatorics.exists_directed_cycle_length_dvd",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "HasDirectedCycleOfLength"
+      ],
+      "proof_uses": [
+        "IsDirectedCycle",
+        "exists_labelling_forall_exists_succ",
+        "exists_periodic_orbit",
+        "mk"
+      ]
+    },
+    "exists_edgeFinset_of_not_colorable": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.exists_edgeFinset_of_not_colorable",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "offDiagPairs"
+      ],
+      "proof_uses": [
+        "mem_offDiagPairs",
+        "three_le_card_neighbors_of_minimal"
+      ]
+    },
+    "exists_flip_coloring": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.exists_flip_coloring",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "not_orbit_rel_invol"
+      ]
+    },
+    "exists_forall_choose_mul_exp_lt": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Subdivision.lean",
+      "decl": "ProbMethodCombinatorics.exists_forall_choose_mul_exp_lt",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "choose_le_exp_card",
+        "choose_two_ceil_ten_sqrt_le",
+        "choose_two_ceil_ten_sqrt_pos"
+      ]
+    },
+    "exists_forall_notMem_of_forall_finset": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.exists_forall_notMem_of_forall_finset",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "exists_labelling_forall_exists_succ": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/DirectedCycles.lean",
+      "decl": "ProbMethodCombinatorics.exists_labelling_forall_exists_succ",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "card_dependents_le",
+        "exp_mul_pow_mul_le_one_of_log_le",
+        "instIsProbabilityMeasureForallUniformColorOn",
+        "is_dependency_graph",
+        "lll_symmetric",
+        "measure_pi_inter_eq_mul",
+        "pattern",
+        "uniformColorOn",
+        "uniformColorOn_forall_ne_succ_toReal"
+      ]
+    },
+    "exists_latin_transversal": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/LatinTransversal.lean",
+      "decl": "ProbMethodCombinatorics.exists_latin_transversal",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "latin_exists_avoiding"
+      ]
+    },
+    "exists_least_mem": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.exists_least_mem",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "exists_matchingShift": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/LatinTransversal.lean",
+      "decl": "ProbMethodCombinatorics.exists_matchingShift",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsPartialMatching"
+      ],
+      "proof_uses": []
+    },
+    "exists_mem_support_ne_branch_of_not_adj": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Chernoff.lean",
+      "decl": "ProbMethodCombinatorics.exists_mem_support_ne_branch_of_not_adj",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsKSubdivision"
+      ],
+      "proof_uses": [
+        "ProbMethodCombinatorics_IsKSubdivision_inj"
+      ]
+    },
+    "exists_min_reflTransGen": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.exists_min_reflTransGen",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "mem_of_reflTransGen_restrict"
+      ]
+    },
+    "exists_periodic_orbit": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/DirectedCycles.lean",
+      "decl": "ProbMethodCombinatorics.exists_periodic_orbit",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "exists_point_abs_eval_ge": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ColourDiscrepancy.lean",
+      "decl": "ProbMethodCombinatorics.exists_point_abs_eval_ge",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsTransversalEdge",
+        "allOnes"
+      ],
+      "proof_uses": [
+        "abs_coeff_disc_poly_le",
+        "coeff_allOnes_disc_poly",
+        "eval_disc_poly",
+        "totalDegree_disc_poly"
+      ]
+    },
+    "exists_pos_forall_exists_abs_eval_ge": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/PolyLowerBound.lean",
+      "decl": "ProbMethodCombinatorics.exists_pos_forall_exists_abs_eval_ge",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "allOnes"
+      ],
+      "proof_uses": [
+        "sum_signed_eval_eq_coeff"
+      ]
+    },
+    "exists_rank_side_lt": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.exists_rank_side_lt",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "exists_satisfying_assignment": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Sat.lean",
+      "decl": "ProbMethodCombinatorics.exists_satisfying_assignment",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "Clause",
+        "Literal",
+        "Satisfies",
+        "clauseVars"
+      ],
+      "proof_uses": [
+        "instIsProbabilityMeasureForallBoolUniformColoring",
+        "is_dependency_graph",
+        "lll_symmetric",
+        "pattern",
+        "uniformColoring_violated_toReal",
+        "uniform_coloring",
+        "uniform_coloring_indep"
+      ]
+    },
+    "exists_subset_colour_discrepancy": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ColourDiscrepancy.lean",
+      "decl": "ProbMethodCombinatorics.exists_subset_colour_discrepancy",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsTransversalEdge"
+      ],
+      "proof_uses": [
+        "allOnes",
+        "disc_eq_sum",
+        "exists_point_abs_eval_ge",
+        "exists_pos_forall_exists_abs_eval_ge",
+        "sum_weight_eq_one",
+        "sum_weight_mul_disc",
+        "weight_nonneg"
+      ]
+    },
+    "exists_sumFree_subset": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Expectation.lean",
+      "decl": "ProbMethodCombinatorics.exists_sumFree_subset",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsSumFree"
+      ],
+      "proof_uses": [
+        "card_filter_mul_mem_window",
+        "card_sumFreeWindow",
+        "isSumFree_sumFreeWindow",
+        "isUnit_zmod_of_ne_zero",
+        "sumFreeWindow"
+      ]
+    },
+    "exists_tail_sum_coe_mul_geometric_lt": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ArithProgressions.lean",
+      "decl": "ProbMethodCombinatorics.exists_tail_sum_coe_mul_geometric_lt",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "exists_twoColoring_forall_mem_not_monochromatic": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ArithProgressions.lean",
+      "decl": "ProbMethodCombinatorics.exists_twoColoring_forall_mem_not_monochromatic",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "apSet"
+      ],
+      "proof_uses": [
+        "exists_twoColoring_of_le_one"
+      ]
+    },
+    "exists_twoColoring_no_monochromatic_ap": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ArithProgressions.lean",
+      "decl": "ProbMethodCombinatorics.exists_twoColoring_no_monochromatic_ap",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "apSet"
+      ],
+      "proof_uses": [
+        "exists_forall_notMem_of_forall_finset",
+        "exists_twoColoring_forall_mem_not_monochromatic"
+      ]
+    },
+    "exists_twoColoring_of_le_one": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ArithProgressions.lean",
+      "decl": "ProbMethodCombinatorics.exists_twoColoring_of_le_one",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "apSet"
+      ],
+      "proof_uses": [
+        "card_apSet",
+        "exists_coloring_not_monochromatic",
+        "exists_tail_sum_coe_mul_geometric_lt",
+        "exp_neg_two_mul_le_one_sub",
+        "sum_weight_le",
+        "two_pow_le_weight_mul_exp",
+        "two_rpow_weight_le_half"
+      ]
+    },
+    "exp_mul_pow_mul_le_one_of_log_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/DirectedCycles.lean",
+      "decl": "ProbMethodCombinatorics.exp_mul_pow_mul_le_one_of_log_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "exp_neg_two_mul_le_one_sub": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ArithProgressions.lean",
+      "decl": "ProbMethodCombinatorics.exp_neg_two_mul_le_one_sub",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "exp_one_lt_three": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.exp_one_lt_three",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "filter_forall_isLeft_inter_isRight_eq": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.filter_forall_isLeft_inter_isRight_eq",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "filter_image_fun": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ColourDiscrepancy.lean",
+      "decl": "ProbMethodCombinatorics.filter_image_fun",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "fixedPointEvent": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Derangements.lean",
+      "decl": "ProbMethodCombinatorics.fixedPointEvent",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "flip_agree_of_reflTransGen": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.flip_agree_of_reflTransGen",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "forall_not_adj_of_isIndepSet": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.forall_not_adj_of_isIndepSet",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "forall_small_induced_threeColorable": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.forall_small_induced_threeColorable",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "binomial_random_graph"
+      ],
+      "proof_uses": [
+        "base_eq_rpow",
+        "instCountableSimpleGraphFin",
+        "instMeasurableSingletonClassSimpleGraphFin",
+        "prob_not_forall_small_colorable_le",
+        "sqrt_mul_rpow_neg",
+        "sum_pow_Icc_four_le",
+        "term_sq_le_base_pow"
+      ]
+    },
+    "graphOfEdgeSlots": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.graphOfEdgeSlots",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "EdgeSlot"
+      ],
+      "proof_uses": []
+    },
+    "graphOfEdgeSlots_eq_iff_eq_edgeSlots": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.graphOfEdgeSlots_eq_iff_eq_edgeSlots",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "EdgeSlot",
+        "graphOfEdgeSlots"
+      ],
+      "proof_uses": []
+    },
+    "half_choose_two_add_twenty_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Subdivision.lean",
+      "decl": "ProbMethodCombinatorics.half_choose_two_add_twenty_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "hammingDist_snoc_not": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/HammingCube.lean",
+      "decl": "ProbMethodCombinatorics.hammingDist_snoc_not",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "hammingDist_snoc_snoc"
+      ]
+    },
+    "hammingDist_snoc_same": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/HammingCube.lean",
+      "decl": "ProbMethodCombinatorics.hammingDist_snoc_same",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "hammingDist_snoc_snoc"
+      ]
+    },
+    "hammingDist_snoc_snoc": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/HammingCube.lean",
+      "decl": "ProbMethodCombinatorics.hammingDist_snoc_snoc",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "hammingDist_update_le_one": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/HammingCube.lean",
+      "decl": "ProbMethodCombinatorics.hammingDist_update_le_one",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "hammingDist_update_update_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/HammingCube.lean",
+      "decl": "ProbMethodCombinatorics.hammingDist_update_update_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "image_filter_injective": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ColourDiscrepancy.lean",
+      "decl": "ProbMethodCombinatorics.image_filter_injective",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "mem_iff_mem_image"
+      ]
+    },
+    "indepSetCount": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.indepSetCount",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "indepSetCount_completeBipartiteGraph": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.indepSetCount_completeBipartiteGraph",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "indepSetCount"
+      ],
+      "proof_uses": [
+        "card_filter_forall_isLeft_pow",
+        "card_filter_forall_isRight_pow",
+        "filter_forall_isLeft_inter_isRight_eq",
+        "isIndepSet_completeBipartiteGraph_iff_sideFree"
+      ]
+    },
+    "indepSetCount_logb_half_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.indepSetCount_logb_half_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "indepSetCount"
+      ],
+      "proof_uses": [
+        "card_filter_indep_eq",
+        "entropy_add_mul_condEntropy_le",
+        "entropy_condEntropy",
+        "entropy_def",
+        "entropy_eq_zero_of_subsingleton",
+        "entropy_sub_le_sum_cond_rank",
+        "entropy_uniformPMF",
+        "entropy_uniformPMF_of_injOn",
+        "exists_rank_side_lt",
+        "shearer_subset_le",
+        "sum_uniformPMF",
+        "uniformPMF_nonneg"
+      ]
+    },
+    "indepSetCount_pow_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.indepSetCount_pow_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "indepSetCount"
+      ],
+      "proof_uses": [
+        "doubleCover",
+        "doubleCover_adj",
+        "indepSetCount_completeBipartiteGraph",
+        "indepSetCount_pow_le_of_side",
+        "indepSetCount_sq_le_doubleCover"
+      ]
+    },
+    "indepSetCount_pow_le_of_side": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.indepSetCount_pow_le_of_side",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "indepSetCount"
+      ],
+      "proof_uses": [
+        "card_filter_indep_eq",
+        "indepSetCount_logb_half_le",
+        "le_of_logb_two_le"
+      ]
+    },
+    "indepSetCount_sq_le_doubleCover": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.indepSetCount_sq_le_doubleCover",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "doubleCover",
+        "indepSetCount"
+      ],
+      "proof_uses": [
+        "decide_mem_eq_of_reflTransGen",
+        "decide_mem_ne_of_adj_symmDiff",
+        "exists_min_reflTransGen",
+        "forall_not_adj_of_isIndepSet",
+        "isIndepSet_doubleCover_pack",
+        "no_adj_between_sides",
+        "pack_eq_pair",
+        "sides_determine"
+      ]
+    },
+    "instCountableSimpleGraphFin": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.instCountableSimpleGraphFin",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "instIsProbabilityMeasureForallUniformColorOn": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Coloring.lean",
+      "decl": "ProbMethodCombinatorics.instIsProbabilityMeasureForallUniformColorOn",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "uniformColorOn"
+      ],
+      "proof_uses": []
+    },
+    "instIsProbabilityMeasureUniformPerm": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Derangements.lean",
+      "decl": "ProbMethodCombinatorics.instIsProbabilityMeasureUniformPerm",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "instMeasurableSpacePermFin",
+        "uniformPerm"
+      ],
+      "proof_uses": []
+    },
+    "instMeasurableSingletonClassPermFin": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Derangements.lean",
+      "decl": "ProbMethodCombinatorics.instMeasurableSingletonClassPermFin",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "instMeasurableSpacePermFin"
+      ],
+      "proof_uses": []
+    },
+    "instMeasurableSingletonClassSimpleGraphFin": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.instMeasurableSingletonClassSimpleGraphFin",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "measurableSet_simpleGraph_singleton"
+      ]
+    },
+    "instMeasurableSpacePermFin": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Derangements.lean",
+      "decl": "ProbMethodCombinatorics.instMeasurableSpacePermFin",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "integrable_copyCount": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.integrable_copyCount",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "binomial_random_graph",
+        "copyCount"
+      ],
+      "proof_uses": [
+        "integrable_sum_indicator_one",
+        "measurableSet_setOf_subset_edgeSet",
+        "transportedEdges"
+      ]
+    },
+    "integrable_sum_indicator_one": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.integrable_sum_indicator_one",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "integral_deletionNumber_lt": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.integral_deletionNumber_lt",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "binomial_random_graph",
+        "deletionNumber"
+      ],
+      "proof_uses": [
+        "colorable_of_chromaticNumber_toNat_le",
+        "deletionNumber_eq_zero_iff",
+        "measure_mean_sub_deletionNumber_ge_le"
+      ]
+    },
+    "integral_edgeCountWithin": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Subdivision.lean",
+      "decl": "ProbMethodCombinatorics.integral_edgeCountWithin",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "binomial_random_graph",
+        "edgeCountWithin"
+      ],
+      "proof_uses": [
+        "binomialRandom_setOf_subset_edgeSet",
+        "instCountableSimpleGraphFin",
+        "instMeasurableSingletonClassSimpleGraphFin"
+      ]
+    },
+    "integral_setBernoulli_eq_sum_singleton": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.integral_setBernoulli_eq_sum_singleton",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "integral_sum_indicator_one": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.integral_sum_indicator_one",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "inter_union_eq_cliqueGrade": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.inter_union_eq_cliqueGrade",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "involSubgraph": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.involSubgraph",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "involSubgraph_isPerfectMatching": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.involSubgraph_isPerfectMatching",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "involSubgraph"
+      ],
+      "proof_uses": []
+    },
+    "isDependencyGraph_monochromatic": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ArithProgressions.lean",
+      "decl": "ProbMethodCombinatorics.isDependencyGraph_monochromatic",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "is_dependency_graph",
+        "uniform_coloring"
+      ],
+      "proof_uses": [
+        "pattern",
+        "uniform_coloring_indep"
+      ]
+    },
+    "isIndepSet_completeBipartiteGraph_iff_sideFree": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.isIndepSet_completeBipartiteGraph_iff_sideFree",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "isIndepSet_doubleCover_pack": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.isIndepSet_doubleCover_pack",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "doubleCover"
+      ],
+      "proof_uses": [
+        "doubleCover_adj"
+      ]
+    },
+    "isIndepSet_of_forall_not_adj": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.isIndepSet_of_forall_not_adj",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "isKChoosable_completeBipartiteGraph": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ListColouring.lean",
+      "decl": "ProbMethodCombinatorics.isKChoosable_completeBipartiteGraph",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsKChoosable"
+      ],
+      "proof_uses": [
+        "card_filter_forced_le"
+      ]
+    },
+    "isSumFree_sumFreeWindow": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Expectation.lean",
+      "decl": "ProbMethodCombinatorics.isSumFree_sumFreeWindow",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsSumFree",
+        "sumFreeWindow"
+      ],
+      "proof_uses": []
+    },
+    "isUnit_zmod_of_ne_zero": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Expectation.lean",
+      "decl": "ProbMethodCombinatorics.isUnit_zmod_of_ne_zero",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "jansonDelta_cliqueFamily": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.jansonDelta_cliqueFamily",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "cliqueDependency",
+        "janson_delta",
+        "offDiagPairs"
+      ],
+      "proof_uses": [
+        "card_cliqueDependency_grade",
+        "card_offDiagPairs_cliqueGrade",
+        "offDiagPairs_inter",
+        "setBernoulli_setOf_subset"
+      ]
+    },
+    "jansonDelta_triangleFamily": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.jansonDelta_triangleFamily",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "janson_delta",
+        "offDiagPairs",
+        "triangleDependency"
+      ],
+      "proof_uses": [
+        "cliqueDependency",
+        "jansonDelta_cliqueFamily"
+      ]
+    },
+    "jansonDelta_triangleFamily_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.jansonDelta_triangleFamily_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "janson_delta",
+        "offDiagPairs",
+        "triangleDependency"
+      ],
+      "proof_uses": [
+        "card_inter_eq_two_of_mem_triangleDependency",
+        "card_offDiagPairs_add",
+        "offDiagPairs_inter",
+        "setBernoulli_setOf_subset"
+      ]
+    },
+    "jansonMu_cliqueFamily": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.jansonMu_cliqueFamily",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "janson_mu",
+        "offDiagPairs"
+      ],
+      "proof_uses": [
+        "card_offDiagPairs_add",
+        "setBernoulli_setOf_subset"
+      ]
+    },
+    "latin_biUnion_card_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/LatinTransversal.lean",
+      "decl": "ProbMethodCombinatorics.latin_biUnion_card_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "latin_cross_card_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/LatinTransversal.lean",
+      "decl": "ProbMethodCombinatorics.latin_cross_card_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "latin_degree_arith_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/LatinTransversal.lean",
+      "decl": "ProbMethodCombinatorics.latin_degree_arith_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "latin_degree_card_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/LatinTransversal.lean",
+      "decl": "ProbMethodCombinatorics.latin_degree_card_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "latin_biUnion_card_le",
+        "latin_cross_card_le",
+        "latin_degree_arith_le",
+        "latin_symbol_class_card_le"
+      ]
+    },
+    "latin_exists_avoiding": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/LatinTransversal.lean",
+      "decl": "ProbMethodCombinatorics.latin_exists_avoiding",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "IsNegativeDependencyGraph",
+        "IsPartialMatching",
+        "VertexDisjoint",
+        "containsEntries",
+        "instIsProbabilityMeasureUniformPerm",
+        "instMeasurableSpacePermFin",
+        "latin_degree_card_le",
+        "latin_factorial_pair_div",
+        "lopsided_local_lemma_symmetric",
+        "uniformPerm",
+        "uniformPerm_containsEntries",
+        "uniformPerm_negativeDependency_matchings"
+      ]
+    },
+    "latin_factorial_pair_div": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/LatinTransversal.lean",
+      "decl": "ProbMethodCombinatorics.latin_factorial_pair_div",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "latin_symbol_class_card_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/LatinTransversal.lean",
+      "decl": "ProbMethodCombinatorics.latin_symbol_class_card_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "le_of_logb_two_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.le_of_logb_two_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "lopsided_local_lemma": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Lopsided.lean",
+      "decl": "ProbMethodCombinatorics.lopsided_local_lemma",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsNegativeDependencyGraph"
+      ],
+      "proof_uses": [
+        "measure_inter_biInter_compl_le_of_negativeDependency"
+      ]
+    },
+    "lopsided_local_lemma_symmetric": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Lopsided.lean",
+      "decl": "ProbMethodCombinatorics.lopsided_local_lemma_symmetric",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsNegativeDependencyGraph"
+      ],
+      "proof_uses": [
+        "lopsided_local_lemma"
+      ]
+    },
+    "measurable_copyCount": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.measurable_copyCount",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "copyCount"
+      ],
+      "proof_uses": [
+        "measurableSet_setOf_subset_edgeSet",
+        "measurable_sum_indicator_one",
+        "transportedEdges"
+      ]
+    },
+    "measurable_graphOfEdgeSlots": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.measurable_graphOfEdgeSlots",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "EdgeSlot",
+        "graphOfEdgeSlots"
+      ],
+      "proof_uses": []
+    },
+    "measurable_graphOfEdgeSlots_aux": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Subdivision.lean",
+      "decl": "ProbMethodCombinatorics.measurable_graphOfEdgeSlots_aux",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "EdgeSlot",
+        "graphOfEdgeSlots"
+      ],
+      "proof_uses": []
+    },
+    "measurable_graphOfExposure": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.measurable_graphOfExposure",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "ExposureBlock",
+        "graphOfExposure"
+      ],
+      "proof_uses": [
+        "adj_graphOfExposure_iff_lt"
+      ]
+    },
+    "measurable_sum_indicator_one": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.measurable_sum_indicator_one",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "measure_deletionNumber_sub_mean_ge_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.measure_deletionNumber_sub_mean_ge_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "binomial_random_graph",
+        "deletionNumber"
+      ],
+      "proof_uses": [
+        "abs_sub_deletionNumber_le_one",
+        "measure_sub_integral_graph_ge_le"
+      ]
+    },
+    "measure_inter_biInter_compl_le_of_negativeDependency": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Lopsided.lean",
+      "decl": "ProbMethodCombinatorics.measure_inter_biInter_compl_le_of_negativeDependency",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsNegativeDependencyGraph"
+      ],
+      "proof_uses": []
+    },
+    "measure_mean_sub_deletionNumber_ge_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.measure_mean_sub_deletionNumber_ge_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "binomial_random_graph",
+        "deletionNumber"
+      ],
+      "proof_uses": [
+        "abs_sub_deletionNumber_le_one",
+        "measure_sub_integral_graph_ge_le"
+      ]
+    },
+    "measure_sub_integral_graph_ge_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.measure_sub_integral_graph_ge_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "binomial_random_graph"
+      ],
+      "proof_uses": [
+        "ExposureBlock",
+        "adj_graphOfExposure_iff_lt",
+        "binomialRandom_eq_map_graphOfExposure",
+        "bounded_differences",
+        "eq_of_exposureBlock_zero",
+        "exposureMeasure",
+        "graphOfExposure",
+        "instCountableSimpleGraphFin",
+        "instMeasurableSingletonClassSimpleGraphFin",
+        "measurable_graphOfExposure",
+        "sum_sq_exposureWeight_aux"
+      ]
+    },
+    "memLp_sum_indicator_one": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.memLp_sum_indicator_one",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "mem_cubeCompress_false": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/HammingCube.lean",
+      "decl": "ProbMethodCombinatorics.mem_cubeCompress_false",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "cubeCompress"
+      ],
+      "proof_uses": []
+    },
+    "mem_cubeCompress_true": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/HammingCube.lean",
+      "decl": "ProbMethodCombinatorics.mem_cubeCompress_true",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "cubeCompress"
+      ],
+      "proof_uses": []
+    },
+    "mem_cubeNbhd_of": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/HammingCube.lean",
+      "decl": "ProbMethodCombinatorics.mem_cubeNbhd_of",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "cubeNbhd"
+      ],
+      "proof_uses": []
+    },
+    "mem_edgeSet_graphOfEdgeSlots_iff": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.mem_edgeSet_graphOfEdgeSlots_iff",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "EdgeSlot",
+        "graphOfEdgeSlots"
+      ],
+      "proof_uses": []
+    },
+    "mem_iff_mem_image": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ColourDiscrepancy.lean",
+      "decl": "ProbMethodCombinatorics.mem_iff_mem_image",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "mem_of_reflTransGen_restrict": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.mem_of_reflTransGen_restrict",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "mul_card_fixedPoint_le_card_move": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Derangements.lean",
+      "decl": "ProbMethodCombinatorics.mul_card_fixedPoint_le_card_move",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "card_fixedPoint_le_card_fiber"
+      ]
+    },
+    "mul_card_perm_fixedPoint": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Derangements.lean",
+      "decl": "ProbMethodCombinatorics.mul_card_perm_fixedPoint",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "card_perm_fiber_le"
+      ]
+    },
+    "natCast_div_le_mul_div": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/LatinTransversal.lean",
+      "decl": "ProbMethodCombinatorics.natCast_div_le_mul_div",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "ncard_mul_card_perm_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/LatinTransversal.lean",
+      "decl": "ProbMethodCombinatorics.ncard_mul_card_perm_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsPartialMatching",
+        "containsEntries"
+      ],
+      "proof_uses": [
+        "exists_matchingShift"
+      ]
+    },
+    "no_adj_between_sides": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.no_adj_between_sides",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "nonempty_setOf_card_isEdgeDisjointCliqueFamily": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.nonempty_setOf_card_isEdgeDisjointCliqueFamily",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsEdgeDisjointCliqueFamily"
+      ],
+      "proof_uses": [
+        "offDiagPairs"
+      ]
+    },
+    "nonempty_setOf_deletion": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.nonempty_setOf_deletion",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "not_isKChoosable_completeBipartiteGraph": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ListColouring.lean",
+      "decl": "ProbMethodCombinatorics.not_isKChoosable_completeBipartiteGraph",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsKChoosable",
+        "two_colorable"
+      ],
+      "proof_uses": []
+    },
+    "not_orbit_rel_invol": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.not_orbit_rel_invol",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "one_le_copyCount_of_ne_zero": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.one_le_copyCount_of_ne_zero",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "copyCount"
+      ],
+      "proof_uses": [
+        "one_le_sum_indicator_one_of_ne_zero",
+        "transportedEdges"
+      ]
+    },
+    "one_le_sum_indicator_one_of_ne_zero": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.one_le_sum_indicator_one_of_ne_zero",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "one_sub_three_le_measureReal": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.one_sub_three_le_measureReal",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "pack_eq_pair": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.pack_eq_pair",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "pair_fst_snd": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ColourDiscrepancy.lean",
+      "decl": "ProbMethodCombinatorics.pair_fst_snd",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "perfectMatchingCount": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.perfectMatchingCount",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "perfectMatchingCount_doubleCover": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.perfectMatchingCount_doubleCover",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "doubleCover",
+        "perfectMatchingCount"
+      ],
+      "proof_uses": [
+        "doubleCoverSubgraphOfPerm",
+        "doubleCoverSubgraphOfPerm_isPerfectMatching",
+        "doubleCover_adj"
+      ]
+    },
+    "perfectMatchingCount_eq_card_invol": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.perfectMatchingCount_eq_card_invol",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "perfectMatchingCount"
+      ],
+      "proof_uses": [
+        "involSubgraph",
+        "involSubgraph_isPerfectMatching"
+      ]
+    },
+    "perfectMatchingCount_sq_le_doubleCover": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.perfectMatchingCount_sq_le_doubleCover",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "doubleCover",
+        "perfectMatchingCount"
+      ],
+      "proof_uses": [
+        "doubleCover_adj",
+        "exists_flip_coloring",
+        "flip_agree_of_reflTransGen",
+        "perfectMatchingCount_eq_card_invol"
+      ]
+    },
+    "pow_self_le_three_pow_mul_factorial": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.pow_self_le_three_pow_mul_factorial",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "exp_one_lt_three"
+      ]
+    },
+    "prob_copyCount_ne_zero_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.prob_copyCount_ne_zero_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "binomial_random_graph",
+        "copyCount"
+      ],
+      "proof_uses": [
+        "copyCount_nonneg",
+        "integrable_copyCount",
+        "integral_copyCount",
+        "measurable_copyCount",
+        "one_le_copyCount_of_ne_zero"
+      ]
+    },
+    "prob_edgeDisjointCliqueNumber_eq_zero_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Concentration.lean",
+      "decl": "ProbMethodCombinatorics.prob_edgeDisjointCliqueNumber_eq_zero_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "binomial_random_graph",
+        "edgeDisjointCliqueNumber"
+      ],
+      "proof_uses": [
+        "EdgeSlot",
+        "abs_sub_edgeDisjointCliqueNumber_le_one",
+        "binomialRandom_eq_map_graphOfEdgeSlots",
+        "bounded_differences",
+        "edgeSlotMeasure",
+        "graphOfEdgeSlots",
+        "measurableSet_simpleGraph_singleton",
+        "measurable_graphOfEdgeSlots",
+        "mem_edgeSet_graphOfEdgeSlots_iff"
+      ]
+    },
+    "prob_no_triangle_le_of_mul_sqrt_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.prob_no_triangle_le_of_mul_sqrt_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "binomial_random_graph",
+        "offDiagPairs"
+      ],
+      "proof_uses": [
+        "binomialRandom_no_triangle_le",
+        "cube_div_twelve_le_choose_three"
+      ]
+    },
+    "prob_not_cliqueFree_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.prob_not_cliqueFree_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "binomial_random_graph"
+      ],
+      "proof_uses": [
+        "binomialRandom_setOf_subset_edgeSet",
+        "card_offDiagPairs_add",
+        "not_isDiag_of_mem_offDiagPairs",
+        "offDiagPairs",
+        "setOf_forall_adj_eq_setOf_offDiagPairs"
+      ]
+    },
+    "prob_not_forall_small_colorable_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.prob_not_forall_small_colorable_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "binomial_random_graph"
+      ],
+      "proof_uses": [
+        "binomialRandom_setOf_subset_edgeSet",
+        "card_offDiagPairs_add",
+        "exists_edgeFinset_of_not_colorable",
+        "not_isDiag_of_mem_offDiagPairs",
+        "offDiagPairs"
+      ]
+    },
+    "prob_sum_indicator_eq_zero_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.prob_sum_indicator_eq_zero_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "integral_sum_indicator_one",
+        "memLp_sum_indicator_one",
+        "prob_zero_bound",
+        "variance_indicator_bound"
+      ]
+    },
+    "prod_X_eq_monomial": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ColourDiscrepancy.lean",
+      "decl": "ProbMethodCombinatorics.prod_X_eq_monomial",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "prod_cubePoint_pow": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/PolyLowerBound.lean",
+      "decl": "ProbMethodCombinatorics.prod_cubePoint_pow",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "prod_le_binomialRandom_forall_ncard_neighborSet_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/MaxDegree.lean",
+      "decl": "ProbMethodCombinatorics.prod_le_binomialRandom_forall_ncard_neighborSet_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "binomial_random_graph"
+      ],
+      "proof_uses": [
+        "harris_lower_family"
+      ]
+    },
+    "prod_neg_one_add_zero_pow_of_eq_zero": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/PolyLowerBound.lean",
+      "decl": "ProbMethodCombinatorics.prod_neg_one_add_zero_pow_of_eq_zero",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "prod_neg_one_add_zero_pow_of_forall": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/PolyLowerBound.lean",
+      "decl": "ProbMethodCombinatorics.prod_neg_one_add_zero_pow_of_forall",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "profile_apply": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ColourDiscrepancy.lean",
+      "decl": "ProbMethodCombinatorics.profile_apply",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "setBernoulli_mul_integral_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.setBernoulli_mul_integral_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "integral_setBernoulli_eq_sum_singleton",
+        "setBernoulli_real_singleton_supermodular",
+        "sum_mul_sum_le_sum_mul_weight",
+        "sum_setBernoulli_real_singleton"
+      ]
+    },
+    "setBernoulli_real_singleton_supermodular": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.setBernoulli_real_singleton_supermodular",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "setTwoColorable_of_le_card_inter_card_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.setTwoColorable_of_le_card_inter_card_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "SetTwoColorable"
+      ],
+      "proof_uses": [
+        "exists_forall_notMem_of_forall_finset",
+        "twoColorable_of_le_card_inter_card_le",
+        "two_colorable"
+      ]
+    },
+    "shearer_subset_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.shearer_subset_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "entropy_def"
+      ],
+      "proof_uses": [
+        "entropy_comp_inj",
+        "shearer"
+      ]
+    },
+    "sides_determine": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.sides_determine",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "sqrt_mul_rpow_neg": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.sqrt_mul_rpow_neg",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "sumFreeWindow": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Expectation.lean",
+      "decl": "ProbMethodCombinatorics.sumFreeWindow",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "sum_coe_mul_pow_lt": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ArithProgressions.lean",
+      "decl": "ProbMethodCombinatorics.sum_coe_mul_pow_lt",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "sum_indicator_one_nonneg": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/SecondMoment.lean",
+      "decl": "ProbMethodCombinatorics.sum_indicator_one_nonneg",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "sum_mul_sum_le_sum_mul_weight": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.sum_mul_sum_le_sum_mul_weight",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "fkg_upstream"
+      ]
+    },
+    "sum_negMulLogb_add_mul_logb_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.sum_negMulLogb_add_mul_logb_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "sum_pow_Icc_four_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.sum_pow_Icc_four_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "sum_pow_Icc_four_le_aux"
+      ]
+    },
+    "sum_pow_Icc_four_le_aux": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.sum_pow_Icc_four_le_aux",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "sum_setBernoulli_real_singleton": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Correlation.lean",
+      "decl": "ProbMethodCombinatorics.sum_setBernoulli_real_singleton",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "sum_signed_eval_eq_coeff": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/PolyLowerBound.lean",
+      "decl": "ProbMethodCombinatorics.sum_signed_eval_eq_coeff",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "allOnes"
+      ],
+      "proof_uses": [
+        "allOnes_apply",
+        "eq_allOnes_of_forall_ne_zero",
+        "prod_neg_one_add_zero_pow_of_eq_zero",
+        "prod_neg_one_add_zero_pow_of_forall",
+        "sum_signed_prod_cubePoint"
+      ]
+    },
+    "sum_signed_prod_cubePoint": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/PolyLowerBound.lean",
+      "decl": "ProbMethodCombinatorics.sum_signed_prod_cubePoint",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "prod_cubePoint_pow"
+      ]
+    },
+    "sum_sq_exposureWeight_aux": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.sum_sq_exposureWeight_aux",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "sum_weight_eq_one": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ColourDiscrepancy.lean",
+      "decl": "ProbMethodCombinatorics.sum_weight_eq_one",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "sum_weight_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ArithProgressions.lean",
+      "decl": "ProbMethodCombinatorics.sum_weight_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "apSet"
+      ],
+      "proof_uses": [
+        "card_le_of_length_eq",
+        "sum_coe_mul_pow_lt",
+        "two_rpow_mul_two_rpow"
+      ]
+    },
+    "sum_weight_mul_disc": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ColourDiscrepancy.lean",
+      "decl": "ProbMethodCombinatorics.sum_weight_mul_disc",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "sum_weight_superset"
+      ]
+    },
+    "sum_weight_superset": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ColourDiscrepancy.lean",
+      "decl": "ProbMethodCombinatorics.sum_weight_superset",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "term_sq_le_base_pow": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.term_sq_le_base_pow",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "choose_le_three_mul_div_pow",
+        "three_mul_choose_two_le"
+      ]
+    },
+    "three_le_card_neighbors_of_minimal": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.three_le_card_neighbors_of_minimal",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "colorable_three_of_color_unused",
+        "exists_color_unused_on_neighbors"
+      ]
+    },
+    "three_mul_choose_two_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.three_mul_choose_two_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "two_mul_choose_two"
+      ]
+    },
+    "totalDegree_disc_poly": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ColourDiscrepancy.lean",
+      "decl": "ProbMethodCombinatorics.totalDegree_disc_poly",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "triangleDependency": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Janson.lean",
+      "decl": "ProbMethodCombinatorics.triangleDependency",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "twoColorable_of_inter_card_le'": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.twoColorable_of_inter_card_le'",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "two_colorable"
+      ],
+      "proof_uses": [
+        "two_colorable_local"
+      ]
+    },
+    "twoColorable_of_le_card_inter_card_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/LocalLemma.lean",
+      "decl": "ProbMethodCombinatorics.twoColorable_of_le_card_inter_card_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "two_colorable"
+      ],
+      "proof_uses": [
+        "twoColorable_of_inter_card_le'"
+      ]
+    },
+    "two_le_ceil_ten_sqrt": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Subdivision.lean",
+      "decl": "ProbMethodCombinatorics.two_le_ceil_ten_sqrt",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "two_mul_choose_two": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ChromaticConcentration.lean",
+      "decl": "ProbMethodCombinatorics.two_mul_choose_two",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "two_mul_choose_two_le_sq_aux": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Containers.lean",
+      "decl": "ProbMethodCombinatorics.two_mul_choose_two_le_sq_aux",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "two_pow_le_weight_mul_exp": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ArithProgressions.lean",
+      "decl": "ProbMethodCombinatorics.two_pow_le_weight_mul_exp",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "two_rpow_mul_two_rpow": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ArithProgressions.lean",
+      "decl": "ProbMethodCombinatorics.two_rpow_mul_two_rpow",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "two_rpow_weight_le_half": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ArithProgressions.lean",
+      "decl": "ProbMethodCombinatorics.two_rpow_weight_le_half",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "uniformColorOn": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Coloring.lean",
+      "decl": "ProbMethodCombinatorics.uniformColorOn",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "uniformColorOn_avoid_toReal": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Coloring.lean",
+      "decl": "ProbMethodCombinatorics.uniformColorOn_avoid_toReal",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "uniformColorOn"
+      ],
+      "proof_uses": []
+    },
+    "uniformColorOn_forall_ne_succ_toReal": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/DirectedCycles.lean",
+      "decl": "ProbMethodCombinatorics.uniformColorOn_forall_ne_succ_toReal",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "uniformColorOn"
+      ],
+      "proof_uses": [
+        "instIsProbabilityMeasureForallUniformColorOn",
+        "measure_pi_inter_eq_mul",
+        "uniformColorOn_avoid_toReal"
+      ]
+    },
+    "uniformColorOn_not_multicolored_toReal_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Coloring.lean",
+      "decl": "ProbMethodCombinatorics.uniformColorOn_not_multicolored_toReal_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "uniformColorOn"
+      ],
+      "proof_uses": [
+        "instIsProbabilityMeasureForallUniformColorOn",
+        "uniformColorOn_avoid_toReal"
+      ]
+    },
+    "uniformColoring_monochromatic_toReal_le'": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ArithProgressions.lean",
+      "decl": "ProbMethodCombinatorics.uniformColoring_monochromatic_toReal_le'",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "uniform_coloring"
+      ],
+      "proof_uses": [
+        "uniform_coloring_const"
+      ]
+    },
+    "uniformColoring_pattern_eq": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Sat.lean",
+      "decl": "ProbMethodCombinatorics.uniformColoring_pattern_eq",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "uniform_coloring"
+      ],
+      "proof_uses": [
+        "fairCoin_singleton",
+        "fairCoin_univ",
+        "fair_coin",
+        "instIsProbabilityMeasureBoolFairCoin"
+      ]
+    },
+    "uniformColoring_violated_eq": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Sat.lean",
+      "decl": "ProbMethodCombinatorics.uniformColoring_violated_eq",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "Clause",
+        "Literal",
+        "uniform_coloring"
+      ],
+      "proof_uses": [
+        "clauseVars",
+        "uniformColoring_pattern_eq"
+      ]
+    },
+    "uniformColoring_violated_toReal": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Sat.lean",
+      "decl": "ProbMethodCombinatorics.uniformColoring_violated_toReal",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "Clause",
+        "Literal",
+        "uniform_coloring"
+      ],
+      "proof_uses": [
+        "uniformColoring_violated_eq"
+      ]
+    },
+    "uniformPerm": {
+      "kind": "definition",
+      "file": "ProbMethodCombinatorics/Derangements.lean",
+      "decl": "ProbMethodCombinatorics.uniformPerm",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "instMeasurableSpacePermFin"
+      ],
+      "proof_uses": []
+    },
+    "uniformPerm_apply_ncard": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/LatinTransversal.lean",
+      "decl": "ProbMethodCombinatorics.uniformPerm_apply_ncard",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "instMeasurableSpacePermFin",
+        "uniformPerm"
+      ],
+      "proof_uses": []
+    },
+    "uniformPerm_containsEntries": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/LatinTransversal.lean",
+      "decl": "ProbMethodCombinatorics.uniformPerm_containsEntries",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsPartialMatching",
+        "containsEntries",
+        "instMeasurableSpacePermFin",
+        "uniformPerm"
+      ],
+      "proof_uses": []
+    },
+    "uniformPerm_derangement_ge": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Derangements.lean",
+      "decl": "ProbMethodCombinatorics.uniformPerm_derangement_ge",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "instMeasurableSpacePermFin",
+        "uniformPerm"
+      ],
+      "proof_uses": [
+        "fixedPointEvent",
+        "instIsProbabilityMeasureUniformPerm",
+        "lopsided_local_lemma",
+        "uniformPerm_fixedPointEvent",
+        "uniformPerm_isNegativeDependencyGraph"
+      ]
+    },
+    "uniformPerm_fixedPointEvent": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Derangements.lean",
+      "decl": "ProbMethodCombinatorics.uniformPerm_fixedPointEvent",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "fixedPointEvent",
+        "instMeasurableSpacePermFin",
+        "uniformPerm"
+      ],
+      "proof_uses": [
+        "card_perm_fixed_mul",
+        "instMeasurableSingletonClassPermFin"
+      ]
+    },
+    "uniformPerm_isNegativeDependencyGraph": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Derangements.lean",
+      "decl": "ProbMethodCombinatorics.uniformPerm_isNegativeDependencyGraph",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsNegativeDependencyGraph",
+        "fixedPointEvent",
+        "instMeasurableSpacePermFin",
+        "uniformPerm"
+      ],
+      "proof_uses": [
+        "instMeasurableSingletonClassPermFin",
+        "mul_card_fixedPoint_le_card_move",
+        "mul_card_perm_fixedPoint"
+      ]
+    },
+    "uniformPerm_negativeDependency_matchings": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/LatinTransversal.lean",
+      "decl": "ProbMethodCombinatorics.uniformPerm_negativeDependency_matchings",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "IsNegativeDependencyGraph",
+        "IsPartialMatching",
+        "VertexDisjoint",
+        "containsEntries",
+        "instMeasurableSpacePermFin",
+        "uniformPerm"
+      ],
+      "proof_uses": [
+        "natCast_div_le_mul_div",
+        "ncard_mul_card_perm_le",
+        "uniformPerm_apply_ncard"
+      ]
+    },
+    "update_eq_of_hammingDist_le_one": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/HammingCube.lean",
+      "decl": "ProbMethodCombinatorics.update_eq_of_hammingDist_le_one",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "update_false_eq_self": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/HammingCube.lean",
+      "decl": "ProbMethodCombinatorics.update_false_eq_self",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": []
+    },
+    "update_false_mem_of_mem": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/HammingCube.lean",
+      "decl": "ProbMethodCombinatorics.update_false_mem_of_mem",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "cubeCompress"
+      ],
+      "proof_uses": [
+        "mem_cubeCompress_true",
+        "update_false_eq_self"
+      ]
+    },
+    "weight_nonneg": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ColourDiscrepancy.lean",
+      "decl": "ProbMethodCombinatorics.weight_nonneg",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
       "proof_uses": []
     }
   }
