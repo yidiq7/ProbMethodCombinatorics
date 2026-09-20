@@ -326,3 +326,36 @@ Corollary worth keeping: **the highest-value golf shape in this corpus is a Math
 re-derived inline**, not internal repetition.  #351 deletes 36 lines that prove
 `Real.cosh_le_exp_half_sq`, which this project already calls elsewhere.  Check candidates against
 Mathlib before checking them against themselves.
+
+## 2026-09-20 — "Mathlib has this lemma" is not the same as "the target file can see it"
+
+#351's brief told the contributor to delete 36 lines proving `Real.cosh_le_exp_half_sq` and call
+Mathlib's instead, and in the same breath said "leave every import untouched".  Those two
+instructions were incompatible: `Concentration.lean` cannot reach
+`Mathlib.Analysis.SpecialFunctions.Trigonometric.Series` through any of its six imports, so the
+call does not elaborate without a new one.  **The contributor added the import and was right to;
+the brief was wrong.**
+
+Two pieces of evidence talked me into it, and neither was worth anything:
+
+- The lemma is *used in this project*, at `Chernoff.lean:90`.  But `Chernoff.lean` imports
+  `Trigonometric.Series` **directly**.  A sibling module's use says nothing about the target's
+  closure.
+- A subagent reported an import-closure BFS confirming it was in scope.  It was not, and I
+  repeated the claim without running the check myself.
+
+This is the same shape as the `private`-unreachability lesson at the top of this file — a name
+that resolves somewhere in the project is assumed to resolve everywhere.  **The tell there was
+visibility; the tell here is the import graph.**
+
+Checking it costs nothing, but note two traps in this repo:
+
+- Mathlib is on the **module system**.  Files open with `module` and `public import`, so a
+  scanner matching `^import ` finds **zero** imports in a 45 KB Mathlib file and will report
+  "not reachable" for everything.  Match `public import` too.
+- Transitivity is not free under that system: follow every import out of the starting file, but
+  only `public import` edges after that, since a plain import is not re-exported.
+
+**When a task brief names a Mathlib lemma, say "add the import if it is not already in scope"**
+rather than forbidding import changes outright.  The blanket "leave imports untouched" belongs in
+a `prove` brief, where the header really is not the contributor's to change.
