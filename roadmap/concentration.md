@@ -219,3 +219,91 @@ simplicial order should be assembled from `Colex` rather than defined from scrat
 standing rule is not to publish a node whose route cannot be supplied.  Publishing 1–4 alone
 would leave four merged lemmas pointing at a theorem nobody can finish — the same shape as
 stating a definition that makes every downstream result true and useless.
+
+## §9.4 scoped properly, 2026-09-20: step 5 is routable, and the plan above names the wrong compression
+
+The plan above was scoped on the overseer's instruction, with the specific question "is step 5
+routable, and at what cost".  **It is — but not for the operation the plan names, and the plan's
+own status claims are stale.**
+
+**The down-compression route is dead, and step 5 is genuinely unfixable on it.**  `cubeCompress`
+is fixed by `A` exactly when `A` is a down-set, and down-sets are not close to initial segments.
+Counted by brute force over every subset of `Qₙ`:
+
+| n | down-sets | of those, not initial segments | of those, **strictly worse than the ball** |
+|---|---|---|---|
+| 2 | 6 | 1 | 0 |
+| 3 | 20 | 11 | 3 |
+| 4 | 168 | 151 | 85 |
+
+The 2-face `{∅, 1, 2, 12} ⊂ Q₃` is a down-set with `|N| = 8` against `7` for the ball of the same
+size.  There is no classification to appeal to, and the bad cases are the generic ones, not a
+residue to mop up.
+
+**Harper's actual proof uses the codimension-1 compression `Cᵢ`**: replace each `i`-section by
+the initial segment of the simplicial order of the same size.  There the characterisation is
+complete — a set fixed by every `Cᵢ` is an initial segment, **or** one explicitly described
+exception per `n`, dispatched by a set inclusion.  Verified by brute force here, independently of
+the source:
+
+- `|N(Cᵢ A)| ≤ |N(A)|` for every `A` and every `i`, `n ≤ 4`.
+- `N(initial segment)` is an initial segment, `n ≤ 6`.
+- For each `n ≤ 4` there is **exactly one** fully-compressed non-initial-segment, and it is
+  Leader's: `{1}`, `{∅, 2}`, `{∅, 1, 2, 12}`, `{∅, 1, 2, 3, 4, 12, 13, 23}`.  Each has
+  `|B| = 2ⁿ⁻¹`, and none beats the initial segment.
+
+Source: Imre Leader, *Extremal Combinatorics* (Cambridge, Michaelmas 2004),
+`https://www.dpmms.cam.ac.uk/~par31/notes/extcomb.pdf`, Theorem 1 / Lemma 2 / Corollary 3; the
+same text appears in his *Intersecting Families* notes (PCMI/IAS, July 2025).  Frankl–Füredi,
+*A short proof for a theorem of Harper about Hamming-spheres*, Discrete Math. 34 (1981) 311–313,
+is the alternative route and the first place to look if this one stalls.
+
+**The slice decomposition does not let you avoid the characterisation.**  A pure slice induction
+reduces Harper to a numerical claim about `νₙ(m) = |N(Iⁿₘ)|` that is tight almost everywhere and
+needs the structure of `νₙ` — which is what the characterisation pays for.  Nor does the weaker
+ball form that §9.4's corollary actually needs close inductively: in the case `a₀ < |B_r|` the
+induction yields only `|N(A)| ≥ a₁ + |B_r|`, and `a₁` can sit barely above `|B_{r-1}|`.  Exact
+Harper is required.
+
+**Mathlib's `Colex`/`KruskalKatona` do not transfer.**  Harper needs weight-then-**lex** with the
+**upper** shadow; Mathlib has colex with the lower shadow.  A colex tie-break makes the theorem
+false — at `n = 4`, `|A| = 8`, lex gives `|N| = 14` and colex `15`.
+
+### What `HammingCube.lean` actually supplies, against the six steps above
+
+| Step | Status |
+|---|---|
+| 1. `nbhd`, `hammingBall`, monotonicity, `\|ball\|` | partial — `cubeNbhd`, `cubeBall`, `cubeNbhd_mono` exist; `cubeBall` has no lemmas at all |
+| 2. slice decomposition | partial — `cubeNbhd_one_slice_superset` is `⊇` only, and only for the last coordinate; the route needs the equality and an arbitrary coordinate |
+| 3. compression | complete, **off-route** — the three `cubeCompress` results are correct but Harper's proof never uses down-compression |
+| 4. termination | untouched |
+| 5. characterisation | untouched |
+| 6. assemble, iterate `t` | untouched |
+| the simplicial order itself | untouched, and the largest missing piece — `cubeCompressAt` cannot be stated without it |
+
+So about one and a half of six steps, with a third built on the wrong operation.  **The earlier
+claim that "what remains is one identified step" was wrong** and the README has been corrected.
+
+### Cost, and the decision that comes first
+
+**18 nodes** as decomposed — the simplicial order and rank, initial segments nested,
+`N(initSeg)` is an initSeg (the hard one), sections respect the order, `cubeCompressAt`,
+compression does not increase `N`, the rank-sum potential, existence of a fully compressed set,
+inversion implies a complementary pair, structure of the exception, the top-coordinate lemma,
+the exception inclusion, Harper at `t = 1`, ball = initial segment, general `t`.  Realistically
+**22–26 tasks, 2–4 of them hard**, once node 6 splits under contact.
+
+**Settle the representation before publishing node 1.**  The file is a leaf — nothing imports it
+— so switching is cheap now and expensive later.  The `lexMinDown` monotonicity that node 6 turns
+on is awkward in `Fin n → Bool` and natural over `Finset (Fin n)`, where `min (x ∆ y) ∈ x`
+characterises the lex order directly; nodes 1, 2, 12 and 14 also shorten there.  Against it:
+`hammingDist` and the existing 270 lines are in `Fin n → Bool`.
+
+One refinement on the textbook: Leader dispatches the odd and even exceptions by separate
+computation, but the inclusion `N(C) ⊆ N(B)` holds in **both** parities for a uniform reason —
+every up-neighbour `w = x₀ ∪ {j}` has the witness `v = w \ {max x₀}`, which needs only
+`max x₀ = n`, true for all `n ≥ 3`.  So the endgame is one inclusion lemma, not two counts.
+`n ≤ 2` is `decide`.
+
+**Still not published.**  Whether to take Harper on at all is the overseer's call, and so is the
+representation.  Nothing here is on the board.

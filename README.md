@@ -43,12 +43,13 @@ rather than proves**:
 | §9.4 isoperimetry | Brunn–Minkowski, Harper, Johnson–Lindenstrauss | no |
 | §9.5–9.6 | Talagrand's inequality — the source says outright "we omit the proof" | no |
 
-For §9.4 the groundwork *is* here: `HammingCube.lean` proves the slice decomposition and both
+For §9.4, `HammingCube.lean` holds the beginnings: the one-step slice decomposition and the
 down-compression lemmas, including `card_cubeNbhd_cubeCompress_le`, which Mathlib does not
 provide — its `UV` and `Down` results bound the *shadow* of a `k`-uniform family, not the
-neighbourhood of an arbitrary subset.  What remains for Harper is one identified step (a set
-fixed by every compression need not be an initial segment of the simplicial order); the plan
-is in [`roadmap/concentration.md`](roadmap/concentration.md).
+neighbourhood of an arbitrary subset.  Harper itself is a separate undertaking of roughly two
+dozen nodes, and it runs on the codimension-1 compression toward initial segments of the
+simplicial order rather than on down-compression; the route, and what the existing file does
+and does not supply, are in [`roadmap/concentration.md`](roadmap/concentration.md).
 
 Never targets, because they are open problems: Question 2.4.1, Conjecture 4.6.2 (Erdős),
 Conjectures 6.5.8 and 6.5.9 (Ryser, Ryser–Brualdi–Stein), Conjecture 11.1.4, Question 1.4.1.
