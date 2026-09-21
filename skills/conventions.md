@@ -211,6 +211,18 @@ you push, re-read every comment in the body you touched and check that
 A comment naming a `have` you deleted, or crediting a Mathlib lemma you stopped calling, is a
 defect even though it compiles — nothing in the gate reads English.
 
+**Carrying a comment means restating the new mathematics, not explaining your choice.**  The
+failure this invites — and it has already happened once — is a comment that defines the new
+proof by contrast with the one it replaced: *"… rather than letting `nlinarith` search"*,
+*"… avoids bounding `log 2` by hand"*, *"one `mul_le_mul`, no search"*.  Each of those names a
+technique **that is not in the file**, so a reader cannot check it against anything, and it is
+development history in the present tense, which the standing rule forbids.  Write what the step
+*does*: *"`1 ≤ log n` because `n ≥ 4 > e`, read off `exp 1 < 2.7182818286`"*.  If the reason you
+chose the method is worth recording, it belongs in the PR description.
+
+And keep a comment's arithmetic true: *"the three quadratic products"* above a list of five is
+a small defect of the same kind.
+
 **The target's own docstring is the exception: you may not edit it, so report it instead.**  A
 golf that drops the technique the docstring advertises leaves that docstring false, and the rule
 above forbids you from fixing it.  **Say so on the issue** — name the claim that went stale and
