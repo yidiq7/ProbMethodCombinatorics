@@ -2191,8 +2191,9 @@ theorem exists_fingerprint_of_dense_pairs (c d : ℝ) (hc : 0 < c) (hd : 0 < d)
   set M : ℝ := max c 1
   set q : ℝ := Real.sqrt d
   have hM0 : (0 : ℝ) < M := lt_of_lt_of_le hc hcM
-  -- The only nonlinear facts the whole proof needs, supplied once as terms; after this every
-  -- arithmetic step is linear in the monomials `M ^ k`, `q`, `dG`, `n` and `F.card`.
+  -- Nonlinear facts about `M`, supplied as terms so that the arithmetic below is linear in the
+  -- monomials `M ^ k`, `q`, `dG`, `n` and `F.card`; the remaining products are supplied inline
+  -- where they are used.
   have hMsq : (1 : ℝ) ≤ M ^ 2 := one_le_pow₀ hM1
   have hMM : M ≤ M ^ 2 := le_self_pow₀ hM1 two_ne_zero
   have hcq : c * q ≤ M * q := mul_le_mul_of_nonneg_right hcM hq.le
