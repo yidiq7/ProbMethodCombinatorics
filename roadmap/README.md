@@ -27,29 +27,34 @@ group file has a "planned, not stated" section saying which and why.
 | [`expectation`](expectation.md) | 2 | **all proved** | some of §2 |
 | [`alterations`](alterations.md) | 3 | **all proved** | — |
 | [`second-moment`](second-moment.md) | 4 | **all proved** | asymptotics |
-| [`chernoff`](chernoff.md) | 5 | **all proved** | — |
+| [`chernoff`](chernoff.md) | 5 | 1 open (Thm 5.0.5, own file) | — |
 | [`local-lemma`](local-lemma.md) | 6 | **all proved** | — |
 | [`correlation`](correlation.md) | 7 | **all proved** | — |
 | [`janson`](janson.md) | 8 | **all proved** | — |
-| [`concentration`](concentration.md) | 9 | **all proved** | martingales, Talagrand, TSP |
-| [`entropy`](entropy.md) | 10 | **all proved** | Sidorenko, Kahn–Zhao, Steiner |
-| [`containers`](containers.md) | 11 | 2 open | 11.1.3, 11.1.5, supersaturation |
+| [`concentration`](concentration.md) | 9 | 1 open (Thm 9.4.8, own file) | Talagrand, TSP |
+| [`entropy`](entropy.md) | 10 | 1 open (Cor. 10.2.2, own file) | Sidorenko, Steiner |
+| [`containers`](containers.md) | 11 | 1 open | 11.1.3, 11.1.5, supersaturation |
 
-**Ten of the eleven groups have every stated declaration proved.**  All remaining open work is in
-Chapter 11, and the counts in this table are derived from `graph.json` (nodes with
-`statement: formalized`, `proof: planned`), which `sync-graph --check` keeps honest:
+**Four nodes are open, and only one of them is hard.**  Three were stated on 2026-09-21 from a
+re-sweep of the source (#377–#379: Kahn–Lovász, Theorem 5.0.5, Theorem 9.4.8) and are assembly
+or Mathlib-wrapping rather than new mathematics; each sits in its own file, so filling it does
+not re-pin the golf tasks open against `Chernoff.lean`, `Concentration.lean` and `Entropy.lean`.
+The fourth is Chapter 11's held corner.  The counts in this table are derived from `graph.json`
+(nodes with `statement: formalized`, `proof: planned`), which `sync-graph --check` keeps
+honest:
 
 **§11.2 is closed, kernel-verified.**  Theorems 11.2.1 (`exists_containers`) and 11.2.3
 (`exists_containers_fingerprint`) and all three of 11.2.3's obligations depend on nothing but
 `[propext, Classical.choice, Quot.sound]` — Mathlib's standard trio, **no `sorryAx`**.  Checked with
 `#print axioms`, not inferred from the sorry count.
 
-**The whole project is one obligation from `sorry`-free**, and it is deliberately unpublished:
+**Chapter 11 rests on one obligation, and it is deliberately unpublished:**
 
 | Obligation | Task | What rests on it |
 |---|---|---|
-| `exists_container_round` | [#176](https://github.com/yidiq7/ProbMethodCombinatorics/issues/176) | §11.3's run, and through it Theorem 11.3.1 |
 | `exists_containers_fingerprint_three_uniform` | **not published — held** | Theorem 11.3.1, via #172's reduction |
+
+(`exists_container_round`, #176, was the other and is closed.)
 
 It is 11.3.1's fingerprint form, and by its author's own account it carries all of that theorem's
 mathematical content plus an open design question — so it fails the reduction contract's "closable
@@ -110,6 +115,73 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   cases.
 
 ## Log
+
+- **2026-09-21 — the frontier re-derived from the source, not from this file: three nodes published (#377–#379), and §9.4's "blocked" was a scoping error.**
+  With Chapter 11's one corner held and every other stated declaration proved, the board was
+  about to empty, so the remainder was re-swept: all eleven group files against the chapters
+  themselves, every claimed Mathlib gap re-checked at the pinned toolchain, and `#print axioms`
+  run on 36 candidate dependencies rather than trusting the sorry count.
+
+  Published, each in its own file so a task filling it does not re-pin the golf tasks open
+  against `Chernoff.lean`, `Concentration.lean` and `Entropy.lean`:
+
+  | Node | Source | Why it was reachable |
+  |---|---|---|
+  | `perfectMatchingCount_le_prod_factorial` (#377) | Cor. 10.2.2, p. 180 | Both halves proved since #216/#254; only the four-step assembly was missing |
+  | `measure_sum_ge_le_of_mem_Icc` (#378) | Thm 5.0.5, p. 70 | Mathlib's sub-Gaussian API now gives it with the source's exact constant |
+  | `measure_infDist_le_iff_measure_lt_le` (#379) | Thm 9.4.8, p. 143 | Quotes nothing; needs neither isoperimetry nor this project |
+
+  **The §9.4 correction is the one worth keeping.**  `concentration.md` said "every consequence
+  runs through a quoted input", and that was true of every numbered result I had *listed* — but
+  9.4.8 is not a consequence of the isoperimetric inputs at all.  It sits **upstream** of them:
+  it is the statement of what the section's two languages have to do with each other.  I had
+  audited my own list instead of the section.  **When a section is blocked by a quoted input,
+  look for what sits upstream of that input, not only at what survives downstream of it.**
+
+  **Confirmed still blocked, so this is not re-derived a third time**: §2.6 (no planarity,
+  Euler or crossing number in Mathlib), §4.5 (no Mertens — the new `NumberTheory/Chebyshev.lean`
+  has θ, ψ and π asymptotics but no sum of prime reciprocals), §9.5/§9.6 (Talagrand absent and
+  omitted by the source), §4.4 and §8.3.3 and §9.3.3 (the source marks the key step "omitted"),
+  §4.6.6 and §9.4.1/9.4.3/9.4.22 (route through a quoted geometric input), §6.6 Moser–Tardos
+  (needs a model of the resampling process — the chapter's largest item, not a node).
+
+  **Viable, held back with a named reason** — in rough order of readiness:
+  * **Theorem 6.4.1's regular corollary** (p. 90) — a two-step consequence of the proved
+    `exists_directed_cycle_length_dvd`, supplying `d` from `Real.isLittleO_log_id_atTop`.  Easy,
+    and the best warm-up task on the board when one is next wanted.
+  * **Corollary 8.1.7**, the Poisson limit for triangle-freeness at `p = c/n` (p. 118) — squeezes
+    Janson's upper bound against Harris's lower bound, the one place in the corpus where the two
+    pin a probability exactly.  **Held:** the two halves spell "triangle-free" differently
+    (`¬(offDiagPairs T ⊆ edgeSet)` vs `CliqueFree 3`) and the bridging lemma does not exist.  That
+    is a second declaration, so it is orchestrator work to author first.
+  * **Corollary 10.4.6**, Loomis–Whitney in `n` coordinates (p. 192) — a near-clone of
+    `card_sq_le_prod_card_image` with `shearer` for `shearer_triple`.  **Held:** it wants a
+    dependent `∀ i, α i` where the 3-coordinate version has a flat product, and that spelling is
+    a statement-level choice to settle centrally, not in a task.
+  * **§5.2's exactly-equiangular bound** (p. 74, unnumbered) — `#S ≤ n` for unit vectors with all
+    pairwise inner products equal to `α ≥ 0`, by linear independence rather than the source's
+    Gram-matrix route.  **Held:** the source states the `n + 1` form for `α ∈ [-1, 1)`, which the
+    linear-independence argument does not reach; publish the `α ≥ 0` form deliberately or not at
+    all.
+  * **Theorem 1.1.6**, Ramsey via alteration (p. 4) — §1.1 gives three successively better
+    bounds and this project has the first and third (`lt_ramseyNumber`,
+    `lt_ramseyNumber_of_local_lemma`) and not the middle.  **It appears in no roadmap file, in
+    either direction**, which is the more useful finding: the group files track what the source
+    defers, and they do not track what the source proves and nobody noticed.
+  * **Theorem 10.3.3 (Blakey–Roy)** — `entropy.md` calls §10.3 blocked on hom counts and graphons;
+    that is wrong for 10.3.3, whose conclusion is `hom(P₄, G) · n² ≥ (2 e(G))³`, entirely in ℕ and
+    expressible with walk counts.  **Held for a real reason:** the entropy proof needs
+    `H(Z | X, Y) = H(Z | Y)`, and `Entropy.lean` has no conditional-independence lemma at all.
+    So the honest package is three nodes, not one.
+  * **Theorem 1.3.3** (`m(k) = O(k² 2ᵏ)`, p. 11) — would sandwich §1.4 against the proved
+    `not_isKChoosable_completeBipartiteGraph`.  **Held:** needs convexity of `a ↦ Nat.choose a k`,
+    which I could not find in Mathlib; scope that before publishing.
+
+  **`local-lemma.md`'s "§6.5's Latin transversal application — assessed, not yet stated" is
+  stale**: `LatinTransversal.lean` has `exists_latin_transversal`, Setup 6.5.4 and Theorem 6.5.5.
+  Same decay pattern the 2026-09-17 entry recorded, and the same cheap fix — grep the corpus
+  before trusting a status line in this file.
+
 
 - **2026-09-21 — the golf annealing pass, round two: five merged (#363–#367), 428 lines net removed, every one still axiom-clean.**
   `exists_conflictFree_of_card_le` 186→135, `exists_independent_transversal` 218→162,

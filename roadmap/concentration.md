@@ -120,8 +120,22 @@ Note the contrast with §7.2, checked the same day.  There the *headline* result
 out of reach (Theorem 7.2.5 quoted, Proposition 7.2.6 sketched with a Laplace-method constant),
 but the source's Harris remark alongside them **was** reachable once restated for
 `binomialRandom` instead of the Gaussian surrogate — it is now
-`prod_le_binomialRandom_forall_ncard_neighborSet_le`.  §9.4 has no analogous salvageable
-remark: every consequence runs through a quoted input.
+`prod_le_binomialRandom_forall_ncard_neighborSet_le`.
+
+**§9.4 has the same salvageable remark, and this file said it did not.**  The sentence that
+stood here — "every consequence runs through a quoted input" — was wrong about **Theorem
+9.4.8**, the equivalence of the geometric and functional formulations of concentration of
+measure.  It quotes nothing, uses no isoperimetry, needs no input from this project, and its
+proof is two substitutions: `A ↦ {f ≤ m}` one way, `f ↦ Metric.infDist · A` with median `0`
+the other.  It is stated as `measure_infDist_le_iff_measure_lt_le` in
+`ConcentrationEquivalence.lean` and published as #379.
+
+The error was a scoping one rather than a factual one: every *numbered consequence I had
+listed* runs through a quoted input, and I checked the list rather than the section.  9.4.8 is
+not a consequence of the isoperimetric inputs — it is the definition-level statement that says
+what the section's two languages have to do with each other, and it sits **before** them in the
+dependency order.  **When a section is blocked by a quoted input, check whether anything in it
+sits upstream of that input** rather than downstream.
 
 
 ## §9.5 and §9.6 re-derived 2026-09-18: blocked twice over

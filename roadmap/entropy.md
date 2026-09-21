@@ -122,6 +122,18 @@ remarks in the notes and are not stated.
   corollary becomes a statement about a permanent, which the proved `permanent_le_prod_factorial`
   bounds.  Verified exhaustively over all graphs on `n ≤ 5`: 1098/1098.
 
+  **The assembly node was never published, and that was the gap.**  Both halves landed (#216,
+  #254) and this entry recorded them, but nothing named the four-step chain that turns them into
+  the corollary.  Stated 2026-09-21 as `perfectMatchingCount_le_prod_factorial` in
+  `KahnLovasz.lean` and published as #377.  It is on `Fin n` because
+  `perfectMatchingCount_doubleCover` is, and the two have to meet.
+
+  Checked again before stating, against the exponent rather than the reduction: the bound is
+  `3.3019` against `3` for `K₄`, `17.681` against `15` for `K₆`, and **exactly tight** for `K₂`,
+  `C₄` and `K_{3,3}`.  Tightness on regular bipartite graphs is Kahn–Lovász's extremal case, so
+  it is the check that the `1 / (2 d_v)` exponent is the right one and not off by the factor of
+  two that the square root introduces.
+
   The second half, `pm(G)² ≤ pm(doubleCover G)`, is **stated as #254 since 2026-09-17**, having
   been held as verified-but-unstated for exactly as long as I had no route for it.
 

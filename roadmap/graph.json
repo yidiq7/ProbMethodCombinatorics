@@ -6799,7 +6799,7 @@
         "isDependencyGraph_monochromatic",
         "is_dependency_graph",
         "lll_general",
-        "uniformColoring_monochromatic_toReal_le'",
+        "uniformColoring_monochromatic_toReal_le",
         "uniform_coloring"
       ]
     },
@@ -9031,6 +9031,38 @@
       "proof": "formalized",
       "uses": [],
       "proof_uses": []
+    },
+    "measure_infDist_le_iff_measure_lt_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ConcentrationEquivalence.lean",
+      "decl": "ProbMethodCombinatorics.measure_infDist_le_iff_measure_lt_le",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": [],
+      "parent": "concentration"
+    },
+    "measure_sum_ge_le_of_mem_Icc": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Hoeffding.lean",
+      "decl": "ProbMethodCombinatorics.measure_sum_ge_le_of_mem_Icc",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": [],
+      "parent": "chernoff"
+    },
+    "perfectMatchingCount_le_prod_factorial": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/KahnLovasz.lean",
+      "decl": "ProbMethodCombinatorics.perfectMatchingCount_le_prod_factorial",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [
+        "perfectMatchingCount"
+      ],
+      "proof_uses": [],
+      "parent": "entropy"
     }
   }
 }
