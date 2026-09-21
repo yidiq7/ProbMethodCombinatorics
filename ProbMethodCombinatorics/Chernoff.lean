@@ -767,4 +767,33 @@ theorem card_branchNonAdj_add_le_of_isKSubdivision {V : Type*} [Fintype V] [Deci
 
 end Subdivision
 
+/-- **The exactly-equiangular bound** (Zhao, §5.2, the Gram-matrix paragraph before Theorem
+5.2.1; unnumbered in the source): unit vectors in `ℝ^n` whose pairwise inner products are all
+equal to a fixed `α ∈ [0, 1)` number at most `n`.
+
+This is the contrast that gives `exists_nearly_equiangular` its point.  Requiring the inner
+products to be *exactly* `α` caps the family at `n`; allowing them to sit within `β` of `α`
+admits exponentially many.
+
+**Stated for `0 ≤ α < 1`, deliberately, and not in the source's `n + 1` form.**  Zhao states the
+bound for `α ∈ [-1, 1)` with answer `n + 1`, splitting on `α = -1/(m-1)`.  The route here is
+linear independence — for unit vectors with pairwise inner product `α`,
+
+    ‖∑ c_v v‖² = (1 - α) ∑ c_v² + α (∑ c_v)²
+
+and for `0 ≤ α < 1` both terms are nonnegative, so the sum vanishes only when every `c_v` is
+zero — and that argument reaches only `α ≥ 0` and only `n`.  The negative-`α` case needs the
+extra rank argument the source gives and is **not** stated here.  `α ≥ 0` is the regime
+`exists_nearly_equiangular` uses, so this is the half that earns its place.
+
+`α < 1` is necessary: at `α = 1` every vector is equal and the family can be a single repeated
+direction of any size, but `S` is a `Finset` so that collapses — the real content is that the
+identity above degenerates. -/
+theorem card_le_of_forall_inner_eq {n : ℕ} {α : ℝ} (hα0 : 0 ≤ α) (hα1 : α < 1)
+    (S : Finset (EuclideanSpace ℝ (Fin n)))
+    (hunit : ∀ v ∈ S, ‖v‖ = 1)
+    (hinner : ∀ v ∈ S, ∀ w ∈ S, v ≠ w → inner ℝ v w = α) :
+    S.card ≤ n := by
+  sorry
+
 end ProbMethodCombinatorics
