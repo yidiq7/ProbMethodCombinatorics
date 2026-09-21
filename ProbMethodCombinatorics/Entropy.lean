@@ -2865,147 +2865,89 @@ private theorem indepSetCount_logb_half_le [DecidableEq V] (H : SimpleGraph V)
       ≤ (#(univ.filter fun v => side v = true) : ℝ)
           * Real.logb 2 ((2 ^ (d + 1) - 1 : ℕ) : ℝ) := by
   obtain ⟨r, hrinj, hrlt⟩ := exists_rank_side_lt side
-  set P : Finset (Finset V) := univ.filter (fun S : Finset V => ∀ x ∈ S, ∀ y ∈ S, ¬ H.Adj x y)
-    with hPdef
-  set A : Finset V := univ.filter (fun v => side v = false) with hAdef
-  set B : Finset V := univ.filter (fun v => side v = true) with hBdef
-  set nb : V → Finset V := fun v => univ.filter (fun u => H.Adj v u) with hnbdef
-  set D : V → Finset V := fun j => (nb j).filter (fun u => side u = false) with hDdef
-  set X : V → Finset V → Bool := fun v S => decide (v ∈ S) with hXdef
-  set p : Finset V → ℝ := uniformPMF P with hpdef
-  have hPne : P.Nonempty := ⟨∅, by simp [hPdef]⟩
-  have hp : ∀ ω, 0 ≤ p ω := by rw [hpdef]; exact uniformPMF_nonneg P
-  have hp1 : ∑ ω, p ω = 1 := by rw [hpdef]; exact sum_uniformPMF hPne
-  have hPmem : ∀ ω : Finset V, p ω ≠ 0 → ω ∈ P := by
-    intro ω hω
-    by_contra h
-    simp [hpdef, uniformPMF, h] at hω
-  have hPprop : ∀ ω ∈ P, ∀ x ∈ ω, ∀ y ∈ ω, ¬ H.Adj x y := by
-    intro ω hω
-    rw [hPdef, Finset.mem_filter] at hω
-    exact hω.2
-  have hXinj : Function.Injective (fun (S : Finset V) (v : V) => X v S) := by
-    intro S T hST
-    ext v
-    have h := congrFun hST v
-    rw [hXdef] at h
-    simpa using h
-  have hent : entropy p (fun ω i => X i ω) = Real.logb 2 (indepSetCount H : ℝ) := by
-    rw [hpdef, entropy_uniformPMF_of_injOn hPne hXinj.injOn, hPdef, card_filter_indep_eq]
-  have hnbcard : ∀ v, #(nb v) = d := by
-    intro v
-    rw [hnbdef]
-    rw [← Fintype.card_subtype (fun u => H.Adj v u), ← Nat.card_eq_fintype_card]
-    exact hreg v
-  have hsideB : ∀ b ∈ B, side b = true := by
-    intro b hb; rw [hBdef, Finset.mem_filter] at hb; exact hb.2
-  have hsideA : ∀ a ∈ A, side a = false := by
-    intro a ha; rw [hAdef, Finset.mem_filter] at ha; exact ha.2
-  have hDsubA : ∀ j, D j ⊆ A := by
-    intro j u hu
-    rw [hDdef, Finset.mem_filter] at hu
-    rw [hAdef, Finset.mem_filter]
-    exact ⟨Finset.mem_univ u, hu.2⟩
-  have hDadj : ∀ j : V, ∀ u ∈ D j, H.Adj j u := by
-    intro j u hu
-    rw [hDdef, Finset.mem_filter, hnbdef, Finset.mem_filter] at hu
-    exact hu.1.2
-  have hDb : ∀ b ∈ B, D b = nb b := by
+  let P : Finset (Finset V) := univ.filter (fun S : Finset V => ∀ x ∈ S, ∀ y ∈ S, ¬ H.Adj x y)
+  let A : Finset V := univ.filter (fun v => side v = false)
+  let B : Finset V := univ.filter (fun v => side v = true)
+  let D : V → Finset V := fun j => univ.filter (fun u => H.Adj j u ∧ side u = false)
+  let X : V → Finset V → Bool := fun v S => decide (v ∈ S)
+  let p : Finset V → ℝ := uniformPMF P
+  have hPne : P.Nonempty :=
+    ⟨∅, Finset.mem_filter.2 ⟨Finset.mem_univ _, fun _ h => absurd h (Finset.notMem_empty _)⟩⟩
+  have hp : ∀ ω, 0 ≤ p ω := uniformPMF_nonneg P
+  have hp1 : ∑ ω, p ω = 1 := sum_uniformPMF hPne
+  have hPmem : ∀ ω : Finset V, p ω ≠ 0 → ω ∈ P := fun ω hω =>
+    not_not.1 fun h => hω (by simp only [p, uniformPMF, if_neg h])
+  have hPprop : ∀ ω ∈ P, ∀ x ∈ ω, ∀ y ∈ ω, ¬ H.Adj x y := fun ω hω =>
+    (Finset.mem_filter.1 hω).2
+  have hXinj : Function.Injective (fun (S : Finset V) (v : V) => X v S) := fun S T hST =>
+    Finset.ext fun v => decide_eq_decide.1 (congrFun hST v)
+  have hent : entropy p (fun ω i => X i ω) = Real.logb 2 (indepSetCount H : ℝ) :=
+    (entropy_uniformPMF_of_injOn hPne hXinj.injOn).trans
+      (congrArg (Real.logb 2) (Nat.cast_inj.2 (card_filter_indep_eq H)))
+  have hnbcard : ∀ v : V, #(univ.filter fun u => H.Adj v u) = d := fun v => by
+    rw [← Fintype.card_subtype (fun u => H.Adj v u), ← Nat.card_eq_fintype_card]; exact hreg v
+  -- Membership in `A`, `B` and `D j`, unfolded once and for all.
+  have hmemA : ∀ v, v ∈ A ↔ side v = false := Finset.mem_filter_univ
+  have hmemB : ∀ v, v ∈ B ↔ side v = true := Finset.mem_filter_univ
+  have hmemD : ∀ j u, u ∈ D j ↔ H.Adj j u ∧ side u = false := fun _ => Finset.mem_filter_univ
+  have hDsubA : ∀ j, D j ⊆ A := fun j u hu => (hmemA u).2 ((hmemD j u).1 hu).2
+  have hDadj : ∀ j : V, ∀ u ∈ D j, H.Adj j u := fun j u hu => ((hmemD j u).1 hu).1
+  -- Every edge crosses the cut, so a neighbour of a `side`-`true` vertex is `side`-`false`;
+  -- hence for `b ∈ B` the `side` clause in `D b` is automatic and `D b` is all of `N(b)`.
+  have hfalse : ∀ j u, side j = true → H.Adj j u → side u = false := fun j u hj hju =>
+    Bool.not_eq_true _ ▸ fun h => hcross j u hju (hj.trans h.symm)
+  have hDcard : ∀ b ∈ B, #(D b) = d := by
     intro b hb
-    rw [hDdef]
-    refine Finset.filter_true_of_mem fun u hu => ?_
-    rw [hnbdef, Finset.mem_filter] at hu
-    have hne := hcross b u hu.2
-    rw [hsideB b hb] at hne
-    cases hu' : side u with
-    | false => rfl
-    | true => exact absurd hu'.symm hne
+    simp only [D]
+    rw [Finset.filter_congr fun u _ => and_iff_left_of_imp (hfalse b u ((hmemB b).1 hb))]
+    exact hnbcard b
   have hDempty : ∀ j, j ∉ B → D j = ∅ := by
     intro j hj
-    have hjf : side j = false := by
-      rw [hBdef, Finset.mem_filter] at hj
-      simp only [Finset.mem_univ, true_and] at hj
-      cases hj' : side j with
-      | false => rfl
-      | true => exact absurd hj' hj
+    have hjf : side j = false := Bool.not_eq_true _ ▸ fun h => hj ((hmemB j).2 h)
     refine Finset.eq_empty_of_forall_notMem fun u hu => ?_
-    rw [hDdef, Finset.mem_filter, hnbdef, Finset.mem_filter] at hu
-    have hne := hcross j u hu.1.2
-    rw [hjf, hu.2] at hne
-    exact hne rfl
+    have h := (hmemD j u).1 hu
+    exact hcross j u h.1 (hjf.trans h.2.symm)
   have hcover : ∀ i ∈ A, d ≤ #(univ.filter fun j : V => i ∈ D j) := by
     intro i hi
-    have he : (univ.filter fun j : V => i ∈ D j) = nb i := by
+    have he : (univ.filter fun j : V => i ∈ D j) = univ.filter fun u => H.Adj i u := by
       ext j
-      rw [Finset.mem_filter, hDdef]
-      simp only [Finset.mem_filter, Finset.mem_univ, true_and, hnbdef, hsideA i hi, and_true]
-      exact ⟨fun h => h.symm, fun h => h.symm⟩
+      simp only [Finset.mem_filter_univ, hmemD, and_iff_left ((hmemA i).1 hi)]
+      exact H.adj_comm j i
     rw [he, hnbcard i]
   have hDr : ∀ j ∈ univ \ A, D j ⊆ univ.filter fun x => r x < r j := by
     intro j hj u hu
-    rw [Finset.mem_sdiff, hAdef, Finset.mem_filter] at hj
-    have hjt : side j = true := by
-      cases hj' : side j with
-      | false => exact absurd ⟨Finset.mem_univ j, hj'⟩ hj.2
-      | true => rfl
-    rw [Finset.mem_filter]
-    exact ⟨Finset.mem_univ u, hrlt u j (hsideA u (hDsubA j hu)) hjt⟩
+    have hjt : side j = true :=
+      Bool.not_eq_false _ ▸ fun h => (Finset.mem_sdiff.1 hj).2 ((hmemA j).2 h)
+    exact (Finset.mem_filter_univ u).2 (hrlt u j ((hmemD j u).1 hu).2 hjt)
   have hAr : ∀ v ∈ A, (univ.filter fun x => r x < r v) = A.filter fun x => r x < r v := by
     intro v hv
     ext x
     simp only [Finset.mem_filter, Finset.mem_univ, true_and]
-    refine ⟨fun h => ⟨?_, h⟩, fun h => h.2⟩
-    rw [hAdef, Finset.mem_filter]
-    refine ⟨Finset.mem_univ x, ?_⟩
-    cases hx : side x with
-    | false => rfl
-    | true => exact absurd (hrlt v x (hsideA v hv) hx) (by omega)
+    exact ⟨fun h => ⟨(hmemA x).2 (Bool.not_eq_true _ ▸ fun hx =>
+      absurd (hrlt v x ((hmemA v).1 hv) hx) (Nat.lt_asymm h)), h⟩, And.right⟩
   have hABuniv : univ \ A = B := by
     ext v
-    rw [Finset.mem_sdiff, hAdef, hBdef, Finset.mem_filter, Finset.mem_filter]
-    simp only [Finset.mem_univ, true_and]
-    cases hv : side v with
-    | false => simp
-    | true => simp
+    simp only [Finset.mem_sdiff, Finset.mem_univ, true_and, hmemA, hmemB, Bool.not_eq_false]
   have hsh := shearer_subset_le p hp hp1 X A D d hDsubA hcover
-  have hsum1 : ∑ j : V, entropy p (fun ω (u : D j) => X u.1 ω)
-      = ∑ b ∈ B, entropy p (fun ω (u : D b) => X u.1 ω) := by
-    refine (Finset.sum_subset (Finset.subset_univ B) fun j _ hj => ?_).symm
-    rw [hDempty j hj]
-    have hsubsing : Subsingleton (↥(∅ : Finset V) → Bool) :=
-      ⟨fun f g => funext fun a => absurd a.2 (Finset.notMem_empty a.1)⟩
-    exact entropy_eq_zero_of_subsingleton hp1 _
+  have hsum1 := Finset.sum_subset (f := fun j => entropy p (fun ω (u : D j) => X u.1 ω))
+    (Finset.subset_univ B) fun j _ hj => by
+      rw [hDempty j hj]; exact entropy_eq_zero_of_subsingleton hp1 _
   have hchain := entropy_sub_le_sum_cond_rank hp hp1 X A D r hrinj hDr hAr
   rw [hABuniv] at hchain
-  rw [hsum1] at hsh
+  rw [← hsum1] at hsh
   have hlocal : ∀ b ∈ B, entropy p (fun ω (u : D b) => X u.1 ω)
       + (d : ℝ) * condEntropy p (X b) (fun ω (u : D b) => X u.1 ω)
-      ≤ Real.logb 2 ((2 ^ (d + 1) - 1 : ℕ) : ℝ) := by
-    intro b hb
-    refine entropy_add_mul_condEntropy_le hp hp1 (fun ω (u : ↥(D b)) => X u.1 ω) (X b) d ?_ ?_
-    · rw [Fintype.card_coe, hDb b hb, hnbcard b]
-    · intro ω hpω hYω
-      funext u
-      have hωP := hPmem ω hpω
-      have hbω : b ∈ ω := by
-        rw [hXdef] at hYω
-        simpa using hYω
-      have hadj : H.Adj b u.1 := hDadj b u.1 u.2
-      rw [hXdef]
-      simp only [decide_eq_false_iff_not]
-      intro huω
-      exact hPprop ω hωP b hbω u.1 huω hadj
-  have hd0 : (0 : ℝ) ≤ (d : ℝ) := Nat.cast_nonneg d
-  have h3 := mul_le_mul_of_nonneg_left hchain hd0
-  calc (d : ℝ) * Real.logb 2 (indepSetCount H : ℝ)
-      = (d : ℝ) * entropy p (fun ω i => X i ω) := by rw [hent]
-    _ ≤ ∑ b ∈ B, (entropy p (fun ω (u : D b) => X u.1 ω)
-          + (d : ℝ) * condEntropy p (X b) (fun ω (u : D b) => X u.1 ω)) := by
-        rw [Finset.sum_add_distrib, ← Finset.mul_sum]
-        linarith [hsh, h3]
-    _ ≤ ∑ _b ∈ B, Real.logb 2 ((2 ^ (d + 1) - 1 : ℕ) : ℝ) := Finset.sum_le_sum hlocal
-    _ = (#B : ℝ) * Real.logb 2 ((2 ^ (d + 1) - 1 : ℕ) : ℝ) := by
-        rw [Finset.sum_const, nsmul_eq_mul]
+      ≤ Real.logb 2 ((2 ^ (d + 1) - 1 : ℕ) : ℝ) := fun b hb =>
+    entropy_add_mul_condEntropy_le hp hp1 _ _ d (by rw [Fintype.card_coe, hDcard b hb])
+      fun ω hpω hYω => funext fun u => decide_eq_false fun huω =>
+        hPprop ω (hPmem ω hpω) b (of_decide_eq_true hYω) u.1 huω (hDadj b u.1 u.2)
+  have h3 := mul_le_mul_of_nonneg_left hchain (Nat.cast_nonneg d : (0 : ℝ) ≤ d)
+  have hB := Finset.sum_le_sum hlocal
+  rw [Finset.sum_const, nsmul_eq_mul, Finset.sum_add_distrib, ← Finset.mul_sum] at hB
+  have h4 := (add_le_add hsh h3).trans hB
+  rw [← mul_add, add_sub_cancel] at h4
+  rw [← hent]
+  exact h4
 
 /-- `Real.logb 2` reflects `≤` on the positives. -/
 private theorem le_of_logb_two_le {x y : ℝ} (hx : 0 < x) (hy : 0 < y)
