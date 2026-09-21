@@ -111,6 +111,48 @@ edge-count bound the book proves, so the edge-count bound stays a task.
 
 ## Log
 
+- **2026-09-21 — the golf annealing pass, round two: five merged (#363–#367), 428 lines net removed, every one still axiom-clean.**
+  `exists_conflictFree_of_card_le` 186→135, `exists_independent_transversal` 218→162,
+  `janson_lower_tail_step_le` 391→254, `card_lt_of_triangleIntersecting` 208→135,
+  `le_card_of_distinctSubsetSums` 242→130.  `#print axioms` on all five gives
+  `[propext, Classical.choice, Quot.sound]` — checked after merging, not inferred from the gate.
+
+  **The yield came from three shapes, and the ranking is stable enough to put in the task prose.**
+  Largest first: (1) a lemma re-derived inline that already existed — Janson's 40-line binomial
+  weight identity was the file's own `sum_powerset_weight_eq`, LocalLemma's 22-line measure
+  argument was `measure_inter_conull` plus `prob_compl_eq_zero_iff`; (2) one argument spelled out
+  twice, factored into a single in-body `have` — this is where the *structural* wins were, not
+  just the line count; (3) `nlinarith` given an explicit product hint becoming `linarith`, which
+  is strictly faster and more predictable.  Round one's prose named only (1); (2) and (3) are new
+  and are now in #368–#375.
+
+  **My own line-count estimates were badly wrong, in the same direction every time.**  This file
+  had sized `le_card_of_distinctSubsetSums` at "~25 lines" and `card_lt_of_triangleIntersecting`
+  at "~8 safe lines"; they came back at 112 and 73.  The cause is that I estimated *tidying* and
+  the contributors changed *method* — the subset-sums proof dropped `Measure.pi`, `MemLp` and
+  `IndepFun.variance_sum` for one induction over the powerset plus counting-form Chebyshev.
+  **An estimate made by reading a proof prices the proof you can see, not the one that replaces
+  it.**  Stop publishing per-target line estimates; publish the profile (`have` count, automation
+  counts, repeated `have` names) and let the contributor find the method.
+
+- **2026-09-21 — a golf that changes the method silently falsifies the docstring, and no gate check looks.**
+  #365's docstring said "the engine is Mathlib's `meas_ge_le_variance_div_sq` (Chebyshev) with
+  `IndepFun.variance_sum`; the `εᵢ` are a genuine product-Bernoulli family (`Measure.pi`)".  After
+  the golf the proof uses none of the three, and `Mathlib.Probability.Distributions.Bernoulli` and
+  `Mathlib.MeasureTheory.Integral.Pi` had no consumer left in the file.  Fixed in `36b41e1`.
+
+  **The contributor could not have fixed it and should not have tried** — `skills/conventions.md`
+  forbids a golf from touching the docstring, which is the right rule, because a docstring edit is
+  exactly what `statement-immutability` cannot distinguish from a statement edit on a body-less
+  declaration.  So this is structural, not a lapse: **every method-changing golf leaves an
+  orchestrator debt, and it is invisible to the gate.**  `rebuild` is happy, `comparator` is happy
+  — the statement really is kernel-identical — and the prose above it is now false.
+
+  Added to the post-merge routine: on any golf whose diff removes a named Mathlib lemma from the
+  proof, grep the target's docstring for that lemma before recording the merge.  Round two had one
+  such case out of five.
+
+
 - **2026-09-17 — §4.1 is complete as a statement: Proposition 4.1.2's threshold is now both halves.**
   `memLp_triangleCount` proved (the brick #187's review named as next missing — it is what
   `prob_eq_zero_le_variance_div_sq`'s `MemLp X 2` hypothesis needs to make `Var/𝔼²` meaningful),
@@ -1624,24 +1666,25 @@ lines of two-point-measure construction proving a statement Mathlib states verba
 this project already calls at `Chernoff.lean:90`) and `abs_pow_sub_pow_le`.  Both were confirmed
 present in the pinned Mathlib and in scope from the target's file before publishing.
 
-**Skipped, with reasons**, so the list is not re-derived next pass:
+**One target stays skipped, and the reason is invalidation risk rather than low reward:**
 
 - `exists_run_of_container_round` (221) — **has no consumer anywhere in the repo.**  It exists
   to be fed to the `sorry` at `Containers.lean:2548`.  Until that closes, its intermediate shape
-  may still be revised, which would invalidate the golf.  Reward ~20 lines, real invalidation
-  risk.  Revisit only if 2548 ever closes.
-- `janson_lower_tail_step_le` (391) — worst payoff per unit effort in the corpus: ~40 real lines
-  out of 391, inside a 1960-line file where every iteration is an expensive rebuild.
-- `le_card_of_distinctSubsetSums` (242) — ~25 lines, and two calibrated spots a golfer would be
-  tempted to "clean": the `7/8 · n · √k` Chebyshev radius (a deliberate shade inside `2σ`) and
-  the `interval_cases k <;> nlinarith` finish with six hand-picked `sq_nonneg` hints.
-- `exists_independent_transversal` (218) — ~12 lines, against a docstring documenting two tight
-  constants (the strict `<` in `hsize`, the `- 1` in `d = 2mΔ - 1`) that an arithmetic tidy-up
-  can silently break.
-- `card_lt_of_triangleIntersecting` (208) — only ~8 safe lines.  The real win is extracting the
-  intersecting-family bound as a reusable lemma, which is a **refactor, not a golf**.
-- `exists_dense_fingerprint` (284) and `exists_greedy_rule` (182) — most of their duplication
-  needs shared private lemmas, so most of the win is not available to a golf task.
+  may still be revised, which would invalidate the golf.  Revisit only if 2548 ever closes.
+
+**The rest of the skip list was wrong and is deleted.**  It held `janson_lower_tail_step_le`
+("~40 real lines out of 391"), `le_card_of_distinctSubsetSums` ("~25"),
+`exists_independent_transversal` ("~12"), `card_lt_of_triangleIntersecting` ("~8 safe lines")
+and `exists_dense_fingerprint` ("most of the win needs shared private lemmas, so is not
+available to a golf task").  Four were published in round two anyway and returned 137, 112, 56
+and 73 lines; the fifth is #368.  **Every estimate was low, and low by the same mechanism** —
+each priced a tidy-up of the proof as written, and each contributor instead changed the method
+(see the 2026-09-21 log entry).  The two "calibrated spots a golfer would be tempted to clean"
+in the subset-sums entry were a real risk and were correctly left alone by the contributor, so
+that warning belongs in the task prose; the line estimate attached to it did not.
+
+**Do not price a golf target by reading its proof.**  Publish the profile instead — `have`
+count, automation counts, which `have` names recur — and let the contributor find the method.
 
 **Duplication is largely already annealed.**  A 10-significant-line window scan across the whole
 corpus found only 7 cross-declaration duplicate groups, and most are the LocalLemma/Lopsided
@@ -1654,20 +1697,15 @@ Each of these needs a deletion, a visibility change, or a new shared declaration
 `skills/conventions.md` puts outside a `golf` task.  **Do these before the next golf batch, not
 after** — committing to a target file re-pins every open task against it.
 
-1. `uniformColoring_monochromatic_toReal_le` is duplicated verbatim in `ArithProgressions.lean`
-   as `uniformColoring_monochromatic_toReal_le'`, with a docstring admitting it is "a deliberate
-   copy … which module-scoped privacy puts out of reach here".  Promote the `LocalLemma` original
-   and delete the copy.  This is the same `private`-unreachability failure the first lesson in
-   `orchestrator-log.md` records.
-2. `Alterations.lean` 1756–1797 duplicates 1452–1478 (find `j < N` with `t j ≤ w v ≤ t (j+1)`
+1. `Alterations.lean` 1756–1797 duplicates 1452–1478 (find `j < N` with `t j ≤ w v ≤ t (j+1)`
    via `min ⌊y⌋₊ (N-1)`, including the `hcast` sub-block) across `uniformWeights_eq_null` and
    `uniformWeights_heaviest_lightest_le`.  A shared private lemma cuts ~40 and ~25.  #352's brief
    tells its contributor explicitly to leave this alone.
-3. `Entropy.lean` — extract the intersecting-family bound from `card_lt_of_triangleIntersecting`
+2. `Entropy.lean` — extract the intersecting-family bound from `card_lt_of_triangleIntersecting`
    (1331–1370) as `two_mul_card_le_two_pow_of_intersecting`.  Mathlib's `Finset.Intersecting.card_le`
    does **not** apply off the shelf: it is over `univ` in a BooleanAlgebra, while here the ground
    set is `powerset (A S)` and `{X // X ⊆ A S}` carries no BooleanAlgebra instance.
-4. `Containers.lean` — the ord/decode weight encoding at 212–235 inside `exists_greedy_rule` is a
+3. `Containers.lean` — the ord/decode weight encoding at 212–235 inside `exists_greedy_rule` is a
    near-verbatim specialization of `exists_degree_order` (1189–1215).  A generalized private lemma
    serves both (−20 and −27).  Note the doc comments at 1181–1183 and 1361–1367 deliberately
    explain why the graph and hypergraph weights differ: generalize, do not "unify".

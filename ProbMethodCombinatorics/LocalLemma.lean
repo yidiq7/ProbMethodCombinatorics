@@ -467,7 +467,7 @@ variable {α : Type*} [Fintype α] [DecidableEq α]
 /-- A uniform random two-colouring makes a nonempty set `e` monochromatic with probability at
 most `2 ^ (1 - |e|)`: the event is covered by the two constant patterns on `e`, each of
 probability `2 ^ -|e|`. -/
-private theorem uniformColoring_monochromatic_toReal_le (e : Finset α) (he : 1 ≤ e.card) :
+theorem uniformColoring_monochromatic_toReal_le (e : Finset α) (he : 1 ≤ e.card) :
     (uniformColoring α {x : α → Bool | ∀ u ∈ e, ∀ v ∈ e, x u = x v}).toReal
       ≤ 1 / 2 ^ (e.card - 1) := by
   obtain ⟨u₀, hu₀⟩ : e.Nonempty := Finset.card_pos.1 he

@@ -111,41 +111,6 @@ private theorem card_apSet {a d : ℤ} (hd : d ≠ 0) (k : ℕ) : (apSet a d k).
     simpa using h
   exact_mod_cast mul_right_cancel₀ hd h'
 
-/-- A uniform random two-colouring makes a nonempty set `e` monochromatic with probability at
-most `2 ^ (1 - |e|)`.  A deliberate copy of the `private` lemma of the same purpose in
-`LocalLemma`, which module-scoped privacy puts out of reach here. -/
-private theorem uniformColoring_monochromatic_toReal_le' {α : Type*} [Fintype α] [DecidableEq α]
-    (e : Finset α) (he : 1 ≤ e.card) :
-    (uniformColoring α {x : α → Bool | ∀ u ∈ e, ∀ v ∈ e, x u = x v}).toReal
-      ≤ 1 / 2 ^ (e.card - 1) := by
-  obtain ⟨u₀, hu₀⟩ : e.Nonempty := Finset.card_pos.1 he
-  have hsub : {x : α → Bool | ∀ u ∈ e, ∀ v ∈ e, x u = x v}
-      ⊆ {x : α → Bool | ∀ u ∈ e, x u = true} ∪ {x : α → Bool | ∀ u ∈ e, x u = false} := by
-    intro x hx
-    cases hb : x u₀
-    · right; intro u hu; rw [hx u hu u₀ hu₀, hb]
-    · left; intro u hu; rw [hx u hu u₀ hu₀, hb]
-  have hle : uniformColoring α {x : α → Bool | ∀ u ∈ e, ∀ v ∈ e, x u = x v}
-      ≤ 2 * (2 : ENNReal)⁻¹ ^ e.card :=
-    calc uniformColoring α {x : α → Bool | ∀ u ∈ e, ∀ v ∈ e, x u = x v}
-        ≤ uniformColoring α ({x : α → Bool | ∀ u ∈ e, x u = true}
-            ∪ {x : α → Bool | ∀ u ∈ e, x u = false}) := measure_mono hsub
-      _ ≤ uniformColoring α {x : α → Bool | ∀ u ∈ e, x u = true}
-            + uniformColoring α {x : α → Bool | ∀ u ∈ e, x u = false} := measure_union_le _ _
-      _ = 2 * (2 : ENNReal)⁻¹ ^ e.card := by
-          rw [uniformColoring_const _ true, uniformColoring_const _ false]; ring
-  have htop : (2 : ENNReal) * (2 : ENNReal)⁻¹ ^ e.card ≠ ⊤ :=
-    ENNReal.mul_ne_top (by norm_num) (ENNReal.pow_ne_top (by norm_num))
-  have hreal : (uniformColoring α {x : α → Bool | ∀ u ∈ e, ∀ v ∈ e, x u = x v}).toReal
-      ≤ 2 * ((2 : ℝ)⁻¹) ^ e.card := by simpa using ENNReal.toReal_mono htop hle
-  have hsplit : (2 : ℝ) ^ e.card = 2 ^ (e.card - 1) * 2 := by
-    rw [← pow_succ]; congr 1; omega
-  have hval : 2 * ((2 : ℝ)⁻¹) ^ e.card = 1 / 2 ^ (e.card - 1) := by
-    have hpos : (0 : ℝ) < 2 ^ (e.card - 1) := by positivity
-    rw [inv_pow, hsplit]
-    field_simp
-  rwa [hval] at hreal
-
 /-- The monochromatic events of a family of finite sets have the meeting relation as a
 dependency graph. -/
 private theorem isDependencyGraph_monochromatic {γ ι : Type*} [Fintype γ] [DecidableEq γ]
@@ -195,7 +160,7 @@ private theorem exists_coloring_not_monochromatic {γ ι : Type*} [Fintype γ] [
   have hNdep : IsDependencyGraph (uniformColoring γ) A N :=
     isDependencyGraph_monochromatic T A (fun _ _ => Iff.rfl) N (by simp [hNdef])
   have hp : ∀ i, (uniformColoring γ (A i)).toReal ≤ x i * ∏ q ∈ N i, (1 - x q) := fun i =>
-    le_trans (uniformColoring_monochromatic_toReal_le' (T i) (hcard i)) (hbound i)
+    le_trans (uniformColoring_monochromatic_toReal_le (T i) (hcard i)) (hbound i)
   have hpos := lovasz_local_lemma A hAmeas N hNdep x hx₀ hx₁ hp
   have hprodpos : 0 < ∏ i, (1 - x i) :=
     Finset.prod_pos fun i _ => by linarith [hx₁ i]
