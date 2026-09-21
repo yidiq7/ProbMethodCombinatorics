@@ -118,6 +118,53 @@ edge-count bound the book proves, so the edge-count bound stays a task.
 
 ## Log
 
+- **2026-09-21 — the heartbeat pass is finished: nothing in the project is within 2× of the ceiling any more.**
+  Sweep at the end of the batch, `lake env lean -DmaxHeartbeats=L` over all 30 files:
+
+  | ceiling | files over |
+  |---|---|
+  | 190,000 (95% of default) | **0** |
+  | 150,000 | **0** |
+  | 100,000 (50% of default) | **0** |
+  | 50,000 | 6 |
+
+  The two proofs that started the day above 190,000 both came down by ~96%:
+  `exists_sum_shortCycleSupport_card_lt` 191,952 → 12,337 (#390) and
+  `exists_fingerprint_of_dense_pairs` 192,623 → 7,914 (#394).  A third,
+  `exists_bad_card_lt_and_indepNum_le`, went 196,187 → 9,420 (#386) and is what started the
+  investigation.  **Every figure above was measured twice — once by the contributor, once at
+  review — and agreed to better than 0.6%.**
+
+  **One lever produced all three wins:** a bare `nlinarith` searching over products of a large
+  context, replaced by the product it actually needs supplied as a term and `linarith only` over
+  a named list.  In #394 the final step went further and became pure term mode
+  (`h4.trans (mul_le_mul_of_nonneg_right (sub_le_sub_left hle 1) hnR.le)`), leaving no `nlinarith`
+  in the declaration at all.  **Bare `nlinarith` in a large context is this corpus's single
+  biggest elaboration cost**, and it is worth grepping for on sight rather than waiting for a
+  sweep.
+
+  Re-run the sweep after any Mathlib bump: `rebuild` is green at 200,000 right up until it is
+  not, so CI cannot distinguish a proof at 96% of the ceiling from one at 4%.
+
+- **2026-09-21 — two tasks published against `private` targets, and both PRs were unmergeable by construction.**
+  `comparator` does not skip a private target.  `lean4export` is handed the unmangled name, does
+  not find it (Lean stores `_private.<Module>.0.…`), and aborts with exit 2, so `comparator` is
+  red whatever the diff contains.  #388 and #373 both went out this way; #391 and #393 are good,
+  reviewed proofs that could not merge because of it.
+
+  **I had read the rule and still got it wrong.**  `containers.md` said comparator "declines to
+  run" on a private target and I repeated that in #388's own prose as an accepted trade-off.  It
+  does not decline — it crashes, and the person who pays is the contributor.  Knowing a check
+  would be *skipped* is not knowing the job would *fail*; the difference was one run of the thing.
+
+  Fixed by promoting both declarations on `main` — which the project's own rule already required,
+  since *any declaration appearing in a published task's statement is public, however local it
+  looks* — then re-pinning both issues and asking for rebases.  **`scripts/check-target-public.sh`
+  now exists and runs before every `create-task`.**  The cost of getting this wrong is a promotion
+  commit, a re-pin that invalidates open PRs on that file, and a round-trip to a contributor whose
+  work was already correct.
+
+
 - **2026-09-21 — the golf queue was ordered by the wrong number: two proofs were within 5% of failing to compile at all.**
   #386's author reported that `exists_bad_card_lt_and_indepNum_le` elaborated at **196,187 of the
   200,000 default `maxHeartbeats`** — 2% of headroom — and their golf took it to **9,420**, a 95%
