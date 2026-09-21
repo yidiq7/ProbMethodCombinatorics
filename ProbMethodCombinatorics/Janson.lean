@@ -1530,8 +1530,7 @@ theorem janson_lower_tail_step_le [Countable ι] (p : I) (S : κ → Set ι) (D 
   have hq1 : 1 - q = Real.exp (-lam) := by rw [hqdef]; ring
   have hq1pos : (0 : ℝ) < 1 - q := by rw [hq1]; exact Real.exp_pos _
   have hq0 : (0 : ℝ) ≤ q := by
-    have h := Real.exp_le_one_iff.2 (neg_nonpos.2 hlam)
-    rw [hqdef]; linarith
+    rw [hqdef]; linarith [Real.exp_le_one_iff.2 (neg_nonpos.2 hlam)]
   obtain ⟨a, ha⟩ : ∃ a : κ → ℝ,
       ∀ i, a i = (setBernoulli Set.univ p {R : Set ι | S i ⊆ R}).toReal := ⟨_, fun _ => rfl⟩
   obtain ⟨b, hb⟩ : ∃ b : κ → κ → ℝ,
@@ -1549,88 +1548,63 @@ theorem janson_lower_tail_step_le [Countable ι] (p : I) (S : κ → Set ι) (D 
   have hb0 : ∀ i j, 0 ≤ b i j := fun i j => by rw [hb]; exact ENNReal.toReal_nonneg
   have hbs : ∀ i j, b j i = b i j := fun i j => by rw [hb, hb, Set.union_comm]
   have hP0 : ∀ T, 0 ≤ P T := fun T => by rw [hP]; exact ENNReal.toReal_nonneg
-  have hPmono : ∀ T T' : Finset κ, T ⊆ T' → P T' ≤ P T := by
-    intro T T' hsub
+  have hPmono : ∀ T T' : Finset κ, T ⊆ T' → P T' ≤ P T := fun T T' hsub => by
     rw [hP, hP]
-    refine ENNReal.toReal_mono (measure_ne_top _ _) (measure_mono ?_)
-    exact fun R hR j hj => hR j (hsub hj)
+    exact ENNReal.toReal_mono (measure_ne_top _ _) (measure_mono fun R hR j hj => hR j (hsub hj))
   have hW0 : ∀ U T : Finset κ, 0 ≤ W U T := fun U T => by
     rw [hW]; exact mul_nonneg (pow_nonneg hq0 _) (pow_nonneg hq1pos.le _)
   have hΦ0 : ∀ U : Finset κ, 0 ≤ Φ U := fun U => by
     rw [hΦ]; exact Finset.sum_nonneg fun T _ => mul_nonneg (hW0 _ _) (hP0 _)
+  -- Adding a fresh index `j` to `U` splits the weight of `T` according to whether `T` takes it.
+  have hWins : ∀ (U T : Finset κ) (j : κ), j ∉ U → T ⊆ U →
+      W (insert j U) T = (1 - q) * W U T ∧ W (insert j U) (insert j T) = q * W U T := by
+    intro U T j hjU hTU
+    have hjT : j ∉ T := fun h => hjU (hTU h)
+    have hjd : j ∉ U \ T := fun h => hjU (Finset.mem_sdiff.1 h).1
+    refine ⟨?_, ?_⟩
+    · rw [hW, hW, Finset.insert_sdiff_of_notMem _ hjT, Finset.card_insert_of_notMem hjd, pow_succ]
+      ring
+    · rw [hW, hW, Finset.insert_sdiff_insert, Finset.sdiff_insert,
+        Finset.erase_eq_of_notMem hjd, Finset.card_insert_of_notMem hjT, pow_succ]
+      ring
+  -- Splitting the powerset of `insert i U` according to whether `T` takes `i`.
+  have hexpand : ∀ (U : Finset κ) (i : κ), i ∉ U →
+      Φ (insert i U) = ∑ T ∈ U.powerset, W U T * ((1 - q) * P T + q * P (insert i T)) := by
+    intro U i hiU
+    rw [hΦ, Finset.sum_powerset_insert hiU, ← Finset.sum_add_distrib]
+    refine Finset.sum_congr rfl fun T hT => ?_
+    have hc := hWins U T i hiU (Finset.mem_powerset.1 hT)
+    rw [hc.1, hc.2]; ring
   -- `P` is decreasing, so an index surviving the thinning is negatively correlated with it:
   -- pairing each `T` not containing `j` with `insert j T` compares the two sums termwise.
   have hcorr : ∀ (U : Finset κ) (j : κ), j ∈ U →
       ∑ T ∈ U.powerset, W U T * (if j ∈ T then P T else 0) ≤ q * Φ U := by
     intro U j hj
-    obtain ⟨U', hU'⟩ : ∃ U' : Finset κ, U' = U.erase j := ⟨_, rfl⟩
-    have hjU' : j ∉ U' := by rw [hU']; exact Finset.notMem_erase j U
-    have hUeq : insert j U' = U := by rw [hU']; exact Finset.insert_erase hj
-    obtain ⟨V, hV⟩ : ∃ V : Finset κ → ℝ,
-        ∀ T : Finset κ, V T = q ^ T.card * (1 - q) ^ (U' \ T).card := ⟨_, fun _ => rfl⟩
-    have hV0 : ∀ T, 0 ≤ V T := fun T => by
-      rw [hV]; exact mul_nonneg (pow_nonneg hq0 _) (pow_nonneg hq1pos.le _)
-    have hsplit : ∀ f : Finset κ → ℝ,
-        ∑ T ∈ U.powerset, f T = (∑ T ∈ U'.powerset, f T) + ∑ T ∈ U'.powerset, f (insert j T) := by
-      intro f
-      rw [← hUeq]
-      exact Finset.sum_powerset_insert hjU' f
-    have hW1 : ∀ T ∈ U'.powerset, W U T = (1 - q) * V T := by
-      intro T hT
-      have hTsub : T ⊆ U' := Finset.mem_powerset.1 hT
-      have hjT : j ∉ T := fun h => hjU' (hTsub h)
-      have hcard : (U \ T).card = (U' \ T).card + 1 := by
-        rw [← hUeq, Finset.insert_sdiff_of_notMem _ hjT,
-          Finset.card_insert_of_notMem (fun h => hjU' (Finset.mem_sdiff.1 h).1)]
-      rw [hW, hV, hcard, pow_succ]; ring
-    have hW2 : ∀ T ∈ U'.powerset, W U (insert j T) = q * V T := by
-      intro T hT
-      have hTsub : T ⊆ U' := Finset.mem_powerset.1 hT
-      have hjT : j ∉ T := fun h => hjU' (hTsub h)
-      have hset : U \ insert j T = U' \ T := by
-        rw [← hUeq]
-        ext x
-        simp only [Finset.mem_sdiff, Finset.mem_insert]
-        constructor
-        · rintro ⟨hx, hx2⟩
-          refine ⟨hx.resolve_left fun h => hx2 (Or.inl h), fun h => hx2 (Or.inr h)⟩
-        · rintro ⟨hx, hx2⟩
-          exact ⟨Or.inr hx, fun h => h.elim (fun hh => hjU' (hh ▸ hx)) hx2⟩
-      rw [hW, hV, hset, Finset.card_insert_of_notMem hjT, pow_succ]; ring
-    have hL : ∑ T ∈ U.powerset, W U T * (if j ∈ T then P T else 0)
-        = q * ∑ T ∈ U'.powerset, V T * P (insert j T) := by
-      rw [hsplit fun T => W U T * (if j ∈ T then P T else 0)]
-      have h1 : ∀ T ∈ U'.powerset, W U T * (if j ∈ T then P T else 0) = 0 := by
-        intro T hT
-        have : j ∉ T := fun h => hjU' (Finset.mem_powerset.1 hT h)
-        simp [this]
-      rw [Finset.sum_congr rfl h1, Finset.sum_const_zero, zero_add, Finset.mul_sum]
-      refine Finset.sum_congr rfl fun T hT => ?_
-      rw [hW2 T hT]
-      simp [Finset.mem_insert_self j T]
-      ring
-    have hΦeq : Φ U = (1 - q) * (∑ T ∈ U'.powerset, V T * P T)
-        + q * ∑ T ∈ U'.powerset, V T * P (insert j T) := by
-      rw [hΦ, hsplit fun T => W U T * P T, Finset.mul_sum, Finset.mul_sum]
-      refine congrArg₂ (· + ·) (Finset.sum_congr rfl fun T hT => ?_)
-        (Finset.sum_congr rfl fun T hT => ?_)
-      · rw [hW1 T hT]; ring
-      · rw [hW2 T hT]; ring
-    have hkey : ∑ T ∈ U'.powerset, V T * P (insert j T) ≤ ∑ T ∈ U'.powerset, V T * P T :=
-      Finset.sum_le_sum fun T _ =>
-        mul_le_mul_of_nonneg_left (hPmono T (insert j T) (Finset.subset_insert j T)) (hV0 T)
+    obtain ⟨U', hjU', rfl⟩ : ∃ U' : Finset κ, j ∉ U' ∧ insert j U' = U :=
+      ⟨U.erase j, Finset.notMem_erase j U, Finset.insert_erase hj⟩
+    have hw := fun T (hT : T ∈ U'.powerset) => hWins U' T j hjU' (Finset.mem_powerset.1 hT)
+    have hL : ∑ T ∈ (insert j U').powerset, W (insert j U') T * (if j ∈ T then P T else 0)
+        = q * ∑ T ∈ U'.powerset, W U' T * P (insert j T) := by
+      rw [Finset.sum_powerset_insert hjU',
+        Finset.sum_eq_zero (fun T hT => by
+          simp [show j ∉ T from fun h => hjU' (Finset.mem_powerset.1 hT h)]), zero_add,
+        Finset.mul_sum]
+      exact Finset.sum_congr rfl fun T hT => by
+        rw [(hw T hT).2, if_pos (Finset.mem_insert_self j T)]; ring
+    have hΦeq : Φ (insert j U') = (1 - q) * (∑ T ∈ U'.powerset, W U' T * P T)
+        + q * ∑ T ∈ U'.powerset, W U' T * P (insert j T) := by
+      rw [hexpand U' j hjU', Finset.mul_sum, Finset.mul_sum, ← Finset.sum_add_distrib]
+      exact Finset.sum_congr rfl fun T _ => by ring
+    have hkey : ∑ T ∈ U'.powerset, W U' T * P (insert j T) ≤ ∑ T ∈ U'.powerset, W U' T * P T :=
+      Finset.sum_le_sum fun T _ => mul_le_mul_of_nonneg_left
+        (hPmono T _ (Finset.subset_insert j T)) (hW0 U' T)
     rw [hL, hΦeq]
-    nlinarith [mul_nonneg (mul_nonneg hq0 hq1pos.le) (sub_nonneg.2 hkey)]
+    linarith [mul_nonneg (mul_nonneg hq0 hq1pos.le) (sub_nonneg.2 hkey)]
   -- The weighted Boppana–Spencer induction.
   have hΦmain : ∀ U : Finset κ, Φ U ≤ Real.exp (-q * ∑ j ∈ U, a j + q ^ 2 * E U / 2) := by
     intro U
     refine Finset.induction_on U ?_ ?_
-    · have h1 : {R : Set ι | ∀ j ∈ (∅ : Finset κ), ¬ S j ⊆ R} = Set.univ := by simp
-      have hΦe : Φ ∅ = P ∅ := by
-        rw [hΦ, Finset.powerset_empty, Finset.sum_singleton, hW]
-        simp
-      rw [hΦe, hP, h1, hE]
-      simp
+    · rw [hΦ, Finset.powerset_empty, Finset.sum_singleton, hW, hP, hE]; simp
     · intro i U hiU ih
       obtain ⟨K, hK⟩ : ∃ K : Finset κ, K = U.filter fun j => (i, j) ∈ D ∧ (j, i) ∈ D := ⟨_, rfl⟩
       have hKU : K ⊆ U := by rw [hK]; exact Finset.filter_subset _ _
@@ -1641,61 +1615,28 @@ theorem janson_lower_tail_step_le [Countable ι] (p : I) (S : κ → Set ι) (D 
         have hiT : i ∉ T := fun h => hiU (hTU h)
         have hsub : T.filter (fun j => (i, j) ∈ D ∧ (j, i) ∈ D) ⊆ T := Finset.filter_subset _ _
         have hindep : ∀ j ∈ T, j ∉ T.filter (fun j => (i, j) ∈ D ∧ (j, i) ∈ D) →
-            Disjoint (S i) (S j) := by
-          intro j hjT hjn
-          have hij : i ≠ j := by rintro rfl; exact hiT hjT
-          have hnot : ¬ ((i, j) ∈ D ∧ (j, i) ∈ D) := fun h => hjn (Finset.mem_filter.2 ⟨hjT, h⟩)
-          rcases not_and_or.1 hnot with h | h
+            Disjoint (S i) (S j) := fun j hjT hjn => by
+          have hij : i ≠ j := fun h => hiT (h ▸ hjT)
+          rcases not_and_or.1 (fun h => hjn (Finset.mem_filter.2 ⟨hjT, h⟩)) with h | h
           · exact hD i j hij h
           · exact (hD j i hij.symm h).symm
         have hstep := janson_prob_none_step_le p S i T
           (T.filter fun j => (i, j) ∈ D ∧ (j, i) ∈ D) hiT hsub hindep
         have hins : {R : Set ι | ∀ j ∈ insert i T, ¬ S j ⊆ R}
             = {R : Set ι | ¬ S i ⊆ R ∧ ∀ j ∈ T, ¬ S j ⊆ R} := by ext R; simp
-        have hsum : ∑ j ∈ T.filter (fun j => (i, j) ∈ D ∧ (j, i) ∈ D), b i j
-            = ∑ j ∈ T.filter (fun j => (i, j) ∈ D ∧ (j, i) ∈ D),
-                (setBernoulli Set.univ p {R : Set ι | S i ∪ S j ⊆ R}).toReal :=
-          Finset.sum_congr rfl fun j _ => hb i j
         have hfilter : ∑ j ∈ K, (if j ∈ T then b i j else 0)
             = ∑ j ∈ T.filter (fun j => (i, j) ∈ D ∧ (j, i) ∈ D), b i j := by
-          rw [hK, ← Finset.sum_filter]
-          refine Finset.sum_congr ?_ fun _ _ => rfl
-          ext j
-          simp only [Finset.mem_filter]
-          exact ⟨fun h => ⟨h.2, h.1.2⟩, fun h => ⟨⟨hTU h.1, h.2⟩, h.1⟩⟩
-        rw [hfilter, hP, hins, hP, ha, hsum]
-        exact hstep
-      have hexpand : Φ (insert i U)
-          = ∑ T ∈ U.powerset, W U T * ((1 - q) * P T + q * P (insert i T)) := by
-        rw [hΦ, Finset.sum_powerset_insert hiU, ← Finset.sum_add_distrib]
-        refine Finset.sum_congr rfl fun T hT => ?_
-        have hTU : T ⊆ U := Finset.mem_powerset.1 hT
-        have hiT : i ∉ T := fun h => hiU (hTU h)
-        have hc1 : W (insert i U) T = (1 - q) * W U T := by
-          rw [hW, hW, Finset.insert_sdiff_of_notMem _ hiT,
-            Finset.card_insert_of_notMem (fun h => hiU (Finset.mem_sdiff.1 h).1), pow_succ]
-          ring
-        have hc2 : W (insert i U) (insert i T) = q * W U T := by
-          have hset : insert i U \ insert i T = U \ T := by
-            ext x
-            simp only [Finset.mem_sdiff, Finset.mem_insert]
-            constructor
-            · rintro ⟨hx, hx2⟩
-              exact ⟨hx.resolve_left fun h => hx2 (Or.inl h), fun h => hx2 (Or.inr h)⟩
-            · rintro ⟨hx, hx2⟩
-              exact ⟨Or.inr hx, fun h => h.elim (fun hh => hiU (hh ▸ hx)) hx2⟩
-          rw [hW, hW, hset, Finset.card_insert_of_notMem hiT, pow_succ]
-          ring
-        rw [hc1, hc2]; ring
+          rw [hK, ← Finset.sum_filter, Finset.filter_comm, Finset.filter_mem_eq_inter,
+            Finset.inter_eq_right.2 hTU]
+        rw [hfilter, hP, hins, hP, ha]
+        simpa only [hb] using hstep
       have hbound : Φ (insert i U) ≤ (1 - q * a i + q ^ 2 * ∑ j ∈ K, b i j) * Φ U := by
         have h1 : Φ (insert i U)
             ≤ ∑ T ∈ U.powerset, W U T * ((1 - q * a i) * P T
                 + q * ((∑ j ∈ K, (if j ∈ T then b i j else 0)) * P T)) := by
-          rw [hexpand]
-          refine Finset.sum_le_sum fun T hT => ?_
-          refine mul_le_mul_of_nonneg_left ?_ (hW0 U T)
-          have h2 := mul_le_mul_of_nonneg_left (hPstep T hT) hq0
-          nlinarith [h2]
+          rw [hexpand U i hiU]
+          refine Finset.sum_le_sum fun T hT => mul_le_mul_of_nonneg_left ?_ (hW0 U T)
+          linarith [mul_le_mul_of_nonneg_left (hPstep T hT) hq0]
         have hswap : ∑ T ∈ U.powerset, W U T * ((1 - q * a i) * P T
               + q * ((∑ j ∈ K, (if j ∈ T then b i j else 0)) * P T))
             = (1 - q * a i) * Φ U
@@ -1703,48 +1644,30 @@ theorem janson_lower_tail_step_le [Countable ι] (p : I) (S : κ → Set ι) (D 
           have e1 : ∀ T : Finset κ, W U T * ((1 - q * a i) * P T
                 + q * ((∑ j ∈ K, (if j ∈ T then b i j else 0)) * P T))
               = (1 - q * a i) * (W U T * P T)
-                + q * ∑ j ∈ K, (if j ∈ T then b i j else 0) * (W U T * P T) := by
-            intro T
-            rw [← Finset.sum_mul]
-            ring
+                + q * ∑ j ∈ K, (if j ∈ T then b i j else 0) * (W U T * P T) :=
+            fun T => by rw [← Finset.sum_mul]; ring
           rw [Finset.sum_congr rfl (fun T _ => e1 T), Finset.sum_add_distrib, ← Finset.mul_sum,
             ← hΦ, ← Finset.mul_sum, Finset.sum_comm]
           congr 2
           refine Finset.sum_congr rfl fun j _ => ?_
           rw [Finset.mul_sum]
-          refine Finset.sum_congr rfl fun T _ => ?_
-          by_cases h : j ∈ T <;> simp [h]
+          exact Finset.sum_congr rfl fun T _ => by by_cases h : j ∈ T <;> simp [h]
         have h3 : ∑ j ∈ K, b i j * ∑ T ∈ U.powerset, W U T * (if j ∈ T then P T else 0)
             ≤ (∑ j ∈ K, b i j) * (q * Φ U) := by
           rw [Finset.sum_mul]
           exact Finset.sum_le_sum fun j hj =>
             mul_le_mul_of_nonneg_left (hcorr U j (hKU hj)) (hb0 i j)
-        have h4 := mul_le_mul_of_nonneg_left h3 hq0
-        calc Φ (insert i U)
-            ≤ ∑ T ∈ U.powerset, W U T * ((1 - q * a i) * P T
-                + q * ((∑ j ∈ K, (if j ∈ T then b i j else 0)) * P T)) := h1
-          _ = (1 - q * a i) * Φ U
-              + q * ∑ j ∈ K, b i j * ∑ T ∈ U.powerset, W U T * (if j ∈ T then P T else 0) := hswap
-          _ ≤ (1 - q * a i + q ^ 2 * ∑ j ∈ K, b i j) * Φ U := by nlinarith [h4]
+        rw [hswap] at h1
+        linarith [mul_le_mul_of_nonneg_left h3 hq0]
       have hEineq : E U + 2 * ∑ j ∈ K, b i j ≤ E (insert i U) := by
         rw [hK, hE, hE]
         exact sum_filter_insert_le D b hb0 hbs i U hiU
-      calc Φ (insert i U)
-          ≤ (1 - q * a i + q ^ 2 * ∑ j ∈ K, b i j) * Φ U := hbound
-        _ ≤ Real.exp (-q * a i + q ^ 2 * ∑ j ∈ K, b i j) * Φ U := by
-            refine mul_le_mul_of_nonneg_right ?_ (hΦ0 U)
-            have := Real.add_one_le_exp (-q * a i + q ^ 2 * ∑ j ∈ K, b i j)
-            linarith
-        _ ≤ Real.exp (-q * a i + q ^ 2 * ∑ j ∈ K, b i j)
-              * Real.exp (-q * ∑ j ∈ U, a j + q ^ 2 * E U / 2) :=
-            mul_le_mul_of_nonneg_left ih (Real.exp_nonneg _)
-        _ = Real.exp ((-q * a i + q ^ 2 * ∑ j ∈ K, b i j)
-              + (-q * ∑ j ∈ U, a j + q ^ 2 * E U / 2)) := (Real.exp_add _ _).symm
-        _ ≤ Real.exp (-q * ∑ j ∈ insert i U, a j + q ^ 2 * E (insert i U) / 2) := by
-            rw [Finset.sum_insert hiU]
-            refine Real.exp_le_exp.2 ?_
-            have h5 := mul_le_mul_of_nonneg_left hEineq (sq_nonneg q)
-            nlinarith [h5]
+      have hexp1 : 1 - q * a i + q ^ 2 * ∑ j ∈ K, b i j
+          ≤ Real.exp (-q * a i + q ^ 2 * ∑ j ∈ K, b i j) := by
+        linarith [Real.add_one_le_exp (-q * a i + q ^ 2 * ∑ j ∈ K, b i j)]
+      refine hbound.trans ((mul_le_mul hexp1 ih (hΦ0 U) (Real.exp_nonneg _)).trans ?_)
+      rw [← Real.exp_add, Finset.sum_insert hiU]
+      exact Real.exp_le_exp.2 (by linarith [mul_le_mul_of_nonneg_left hEineq (sq_nonneg q)])
   -- Markov's inequality, as a partition rather than an integral: `EV J` is the event that the
   -- sets contained in the random subset are exactly those indexed by `J`, and on it the thinning
   -- misses `J` with probability `(1 - q) ^ #J`, which is at least `exp (-lam * s)` once `#J ≤ s`.
@@ -1755,126 +1678,69 @@ theorem janson_lower_tail_step_le [Countable ι] (p : I) (S : κ → Set ι) (D 
   obtain ⟨F, hF⟩ : ∃ F : Finset (Finset κ),
       F = Finset.univ.filter fun J : Finset κ => (J.card : ℝ) ≤ s := ⟨_, rfl⟩
   have he0 : ∀ J, 0 ≤ e J := fun J => by rw [he]; exact ENNReal.toReal_nonneg
-  have hmemF : ∀ J : Finset κ, J ∈ F ↔ (J.card : ℝ) ≤ s := by
-    intro J; rw [hF]; simp
+  have hmemF : ∀ J : Finset κ, J ∈ F ↔ (J.card : ℝ) ≤ s := fun J => by rw [hF]; simp
   have hmeasSub : ∀ t : Set ι, MeasurableSet {R : Set ι | t ⊆ R} := fun t =>
     measurableSet_setOfPred.2 (Measurable.subset measurable_const measurable_id)
   have hEVmeas : ∀ J : Finset κ, MeasurableSet (EV J) := by
     intro J
-    have heq : EV J = (⋂ j ∈ (J : Set κ), {R : Set ι | S j ⊆ R})
-        ∩ ⋂ j ∈ ((J : Set κ)ᶜ), {R : Set ι | S j ⊆ R}ᶜ := by
-      rw [hEV]
-      ext R
-      simp only [Set.mem_inter_iff, Set.mem_iInter, Set.mem_compl_iff, Finset.mem_coe]
-      constructor
-      · intro h
-        exact ⟨fun j hj => (h j).2 hj, fun j hj hR => hj ((h j).1 hR)⟩
-      · rintro ⟨h1, h2⟩ j
-        exact ⟨fun hR => not_not.1 fun hj => h2 j hj hR, fun hj => h1 j hj⟩
-    rw [heq]
-    exact (MeasurableSet.biInter (Set.to_countable _) fun j _ => hmeasSub (S j)).inter
-      (MeasurableSet.biInter (Set.to_countable _) fun j _ => (hmeasSub (S j)).compl)
-  have hEVdisj : ∀ J J' : Finset κ, J ≠ J' → Disjoint (EV J) (EV J') := by
-    intro J J' hne
-    rw [Set.disjoint_left]
-    intro R hR hR'
-    rw [hEV] at hR hR'
-    exact hne (Finset.ext fun j => (hR j).symm.trans (hR' j))
+    rw [hEV, Set.ofPred_forall]
+    refine MeasurableSet.iInter fun j => ?_
+    by_cases hj : j ∈ J <;> simp only [hj, iff_true, iff_false, ← Set.compl_ofPred]
+    exacts [hmeasSub (S j), (hmeasSub (S j)).compl]
+  have hEVdisj : ∀ J J' : Finset κ, J ≠ J' → Disjoint (EV J) (EV J') := fun J J' hne =>
+    Set.disjoint_left.2 fun R hR hR' => by
+      rw [hEV] at hR hR'; exact hne (Finset.ext fun j => (hR j).symm.trans (hR' j))
   have hsumE : ∀ G : Finset (Finset κ),
-      ∑ J ∈ G, e J = (setBernoulli Set.univ p (⋃ J ∈ G, EV J)).toReal := by
-    intro G
+      ∑ J ∈ G, e J = (setBernoulli Set.univ p (⋃ J ∈ G, EV J)).toReal := fun G => by
     rw [measure_biUnion_finset (fun J _ J' _ hne => hEVdisj J J' hne) fun J _ => hEVmeas J,
       ENNReal.toReal_sum fun J _ => measure_ne_top _ _]
     exact Finset.sum_congr rfl fun J _ => he J
   have hAeq : {R : Set ι | jansonCount S R ≤ s} = ⋃ J ∈ F, EV J := by
     ext R
-    simp only [Set.mem_iUnion, exists_prop]
-    constructor
-    · intro hR
-      refine ⟨Finset.univ.filter fun j => S j ⊆ R, ?_, ?_⟩
-      · rw [hmemF]
-        have hcoe : ({i | S i ⊆ R} : Set κ) = ↑(Finset.univ.filter fun j => S j ⊆ R) := by
-          ext j; simp
-        have h2 : jansonCount S R ≤ s := hR
-        simp only [jansonCount, hcoe, Set.ncard_coe_finset] at h2
-        exact h2
-      · rw [hEV]; intro j; simp
-    · rintro ⟨J, hJ, hRJ⟩
-      rw [hEV] at hRJ
-      have hcoe : ({i | S i ⊆ R} : Set κ) = ↑J := by
-        ext j; simpa using hRJ j
-      show jansonCount S R ≤ s
+    have key : ∀ J : Finset κ, (∀ j, (S j ⊆ R ↔ j ∈ J)) → jansonCount S R = (J.card : ℝ) := by
+      intro J hJ
+      have hcoe : ({i | S i ⊆ R} : Set κ) = ↑J := by ext j; simpa using hJ j
       simp only [jansonCount, hcoe, Set.ncard_coe_finset]
+    simp only [Set.mem_iUnion, exists_prop, hEV, Set.mem_ofPred_eq]
+    refine ⟨fun hR => ⟨Finset.univ.filter fun j => S j ⊆ R, ?_, fun j => by simp⟩, ?_⟩
+    · rw [hmemF, ← key _ fun j => by simp]
+      exact hR
+    · rintro ⟨J, hJ, hRJ⟩
+      rw [key J hRJ]
       exact (hmemF J).1 hJ
-  have hPge : ∀ T : Finset κ, ∑ J ∈ F.filter (fun J => Disjoint J T), e J ≤ P T := by
-    intro T
+  have hPge : ∀ T : Finset κ, ∑ J ∈ F.filter (fun J => Disjoint J T), e J ≤ P T := fun T => by
     rw [hsumE, hP]
-    refine ENNReal.toReal_mono (measure_ne_top _ _) (measure_mono ?_)
-    intro R hR
-    simp only [Set.mem_iUnion, exists_prop] at hR
+    refine ENNReal.toReal_mono (measure_ne_top _ _) (measure_mono fun R hR => ?_)
+    simp only [Set.mem_iUnion, exists_prop, hEV] at hR
     obtain ⟨J, hJ, hRJ⟩ := hR
-    rw [hEV] at hRJ
-    intro j hj hSj
-    exact Finset.disjoint_left.1 (Finset.mem_filter.1 hJ).2 ((hRJ j).1 hSj) hj
-  -- The `K = ∅` case of `sum_powerset_weight_eq`; `∅ ⊆ t` collapses the guard.
-  have hbinom : ∀ u : Finset κ, ∑ t ∈ u.powerset, q ^ t.card * (1 - q) ^ (u \ t).card = 1 := by
-    intro u
-    simpa using sum_powerset_weight_eq q u ∅ (Finset.empty_subset u)
+    exact fun j hj hSj => Finset.disjoint_left.1 (Finset.mem_filter.1 hJ).2 ((hRJ j).1 hSj) hj
+  -- Complementing `T` turns "the thinning avoids `J`" into `sum_powerset_weight_eq` for the
+  -- weight `1 - q`, whose guard `J ⊆ Tᶜ` is exactly disjointness.
   have hWsum : ∀ J : Finset κ,
       ∑ T ∈ (Finset.univ : Finset κ).powerset, (if Disjoint J T then W Finset.univ T else 0)
         = (1 - q) ^ J.card := by
     intro J
-    have hset : ((Finset.univ : Finset κ).powerset.filter fun T => Disjoint J T) = Jᶜ.powerset := by
-      ext T
-      simp only [Finset.mem_filter, Finset.mem_powerset, Finset.subset_univ, true_and]
-      constructor
-      · exact fun h x hx => Finset.mem_compl.2 fun hxJ => Finset.disjoint_left.1 h hxJ hx
-      · exact fun h => Finset.disjoint_left.2 fun x hxJ hxT => Finset.mem_compl.1 (h hxT) hxJ
-    have hcard : ∀ T ∈ Jᶜ.powerset, (Finset.univ \ T).card = (Jᶜ \ T).card + J.card := by
-      intro T hT
-      have hTc : T ⊆ Jᶜ := Finset.mem_powerset.1 hT
-      have hun : Finset.univ \ T = (Jᶜ \ T) ∪ J := by
-        ext x
-        simp only [Finset.mem_sdiff, Finset.mem_union, Finset.mem_univ, Finset.mem_compl, true_and]
-        constructor
-        · intro hx
-          by_cases hxJ : x ∈ J
-          · exact Or.inr hxJ
-          · exact Or.inl ⟨hxJ, hx⟩
-        · rintro (⟨-, h2⟩ | h)
-          · exact h2
-          · exact fun hxT => Finset.mem_compl.1 (hTc hxT) h
-      have hdisj : Disjoint (Jᶜ \ T) J :=
-        Finset.disjoint_left.2 fun x hx => Finset.mem_compl.1 (Finset.mem_sdiff.1 hx).1
-      rw [hun, Finset.card_union_of_disjoint hdisj]
-    rw [← Finset.sum_filter, hset]
-    calc ∑ T ∈ Jᶜ.powerset, W Finset.univ T
-        = ∑ T ∈ Jᶜ.powerset, q ^ T.card * (1 - q) ^ (Jᶜ \ T).card * (1 - q) ^ J.card := by
-          refine Finset.sum_congr rfl fun T hT => ?_
-          rw [hW, hcard T hT, pow_add]; ring
-      _ = (∑ T ∈ Jᶜ.powerset, q ^ T.card * (1 - q) ^ (Jᶜ \ T).card) * (1 - q) ^ J.card :=
-          (Finset.sum_mul _ _ _).symm
-      _ = (1 - q) ^ J.card := by rw [hbinom, one_mul]
+    rw [← sum_powerset_weight_eq (1 - q) Finset.univ J (Finset.subset_univ J),
+      Finset.powerset_univ]
+    refine Fintype.sum_equiv (compl_involutive (α := Finset κ)).toPerm _ _ fun T => ?_
+    simp only [Function.Involutive.coe_toPerm, Finset.subset_compl_iff_disjoint_right,
+      ← Finset.compl_eq_univ_sdiff, compl_compl, sub_sub_cancel, hW]
+    by_cases h : Disjoint J T <;> simp [h, mul_comm]
   have hPart1 : (setBernoulli Set.univ p {R : Set ι | jansonCount S R ≤ s}).toReal
       ≤ Real.exp (lam * s) * Φ Finset.univ := by
-    have hexpJ : ∀ J ∈ F, Real.exp (-(lam * s)) ≤ (1 - q) ^ J.card := by
-      intro J hJ
+    have hexpJ : ∀ J ∈ F, Real.exp (-(lam * s)) ≤ (1 - q) ^ J.card := fun J hJ => by
       rw [hq1, ← Real.exp_nat_mul]
-      refine Real.exp_le_exp.2 ?_
-      have hcard := (hmemF J).1 hJ
-      nlinarith [hlam]
+      exact Real.exp_le_exp.2 (by linarith [mul_le_mul_of_nonneg_right ((hmemF J).1 hJ) hlam])
     have hkey : Real.exp (-(lam * s)) * (∑ J ∈ F, e J) ≤ Φ Finset.univ := by
       calc Real.exp (-(lam * s)) * ∑ J ∈ F, e J
-          = ∑ J ∈ F, e J * Real.exp (-(lam * s)) := by
-            rw [Finset.mul_sum]; exact Finset.sum_congr rfl fun _ _ => mul_comm _ _
+          = ∑ J ∈ F, e J * Real.exp (-(lam * s)) := by rw [mul_comm, Finset.sum_mul]
         _ ≤ ∑ J ∈ F, e J * (1 - q) ^ J.card :=
             Finset.sum_le_sum fun J hJ => mul_le_mul_of_nonneg_left (hexpJ J hJ) (he0 J)
         _ = ∑ J ∈ F, ∑ T ∈ (Finset.univ : Finset κ).powerset,
               (if Disjoint J T then W Finset.univ T * e J else 0) := by
             refine Finset.sum_congr rfl fun J _ => ?_
-            rw [← hWsum J, Finset.mul_sum]
-            refine Finset.sum_congr rfl fun T _ => ?_
-            by_cases h : Disjoint J T <;> simp [h, mul_comm]
+            rw [mul_comm, ← hWsum J, Finset.sum_mul]
+            exact Finset.sum_congr rfl fun T _ => by by_cases h : Disjoint J T <;> simp [h]
         _ = ∑ T ∈ (Finset.univ : Finset κ).powerset, ∑ J ∈ F,
               (if Disjoint J T then W Finset.univ T * e J else 0) := Finset.sum_comm
         _ ≤ ∑ T ∈ (Finset.univ : Finset κ).powerset, W Finset.univ T * P T := by
@@ -1882,8 +1748,7 @@ theorem janson_lower_tail_step_le [Countable ι] (p : I) (S : κ → Set ι) (D 
             have h1 : ∑ J ∈ F, (if Disjoint J T then W Finset.univ T * e J else 0)
                 = W Finset.univ T * ∑ J ∈ F.filter (fun J => Disjoint J T), e J := by
               rw [Finset.sum_filter, Finset.mul_sum]
-              refine Finset.sum_congr rfl fun J _ => ?_
-              by_cases h : Disjoint J T <;> simp [h, mul_comm]
+              exact Finset.sum_congr rfl fun J _ => by by_cases h : Disjoint J T <;> simp [h]
             rw [h1]
             exact mul_le_mul_of_nonneg_left (hPge T) (hW0 _ _)
         _ = Φ Finset.univ := (hΦ _).symm
@@ -1899,13 +1764,11 @@ theorem janson_lower_tail_step_le [Countable ι] (p : I) (S : κ → Set ι) (D 
   calc (setBernoulli Set.univ p {R : Set ι | jansonCount S R ≤ s}).toReal
       ≤ Real.exp (lam * s) * Φ Finset.univ := hPart1
     _ ≤ Real.exp (lam * s) * Real.exp (-q * jansonMu p S + q ^ 2 * jansonDelta p S D / 2) := by
-        refine mul_le_mul_of_nonneg_left ?_ (Real.exp_nonneg _)
-        have hu := hΦmain Finset.univ
-        rwa [h2, h3] at hu
-    _ = Real.exp (lam * s - q * jansonMu p S + q ^ 2 * jansonDelta p S D / 2) := by
-        rw [← Real.exp_add]; congr 1; ring
+        rw [← h2, ← h3]
+        exact mul_le_mul_of_nonneg_left (hΦmain Finset.univ) (Real.exp_nonneg _)
     _ = Real.exp (lam * s - (1 - Real.exp (-lam)) * jansonMu p S
-          + (1 - Real.exp (-lam)) ^ 2 * jansonDelta p S D / 2) := by rw [hqdef]
+          + (1 - Real.exp (-lam)) ^ 2 * jansonDelta p S D / 2) := by
+        rw [← Real.exp_add, ← hqdef]; congr 1; ring
 
 end LowerTail
 
