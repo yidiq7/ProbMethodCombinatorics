@@ -200,6 +200,36 @@ Write comments in final form.  A docstring says what the declaration says — it
 record of how you got there.  Rejected approaches, notes to the reviewer, and commented-out
 tactic blocks do not belong in the file; put them in the PR description instead.
 
+**If you change a proof's method, the comments inside it are yours to bring with it.**  This is
+the most common defect in golf PRs on this project: the proof becomes correct and shorter while
+the prose around it goes on describing the argument that used to be there.  Concretely, before
+you push, re-read every comment in the body you touched and check that
+
+* every lemma or technique a comment names is still used by the proof, and
+* every variable a comment mentions is still a binder in the body.
+
+A comment naming a `have` you deleted, or crediting a Mathlib lemma you stopped calling, is a
+defect even though it compiles — nothing in the gate reads English.
+
+**Carrying a comment means restating the new mathematics, not explaining your choice.**  The
+failure this invites — and it has already happened once — is a comment that defines the new
+proof by contrast with the one it replaced: *"… rather than letting `nlinarith` search"*,
+*"… avoids bounding `log 2` by hand"*, *"one `mul_le_mul`, no search"*.  Each of those names a
+technique **that is not in the file**, so a reader cannot check it against anything, and it is
+development history in the present tense, which the standing rule forbids.  Write what the step
+*does*: *"`1 ≤ log n` because `n ≥ 4 > e`, read off `exp 1 < 2.7182818286`"*.  If the reason you
+chose the method is worth recording, it belongs in the PR description.
+
+And keep a comment's arithmetic true: *"the three quadratic products"* above a list of five is
+a small defect of the same kind.
+
+**The target's own docstring is the exception: you may not edit it, so report it instead.**  A
+golf that drops the technique the docstring advertises leaves that docstring false, and the rule
+above forbids you from fixing it.  **Say so on the issue** — name the claim that went stale and
+what the proof does now.  It is a one-line note and it is the only way the orchestrator finds
+out; this has already happened three times and was caught in review each time rather than
+reported.  The same goes for an import whose last consumer your proof removed.
+
 ## What not to touch
 
 Your PR changes one proof.  Leave every other declaration, import, and docstring alone.
@@ -295,3 +325,61 @@ project open only `Finset MeasureTheory ProbabilityTheory`, and there `n !` fail
 measure.  Neither do the `measureReal` union bounds.  If a task's suggested route tells you
 to establish measurability before applying one of these, the route is wrong and you can skip
 it; measurability of graph events is only needed for `Measure.map_apply` and for integrals.
+
+**`tauto` on a propositional re-association is the most expensive thing in this corpus.**  Three
+`tauto` calls in one proof measured **8,127 + 10,585 + ~10,000 heartbeats — 59% of the whole
+declaration** — and every one of them was closing a goal of the shape
+
+    (j = a ∨ j ∈ W₁) ∨ j ∈ W₂  ↔  j = a ∨ (j ∈ W₁ ∨ j ∈ W₂)      -- `or_assoc`
+    j ∈ W₁ ∨ (j = a ∨ j ∈ W₂)  ↔  j = a ∨ (j ∈ W₁ ∨ j ∈ W₂)      -- `or_left_comm`
+
+Replacing them with `exact or_assoc` / `exact or_left_comm` was **−83.5%** on that declaration.
+**Before reaching for `tauto`, read the goal**: if it is a re-association or commutation of `∧`
+or `∨`, the named lemma (`or_assoc`, `or_comm`, `or_left_comm`, `and_assoc`, `and_left_comm`,
+`or_iff_left`, …) is one term and is orders of magnitude cheaper.  Keep `tauto` for goals that
+genuinely need case analysis.
+
+**But do not go replacing every `tauto` on sight — measured, most of them are cheap.**  After the
+win above I measured the corpus's other `tauto` sites: the two remaining in `LocalLemma.lean` sit
+in declarations costing **3,433** and **16,914** heartbeats in total, so neither can be hiding a
+10k call.  The expensive ones were expensive because of *where* they were — a large hypothesis
+context and a goal `tauto` had to search rather than match.  **The rule is "read the goal", not
+"avoid `tauto`"**, and a blanket substitution pass over the 28 call sites in this project would
+be mostly wasted effort.
+
+**When a proof is slow and the profiler is flat, bisect with `sorry`.**  On the declaration above,
+`set_option profiler true` never surfaced those three `tauto`s as top lines — the cost was spread
+in a way the profiler did not attribute.  Replacing sub-proofs with `sorry` one at a time and
+re-measuring `#count_heartbeats` found them in a handful of compiles.  **A flat profile is not
+evidence that there is no hot spot.**
+
+**`set x := e with hx` is not free; `let x := e` often is.**  `set` abstracts every occurrence of
+`e` in the goal *and* in every hypothesis, and on this project that has measured at roughly 100
+heartbeats per binder — in one proof, six `set`s accounted for 496 of a 4,835-heartbeat total.
+Where you only want a local name and do not need the occurrences abstracted in the goal, `let`
+costs nothing.  Reach for `set` when you genuinely want the rewrite, not as the default way to
+introduce an abbreviation.
+
+**But check `measureReal_*` is in scope before reaching for it — in a file with narrow
+measure-theory imports it will not be.**  `Measure.real` is defined in
+`MeasureTheory/Measure/MeasureSpaceDef.lean`, while the whole `measureReal_*` API lives in
+`MeasureTheory/Measure/Real.lean`, which is further downstream.  **A statement written in
+`μ.real` therefore elaborates in files where nothing can be proved about it**, and the gap
+shows up only when you reach for the first lemma.  This has already cost one task
+(`ConcentrationEquivalence.lean`, whose header has since been fixed).
+
+If you hit it, the two facts you are most likely to want are one line each from the
+`ENNReal`-valued measure, and a `prove` task may **not** add the import to fix it — the header
+is not yours:
+
+    have hmono : ∀ s u : Set Ω, s ⊆ u → μ.real s ≤ μ.real u := fun s u hsu =>
+      ENNReal.toReal_mono (measure_ne_top μ u) (measure_mono hsu)
+    have hcompl : ∀ s : Set Ω, MeasurableSet s → μ.real sᶜ = 1 - μ.real s := by
+      intro s hs
+      simp only [Measure.real, prob_compl_eq_one_sub hs,
+        ENNReal.toReal_sub_of_le prob_le_one ENNReal.one_ne_top, ENNReal.toReal_one]
+
+Note this also takes `gcongr` off the table for those steps, since the `@[gcongr]`-tagged
+lemma is the unreachable one.  **Say so on the issue when it happens** — an unreachable route
+in a task's prose is an orchestrator error and it should be fixed at the source rather than
+worked around silently by each contributor in turn.

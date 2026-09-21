@@ -95,6 +95,19 @@ the remaining `m = n - k`: the frozen block supplies the mean `k/n ≈ α`, the 
 within `β`, and the uniform bound suffices.  Worth remembering — when the source's route needs
 machinery the corpus lacks, moving the source of the bias is often cheaper than building it.
 
+**"This project has only the uniform one" stopped being a statement about Mathlib on
+2026-09-21.**  Mathlib's sub-Gaussian API — `hasSubgaussianMGF_of_mem_Icc_of_integral_eq_zero`
+and `HasSubgaussianMGF.measure_sum_ge_le_of_iIndepFun` in `Probability/Moments/SubGaussian.lean`
+— gives Theorem 5.0.5 for any independent summands bounded in `[-1, 1]`, and with the source's
+exact constant: the per-variable parameter at `[-1, 1]` is `(‖b - a‖₊ / 2) ^ 2 = 1`, so the sum's
+bound `exp(-ε² / (2 ∑ cᵢ))` at `ε = λ√n` is `exp(-λ²/2)` with no slack.  It is stated as
+`measure_sum_ge_le_of_mem_Icc` in `Hoeffding.lean` and published as #378.
+
+PR #68's workaround stays as it is — it is proved, and rewriting a proved node to take the
+source's route buys nothing.  What changes is the *next* node: a contributor reaching for a
+biased Chernoff bound now has one, so the freeze-`k`-coordinates trick should not be copied
+forward by reflex.
+
 ## §5.3 (Hajós): stated
 
 **§5.3, the Hajós conjecture counterexample** (Theorem 5.3.2: whp `G(n, 1/2)` has no

@@ -636,17 +636,10 @@ theorem exists_sum_shortCycleSupport_card_lt (l : ℕ) :
   set M : ℕ := girthEdgeCount n with hMdef
   set N : ℕ := Fintype.card (Sym2 (Fin n)) with hNdef
   have hsmall : 4 * L ^ 2 < (n : ℝ) := by rw [hLdef]; exact hn₂ n hgen2
-  have hlog2 : (1 : ℝ) / 2 ≤ Real.log 2 := by
-    have h := Real.log_le_sub_one_of_pos (show (0 : ℝ) < 1 / 2 by norm_num)
-    rw [show (1 : ℝ) / 2 = (2 : ℝ)⁻¹ by norm_num, Real.log_inv] at h
-    linarith
+  -- `1 ≤ log n` because `n ≥ 4 > e`, read off `exp 1 < 2.7182818286`.
   have hL1 : (1 : ℝ) ≤ L := by
-    have h4 : Real.log 4 = 2 * Real.log 2 := by
-      rw [show (4 : ℝ) = 2 ^ 2 by norm_num, Real.log_pow]; push_cast; ring
-    have hmono := Real.log_le_log (show (0 : ℝ) < 4 by norm_num) hn4
-    rw [h4] at hmono
-    rw [hLdef]
-    linarith
+    rw [hLdef, Real.le_log_iff_exp_le (by linarith only [hn4])]
+    linarith only [Real.exp_one_lt_d9, hn4]
   have hMub : (M : ℝ) < (n : ℝ) * L ^ 2 + 1 := by
     rw [hMdef, girthEdgeCount, ← hLdef]; exact Nat.ceil_lt_add_one (by positivity)
   have hMlb : (n : ℝ) * L ^ 2 ≤ (M : ℝ) := by
@@ -658,22 +651,30 @@ theorem exists_sum_shortCycleSupport_card_lt (l : ℕ) :
     calc 2 * (n + 1).choose 2 = (n + 1).choose 2 * 2 := by ring
       _ = (n + 1) * n := h.symm
       _ = n * (n + 1) := by ring
+  have hn0 : (0 : ℝ) ≤ (n : ℝ) := Nat.cast_nonneg n
+  -- The arithmetic below is linear in the products `n * n`, `n * L ^ 2`, `L ^ 2 * (N - i)`,
+  -- `n * M` and `n² * L²`, so each is named as a hypothesis and the inequalities close by
+  -- `linarith only` over them.
   have hNR : (n : ℝ) ^ 2 ≤ 2 * (N : ℝ) := by
     have hc : (2 : ℝ) * (N : ℝ) = (n : ℝ) * ((n : ℝ) + 1) := by exact_mod_cast hN2
-    nlinarith
-  have hL2 : (1 : ℝ) ≤ L ^ 2 := by nlinarith
-  have hnsq : 4 * (n : ℝ) ≤ (n : ℝ) ^ 2 := by nlinarith
-  have hn16 : (16 : ℝ) ≤ (n : ℝ) ^ 2 := by nlinarith
-  have hnL2 : (n : ℝ) ≤ (n : ℝ) * L ^ 2 := by nlinarith
-  have h4nL : 4 * ((n : ℝ) * L ^ 2) < (n : ℝ) ^ 2 := by nlinarith
+    linarith only [hc, hn0]
+  have hL2 : (1 : ℝ) ≤ L ^ 2 := one_le_pow₀ hL1
+  have hnsq : 4 * (n : ℝ) ≤ (n : ℝ) ^ 2 := by
+    have h := mul_le_mul_of_nonneg_right hn4 hn0
+    linarith only [h]
+  have hn16 : (16 : ℝ) ≤ (n : ℝ) ^ 2 := by linarith only [hnsq, hn4]
+  have hnL2 : (n : ℝ) ≤ (n : ℝ) * L ^ 2 := le_mul_of_one_le_right hn0 hL2
+  have h4nL : 4 * ((n : ℝ) * L ^ 2) < (n : ℝ) ^ 2 := by
+    have h := mul_lt_mul_of_pos_right hsmall (lt_of_lt_of_le (by norm_num) hn4)
+    linarith only [h]
   have hlM : l ≤ M := by
-    have hcast : (l : ℝ) ≤ (M : ℝ) := by linarith
+    have hcast : (l : ℝ) ≤ (M : ℝ) := by linarith only [hlR, hnL2, hMlb]
     exact_mod_cast hcast
   have hlN : l ≤ N := by
-    have hcast : (l : ℝ) ≤ (N : ℝ) := by linarith
+    have hcast : (l : ℝ) ≤ (N : ℝ) := by linarith only [hlR, hnsq, hNR, hn0]
     exact_mod_cast hcast
   have hMN : M ≤ N := by
-    have hcast : (M : ℝ) ≤ (N : ℝ) := by linarith
+    have hcast : (M : ℝ) ≤ (N : ℝ) := by linarith only [hMub, h4nL, hNR, hn16]
     exact_mod_cast hcast
   have hDpos : (0 : ℝ) < ((N.choose M : ℕ) : ℝ) := by exact_mod_cast Nat.choose_pos hMN
   have hterm : ∀ i ∈ Finset.Icc 3 l,
@@ -686,9 +687,9 @@ theorem exists_sum_shortCycleSupport_card_lt (l : ℕ) :
     have hiM : i ≤ M := le_trans hil hlM
     have hilR : (i : ℝ) ≤ (l : ℝ) := by exact_mod_cast hil
     have hiR : (i : ℝ) ≤ (n : ℝ) := le_trans hilR hlR
-    have hNi : (n : ℝ) ^ 2 / 4 ≤ (N : ℝ) - (i : ℝ) := by linarith
-    have hpos : (0 : ℝ) < (N : ℝ) - (i : ℝ) := by nlinarith
-    have ht1 : (1 : ℝ) ≤ 8 * L ^ 2 := by linarith
+    have hNi : (n : ℝ) ^ 2 / 4 ≤ (N : ℝ) - (i : ℝ) := by linarith only [hNR, hiR, hnsq]
+    have hpos : (0 : ℝ) < (N : ℝ) - (i : ℝ) := by linarith only [hNi, hn16]
+    have ht1 : (1 : ℝ) ≤ 8 * L ^ 2 := by linarith only [hL2]
     have hB := choose_mul_pow_le_choose_add_mul_pow (N - i) (M - i) i
     rw [Nat.sub_add_cancel hiN, Nat.sub_add_cancel hiM] at hB
     have hBR : (((N - i).choose (M - i) : ℕ) : ℝ) * ((N : ℝ) - (i : ℝ)) ^ i
@@ -698,11 +699,18 @@ theorem exists_sum_shortCycleSupport_card_lt (l : ℕ) :
           = (((N - i).choose (M - i) * (N - i) ^ i : ℕ) : ℝ) := by push_cast [hc]; ring
         _ ≤ ((N.choose M * M ^ i : ℕ) : ℝ) := by exact_mod_cast hB
         _ = ((N.choose M : ℕ) : ℝ) * (M : ℝ) ^ i := by push_cast; ring
-    have hnM : (n : ℝ) * (M : ℝ) ≤ (8 * L ^ 2) * ((N : ℝ) - (i : ℝ)) := by nlinarith
-    have h3 : (0 : ℝ) ≤ ((N : ℝ) - (i : ℝ)) ^ i := by positivity
+    have hnM : (n : ℝ) * (M : ℝ) ≤ (8 * L ^ 2) * ((N : ℝ) - (i : ℝ)) := by
+      have h1 : (n : ℝ) * (M : ℝ) ≤ (n : ℝ) * ((n : ℝ) * L ^ 2 + 1) :=
+        mul_le_mul_of_nonneg_left hMub.le hn0
+      have h2 : (8 * L ^ 2) * ((n : ℝ) ^ 2 / 4) ≤ (8 * L ^ 2) * ((N : ℝ) - (i : ℝ)) :=
+        mul_le_mul_of_nonneg_left hNi (by linarith only [hL2])
+      have h3 : (n : ℝ) ^ 2 ≤ (n : ℝ) ^ 2 * L ^ 2 := le_mul_of_one_le_right (sq_nonneg _) hL2
+      linarith only [h1, h2, h3, hnsq, hn0]
+    have h3 : (0 : ℝ) ≤ ((N : ℝ) - (i : ℝ)) ^ i := pow_nonneg hpos.le i
     have hstep : ((n : ℝ) * (M : ℝ)) ^ i ≤ (8 * L ^ 2) ^ l * ((N : ℝ) - (i : ℝ)) ^ i := by
       have h1 : ((n : ℝ) * (M : ℝ)) ^ i ≤ (8 * L ^ 2) ^ i * ((N : ℝ) - (i : ℝ)) ^ i := by
-        rw [← mul_pow]; gcongr
+        rw [← mul_pow]
+        exact pow_le_pow_left₀ (mul_nonneg hn0 (Nat.cast_nonneg _)) hnM i
       exact le_trans h1 (mul_le_mul_of_nonneg_right (pow_le_pow_right₀ ht1 hil) h3)
     have hkey : ((i : ℝ) * (n : ℝ) ^ i * (((N - i).choose (M - i) : ℕ) : ℝ))
         * ((N : ℝ) - (i : ℝ)) ^ i
@@ -713,7 +721,8 @@ theorem exists_sum_shortCycleSupport_card_lt (l : ℕ) :
           = (i : ℝ) * (n : ℝ) ^ i
             * ((((N - i).choose (M - i) : ℕ) : ℝ) * ((N : ℝ) - (i : ℝ)) ^ i) := by ring
       rw [hAe]
-      refine le_trans (mul_le_mul_of_nonneg_left hBR (by positivity)) ?_
+      refine le_trans (mul_le_mul_of_nonneg_left hBR
+        (mul_nonneg (Nat.cast_nonneg _) (pow_nonneg hn0 _))) ?_
       have hEq : (i : ℝ) * (n : ℝ) ^ i * (((N.choose M : ℕ) : ℝ) * (M : ℝ) ^ i)
           = ((N.choose M : ℕ) : ℝ) * ((i : ℝ) * ((n : ℝ) * (M : ℝ)) ^ i) := by
         rw [mul_pow]; ring
@@ -722,11 +731,10 @@ theorem exists_sum_shortCycleSupport_card_lt (l : ℕ) :
           = ((N.choose M : ℕ) : ℝ)
             * ((l : ℝ) * ((8 * L ^ 2) ^ l * ((N : ℝ) - (i : ℝ)) ^ i)) := by ring
       rw [hEq, hEq2]
-      refine mul_le_mul_of_nonneg_left ?_ (by positivity)
-      have hpow0 : (0 : ℝ) ≤ ((n : ℝ) * (M : ℝ)) ^ i := by positivity
-      have hlast : (0 : ℝ) ≤ (8 * L ^ 2) ^ l * ((N : ℝ) - (i : ℝ)) ^ i := by positivity
-      have hi0 : (0 : ℝ) ≤ (i : ℝ) := by positivity
-      nlinarith
+      refine mul_le_mul_of_nonneg_left ?_ (Nat.cast_nonneg _)
+      -- `i * X ≤ l * Y` from `i ≤ l`, `X ≤ Y`, `0 ≤ X` and `0 ≤ l`.
+      exact mul_le_mul hilR hstep (pow_nonneg (mul_nonneg hn0 (Nat.cast_nonneg _)) i)
+        (Nat.cast_nonneg _)
     have hfin := le_of_mul_le_mul_right hkey (pow_pos hpos i)
     calc ((i * n ^ i * ((N - i).choose (M - i)) : ℕ) : ℝ)
         = (i : ℝ) * (n : ℝ) ^ i * (((N - i).choose (M - i) : ℕ) : ℝ) := by push_cast; ring
@@ -741,8 +749,10 @@ theorem exists_sum_shortCycleSupport_card_lt (l : ℕ) :
   rw [nsmul_eq_mul] at hsum
   have hcardIcc : (((Finset.Icc 3 l).card : ℕ) : ℝ) ≤ (l : ℝ) := by
     rw [Nat.card_Icc]
-    exact_mod_cast (by omega : l + 1 - 3 ≤ l)
-  have hB0 : (0 : ℝ) ≤ ((N.choose M : ℕ) : ℝ) * ((l : ℝ) * (8 * L ^ 2) ^ l) := by positivity
+    exact Nat.cast_le.2 (by omega)
+  have hB0 : (0 : ℝ) ≤ ((N.choose M : ℕ) : ℝ) * ((l : ℝ) * (8 * L ^ 2) ^ l) :=
+    mul_nonneg (Nat.cast_nonneg _) (mul_nonneg (Nat.cast_nonneg _)
+      (pow_nonneg (mul_nonneg (by norm_num) (sq_nonneg L)) _))
   have htotal : ∑ E ∈ graphFamily n M, ((shortCycleSupport l E).card : ℝ)
       ≤ (l : ℝ) * (((N.choose M : ℕ) : ℝ) * ((l : ℝ) * (8 * L ^ 2) ^ l)) :=
     le_trans hcast (le_trans hsum (mul_le_mul_of_nonneg_right hcardIcc hB0))
@@ -751,7 +761,8 @@ theorem exists_sum_shortCycleSupport_card_lt (l : ℕ) :
   have htl : (8 * L ^ 2) ^ l = 8 ^ l * L ^ (2 * l) := by rw [mul_pow, pow_mul]
   rw [hfam]
   calc 4 * ∑ E ∈ graphFamily n M, ((shortCycleSupport l E).card : ℝ)
-      ≤ 4 * ((l : ℝ) * (((N.choose M : ℕ) : ℝ) * ((l : ℝ) * (8 * L ^ 2) ^ l))) := by linarith
+      ≤ 4 * ((l : ℝ) * (((N.choose M : ℕ) : ℝ) * ((l : ℝ) * (8 * L ^ 2) ^ l))) := by
+        linarith only [htotal]
     _ = ((N.choose M : ℕ) : ℝ) * ((4 * (l : ℝ) ^ 2 * 8 ^ l) * L ^ (2 * l)) := by rw [htl]; ring
     _ < ((N.choose M : ℕ) : ℝ) * (n : ℝ) := mul_lt_mul_of_pos_left hlog hDpos
     _ = (n : ℝ) * ((N.choose M : ℕ) : ℝ) := by ring
@@ -961,35 +972,29 @@ theorem exists_bad_card_lt_and_indepNum_le {ε : ℝ} (hε : 0 < ε) :
   rw [← hMdef]
   -- estimates on the number of edges `M` and the number `T` of unordered pairs
   have hn4R : (4 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn4
-  have hnR1 : (1 : ℝ) ≤ (n : ℝ) := by linarith
-  have hnpos : (0 : ℝ) < (n : ℝ) := by linarith
+  have hnpos : (0 : ℝ) < (n : ℝ) := by linarith only [hn4R]
   have hsmall : 4 * L ^ 2 < (n : ℝ) := by rw [hLdef]; exact hn₂ n hgen2
   have hMub : (M : ℝ) < (n : ℝ) * L ^ 2 + 1 := by
     rw [hMdef, girthEdgeCount, ← hLdef]; exact Nat.ceil_lt_add_one (by positivity)
   have hMlb : (n : ℝ) * L ^ 2 ≤ (M : ℝ) := by
     rw [hMdef, girthEdgeCount, ← hLdef]; exact Nat.le_ceil _
   have hLlb : 8 / δ ≤ L := by
-    have h1 : Real.exp (8 / δ) ≤ (n : ℝ) := le_trans (Nat.le_ceil _) (by exact_mod_cast hgen3)
-    rw [hLdef]
-    exact (Real.le_log_iff_exp_le hnpos).mpr h1
-  have hδL : 8 ≤ δ * L := by rw [div_le_iff₀ hδ] at hLlb; linarith
+    rw [hLdef]; exact (Real.le_log_iff_exp_le hnpos).mpr (Nat.ceil_le.mp hgen3)
+  have hδL : 8 ≤ δ * L := by rw [div_le_iff₀ hδ] at hLlb; linarith only [hLlb]
   have hδn : 4 ≤ δ * (n : ℝ) := by
-    have h1 : 4 / δ ≤ (n : ℝ) := le_trans (Nat.le_ceil _) (by exact_mod_cast hgen4)
-    rw [div_le_iff₀ hδ] at h1; linarith
+    have h1 := Nat.ceil_le.mp hgen4
+    rw [div_le_iff₀ hδ] at h1; linarith only [h1]
   have hT2 : 2 * T = n * (n + 1) := by
     rw [hTdef, Sym2.card, Fintype.card_fin]
     have h := Nat.add_one_mul_choose_eq n 1
     rw [Nat.choose_one_right] at h
-    calc 2 * (n + 1).choose 2 = (n + 1).choose 2 * 2 := by ring
-      _ = (n + 1) * n := h.symm
-      _ = n * (n + 1) := by ring
+    rw [mul_comm, ← h, mul_comm]
   have hT2R : 2 * (T : ℝ) = (n : ℝ) * ((n : ℝ) + 1) := by exact_mod_cast hT2
-  have hTpos : 0 < T := by
-    have h : 0 < n * (n + 1) := by positivity
-    omega
-  have hTposR : (0 : ℝ) < (T : ℝ) := by exact_mod_cast hTpos
+  have hTpos : 0 < T := by have h : 0 < n * (n + 1) := (by positivity); omega
   have hMT : M ≤ T := by
-    have hc : (M : ℝ) ≤ (T : ℝ) := by nlinarith
+    have hc : (M : ℝ) ≤ (T : ℝ) := by
+      linarith only [hMub, hT2R, hn4R, mul_lt_mul_of_pos_left hsmall hnpos,
+        mul_le_mul_of_nonneg_left hn4R hnpos.le]
     exact_mod_cast hc
   -- `x` is the size of the candidate independent sets, `c` a lower bound for the number of
   -- unordered pairs of distinct vertices inside one of them
@@ -999,18 +1004,19 @@ theorem exists_bad_card_lt_and_indepNum_le {ε : ℝ} (hε : 0 < ε) :
     rw [hxdef]; exact Nat.ceil_lt_add_one (by positivity)
   have hxn : x ≤ n := by
     rw [hxdef]
-    exact Nat.ceil_le.mpr (by nlinarith)
+    exact Nat.ceil_le.mpr (mul_le_of_le_one_left hnpos.le hδ1)
   have hx4 : (4 : ℝ) ≤ (x : ℝ) := le_trans hδn hxlb
+  -- past this point only the counting argument is left
+  clear hn hn₂ n₂ hgen2 hgen3 hgen4 hn4 hMdef hLdef hsmall hMub hLlb hδn hxdef
   obtain ⟨A, hA⟩ : ∃ A, A = x * x := ⟨_, rfl⟩
   obtain ⟨P, hP⟩ : ∃ P, P = n * n := ⟨_, rfl⟩
   obtain ⟨c, hcdef⟩ : ∃ c, c = (A - x) / 2 := ⟨_, rfl⟩
   have hAP : A ≤ P := by rw [hA, hP]; exact Nat.mul_le_mul hxn hxn
   have hT2' : 2 * T = P + n := by rw [hP, hT2]; ring
-  have hcT : c ≤ T := by omega
-  have hAc : A ≤ 2 * c + x + 1 := by omega
+  have hcT : c ≤ T := by clear hTdef hT2 hTpos hMT hxn hA hP; omega
+  have hAc : A ≤ 2 * c + x + 1 := by clear hTdef hT2 hTpos hMT hxn hA hP hAP hT2' hcT; omega
   have hAcR : (x : ℝ) * (x : ℝ) ≤ 2 * (c : ℝ) + (x : ℝ) + 1 := by
-    have h : (A : ℝ) ≤ 2 * (c : ℝ) + (x : ℝ) + 1 := by exact_mod_cast hAc
-    rw [hA] at h; push_cast at h; linarith
+    rw [hA] at hAc; exact_mod_cast hAc
   -- `K S` is the set of unordered pairs of distinct vertices of `S`
   obtain ⟨K, hK⟩ : ∃ K : Finset (Fin n) → Finset (Sym2 (Fin n)),
       ∀ S : Finset (Fin n), K S = S.offDiag.image (fun p : Fin n × Fin n => s(p.1, p.2)) :=
@@ -1021,7 +1027,9 @@ theorem exists_bad_card_lt_and_indepNum_le {ε : ℝ} (hε : 0 < ε) :
       rw [hK, ← Finset.offDiag_card]
       exact card_offDiag_le_two_mul_card_image S
     rw [hS, ← hA] at h
-    omega
+    clear hTdef hT2 hTpos hMT hxn hA hP hAP hT2' hAc hK; omega
+  -- only `c ≤ T`, `M ≤ T` and the size of `K S` matter from here on
+  clear hA hP hAP hT2' hcdef hAc hT2 hxn A P
   refine ⟨(Finset.univ.powersetCard x).biUnion
     (fun S => Finset.powersetCard M (Finset.univ \ K S)), ?_, ?_, ?_⟩
   · refine Finset.biUnion_subset.mpr fun S _ => ?_
@@ -1046,19 +1054,20 @@ theorem exists_bad_card_lt_and_indepNum_le {ε : ℝ} (hε : 0 < ε) :
     -- `c M / T` exceeds `n + 1`: the exponent beats the union bound by a wide margin
     have hkey : ((n : ℝ) + 1) * (T : ℝ) < (c : ℝ) * (M : ℝ) := by
       have hM64 : 64 * (n : ℝ) ≤ δ ^ 2 * (M : ℝ) := by
-        have h1 : (64 : ℝ) ≤ (δ * L) ^ 2 := by nlinarith
-        have h3 : δ ^ 2 * ((n : ℝ) * L ^ 2) ≤ δ ^ 2 * (M : ℝ) := by nlinarith [sq_nonneg δ]
-        nlinarith
+        linarith only [mul_le_mul_of_nonneg_left hMlb (sq_nonneg δ), mul_le_mul_of_nonneg_left
+          (mul_self_le_mul_self (by norm_num : (0 : ℝ) ≤ 8) hδL) hnpos.le]
       have hc4 : δ ^ 2 * (n : ℝ) ^ 2 ≤ 4 * (c : ℝ) := by
-        nlinarith [mul_nonneg (sub_nonneg.mpr hx4) (by linarith : (0 : ℝ) ≤ (x : ℝ) + 2)]
+        linarith only [mul_self_le_mul_self (mul_nonneg hδ.le hnpos.le) hxlb,
+          mul_nonneg (sub_nonneg.mpr hx4) (by linarith only [hx4] : (0 : ℝ) ≤ (x : ℝ) + 2), hAcR]
       have hcM : 16 * (n : ℝ) ^ 3 ≤ (c : ℝ) * (M : ℝ) := by
-        have h1 : (δ ^ 2 * (n : ℝ) ^ 2) * (64 * (n : ℝ))
-            ≤ (4 * (c : ℝ)) * (δ ^ 2 * (M : ℝ)) :=
-          mul_le_mul hc4 hM64 (by positivity) (by positivity)
-        nlinarith [sq_nonneg δ, mul_pos hδ hδ]
-      have hT3 : ((n : ℝ) + 1) * (T : ℝ) ≤ 2 * (n : ℝ) ^ 3 := by nlinarith
-      have hn3 : (0 : ℝ) < (n : ℝ) ^ 3 := by positivity
-      linarith
+        refine le_of_mul_le_mul_left ?_ (mul_pos hδ hδ)
+        linarith only [mul_le_mul hc4 hM64 (by positivity) (by positivity)]
+      have hT3 : ((n : ℝ) + 1) * (T : ℝ) ≤ 2 * (n : ℝ) ^ 3 := by
+        linarith only [mul_le_mul_of_nonneg_left hT2R.le (by linarith only [hnpos] :
+            (0 : ℝ) ≤ (n : ℝ) + 1),
+          mul_nonneg (mul_nonneg hnpos.le (by linarith only [hnpos] : (0 : ℝ) ≤ 3 * (n : ℝ) + 1))
+            (by linarith only [hn4R] : (0 : ℝ) ≤ (n : ℝ) - 1)]
+      linarith only [hT3, hcM, (by positivity : (0 : ℝ) < (n : ℝ) ^ 3)]
     rw [hfam]
     exact two_mul_lt_choose_of_le_mul_choose hcT hMT hTpos hkey hBcard
   · -- outside the bad set no `x` vertices are independent
@@ -1099,7 +1108,7 @@ theorem exists_bad_card_lt_and_indepNum_le {ε : ℝ} (hε : 0 < ε) :
           hp.2.2 hadj
     have hltR : ((SimpleGraph.fromEdgeSet (E : Set (Sym2 (Fin n)))).indepNum : ℝ) + 1
         ≤ (x : ℝ) := by exact_mod_cast hlt
-    linarith
+    linarith only [hltR, hxub]
 
 
 /-- The union bound combining the two halves of the random-graph step of Zhao, Theorem 3.4.1:

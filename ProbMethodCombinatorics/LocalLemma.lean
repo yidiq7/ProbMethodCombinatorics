@@ -64,8 +64,9 @@ theorem measure_inter_biInter_compl_le [IsProbabilityMeasure μ]
     (μ (A i ∩ ⋂ j ∈ S, (A j)ᶜ)).toReal ≤ x i * (μ (⋂ j ∈ S, (A j)ᶜ)).toReal := by
   obtain ⟨B, hB⟩ : ∃ B : Finset ι → Set Ω, ∀ W, B W = ⋂ j ∈ W, (A j)ᶜ := ⟨_, fun _ => rfl⟩
   have hBmem : ∀ (W : Finset ι) (ω : Ω), ω ∈ B W ↔ ∀ j ∈ W, ω ∉ A j := by
-    intro W ω; rw [hB]; simp
-  have hBempty : B ∅ = Set.univ := by rw [hB]; simp
+    intro W ω; rw [hB]; simp only [Set.mem_iInter, Set.mem_compl_iff]
+  have hBempty : B ∅ = Set.univ := by
+    rw [hB]; simp only [notMem_empty, Set.iInter_of_empty, Set.iInter_univ]
   have hBcons : ∀ (a : ι) (W : Finset ι) (h : a ∉ W),
       B (Finset.cons a W h) = (A a)ᶜ ∩ B W := by
     intro a W h
@@ -86,13 +87,15 @@ theorem measure_inter_biInter_compl_le [IsProbabilityMeasure μ]
     rw [hset, ← hadd, ENNReal.toReal_add (measure_ne_top μ _) (measure_ne_top μ _),
       Set.inter_comm (B W) (A a)]
     ring
-  have hx1' : ∀ j, (0 : ℝ) ≤ 1 - x j := fun j => by linarith [hx₁ j]
-  have hx1'' : ∀ j, (1 : ℝ) - x j ≤ 1 := fun j => by linarith [hx₀ j]
+  have hx1' : ∀ j, (0 : ℝ) ≤ 1 - x j := fun j => sub_nonneg.2 (hx₁ j).le
+  have hx1'' : ∀ j, (1 : ℝ) - x j ≤ 1 := fun j => sub_le_self 1 (hx₀ j)
   have hsplit : ∀ (k : ι) (W : Finset ι), ∃ (W₁ W₂ : Finset ι) (h : Disjoint W₁ W₂),
       W₁.disjUnion W₂ h = W ∧ (∀ j ∈ W₁, j ∈ N k) ∧ (∀ j ∈ W₂, j ∉ N k) := by
     intro k W
     induction W using Finset.cons_induction with
-    | empty => exact ⟨∅, ∅, by simp, by simp, by simp, by simp⟩
+    | empty => exact ⟨∅, ∅, Finset.disjoint_empty_left ∅, Finset.disjUnion_empty _ _,
+        fun j hj => absurd hj (Finset.notMem_empty j),
+        fun j hj => absurd hj (Finset.notMem_empty j)⟩
     | cons a W ha ih =>
       obtain ⟨W₁, W₂, h, hU, h1, h2⟩ := ih
       have hmem : ∀ j, j ∈ W ↔ j ∈ W₁ ∨ j ∈ W₂ := by
@@ -107,9 +110,9 @@ theorem measure_inter_biInter_compl_le [IsProbabilityMeasure μ]
           · exact ha2
           · exact Finset.disjoint_left.1 h hj
         refine ⟨Finset.cons a W₁ ha1, W₂, hd, ?_, ?_, h2⟩
-        · ext j
-          simp only [Finset.mem_disjUnion, Finset.mem_cons, hmem]
-          tauto
+        · exact Finset.ext fun j => by
+            simp only [Finset.mem_disjUnion, Finset.mem_cons, hmem]
+            exact or_assoc
         · intro j hj
           rcases Finset.mem_cons.1 hj with rfl | hj
           · exact hak
@@ -120,9 +123,9 @@ theorem measure_inter_biInter_compl_le [IsProbabilityMeasure μ]
           simp only [Finset.mem_cons, not_or]
           exact ⟨fun hja => ha1 (hja ▸ hj), Finset.disjoint_left.1 h hj⟩
         refine ⟨W₁, Finset.cons a W₂ ha2, hd, ?_, h1, ?_⟩
-        · ext j
-          simp only [Finset.mem_disjUnion, Finset.mem_cons, hmem]
-          tauto
+        · exact Finset.ext fun j => by
+            simp only [Finset.mem_disjUnion, Finset.mem_cons, hmem]
+            exact or_left_comm
         · intro j hj
           rcases Finset.mem_cons.1 hj with rfl | hj
           · exact hak
@@ -136,10 +139,9 @@ theorem measure_inter_biInter_compl_le [IsProbabilityMeasure μ]
       have hW : W = ∅ := Finset.card_eq_zero.1 (Nat.le_zero.1 hcard)
       subst hW
       rw [hBempty, Set.inter_univ, measure_univ, ENNReal.toReal_one, mul_one]
-      calc (μ (A k)).toReal ≤ x k * ∏ j ∈ N k, (1 - x j) := hbound k
-        _ ≤ x k * 1 := mul_le_mul_of_nonneg_left
-              (Finset.prod_le_one (fun j _ => hx1' j) (fun j _ => hx1'' j)) (hx₀ k)
-        _ = x k := mul_one _
+      exact (hbound k).trans ((mul_le_mul_of_nonneg_left
+        (Finset.prod_le_one (fun j _ => hx1' j) (fun j _ => hx1'' j))
+        (hx₀ k)).trans_eq (mul_one _))
     | succ n ih =>
       have chain : ∀ (T V : Finset ι) (h : Disjoint T V), T.card + V.card ≤ n + 1 →
           (∏ j ∈ T, (1 - x j)) * (μ (B V)).toReal ≤ (μ (B (T.disjUnion V h))).toReal := by
@@ -161,44 +163,32 @@ theorem measure_inter_biInter_compl_le [IsProbabilityMeasure μ]
             rw [Finset.card_disjUnion]; omega
           have heq : (Finset.cons a T' ha).disjUnion V h
               = Finset.cons a (T'.disjUnion V hT'V) haW := by
-            ext j
-            simp only [Finset.mem_disjUnion, Finset.mem_cons]
-            tauto
+            exact Finset.ext fun j => by
+              simp only [Finset.mem_disjUnion, Finset.mem_cons]; exact or_assoc
           have hstep := ih a (T'.disjUnion V hT'V) hcard' haW
           have hrec := ihT V hT'V (by omega)
           rw [heq, hBcompl, Finset.prod_cons]
-          have e1 : (1 - x a) * ((∏ j ∈ T', (1 - x j)) * (μ (B V)).toReal)
-              ≤ (1 - x a) * (μ (B (T'.disjUnion V hT'V))).toReal :=
-            mul_le_mul_of_nonneg_left hrec (hx1' a)
-          linarith [e1, hstep]
+          linarith only [mul_le_mul_of_nonneg_left hrec (hx1' a), hstep]
       intro k W hcard hkW
       obtain ⟨W₁, W₂, hd, hU, h1, h2⟩ := hsplit k W
-      have hsub2 : W₂ ⊆ W := by
-        intro j hj; rw [← hU]; exact Finset.mem_disjUnion.2 (Or.inr hj)
+      have hsub2 : W₂ ⊆ W := fun j hj => hU ▸ Finset.mem_disjUnion.2 (Or.inr hj)
       have hchain := chain W₁ W₂ hd
         (by rw [← Finset.card_disjUnion W₁ W₂ hd, hU]; exact hcard)
       rw [hU] at hchain
-      have hpat : pattern A W₂ (fun _ => false) = B W₂ := by
-        rw [hB]; simp [pattern]
       have hindepeq : μ (A k ∩ B W₂) = μ (A k) * μ (B W₂) := by
-        have := hN k W₂ (fun j hj => ⟨fun hjk => hkW (hjk ▸ hsub2 hj), h2 j hj⟩)
+        rw [hB]
+        exact hN k W₂ (fun j hj => ⟨fun hjk => hkW (hjk ▸ hsub2 hj), h2 j hj⟩)
           (fun _ => false)
-        rwa [hpat] at this
-      have hmono : μ (A k ∩ B W) ≤ μ (A k ∩ B W₂) :=
-        measure_mono (Set.inter_subset_inter (Set.Subset.refl _) (hBmono W₂ W hsub2))
       have key1 : (μ (A k ∩ B W)).toReal ≤ (μ (A k)).toReal * (μ (B W₂)).toReal := by
         rw [← ENNReal.toReal_mul, ← hindepeq]
-        exact ENNReal.toReal_mono (measure_ne_top μ _) hmono
-      have key2 : (μ (A k)).toReal ≤ x k * ∏ j ∈ W₁, (1 - x j) :=
-        (hbound k).trans (mul_le_mul_of_nonneg_left
+        exact ENNReal.toReal_mono (measure_ne_top μ _)
+          (measure_mono (Set.inter_subset_inter subset_rfl (hBmono W₂ W hsub2)))
+      exact key1.trans ((mul_le_mul_of_nonneg_right
+        ((hbound k).trans (mul_le_mul_of_nonneg_left
           (Finset.prod_le_prod_of_subset_of_le_one (fun j hj => h1 j hj)
-            (fun j _ => hx1' j) (fun j _ _ => hx1'' j)) (hx₀ k))
-      calc (μ (A k ∩ B W)).toReal
-          ≤ (μ (A k)).toReal * (μ (B W₂)).toReal := key1
-        _ ≤ (x k * ∏ j ∈ W₁, (1 - x j)) * (μ (B W₂)).toReal :=
-            mul_le_mul_of_nonneg_right key2 ENNReal.toReal_nonneg
-        _ = x k * ((∏ j ∈ W₁, (1 - x j)) * (μ (B W₂)).toReal) := by ring
-        _ ≤ x k * (μ (B W)).toReal := mul_le_mul_of_nonneg_left hchain (hx₀ k)
+            (fun j _ => hx1' j) (fun j _ _ => hx1'' j)) (hx₀ k)))
+        ENNReal.toReal_nonneg).trans_eq (mul_assoc _ _ _) |>.trans
+        (mul_le_mul_of_nonneg_left hchain (hx₀ k)))
   have hfin := main S.card i S le_rfl hi
   simpa only [hB] using hfin
 
@@ -467,7 +457,7 @@ variable {α : Type*} [Fintype α] [DecidableEq α]
 /-- A uniform random two-colouring makes a nonempty set `e` monochromatic with probability at
 most `2 ^ (1 - |e|)`: the event is covered by the two constant patterns on `e`, each of
 probability `2 ^ -|e|`. -/
-private theorem uniformColoring_monochromatic_toReal_le (e : Finset α) (he : 1 ≤ e.card) :
+theorem uniformColoring_monochromatic_toReal_le (e : Finset α) (he : 1 ≤ e.card) :
     (uniformColoring α {x : α → Bool | ∀ u ∈ e, ∀ v ∈ e, x u = x v}).toReal
       ≤ 1 / 2 ^ (e.card - 1) := by
   obtain ⟨u₀, hu₀⟩ : e.Nonempty := Finset.card_pos.1 he

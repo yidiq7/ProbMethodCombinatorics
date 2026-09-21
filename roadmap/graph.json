@@ -828,9 +828,7 @@
       "uses": [
         "is_dependency_graph"
       ],
-      "proof_uses": [
-        "pattern"
-      ]
+      "proof_uses": []
     },
     "lll_general": {
       "kind": "theorem",
@@ -6799,7 +6797,7 @@
         "isDependencyGraph_monochromatic",
         "is_dependency_graph",
         "lll_general",
-        "uniformColoring_monochromatic_toReal_le'",
+        "uniformColoring_monochromatic_toReal_le",
         "uniform_coloring"
       ]
     },
@@ -9031,6 +9029,65 @@
       "proof": "formalized",
       "uses": [],
       "proof_uses": []
+    },
+    "measure_infDist_le_iff_measure_lt_le": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/ConcentrationEquivalence.lean",
+      "decl": "ProbMethodCombinatorics.measure_infDist_le_iff_measure_lt_le",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [],
+      "parent": "concentration"
+    },
+    "measure_sum_ge_le_of_mem_Icc": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Hoeffding.lean",
+      "decl": "ProbMethodCombinatorics.measure_sum_ge_le_of_mem_Icc",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [],
+      "proof_uses": [
+        "hoeffding_lemma_upstream"
+      ],
+      "parent": "chernoff"
+    },
+    "perfectMatchingCount_le_prod_factorial": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/KahnLovasz.lean",
+      "decl": "ProbMethodCombinatorics.perfectMatchingCount_le_prod_factorial",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "perfectMatchingCount"
+      ],
+      "proof_uses": [
+        "bregman_minc",
+        "doubleCover",
+        "perfectMatchingCount_doubleCover",
+        "perfectMatchingCount_sq_le_doubleCover",
+        "permSupport",
+        "permanent_eq_card_permSupport",
+        "permanent_upstream"
+      ],
+      "parent": "entropy"
+    },
+    "lt_ramseyNumber_of_alteration": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Ramsey.lean",
+      "decl": "ProbMethodCombinatorics.lt_ramseyNumber_of_alteration",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "ramsey_number"
+      ],
+      "proof_uses": [
+        "is_monochromatic",
+        "ramsey_finite",
+        "ramsey_property",
+        "ramsey_property_mono"
+      ],
+      "parent": "introduction"
     }
   }
 }

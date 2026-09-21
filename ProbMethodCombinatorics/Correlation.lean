@@ -1190,12 +1190,18 @@ theorem prob_notMem_le_pow_of_isUpperSet {ι : Type*} [Countable ι] (F : Set (S
     (setBernoulli Set.univ p Fᶜ).toReal ≤ (setBernoulli Set.univ q Fᶜ).toReal ^ m := by
   classical
   -- `r` is the density of the union of `m` independent copies of `Ω_q`.
-  have hq0 : (0 : ℝ) ≤ 1 - (q : ℝ) := by have := unitInterval.le_one q; linarith
-  have hq1 : (1 : ℝ) - (q : ℝ) ≤ 1 := by have := unitInterval.nonneg q; linarith
-  have hpow0 : (0 : ℝ) ≤ (1 - (q : ℝ)) ^ m := pow_nonneg hq0 m
-  have hpow1 : (1 - (q : ℝ)) ^ m ≤ 1 := pow_le_one₀ hq0 hq1
-  obtain ⟨r, hrcoe⟩ : ∃ r : I, (r : ℝ) = 1 - (1 - (q : ℝ)) ^ m :=
-    ⟨⟨1 - (1 - (q : ℝ)) ^ m, by constructor <;> linarith⟩, rfl⟩
+  obtain ⟨r, hrcoe⟩ : ∃ r : I, (r : ℝ) = 1 - (1 - (q : ℝ)) ^ m := by
+    have hq0 : (0 : ℝ) ≤ 1 - (q : ℝ) := by have := unitInterval.le_one q; linarith
+    have hpow0 : (0 : ℝ) ≤ (1 - (q : ℝ)) ^ m := pow_nonneg hq0 m
+    have hpow1 : (1 - (q : ℝ)) ^ m ≤ 1 :=
+      pow_le_one₀ hq0 (by have := unitInterval.nonneg q; linarith)
+    exact ⟨⟨1 - (1 - (q : ℝ)) ^ m, by constructor <;> linarith⟩, rfl⟩
+  -- On a full index set, `setBernoulli` is the pushforward of a product of Bernoullis.
+  have hbaseI : ∀ {κ : Type u_2} (t : I), setBernoulli (Set.univ : Set κ) t
+      = Measure.map (fun x : κ → Prop => {i | x i})
+        (Measure.infinitePi fun _ : κ =>
+          toNNReal t • Measure.dirac True + toNNReal (σ t) • Measure.dirac False) := by
+    intro κ t; rw [setBernoulli_eq_map]; simp
   -- The transport lemma: reading the `m` fibres of a `q`-random subset of `ι × Fin m` through a
   -- map `g` produces the product over `ι` of the law of `g`.
   have transport : ∀ g : (Fin m → Prop) → Prop, Measurable g → ∀ ρ : Measure Prop,
@@ -1205,22 +1211,16 @@ theorem prob_notMem_le_pow_of_isUpperSet {ι : Type*} [Countable ι] (F : Set (S
           (setBernoulli Set.univ q)
         = Measure.map (fun x : ι → Prop => {i | x i}) (Measure.infinitePi fun _ : ι => ρ) := by
     intro g hg ρ hρ
-    have hbase : setBernoulli (Set.univ : Set (ι × Fin m)) q
-        = Measure.map (fun x : ι × Fin m → Prop => {i | x i})
-          (Measure.infinitePi fun _ : ι × Fin m =>
-            toNNReal q • Measure.dirac True + toNNReal (σ q) • Measure.dirac False) := by
-      rw [setBernoulli_eq_map]; simp
     have hΦ : Measurable (fun S : Set (ι × Fin m) => {i : ι | g fun j => (i, j) ∈ S}) :=
       measurable_set_iff.2 fun i =>
         hg.comp (measurable_pi_lambda _ fun j => measurable_set_mem (i, j))
     have hlam : Measurable (fun (y : ι → (Fin m → Prop)) (i : ι) => g (y i)) :=
       measurable_pi_lambda _ fun i => hg.comp (measurable_pi_apply i)
-    rw [hbase, Measure.map_map hΦ measurable_setOfPred]
+    rw [hbaseI q, Measure.map_map hΦ measurable_setOfPred]
     have hcomp : ((fun S : Set (ι × Fin m) => {i : ι | g fun j => (i, j) ∈ S}) ∘
         (fun x : ι × Fin m → Prop => {i | x i}))
         = (fun x : ι → Prop => {i | x i}) ∘ ((fun (y : ι → (Fin m → Prop)) (i : ι) => g (y i)) ∘
-          (MeasurableEquiv.curry ι (Fin m) Prop)) := by
-      funext x; rfl
+          (MeasurableEquiv.curry ι (Fin m) Prop)) := funext fun _ => rfl
     rw [hcomp, ← Measure.map_map measurable_setOfPred
         (hlam.comp (MeasurableEquiv.curry ι (Fin m) Prop).measurable),
       ← Measure.map_map hlam (MeasurableEquiv.curry ι (Fin m) Prop).measurable,
@@ -1228,60 +1228,39 @@ theorem prob_notMem_le_pow_of_isUpperSet {ι : Type*} [Countable ι] (F : Set (S
         toNNReal q • Measure.dirac True + toNNReal (σ q) • Measure.dirac False),
       Measure.infinitePi_map_pi _ (fun _ => hg), hρ]
   -- The law of "some fibre is kept" is Bernoulli with parameter `r`.
-  have hgU : Measurable (fun y : Fin m → Prop => ∃ j, y j) := by
-    refine measurableSet_setOfPred.1 ?_
-    have h : {y : Fin m → Prop | ∃ j, y j} = ⋃ j, {y : Fin m → Prop | y j} := by ext y; simp
-    rw [h]
+  have hgU : Measurable (fun y : Fin m → Prop => ∃ j, y j) := measurableSet_setOfPred.1 <| by
+    rw [show {y : Fin m → Prop | ∃ j, y j} = ⋃ j, {y : Fin m → Prop | y j} by ext y; simp]
     exact MeasurableSet.iUnion fun j => measurableSet_setOfPred.2 (measurable_pi_apply j)
   have hstep3 : Measure.map (fun y : Fin m → Prop => ∃ j, y j)
       (Measure.infinitePi fun _ : Fin m =>
         toNNReal q • Measure.dirac True + toNNReal (σ q) • Measure.dirac False)
       = toNNReal r • Measure.dirac True + toNNReal (σ r) • Measure.dirac False := by
+    set M := Measure.map (fun y : Fin m → Prop => ∃ j, y j)
+      (Measure.infinitePi fun _ : Fin m =>
+        toNNReal q • Measure.dirac True + toNNReal (σ q) • Measure.dirac False) with hM
     have hsigma : (toNNReal (σ r) : ℝ≥0∞) = (toNNReal (σ q) : ℝ≥0∞) ^ m := by
-      rw [← ENNReal.coe_pow]
-      congr 1
-      refine NNReal.coe_injective ?_
-      push_cast
-      simp only [coe_toNNReal]
-      rw [coe_symm_eq, coe_symm_eq, hrcoe]
-      ring
-    have hfalse : Measure.map (fun y : Fin m → Prop => ∃ j, y j)
-        (Measure.infinitePi fun _ : Fin m =>
-          toNNReal q • Measure.dirac True + toNNReal (σ q) • Measure.dirac False) {False}
-        = (toNNReal (σ q) : ℝ≥0∞) ^ m := by
-      rw [Measure.map_apply hgU MeasurableSet.of_discrete]
+      rw [← ENNReal.coe_pow]; congr 1; refine NNReal.coe_injective ?_; push_cast
+      simp only [coe_toNNReal]; rw [coe_symm_eq, coe_symm_eq, hrcoe]; ring
+    have hfalse : M {False} = (toNNReal (σ q) : ℝ≥0∞) ^ m := by
       have hpre : (fun y : Fin m → Prop => ∃ j, y j) ⁻¹' ({False} : Set Prop)
-          = Set.univ.pi (fun _ : Fin m => ({False} : Set Prop)) := by
-        ext y; simp [eq_iff_iff]
-      rw [hpre, Measure.infinitePi_eq_pi, Measure.pi_pi]
+          = Set.univ.pi (fun _ : Fin m => ({False} : Set Prop)) := by ext y; simp [eq_iff_iff]
+      rw [hM, Measure.map_apply hgU MeasurableSet.of_discrete, hpre,
+        Measure.infinitePi_eq_pi, Measure.pi_pi]
       simp
-    have hprob' : IsProbabilityMeasure (Measure.map (fun y : Fin m → Prop => ∃ j, y j)
-        (Measure.infinitePi fun _ : Fin m =>
-          toNNReal q • Measure.dirac True + toNNReal (σ q) • Measure.dirac False)) :=
-      Measure.isProbabilityMeasure_map hgU.aemeasurable
+    have hprob' : IsProbabilityMeasure M := by
+      rw [hM]; exact Measure.isProbabilityMeasure_map hgU.aemeasurable
     have hcomplT : ({True} : Set Prop)ᶜ = {False} := by ext P; by_cases hP : P <;> simp [hP]
-    have hsum : Measure.map (fun y : Fin m → Prop => ∃ j, y j)
-        (Measure.infinitePi fun _ : Fin m =>
-          toNNReal q • Measure.dirac True + toNNReal (σ q) • Measure.dirac False) {True}
-        + (toNNReal (σ q) : ℝ≥0∞) ^ m = 1 := by
+    have hsum : M {True} + (toNNReal (σ q) : ℝ≥0∞) ^ m = 1 := by
       rw [← hfalse, ← hcomplT, measure_add_measure_compl MeasurableSet.of_discrete, measure_univ]
     have htwo : (toNNReal r : ℝ≥0∞) + (toNNReal (σ q) : ℝ≥0∞) ^ m = 1 := by
       rw [← hsigma, ← ENNReal.coe_add, toNNReal_add_toNNReal_symm, ENNReal.coe_one]
     refine Measure.ext_of_singleton fun P => ?_
     by_cases hP : P
-    · rw [eq_true hP]
-      have hR : (toNNReal r • Measure.dirac True + toNNReal (σ r) • Measure.dirac False)
-          ({True} : Set Prop) = (toNNReal r : ℝ≥0∞) := by simp
-      rw [hR]
+    · rw [eq_true hP, show (toNNReal r • Measure.dirac True + toNNReal (σ r) • Measure.dirac False)
+          ({True} : Set Prop) = (toNNReal r : ℝ≥0∞) by simp]
       exact WithTop.add_right_cancel (ENNReal.pow_ne_top ENNReal.coe_ne_top) (hsum.trans htwo.symm)
-    · rw [eq_false hP, hfalse]
-      simp [hsigma]
+    · rw [eq_false hP, hfalse]; simp [hsigma]
   -- The two pushforwards: the union of the fibres, and a single fibre.
-  have hbaseI : ∀ t : I, setBernoulli (Set.univ : Set ι) t
-      = Measure.map (fun x : ι → Prop => {i | x i})
-        (Measure.infinitePi fun _ : ι =>
-          toNNReal t • Measure.dirac True + toNNReal (σ t) • Measure.dirac False) := by
-    intro t; rw [setBernoulli_eq_map]; simp
   have hmeasUnion : Measurable (fun S : Set (ι × Fin m) => {i : ι | ∃ j, (i, j) ∈ S}) :=
     measurable_set_iff.2 fun i =>
       hgU.comp (measurable_pi_lambda _ fun j => measurable_set_mem (i, j))
@@ -1289,32 +1268,30 @@ theorem prob_notMem_le_pow_of_isUpperSet {ι : Type*} [Countable ι] (F : Set (S
     fun j => measurable_set_iff.2 fun i => measurable_set_mem (i, j)
   have hunion : Measure.map (fun S : Set (ι × Fin m) => {i : ι | ∃ j, (i, j) ∈ S})
       (setBernoulli Set.univ q) = setBernoulli (Set.univ : Set ι) r := by
-    rw [hbaseI r]
-    exact transport (fun y => ∃ j, y j) hgU _ hstep3
+    rw [hbaseI r]; exact transport (fun y => ∃ j, y j) hgU _ hstep3
   have hcol : ∀ j : Fin m, Measure.map (fun S : Set (ι × Fin m) => {i : ι | (i, j) ∈ S})
       (setBernoulli Set.univ q) = setBernoulli (Set.univ : Set ι) q := by
     intro j
-    rw [hbaseI q]
+    rw [hbaseI (κ := ι) q]
     exact transport (fun y => y j) (measurable_pi_apply j) _ (Measure.infinitePi_map_eval _ j)
   -- The `m` fibre events, one per copy.
   obtain ⟨A, hAdef⟩ : ∃ A : Fin m → Set (Set (ι × Fin m)),
       A = fun j => {S : Set (ι × Fin m) | {i : ι | (i, j) ∈ S} ∈ Fᶜ} := ⟨_, rfl⟩
-  have hAm : ∀ j, MeasurableSet (A j) := by
-    intro j
-    simp only [hAdef]
-    exact (hmeasCol j) hFm.compl
+  have hAm : ∀ j, MeasurableSet (A j) := fun j => by
+    simp only [hAdef]; exact (hmeasCol j) hFm.compl
   have hAval : ∀ j, setBernoulli (Set.univ : Set (ι × Fin m)) q (A j)
-      = setBernoulli (Set.univ : Set ι) q Fᶜ := by
-    intro j
+      = setBernoulli (Set.univ : Set ι) q Fᶜ := fun j => by
     conv_rhs => rw [← hcol j]
-    rw [Measure.map_apply (hmeasCol j) hFm.compl]
-    simp only [hAdef]
-    rfl
+    rw [Measure.map_apply (hmeasCol j) hFm.compl]; simp only [hAdef]; rfl
+  -- A fibre of `R` over `j` is read off from `R`'s trace on any block of columns containing `j`.
+  have hfib : ∀ (v : Fin m → Prop) (R R' : Set (ι × Fin m)),
+      R ∩ {P | v P.2} = R' ∩ {P | v P.2} →
+      ∀ j, v j → {i : ι | (i, j) ∈ R} = {i : ι | (i, j) ∈ R'} :=
+    fun v R R' h j hj => Set.ext fun i => by simpa [hj] using Set.ext_iff.1 h (i, j)
   -- The fibre events live on disjoint blocks of coordinates, so they are independent.
   have hindep : ∀ s : Finset (Fin m),
       setBernoulli (Set.univ : Set (ι × Fin m)) q (⋂ j ∈ s, A j)
-        = ∏ j ∈ s, setBernoulli (Set.univ : Set (ι × Fin m)) q (A j) := by
-    intro s
+        = ∏ j ∈ s, setBernoulli (Set.univ : Set (ι × Fin m)) q (A j) := fun s => by
     induction s using Finset.induction_on with
     | empty => simp
     | insert j₀ s hj₀ ih =>
@@ -1323,41 +1300,32 @@ theorem prob_notMem_le_pow_of_isUpperSet {ι : Type*} [Countable ι] (F : Set (S
         {P : ι × Fin m | P.2 ∈ s} ?_ _ _ ?_ ?_ (hAm j₀)
         (s.measurableSet_biInter fun j _ => hAm j)
       · exact Set.disjoint_left.2 (by rintro ⟨i, j⟩ hj hj'; exact hj₀ (hj ▸ hj'))
-      · intro R R' hRR'
-        have hfib : {i : ι | (i, j₀) ∈ R} = {i : ι | (i, j₀) ∈ R'} := by
-          ext i
-          have h := Set.ext_iff.1 hRR' (i, j₀)
-          simpa using h
-        simp only [hAdef, Set.mem_ofPred_eq, hfib]
-      · intro R R' hRR'
+      · exact fun R R' h => by
+          simp only [hAdef, Set.mem_ofPred_eq, hfib (· = j₀) R R' h j₀ rfl]
+      · intro R R' h
         simp only [Set.mem_iInter]
-        refine forall_congr' fun j => forall_congr' fun hj => ?_
-        have hfib : {i : ι | (i, j) ∈ R} = {i : ι | (i, j) ∈ R'} := by
-          ext i
-          have h := Set.ext_iff.1 hRR' (i, j)
-          simpa [hj] using h
-        simp only [hAdef, Set.mem_ofPred_eq, hfib]
+        exact forall_congr' fun j => forall_congr' fun hj => by
+          simp only [hAdef, Set.mem_ofPred_eq, hfib (· ∈ s) R R' h j hj]
   have hall : setBernoulli (Set.univ : Set (ι × Fin m)) q (⋂ j, A j)
       = setBernoulli (Set.univ : Set ι) q Fᶜ ^ m := by
-    have h1 : (⋂ j, A j) = ⋂ j ∈ (Finset.univ : Finset (Fin m)), A j := by simp
-    rw [h1, hindep, Finset.prod_congr rfl (fun j _ => hAval j), Finset.prod_const,
-      Finset.card_univ, Fintype.card_fin]
+    rw [show (⋂ j, A j) = ⋂ j ∈ (Finset.univ : Finset (Fin m)), A j by simp, hindep,
+      Finset.prod_congr rfl (fun j _ => hAval j), Finset.prod_const, Finset.card_univ,
+      Fintype.card_fin]
   -- Missing an upper set is inherited by every fibre from the union.
   have hsub : (fun S : Set (ι × Fin m) => {i : ι | ∃ j, (i, j) ∈ S}) ⁻¹' Fᶜ ⊆ ⋂ j, A j := by
     intro S hS
-    simp only [Set.mem_preimage, Set.mem_compl_iff] at hS
-    simp only [Set.mem_iInter, hAdef, Set.mem_ofPred_eq, Set.mem_compl_iff]
+    simp only [Set.mem_preimage, Set.mem_iInter, hAdef, Set.mem_ofPred_eq,
+      Set.mem_compl_iff] at hS ⊢
     exact fun j hj => hS (hF (fun i hi => ⟨j, hi⟩) hj)
   have hEle : setBernoulli (Set.univ : Set ι) r Fᶜ
       ≤ setBernoulli (Set.univ : Set ι) q Fᶜ ^ m := by
-    rw [← hunion, Measure.map_apply hmeasUnion hFm.compl, ← hall]
-    exact measure_mono hsub
+    rw [← hunion, Measure.map_apply hmeasUnion hFm.compl, ← hall]; exact measure_mono hsub
   -- Monotonicity in the density closes the gap between `Ω_p` and the union.
-  have hmono := prob_mem_mono_of_isUpperSet F hF hFm (p := r) (q := p) (by rw [hrcoe]; exact hpq)
   have hcomplle : setBernoulli (Set.univ : Set ι) p Fᶜ ≤ setBernoulli (Set.univ : Set ι) r Fᶜ := by
     rw [measure_compl hFm (measure_ne_top _ _), measure_compl hFm (measure_ne_top _ _),
       measure_univ, measure_univ]
-    exact tsub_le_tsub_left hmono 1
+    exact tsub_le_tsub_left
+      (prob_mem_mono_of_isUpperSet F hF hFm (p := r) (q := p) (by rw [hrcoe]; exact hpq)) 1
   rw [← ENNReal.toReal_pow]
   exact ENNReal.toReal_mono (ENNReal.pow_ne_top (measure_ne_top _ _)) (hcomplle.trans hEle)
 

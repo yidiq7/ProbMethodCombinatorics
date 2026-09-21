@@ -26,3 +26,6 @@ import ProbMethodCombinatorics.ColourDiscrepancy
 import ProbMethodCombinatorics.MaxDegree
 import ProbMethodCombinatorics.ListColouring
 import ProbMethodCombinatorics.HammingCube
+import ProbMethodCombinatorics.ConcentrationEquivalence
+import ProbMethodCombinatorics.Hoeffding
+import ProbMethodCombinatorics.KahnLovasz

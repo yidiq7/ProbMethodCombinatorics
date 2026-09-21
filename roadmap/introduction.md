@@ -4,6 +4,36 @@ What the chapter establishes: the probabilistic method in its simplest form — 
 random object, compute one expectation or one union bound, conclude that a good object
 exists.
 
+## §1.1's three bounds, and the middle one
+
+The section gives three successively better lower bounds on `R(k,k)` and the project now states
+all three:
+
+| Bound | Theorem | Declaration |
+|---|---|---|
+| Union bound | 1.1.2 | `lt_ramseyNumber` |
+| **Alteration** | **1.1.6** | **`lt_ramseyNumber_of_alteration`** (#397) |
+| Local lemma | 1.1.9 | `lt_ramseyNumber_of_local_lemma` |
+
+**The middle one was missing and appeared in no roadmap file, in either direction** — not as
+stated, not as deferred.  It surfaced only when the frontier was re-derived from the source
+rather than from this roadmap on 2026-09-21.  The group files track what the source *defers*;
+they had no mechanism for noticing what the source *proves* and nobody transcribed.
+
+**Alteration is weaker than the union bound for small `k`, and that is correct.**  Verified over
+all `n ≤ 600`: `R >` `3, 6, 11, 17` from the union bound at `k = 3, 4, 5, 6`, against `3, 5, 10,
+17` from alteration.  **It first wins at `k = 7`** (`28` against `27`) and the margin then grows
+— `46` against `42` at `k = 8`, `115` against `100` at `k = 10`, `275` against `231` at `k = 12`.
+Recorded because a smaller number at small `k` reads like a defect and is not one.
+
+(The docstring and this file both said the crossover was `k = 8` until the review of #400 checked
+`k = 7` and found alteration already ahead.  I had computed the table but read the first *large*
+gap as the crossover rather than the first positive one — a reminder that a verified table still
+needs its summary sentence checked against it.)
+
+Remark 1.1.7's optimisation over `n`, giving `(1/e + o(1)) k 2 ^ (k/2)`, is **a separate node and
+is not stated**: it is asymptotic and would need the `ε`–`N` idiom.
+
 ## `cut_edges` — `ProbMethodCombinatorics.cutEdges`
 
 The edges of `G` separated by a two-colouring `f : V → Bool`, defined as

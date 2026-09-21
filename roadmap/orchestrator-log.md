@@ -3,16 +3,84 @@
 How to run the loop on this project.  Mine, not a worker's: `skills/` is force-loaded
 into every worker's context, so nothing here belongs there.
 
+## A task target must be public, and I published two that were not
+
+`comparator` does not skip a `private` target — **it aborts.**  `lean4export` is handed the
+unmangled name, does not find it (Lean stores `_private.<Module>.0.<name>`), and exits 2:
+
+    PANIC at dumpConstant: Constant …card_le_compl_mul_choose_two_aux not found in environment
+    uncaught exception: Child exited with 134
+
+So `blocking_failures` carries `comparator`, `merge_pr` refuses, and **no diff the contributor
+can write will go green.**  They do everything right and are stuck; the only exits are an
+overseer override or a rebase onto a commit where the target is public.
+
+I did this twice in one batch — #388 (`card_le_compl_mul_choose_two_aux`) and #373
+(`indepSetCount_logb_half_le`) — and in #388's case I had even *written in the task prose* that
+comparator would not run, having read `containers.md`'s claim that it "declines to run".  It does
+not decline.  **Knowing a check would be skipped is not the same as knowing the job would crash**,
+and I never tested which.
+
+- **`scripts/check-target-public.sh <file> <Decl>` now exists.  Run it before every
+  `create-task`.**  It exits non-zero on a private target and says why.
+- Fixing it after the fact costs a promotion commit on `main`, a re-pin of the issue (which
+  rewrites the body and invalidates open PRs against that file), and a rebase request to a
+  contributor whose work was already correct.
+- The decision itself is not a judgement call: `containers.md` already said *any declaration
+  appearing in a published task's statement is public, however local it looks*.  A proof-internal
+  helper stops being purely internal the moment I publish a task naming it.
+- **The general failure is trusting a written claim about infrastructure I had not exercised.**
+  The roadmap said "declines to run"; the truth was "panics".  Both entries are now corrected —
+  but the cheap move was to run the thing once.
+
+
+## Probing a lemma under `import Mathlib` cannot tell you it is in scope
+
+I gave #379 a "Useful Mathlib" list — `measureReal_compl`, `measureReal_mono`, `measureReal_empty`,
+`measureReal_univ` — and **not one of them resolves from the file the task targets.**  They live in
+`Mathlib/MeasureTheory/Measure/Real.lean`, which is strictly downstream of the three imports
+`ConcentrationEquivalence.lean` carries.  The contributor hit it immediately and derived the two
+facts they needed inline from the `ENNReal` measure instead.
+
+**This is the `private`-unreachability lesson above in a new costume, and the earlier statement of
+it was too narrow.**  That entry says the tell is *visibility*.  It is not: it is **reachability**,
+of which visibility is one case.  A `public` Mathlib lemma in an unimported module is exactly as
+unreachable as a `private` one next door.
+
+**The mechanism that fooled me is worth naming, because it will recur.**  I verified the names by
+elaborating a probe file that began `import Mathlib`.  Every name resolved, so the list looked
+checked.  But `import Mathlib` answers "does this lemma exist?", and the question that matters is
+"does this lemma exist **here**?"  Those come apart precisely when the orchestrator has just
+authored the file — because then the import set is *mine*, chosen narrow, and nothing else in the
+project has exercised it yet.
+
+- **Probe under the target file's own header, not under `import Mathlib`.**  Copy the file's import
+  block verbatim into the probe and `#check` there.
+- **`Measure.real` elaborating is not evidence its API is present.**  The definition comes from
+  `MeasureSpaceDef` and the lemmas come from `Measure/Real.lean`, so a statement written in
+  `μ.real` typechecks in a file where nothing can be proved about it.  **A statement that
+  elaborates does not mean a reachable proof exists** — that gap is invisible until someone tries.
+- A `prove` task cannot add the import (`skills/conventions.md`: the header is not theirs), so this
+  error is paid entirely by the contributor, in inline re-derivation. It also silently takes
+  `gcongr` off the table whenever the `@[gcongr]`-tagged lemma is the unreachable one.
+- **When authoring a new file, pick the header by writing the intended proof sketch against it**,
+  not by listing what the statement needs to elaborate.
+
+
 ## A `private` lemma in another module is unreachable — pointing at it guarantees re-derivation
 
 `integral_triangleCount` (#181) and `variance_triangleCount_le` (#182) both need the probability
 that a prescribed set of pairs is entirely present in `G(n, p)`.  I told both tasks that
 `Correlation.lean` "has the `binomialRandom_apply` / `setBernoulli` idiom for reasoning about
 these".  It does — as `private theorem measurableSet_setOf_coe_subset`,
-`private theorem setBernoulli_setOf_coe_subset` and `private theorem setBernoulli_cylinder`, plus
-an inline `have hedges` inside `le_binomialRandom_cliqueFree_three`.
+`private theorem setBernoulli_setOf_coe_subset`, the **public** `setBernoulli_cylinder`, and an
+inline `have hedges` inside `le_binomialRandom_cliqueFree_three`.
 
-**Every one of those is unreachable from another module.**  So the pointer did not save work; it
+**Three of those four are unreachable from another module.**  (This entry called
+`setBernoulli_cylinder` private until 2026-09-21; it is public, at `Correlation.lean:287`, and
+always was.  Checked and corrected when a reviewer queried it.  The lesson below is unaffected —
+the pointer still failed, because the *other* three are out of reach — but a record that names
+the wrong declarations is worse than no record, since the next reader trusts the list.)  So the pointer did not save work; it
 guaranteed the work would be done again.  #184 wrote `binomialRandom_forall_mem_edgeSet`, #187 —
 based one commit earlier — independently wrote `binomialRandom_setOf_subset_edgeSet` for the same
 fact at a different cardinality, and `Correlation.lean` still holds the originals.  **Three copies
