@@ -42,10 +42,14 @@ project has exercised it yet.
 that a prescribed set of pairs is entirely present in `G(n, p)`.  I told both tasks that
 `Correlation.lean` "has the `binomialRandom_apply` / `setBernoulli` idiom for reasoning about
 these".  It does — as `private theorem measurableSet_setOf_coe_subset`,
-`private theorem setBernoulli_setOf_coe_subset` and `private theorem setBernoulli_cylinder`, plus
-an inline `have hedges` inside `le_binomialRandom_cliqueFree_three`.
+`private theorem setBernoulli_setOf_coe_subset`, the **public** `setBernoulli_cylinder`, and an
+inline `have hedges` inside `le_binomialRandom_cliqueFree_three`.
 
-**Every one of those is unreachable from another module.**  So the pointer did not save work; it
+**Three of those four are unreachable from another module.**  (This entry called
+`setBernoulli_cylinder` private until 2026-09-21; it is public, at `Correlation.lean:287`, and
+always was.  Checked and corrected when a reviewer queried it.  The lesson below is unaffected —
+the pointer still failed, because the *other* three are out of reach — but a record that names
+the wrong declarations is worse than no record, since the next reader trusts the list.)  So the pointer did not save work; it
 guaranteed the work would be done again.  #184 wrote `binomialRandom_forall_mem_edgeSet`, #187 —
 based one commit earlier — independently wrote `binomialRandom_setOf_subset_edgeSet` for the same
 fact at a different cardinality, and `Correlation.lean` still holds the originals.  **Three copies
