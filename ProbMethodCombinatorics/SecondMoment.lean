@@ -3,8 +3,6 @@ import Mathlib.Combinatorics.SimpleGraph.Finite
 import Mathlib.Probability.Combinatorics.BinomialRandomGraph.Defs
 import Mathlib.Probability.Moments.Variance
 import Mathlib.Probability.Independence.Basic
-import Mathlib.Probability.Distributions.Bernoulli
-import Mathlib.MeasureTheory.Integral.Pi
 
 /-!
 # Chapter 4: Second Moment
@@ -197,10 +195,13 @@ so the central mass is `≥ 33/49`, and `(33/49)·2^k ≤ 2c + 1 = (7/4)n√k + 
 assumed and also supplies `1 ≤ n` for free.  The two branches overlap: pigeonhole alone in fact
 suffices through `k ≤ 7`.
 
-The engine is Mathlib's `meas_ge_le_variance_div_sq` (Chebyshev) with `IndepFun.variance_sum`;
-the `εᵢ` are a genuine product-Bernoulli family (`Measure.pi`), so the variance of the sum is the
-sum of the variances.  It uses neither `prob_eq_zero_le_variance_div_sq` nor
-`variance_sum_indicator_le`.
+The second moment is computed directly over `S.powerset` rather than through a measure: an
+induction on `S`, carrying a free shift `t`, gives
+`∑_{A ⊆ T} (t + 2 ∑_A x - ∑_T x) ^ 2 = 2 ^ #T * (t ^ 2 + ∑_T x ^ 2)`, which at `t = 0` is the
+centred second moment of `2 ∑_A x - ∑_S x`.  Chebyshev is then applied in counting form: the
+subsets outside the window each contribute at least `d ^ 2`, so at most `16/49` of them miss it.
+This is the one Chapter 4 result that touches none of Mathlib's probability API — it uses neither
+`prob_eq_zero_le_variance_div_sq` nor `variance_sum_indicator_le`.
 
 Erdős's conjecture that `n ≳ 2 ^ k` (Conjecture 4.6.2) is **open mathematics** and must not be
 stated as a theorem.  Theorem 4.6.6 (Dubroff–Fox–Xu), which improves the constant via Harper's
