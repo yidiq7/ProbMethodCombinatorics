@@ -200,6 +200,24 @@ Write comments in final form.  A docstring says what the declaration says — it
 record of how you got there.  Rejected approaches, notes to the reviewer, and commented-out
 tactic blocks do not belong in the file; put them in the PR description instead.
 
+**If you change a proof's method, the comments inside it are yours to bring with it.**  This is
+the most common defect in golf PRs on this project: the proof becomes correct and shorter while
+the prose around it goes on describing the argument that used to be there.  Concretely, before
+you push, re-read every comment in the body you touched and check that
+
+* every lemma or technique a comment names is still used by the proof, and
+* every variable a comment mentions is still a binder in the body.
+
+A comment naming a `have` you deleted, or crediting a Mathlib lemma you stopped calling, is a
+defect even though it compiles — nothing in the gate reads English.
+
+**The target's own docstring is the exception: you may not edit it, so report it instead.**  A
+golf that drops the technique the docstring advertises leaves that docstring false, and the rule
+above forbids you from fixing it.  **Say so on the issue** — name the claim that went stale and
+what the proof does now.  It is a one-line note and it is the only way the orchestrator finds
+out; this has already happened three times and was caught in review each time rather than
+reported.  The same goes for an import whose last consumer your proof removed.
+
 ## What not to touch
 
 Your PR changes one proof.  Leave every other declaration, import, and docstring alone.
