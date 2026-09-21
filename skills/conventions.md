@@ -326,6 +326,13 @@ measure.  Neither do the `measureReal` union bounds.  If a task's suggested rout
 to establish measurability before applying one of these, the route is wrong and you can skip
 it; measurability of graph events is only needed for `Measure.map_apply` and for integrals.
 
+**`set x := e with hx` is not free; `let x := e` often is.**  `set` abstracts every occurrence of
+`e` in the goal *and* in every hypothesis, and on this project that has measured at roughly 100
+heartbeats per binder — in one proof, six `set`s accounted for 496 of a 4,835-heartbeat total.
+Where you only want a local name and do not need the occurrences abstracted in the goal, `let`
+costs nothing.  Reach for `set` when you genuinely want the rewrite, not as the default way to
+introduce an abbreviation.
+
 **But check `measureReal_*` is in scope before reaching for it — in a file with narrow
 measure-theory imports it will not be.**  `Measure.real` is defined in
 `MeasureTheory/Measure/MeasureSpaceDef.lean`, while the whole `measureReal_*` API lives in
