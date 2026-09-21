@@ -636,7 +636,7 @@ theorem exists_sum_shortCycleSupport_card_lt (l : ℕ) :
   set M : ℕ := girthEdgeCount n with hMdef
   set N : ℕ := Fintype.card (Sym2 (Fin n)) with hNdef
   have hsmall : 4 * L ^ 2 < (n : ℝ) := by rw [hLdef]; exact hn₂ n hgen2
-  -- `1 ≤ log n` because `n ≥ 4 > e`; going through `exp` avoids bounding `log 2` by hand.
+  -- `1 ≤ log n` because `n ≥ 4 > e`, read off `exp 1 < 2.7182818286`.
   have hL1 : (1 : ℝ) ≤ L := by
     rw [hLdef, Real.le_log_iff_exp_le (by linarith only [hn4])]
     linarith only [Real.exp_one_lt_d9, hn4]
@@ -652,9 +652,9 @@ theorem exists_sum_shortCycleSupport_card_lt (l : ℕ) :
       _ = (n + 1) * n := h.symm
       _ = n * (n + 1) := by ring
   have hn0 : (0 : ℝ) ≤ (n : ℝ) := Nat.cast_nonneg n
-  -- All the arithmetic below is linear once the three genuinely quadratic products
-  -- (`n * n`, `n * L ^ 2` and `L ^ 2 * (N - i)`) are supplied explicitly, so every step uses
-  -- `linarith only [...]` on a named product rather than letting `nlinarith` search.
+  -- The arithmetic below is linear in the products `n * n`, `n * L ^ 2`, `L ^ 2 * (N - i)`,
+  -- `n * M` and `n² * L²`, so each is named as a hypothesis and the inequalities close by
+  -- `linarith only` over them.
   have hNR : (n : ℝ) ^ 2 ≤ 2 * (N : ℝ) := by
     have hc : (2 : ℝ) * (N : ℝ) = (n : ℝ) * ((n : ℝ) + 1) := by exact_mod_cast hN2
     linarith only [hc, hn0]
@@ -732,7 +732,7 @@ theorem exists_sum_shortCycleSupport_card_lt (l : ℕ) :
             * ((l : ℝ) * ((8 * L ^ 2) ^ l * ((N : ℝ) - (i : ℝ)) ^ i)) := by ring
       rw [hEq, hEq2]
       refine mul_le_mul_of_nonneg_left ?_ (Nat.cast_nonneg _)
-      -- `i * X ≤ l * Y` from `i ≤ l`, `X ≤ Y`, `0 ≤ X`, `0 ≤ l`: one `mul_le_mul`, no search.
+      -- `i * X ≤ l * Y` from `i ≤ l`, `X ≤ Y`, `0 ≤ X` and `0 ≤ l`.
       exact mul_le_mul hilR hstep (pow_nonneg (mul_nonneg hn0 (Nat.cast_nonneg _)) i)
         (Nat.cast_nonneg _)
     have hfin := le_of_mul_le_mul_right hkey (pow_pos hpos i)
