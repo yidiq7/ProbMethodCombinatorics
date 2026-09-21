@@ -213,48 +213,22 @@ theorem le_card_of_distinctSubsetSums {n k : ℕ} (hk : 0 < k) (S : Finset ℕ)
     (hdistinct : ∀ A ⊆ S, ∀ B ⊆ S, ∑ x ∈ A, x = ∑ x ∈ B, x → A = B) :
     3 * 2 ^ k ≤ 8 * Real.sqrt k * n := by
   classical
-  have hcard : Fintype.card {a : ℕ // a ∈ S} = k := by rw [Fintype.card_coe, hScard]
-  -- `V ω` is the sum of the subset of `S` selected by the `{0,1}`-vector `ω`; distinctness of
-  -- subset sums says exactly that `V` is injective.
-  set V : ({a : ℕ // a ∈ S} → Bool) → ℕ := fun ω => ∑ i, if ω i then (i : ℕ) else 0 with hVdef
-  have hsub : ∀ τ : {a : ℕ // a ∈ S} → Bool,
-      ((univ.filter fun i : {a : ℕ // a ∈ S} => τ i = true).image
-        (Subtype.val : {a : ℕ // a ∈ S} → ℕ)) ⊆ S := by
-    intro τ a ha
-    simp only [Finset.mem_image] at ha
-    obtain ⟨i, _, rfl⟩ := ha
-    exact i.2
-  have hsum : ∀ τ : {a : ℕ // a ∈ S} → Bool,
-      ∑ a ∈ ((univ.filter fun i : {a : ℕ // a ∈ S} => τ i = true).image
-        (Subtype.val : {a : ℕ // a ∈ S} → ℕ)), a = V τ := by
-    intro τ
-    rw [Finset.sum_image (fun a _ b _ hab => Subtype.ext hab), hVdef]
-    simp [Finset.sum_filter]
-  have hVinj : Function.Injective V := by
-    intro ω ω' h
-    have himg := hdistinct _ (hsub ω) _ (hsub ω') (by rw [hsum, hsum, h])
-    have hfil := Finset.image_injective Subtype.val_injective himg
-    funext i
-    simpa using Finset.ext_iff.1 hfil i
-  -- Injectivity already gives the pigeonhole bound: the `2 ^ k` subset sums are distinct
-  -- naturals bounded by `n * k`.
-  have hVle : ∀ ω, V ω ≤ n * k := by
-    intro ω
-    have : V ω ≤ ∑ _i : {a : ℕ // a ∈ S}, n := by
-      refine Finset.sum_le_sum fun i _ => ?_
-      by_cases h : ω i
-      · simpa [h] using hSn _ i.2
-      · simp [h]
-    simpa [Finset.sum_const, Finset.card_univ, hScard, mul_comm] using this
+  -- Distinctness of the subset sums says exactly that `A ↦ ∑ x ∈ A, x` is injective on
+  -- `S.powerset`, and every such sum is at most `n * k`: pigeonhole already gives `2 ^ k ≤ n k + 1`.
+  have hinj : Set.InjOn (fun A => ∑ x ∈ A, x) ↑S.powerset := fun A hA B hB h =>
+    hdistinct A (Finset.mem_powerset.1 hA) B (Finset.mem_powerset.1 hB) h
+  have hle : ∀ A ∈ S.powerset, ∑ x ∈ A, x ≤ n * k := fun A hA =>
+    calc ∑ x ∈ A, x ≤ ∑ _x ∈ A, n :=
+          Finset.sum_le_sum fun x hx => hSn x (Finset.mem_powerset.1 hA hx)
+      _ ≤ n * k := by
+          simpa [mul_comm] using
+            Nat.mul_le_mul_left n (hScard ▸ Finset.card_le_card (Finset.mem_powerset.1 hA))
   have hpigeon : (2:ℕ) ^ k ≤ n * k + 1 := by
-    have h1 : (univ : Finset ({a : ℕ // a ∈ S} → Bool)).card ≤ (Finset.range (n * k + 1)).card :=
-      Finset.card_le_card_of_injOn V
-        (fun ω _ => Finset.mem_range.2 (Nat.lt_succ_of_le (hVle ω))) hVinj.injOn
-    simpa [Finset.card_univ, hScard] using h1
+    simpa [Finset.card_powerset, hScard] using Finset.card_le_card_of_injOn
+      (fun A => ∑ x ∈ A, x) (fun A hA => Finset.mem_range.2 (Nat.lt_succ_of_le (hle A hA))) hinj
   have hn1 : 1 ≤ n := by
-    have h2 : (2:ℕ) ^ 1 ≤ 2 ^ k := Nat.pow_le_pow_right (by norm_num) hk
     rcases Nat.eq_zero_or_pos n with rfl | h
-    · simp only [Nat.zero_mul, Nat.zero_add] at hpigeon
+    · have h2 : 2 ≤ 2 ^ k := by simpa using Nat.pow_le_pow_right (by norm_num) hk
       omega
     · exact h
   set r : ℝ := Real.sqrt k with hrdef
@@ -265,185 +239,99 @@ theorem le_card_of_distinctSubsetSums {n k : ℕ} (hk : 0 < k) (S : Finset ℕ)
   have hkR : (0:ℝ) < k := by exact_mod_cast hk
   have hrpos : 0 < r := by rw [hrdef]; exact Real.sqrt_pos.mpr hkR
   by_cases hk6 : 6 ≤ k
-  · -- For `k ≥ 6` the second moment method wins.  Chebyshev's inequality is applied at
-    -- `c = (7/8) * n * √k`, a shade inside the `2σ` of the book's proof; the slack pays for the
-    -- integer that the window `(m - c, m + c)` may contain beyond its length `2c`.
-    have h64 : (64:ℝ) ≤ 2 ^ k := by
+  · have h64 : (64:ℝ) ≤ 2 ^ k := by
       calc (64:ℝ) = 2 ^ 6 := by norm_num
         _ ≤ 2 ^ k := pow_le_pow_right₀ (by norm_num) hk6
-    -- `P` is the product of `k` fair Bernoulli factors on `{0,1}^S`, and `f i` is the
-    -- contribution `εᵢ xᵢ` of the `i`-th element.  The factors being a genuine product measure
-    -- is what makes the `f i` independent, hence the variance of their sum additive.
-    set p : unitInterval := ⟨1/2, by norm_num⟩ with hp
-    set B : {a : ℕ // a ∈ S} → Measure Bool := fun _ => Ber(true, false, p) with hB
-    set P : Measure ({a : ℕ // a ∈ S} → Bool) := Measure.pi B with hP
-    have : IsProbabilityMeasure P := by rw [hP]; infer_instance
-    set x : {a : ℕ // a ∈ S} → ℝ := fun i => ((i : ℕ) : ℝ) with hxdef
-    have hxnn : ∀ i, 0 ≤ x i := fun i => by simp [hxdef]
-    have hxle : ∀ i, x i ≤ (n:ℝ) := fun i => by
-      simpa [hxdef] using (Nat.cast_le (α := ℝ)).2 (hSn _ i.2)
-    set f : {a : ℕ // a ∈ S} → (({a : ℕ // a ∈ S} → Bool) → ℝ) :=
-      fun i ω => if ω i then x i else 0 with hf
-    have hmeas : ∀ i, Measurable (f i) := fun i =>
-      (Measurable.of_discrete (f := fun b : Bool => if b = true then x i else 0)).comp
-        (measurable_pi_apply i)
-    have hmem : ∀ i, MemLp (f i) 2 P := by
-      intro i
-      refine memLp_of_bounded (a := 0) (b := x i) ?_ (hmeas i).aestronglyMeasurable 2
-      filter_upwards with ω
-      simp only [hf]
-      by_cases h : ω i <;> simp [h, hxnn i]
-    have hindep : ProbabilityTheory.iIndepFun f P := by
-      rw [hP, hf]
-      exact iIndepFun_pi (X := fun i (b : Bool) => if b then x i else 0)
-        (fun i => Measurable.of_discrete.aemeasurable)
-    have hmean : ∀ i, P[f i] = x i / 2 := by
-      intro i
-      have key := integral_comp_eval (μ := B) (i := i)
-        (f := fun b : Bool => if b = true then x i else 0)
-        Measurable.of_discrete.aestronglyMeasurable
-      rw [hB, integral_bernoulliMeasure] at key
-      show ∫ ω, (fun b : Bool => if b = true then x i else 0) (ω i) ∂P = _
-      rw [hP, key]
-      simp [hp]
-      ring
-    have hsq : ∀ i, P[(f i)^2] = x i ^ 2 / 2 := by
-      intro i
-      have key := integral_comp_eval (μ := B) (i := i)
-        (f := fun b : Bool => (if b = true then x i else 0)^2)
-        Measurable.of_discrete.aestronglyMeasurable
-      rw [hB, integral_bernoulliMeasure] at key
-      show ∫ ω, (fun b : Bool => (if b = true then x i else 0)^2) (ω i) ∂P = _
-      rw [hP, key]
-      simp [hp]
-      ring
-    have hvar : ∀ i, Var[f i; P] = x i ^ 2 / 4 := by
-      intro i
-      rw [variance_eq_sub (hmem i), hsq i, hmean i]
-      ring
-    have hvarsum : Var[∑ i, f i; P] = ∑ i, x i ^ 2 / 4 := by
-      rw [IndepFun.variance_sum (fun i _ => hmem i) (fun i _ j _ hij => hindep.indepFun hij)]
-      exact Finset.sum_congr rfl fun i _ => hvar i
-    have hmemsum : MemLp (∑ i, f i) 2 P := memLp_finsetSum' _ (fun i _ => hmem i)
-    -- Each of the `2 ^ k` vectors carries mass exactly `2 ^ (-k)`.
-    have hpN : unitInterval.toNNReal p = (2⁻¹ : NNReal) := by
-      apply NNReal.coe_injective; simp [hp]
-    have hpN2 : unitInterval.toNNReal (unitInterval.symm p) = (2⁻¹ : NNReal) := by
-      apply NNReal.coe_injective; simp [hp, unitInterval.coe_symm_eq]; norm_num
-    have h2E : ((2⁻¹ : NNReal) : ENNReal) = (2:ENNReal)⁻¹ := by
-      rw [ENNReal.coe_inv (by norm_num)]; norm_num
-    have hBsingle : ∀ (i : {a : ℕ // a ∈ S}) (b : Bool), B i {b} = (2:ENNReal)⁻¹ := by
-      intro i b
-      cases b
-      · show Ber(true, false, p) ({false} : Set Bool) = _
-        rw [bernoulliMeasure_apply_of_notMem_of_mem p (measurableSet_singleton _) (by simp) rfl,
-          hpN2, h2E]
-      · show Ber(true, false, p) ({true} : Set Bool) = _
-        rw [bernoulliMeasure_apply_of_mem_of_notMem p (measurableSet_singleton _) rfl (by simp),
-          hpN, h2E]
-    have hsingle : ∀ ω : {a : ℕ // a ∈ S} → Bool, P {ω} = (2:ENNReal)⁻¹ ^ k := by
-      intro ω
-      rw [hP, ← Set.univ_pi_singleton ω, Measure.pi_pi]
-      simp [hBsingle, hScard]
-    -- `Var[X] = (∑ xᵢ²)/4 ≤ k n²/4`, so Chebyshev bounds the tail at `c` by `16/49`.
-    set m : ℝ := P[∑ i, f i] with hmdef
-    set c : ℝ := 7/8 * (n:ℝ) * r with hcdef
-    have hc0 : 0 < c := by
-      rw [hcdef]
-      exact mul_pos (mul_pos (by norm_num) (by linarith)) hrpos
-    have hc2 : c^2 = 49/64 * (n:ℝ)^2 * (k:ℝ) := by rw [hcdef, ← hr2]; ring
-    have hvarle : Var[∑ i, f i; P] ≤ (k:ℝ) * (n:ℝ)^2 / 4 := by
-      rw [hvarsum]
-      have hterm : ∀ i ∈ (univ : Finset {a : ℕ // a ∈ S}), x i ^ 2 / 4 ≤ (n:ℝ)^2 / 4 := by
-        intro i _
-        have h1 := hxnn i
-        have h2 := hxle i
-        nlinarith
-      calc ∑ i, x i ^ 2 / 4 ≤ ∑ _i : {a : ℕ // a ∈ S}, (n:ℝ)^2 / 4 := Finset.sum_le_sum hterm
-        _ = (k:ℝ) * (n:ℝ)^2 / 4 := by
-            rw [Finset.sum_const, Finset.card_univ, hcard, nsmul_eq_mul]
+    -- The centred second moment over all subsets of `T`, with a free shift `t` carrying the
+    -- induction: `∑_{A ⊆ T} (t + 2 ∑_A x - ∑_T x) ^ 2 = 2 ^ #T * (t ^ 2 + ∑_T x ^ 2)`.
+    have key : ∀ (T : Finset ℕ) (t : ℝ),
+        ∑ A ∈ T.powerset, (t + 2 * ∑ x ∈ A, (x:ℝ) - ∑ x ∈ T, (x:ℝ)) ^ 2
+          = 2 ^ T.card * (t ^ 2 + ∑ x ∈ T, (x:ℝ) ^ 2) := by
+      intro T
+      induction T using Finset.induction with
+      | empty => simp
+      | @insert a T ha ih =>
+          intro t
+          have hout : ∀ A ∈ T.powerset,
+              (t + 2 * ∑ x ∈ A, (x:ℝ) - ∑ x ∈ insert a T, (x:ℝ)) ^ 2
+                = (t - a + 2 * ∑ x ∈ A, (x:ℝ) - ∑ x ∈ T, (x:ℝ)) ^ 2 := fun A _ => by
+            rw [Finset.sum_insert ha]; ring
+          have hins : ∀ A ∈ T.powerset,
+              (t + 2 * ∑ x ∈ insert a A, (x:ℝ) - ∑ x ∈ insert a T, (x:ℝ)) ^ 2
+                = (t + a + 2 * ∑ x ∈ A, (x:ℝ) - ∑ x ∈ T, (x:ℝ)) ^ 2 := fun A hA => by
+            rw [Finset.sum_insert (fun h => ha (Finset.mem_powerset.1 hA h)),
+              Finset.sum_insert ha]
             ring
-    have hratio : Var[∑ i, f i; P] / c^2 ≤ 16/49 := by
-      rw [div_le_iff₀ (pow_pos hc0 2), hc2]
-      nlinarith [hvarle]
-    have hcheb := meas_ge_le_variance_div_sq hmemsum hc0
-    have hGreal : P.real {ω | c ≤ |(∑ i, f i) ω - m|} ≤ 16/49 := by
-      have hnn : 0 ≤ Var[∑ i, f i; P] / c^2 :=
-        div_nonneg (variance_nonneg _ _) (sq_nonneg _)
-      have h := ENNReal.toReal_mono ENNReal.ofReal_ne_top hcheb
-      rw [ENNReal.toReal_ofReal hnn] at h
-      exact h.trans hratio
-    -- The window `|X - m| < c` is a finset of vectors, and `V` is injective on it, so its
-    -- cardinality is at most the number of integers in an interval of length `2 * c`.
-    have hXV : ∀ ω, (∑ i, f i) ω = (V ω : ℝ) := by
-      intro ω
-      rw [Finset.sum_apply, hVdef]
-      push_cast
-      exact Finset.sum_congr rfl fun i _ => by by_cases h : ω i <;> simp [hf, h, hxdef]
-    set F : Finset ({a : ℕ // a ∈ S} → Bool) :=
-      univ.filter (fun ω => |(V ω : ℝ) - m| < c) with hFdef
-    have hFset : {ω | |(∑ i, f i) ω - m| < c} = (↑F : Set ({a : ℕ // a ∈ S} → Bool)) := by
-      ext ω
-      show |(∑ i, f i) ω - m| < c ↔ ω ∈ F
-      rw [hXV ω, hFdef]
-      simp
-    have hlow : (33:ℝ)/49 ≤ P.real (↑F : Set ({a : ℕ // a ∈ S} → Bool)) := by
-      have huniv : (Set.univ : Set ({a : ℕ // a ∈ S} → Bool))
-          = {ω | c ≤ |(∑ i, f i) ω - m|} ∪ {ω | |(∑ i, f i) ω - m| < c} := by
-        ext ω
-        simpa using le_or_gt c |(∑ i, f i) ω - m|
-      have h1 : P.real (Set.univ : Set ({a : ℕ // a ∈ S} → Bool)) = 1 := by simp
-      rw [huniv] at h1
-      have h2 := measureReal_union_le (μ := P) {ω | c ≤ |(∑ i, f i) ω - m|}
-        {ω | |(∑ i, f i) ω - m| < c}
-      rw [← hFset]
+          rw [Finset.sum_powerset_insert ha, Finset.sum_congr rfl hout,
+            Finset.sum_congr rfl hins, ih (t - a), ih (t + a), Finset.card_insert_of_notMem ha,
+            Finset.sum_insert ha]
+          ring
+    -- `s` is the total and `d` twice the Chebyshev half-width `c = (7/8) * n * √k`, so the
+    -- window of half-width `c` about the mean `s / 2` is `|2 * ∑_A x - s| < d`.
+    set s : ℝ := ∑ x ∈ S, (x:ℝ) with hs
+    set d : ℝ := 7/4 * n * r with hd
+    have hd0 : 0 < d := mul_pos (mul_pos (by norm_num) (by linarith)) hrpos
+    have hmom : ∑ A ∈ S.powerset, (2 * ∑ x ∈ A, (x:ℝ) - s) ^ 2 = 2 ^ k * ∑ x ∈ S, (x:ℝ) ^ 2 := by
+      simpa [hScard, hs] using key S 0
+    have hQ : ∑ x ∈ S, (x:ℝ) ^ 2 ≤ (k:ℝ) * (n:ℝ) ^ 2 := by
+      calc ∑ x ∈ S, (x:ℝ) ^ 2 ≤ ∑ _x ∈ S, (n:ℝ) ^ 2 := Finset.sum_le_sum fun x hx =>
+            pow_le_pow_left₀ (Nat.cast_nonneg x) (by exact_mod_cast hSn x hx) 2
+        _ = (k:ℝ) * (n:ℝ) ^ 2 := by rw [Finset.sum_const, hScard, nsmul_eq_mul]
+    -- Chebyshev in counting form: at most `16/49` of the subsets miss the window, so the
+    -- surviving family `F` carries at least `33/49 * 2 ^ k` of them.
+    set F : Finset (Finset ℕ) := S.powerset.filter (fun A => |2 * ∑ x ∈ A, (x:ℝ) - s| < d) with hF
+    set G : Finset (Finset ℕ) :=
+      S.powerset.filter (fun A => ¬ |2 * ∑ x ∈ A, (x:ℝ) - s| < d)
+    have hbad : (G.card : ℝ) * d ^ 2 ≤ 2 ^ k * ((k:ℝ) * (n:ℝ) ^ 2) := by
+      calc (G.card : ℝ) * d ^ 2 = ∑ _A ∈ G, d ^ 2 := by rw [Finset.sum_const, nsmul_eq_mul]
+        _ ≤ ∑ A ∈ G, (2 * ∑ x ∈ A, (x:ℝ) - s) ^ 2 := Finset.sum_le_sum fun A hA => by
+            have h1 := not_lt.1 (Finset.mem_filter.1 hA).2
+            exact (sq_le_sq' (by linarith [abs_nonneg (2 * ∑ x ∈ A, (x:ℝ) - s)]) h1).trans_eq
+              (sq_abs _)
+        _ ≤ ∑ A ∈ S.powerset, (2 * ∑ x ∈ A, (x:ℝ) - s) ^ 2 :=
+            Finset.sum_le_sum_of_subset_of_nonneg (Finset.filter_subset _ _)
+              (fun A _ _ => sq_nonneg _)
+        _ = 2 ^ k * ∑ x ∈ S, (x:ℝ) ^ 2 := hmom
+        _ ≤ 2 ^ k * ((k:ℝ) * (n:ℝ) ^ 2) := by gcongr
+    have hsplit : (F.card : ℝ) + G.card = 2 ^ k := by
+      have := Finset.card_filter_add_card_filter_not (s := S.powerset)
+        (p := fun A => |2 * ∑ x ∈ A, (x:ℝ) - s| < d)
+      rw [Finset.card_powerset, hScard] at this
+      exact_mod_cast congrArg (Nat.cast (R := ℝ)) this
+    have hFlow : 33/49 * 2 ^ k ≤ (F.card : ℝ) := by
+      have hd2 : d ^ 2 = 49/16 * ((k:ℝ) * (n:ℝ) ^ 2) := by rw [hd, ← hr2]; ring
+      have h1 : (G.card : ℝ) ≤ 16/49 * 2 ^ k :=
+        le_of_mul_le_mul_right (by rw [hd2] at hbad ⊢; linarith) (pow_pos hd0 2)
       linarith
-    have hupp : P.real (↑F : Set ({a : ℕ // a ∈ S} → Bool)) ≤ (F.card : ℝ) * (1/2)^k := by
-      have hcov : (↑F : Set ({a : ℕ // a ∈ S} → Bool)) = ⋃ ω ∈ F, ({ω} : Set _) := by
-        rw [← Finset.set_biUnion_coe, Set.biUnion_of_singleton]
-      have h1 : P (↑F : Set ({a : ℕ // a ∈ S} → Bool)) ≤ (F.card : ENNReal) * (2:ENNReal)⁻¹ ^ k := by
-        rw [hcov]
-        refine (measure_biUnion_finset_le F _).trans ?_
-        rw [Finset.sum_congr rfl (fun ω _ => hsingle ω), Finset.sum_const, nsmul_eq_mul]
-      have h2 := ENNReal.toReal_mono (by finiteness) h1
-      refine h2.trans ?_
-      simp [ENNReal.toReal_mul, ENNReal.toReal_pow, ENNReal.toReal_inv]
-    have hcount : (F.card : ℝ) ≤ 2 * c + 1 := by
-      rcases F.eq_empty_or_nonempty with hFe | ⟨ω0, hω0⟩
-      · rw [hFe]
-        simp
-        linarith
-      · have hTne : (F.image V).Nonempty := ⟨V ω0, Finset.mem_image_of_mem V hω0⟩
-        have hTcard : (F.image V).card = F.card := Finset.card_image_of_injective _ hVinj
-        have hbound : ∀ t ∈ F.image V, |(t:ℝ) - m| < c := by
+    -- The sums taken on `F` are distinct naturals inside an interval of length `d`, and an
+    -- interval of length `d` holds at most `d + 1` of them.  This is where the `+ 1` enters.
+    have hcount : (F.card : ℝ) ≤ d + 1 := by
+      rcases F.eq_empty_or_nonempty with hFe | ⟨A₀, hA₀⟩
+      · rw [hFe]; simp only [Finset.card_empty, Nat.cast_zero]; linarith
+      · set T : Finset ℕ := F.image (fun A => ∑ x ∈ A, x)
+        have hTne : T.Nonempty := ⟨_, Finset.mem_image_of_mem _ hA₀⟩
+        have hTcard : T.card = F.card :=
+          Finset.card_image_of_injOn (hinj.mono (by rw [hF]; exact Finset.filter_subset _ _))
+        have hbd : ∀ t ∈ T, |2 * (t:ℝ) - s| < d := by
           intro t ht
-          rw [Finset.mem_image] at ht
-          obtain ⟨ω, hωF, rfl⟩ := ht
-          rw [hFdef, Finset.mem_filter] at hωF
-          exact hωF.2
-        have hlo := (F.image V).min'_mem hTne
-        have hhi := (F.image V).max'_mem hTne
-        have hsub2 : F.image V ⊆ Finset.Icc ((F.image V).min' hTne) ((F.image V).max' hTne) :=
-          fun t ht => Finset.mem_Icc.2 ⟨(F.image V).min'_le t ht, (F.image V).le_max' t ht⟩
-        have hle : (F.image V).min' hTne ≤ (F.image V).max' hTne :=
-          (F.image V).min'_le _ hhi
-        have hcardle : F.card ≤ (F.image V).max' hTne + 1 - (F.image V).min' hTne := by
+          obtain ⟨A, hA, rfl⟩ := Finset.mem_image.1 ht
+          have h1 := (Finset.mem_filter.1 hA).2
+          rwa [Nat.cast_sum]
+        have hlo := T.min'_mem hTne
+        have hhi := T.max'_mem hTne
+        have hsub : T ⊆ Finset.Icc (T.min' hTne) (T.max' hTne) := fun t ht =>
+          Finset.mem_Icc.2 ⟨T.min'_le t ht, T.le_max' t ht⟩
+        have hcards : T.card ≤ T.max' hTne + 1 - T.min' hTne := by
+          simpa [Nat.card_Icc] using Finset.card_le_card hsub
+        have hcast : (F.card : ℝ) ≤ (T.max' hTne : ℝ) + 1 - (T.min' hTne : ℝ) := by
           rw [← hTcard]
-          simpa [Nat.card_Icc] using Finset.card_le_card hsub2
-        have hcast : (F.card : ℝ)
-            ≤ ((F.image V).max' hTne : ℝ) + 1 - ((F.image V).min' hTne : ℝ) := by
-          have := (Nat.cast_le (α := ℝ)).2 hcardle
-          rwa [Nat.cast_sub (by omega), Nat.cast_add, Nat.cast_one] at this
-        have h1 := abs_lt.1 (hbound _ hlo)
-        have h2 := abs_lt.1 (hbound _ hhi)
+          have h2 := (Nat.cast_le (α := ℝ)).2 hcards
+          rwa [Nat.cast_sub (by have := T.min'_le _ hhi; omega), Nat.cast_add, Nat.cast_one] at h2
+        have h1 := abs_lt.1 (hbd _ hlo)
+        have h2 := abs_lt.1 (hbd _ hhi)
         linarith
-    -- `33/49 * 2 ^ k ≤ #F ≤ 2 * c + 1 = (7/4) * n * √k + 1`, which is the claim once `2 ^ k ≥ 64`.
-    have hpow : ((1:ℝ)/2)^k * 2^k = 1 := by rw [← mul_pow]; norm_num
-    have hfinal : 33/49 * 2^k ≤ (F.card : ℝ) := by
-      have h := hlow.trans (hupp)
-      nlinarith [pow_pos (by norm_num : (0:ℝ) < 2) k, h, hpow]
-    rw [hcdef] at hcount
-    nlinarith [hfinal, hcount, h64, mul_pos (by linarith : (0:ℝ) < (n:ℝ)) hrpos]
+    rw [hd] at hcount
+    linarith [hFlow.trans hcount]
   · -- For `k ≤ 5` the pigeonhole bound `2 ^ k ≤ n * k + 1` is already stronger than the claim.
     have hk6' : k < 6 := by omega
     interval_cases k <;>
