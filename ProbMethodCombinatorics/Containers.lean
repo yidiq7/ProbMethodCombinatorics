@@ -717,99 +717,73 @@ theorem exists_dense_fingerprint (c d δ : ℝ) (hc : 0 < c) (hδ : 0 < δ) (hδ
         s I ∈ I ∧ I ⊆ insert (s I) (K (s I)) ∧
         ((insert (s I) (K (s I))).card : ℝ) ≤ (1 - δ) * n := by
   -- the vertex set is nonempty
-  have hnR : (0 : ℝ) < n := by
-    rcases (Nat.cast_nonneg n : (0 : ℝ) ≤ n).lt_or_eq with h | h
-    · exact h
-    · rw [← h] at hhi
-      linarith
-  have hn : 0 < n := by exact_mod_cast hnR
+  have hn : 0 < n := Nat.pos_of_ne_zero fun h => by rw [h] at hhi; norm_num at hhi; linarith
+  have hnR : (0 : ℝ) < n := Nat.cast_pos.mpr hn
   -- `c ≥ 1`: the maximum degree is at least the average
   have hc1 : (1 : ℝ) ≤ c := by
     have h := Finset.sum_le_sum (fun v (_ : v ∈ Finset.univ) => hdeg v)
     rw [hsum, Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul] at h
     nlinarith [mul_pos hd hnR]
-  have hδc' : δ * (100 * c) ≤ 1 := by
-    have h : δ * (100 * c) ≤ (1 / (100 * c)) * (100 * c) :=
-      mul_le_mul_of_nonneg_right hδc (by positivity)
-    rwa [one_div, inv_mul_cancel₀ (by positivity : (100 * c) ≠ 0)] at h
-  have hcδ : c * δ ≤ 1 / 100 := by linarith
-  have hδ100 : δ ≤ 1 / 100 := by nlinarith
+  have hcδ : c * δ ≤ 1 / 100 := by
+    linarith [(le_div_iff₀ (by positivity : (0 : ℝ) < 100 * c)).mp hδc]
+  have hδ100 : δ ≤ 1 / 100 := by linarith [mul_nonneg (sub_nonneg.mpr hc1) hδ.le]
+  -- the two scale bounds the counting argument needs: `δ * n` and `c * d` are both `O(n / 100)`
+  have hδn : δ * n ≤ 1 / 100 * n := mul_le_mul_of_nonneg_right hδ100 hnR.le
+  have hcdn : 2 * (c * d) ≤ 4 / 100 * n := by
+    linarith [mul_le_mul_of_nonneg_left hhi hc.le, mul_le_mul_of_nonneg_right hcδ hnR.le]
   -- **the greedy extension step**
   have hstep : ∀ P : Finset (Fin n), ((P.card : ℝ) < δ * n) →
       ∃ v, v ∉ P ∧ δ * n - P.card ≤ ((G.neighborFinset v \ P).card : ℝ) := by
     intro P hP
+    -- `|P| * (2 * c * d + |P| - n - δ * n) ≤ 0`, the right-hand side of the count
+    have hRHS : (P.card : ℝ) * (2 * (c * d) + (P.card : ℝ) - n - δ * n) ≤ 0 :=
+      mul_nonpos_of_nonneg_of_nonpos (Nat.cast_nonneg _) (by linarith)
     by_contra hcon0
-    have hcon : ∀ v : Fin n, v ∉ P →
-        ((G.neighborFinset v \ P).card : ℝ) < δ * n - P.card := by
-      intro v hvP
-      by_contra h
-      exact hcon0 ⟨v, hvP, not_lt.mp h⟩
+    have hcon : ∀ v : Fin n, v ∉ P → ((G.neighborFinset v \ P).card : ℝ) < δ * n - P.card :=
+      fun v hvP => not_le.mp fun h => hcon0 ⟨v, hvP, h⟩
     have hjn : P.card ≤ n := by simpa [Finset.card_univ] using Finset.card_le_univ P
-    have hQcard : (Finset.univ \ P).card = n - P.card := by
-      rw [Finset.card_sdiff_of_subset (Finset.subset_univ P), Finset.card_univ,
-        Fintype.card_fin]
     -- count the edges between `P` and its complement from the `P` side
     have hcross : (∑ v ∈ Finset.univ \ P, (G.neighborFinset v ∩ P).card)
         ≤ ∑ u ∈ P, G.degree u := by
-      have e1 : ∀ v : Fin n, (G.neighborFinset v ∩ P).card
-          = ∑ u ∈ P, if G.Adj v u then 1 else 0 := by
-        intro v
-        rw [← Finset.card_filter]
-        congr 1
-        ext u
-        simp [and_comm]
       calc (∑ v ∈ Finset.univ \ P, (G.neighborFinset v ∩ P).card)
           = ∑ v ∈ Finset.univ \ P, ∑ u ∈ P, if G.Adj v u then 1 else 0 :=
-            Finset.sum_congr rfl fun v _ => e1 v
+            Finset.sum_congr rfl fun v _ => by
+              rw [← Finset.card_filter]; congr 1; ext u; simp [and_comm]
         _ = ∑ u ∈ P, ∑ v ∈ Finset.univ \ P, if G.Adj v u then 1 else 0 := Finset.sum_comm
         _ ≤ ∑ u ∈ P, G.degree u := by
             refine Finset.sum_le_sum fun u _ => ?_
             rw [← Finset.card_filter]
-            refine Finset.card_le_card ?_
-            intro v hv
+            refine Finset.card_le_card fun v hv => ?_
             simp only [Finset.mem_filter] at hv
             exact (SimpleGraph.mem_neighborFinset _ _ _).mpr hv.2.symm
     have hmain : ∑ v, G.degree v
         ≤ (∑ v ∈ Finset.univ \ P, (G.neighborFinset v \ P).card)
           + 2 * ∑ u ∈ P, G.degree u := by
-      have h1 : (∑ v ∈ Finset.univ \ P, G.degree v) + ∑ u ∈ P, G.degree u
-          = ∑ v, G.degree v :=
+      have h1 : (∑ v ∈ Finset.univ \ P, G.degree v) + ∑ u ∈ P, G.degree u = ∑ v, G.degree v :=
         Finset.sum_sdiff (Finset.subset_univ P)
       have h2 : (∑ v ∈ Finset.univ \ P, G.degree v)
           = (∑ v ∈ Finset.univ \ P, (G.neighborFinset v \ P).card)
             + ∑ v ∈ Finset.univ \ P, (G.neighborFinset v ∩ P).card := by
         rw [← Finset.sum_add_distrib]
-        exact Finset.sum_congr rfl fun v _ =>
-          (Finset.card_sdiff_add_card_inter _ _).symm
+        exact Finset.sum_congr rfl fun v _ => (Finset.card_sdiff_add_card_inter _ _).symm
       omega
     have hmainR : (d * n : ℝ)
         ≤ (∑ v ∈ Finset.univ \ P, ((G.neighborFinset v \ P).card : ℝ))
           + 2 * ∑ u ∈ P, (G.degree u : ℝ) := by
-      rw [← hsum]
-      have := (Nat.cast_le (α := ℝ)).mpr hmain
-      push_cast at this
-      exact this
-    have hAsum : (∑ v ∈ Finset.univ \ P, ((G.neighborFinset v \ P).card : ℝ))
-        ≤ ((n : ℝ) - P.card) * (δ * n - P.card) := by
-      calc (∑ v ∈ Finset.univ \ P, ((G.neighborFinset v \ P).card : ℝ))
-          ≤ ∑ _v ∈ Finset.univ \ P, (δ * n - (P.card : ℝ)) := by
-            refine Finset.sum_le_sum fun v hv => le_of_lt (hcon v ?_)
-            exact (Finset.mem_sdiff.mp hv).2
-        _ = (((Finset.univ \ P).card : ℝ)) * (δ * n - P.card) := by
-            rw [Finset.sum_const, nsmul_eq_mul]
-        _ = ((n : ℝ) - P.card) * (δ * n - P.card) := by
-            rw [hQcard, Nat.cast_sub hjn]
-    have hBsum : (∑ u ∈ P, (G.degree u : ℝ)) ≤ (P.card : ℝ) * (c * d) := by
-      calc (∑ u ∈ P, (G.degree u : ℝ)) ≤ ∑ _u ∈ P, c * d :=
-            Finset.sum_le_sum fun u _ => hdeg u
-        _ = (P.card : ℝ) * (c * d) := by rw [Finset.sum_const, nsmul_eq_mul]
-    have h2cd : 2 * (c * d) ≤ 4 * (c * δ) * (n : ℝ) := by nlinarith
-    have hδn : δ * n ≤ (1 / 100) * (n : ℝ) := by nlinarith
-    have h4 : 4 * (c * δ) * (n : ℝ) ≤ 4 * (1 / 100) * (n : ℝ) := by nlinarith
-    have hneg : 2 * (c * d) + (P.card : ℝ) - n - δ * n ≤ 0 := by nlinarith
-    have hRHS : (P.card : ℝ) * (2 * (c * d) + (P.card : ℝ) - n - δ * n) ≤ 0 :=
-      mul_nonpos_of_nonneg_of_nonpos (Nat.cast_nonneg _) hneg
-    nlinarith [hmainR, hAsum, hBsum, hRHS]
+      rw [← hsum]; exact_mod_cast hmain
+    have hAsum := Finset.sum_le_card_nsmul (Finset.univ \ P)
+      (fun v => ((G.neighborFinset v \ P).card : ℝ)) (δ * n - (P.card : ℝ))
+      fun v hv => (hcon v (Finset.mem_sdiff.mp hv).2).le
+    rw [nsmul_eq_mul, Finset.card_sdiff_of_subset (Finset.subset_univ P), Finset.card_univ,
+      Fintype.card_fin, Nat.cast_sub hjn] at hAsum
+    have hBsum := Finset.sum_le_card_nsmul P (fun u => (G.degree u : ℝ)) (c * d) fun u _ => hdeg u
+    rw [nsmul_eq_mul] at hBsum
+    linarith [hmainR, hAsum, hBsum, hRHS, mul_lt_mul_of_pos_right hlo hnR]
+  -- an initial segment of a sequence injective on it has image of full size
+  have hcardimg : ∀ (f : ℕ → Fin n) (m : ℕ), (∀ i < m, ∀ j < m, f i = f j → i = j) →
+      ((Finset.range m).image f).card = m := fun f m hf =>
+    (Finset.card_image_of_injOn fun a ha b hb hab =>
+      hf a (Finset.mem_range.mp ha) b (Finset.mem_range.mp hb) hab).trans (Finset.card_range m)
   -- iterate the greedy step: a sequence of distinct vertices, each with a large `Z`
   have hseq : ∀ k : ℕ, k ≤ ⌈δ * n⌉₊ → ∃ w : ℕ → Fin n,
       (∀ i < k, ∀ j < k, w i = w j → i = j) ∧
@@ -821,177 +795,117 @@ theorem exists_dense_fingerprint (c d δ : ℝ) (hc : 0 < c) (hδ : 0 < δ) (hδ
     | succ k ih =>
       intro hk
       obtain ⟨w, hinj, hprop⟩ := ih (by omega)
-      have hPcard : ((Finset.range k).image w).card = k := by
-        rw [Finset.card_image_of_injOn, Finset.card_range]
-        intro a ha b hb hab
-        exact hinj a (Finset.mem_range.mp ha) b (Finset.mem_range.mp hb) hab
-      have hPlt : ((((Finset.range k).image w).card : ℝ)) < δ * n := by
-        rw [hPcard]; exact Nat.lt_ceil.mp (by omega)
-      obtain ⟨v, hvP, hv⟩ := hstep _ hPlt
+      have hPcard := hcardimg w k hinj
+      obtain ⟨v, hvP, hv⟩ := hstep _ (by rw [hPcard]; exact Nat.lt_ceil.mp (by omega))
+      have hvZ : δ * n ≤ ((G.neighborFinset v ∪ (Finset.range k).image w).card : ℝ) := by
+        rw [← Finset.card_sdiff_add_card, Nat.cast_add, hPcard]
+        rw [hPcard] at hv
+        linarith
+      have hne : ∀ i < k, w i ≠ v := fun i hi h =>
+        hvP (h ▸ Finset.mem_image_of_mem w (Finset.mem_range.mpr hi))
       have himg : ∀ l : ℕ, l ≤ k →
           (Finset.range l).image (fun j => if j = k then v else w j)
-            = (Finset.range l).image w := by
-        intro l hl
-        refine Finset.image_congr ?_
-        intro a ha
-        simp only [Finset.coe_range, Set.mem_Iio] at ha
-        exact if_neg (by omega)
-      have hgen : ∀ (u : Fin n) (l : ℕ), u = v → l = k →
-          δ * n ≤ ((G.neighborFinset u ∪ (Finset.range l).image w).card : ℝ) := by
-        intro u l hu hl
-        subst hu
-        subst hl
-        have hsplit : ((G.neighborFinset u \ (Finset.range l).image w).card : ℝ)
-            + ((((Finset.range l).image w).card : ℝ))
-            = ((G.neighborFinset u ∪ (Finset.range l).image w).card : ℝ) := by
-          rw [← Nat.cast_add, Finset.card_sdiff_add_card]
-        rw [hPcard] at hv hsplit
-        linarith
-      refine ⟨fun i => if i = k then v else w i, ?_, ?_⟩
+            = (Finset.range l).image w := fun l hl =>
+        Finset.image_congr fun a ha => if_neg (by
+          simp only [Finset.coe_range, Set.mem_Iio] at ha; omega)
+      refine ⟨fun i => if i = k then v else w i, ?_, fun i hi => ?_⟩
       · intro i hi j hj hij
         dsimp only at hij
         by_cases hik : i = k <;> by_cases hjk : j = k
         · omega
-        · rw [if_pos hik, if_neg hjk] at hij
-          exact absurd (hij ▸ Finset.mem_image_of_mem w (Finset.mem_range.mpr (by omega))) hvP
-        · rw [if_neg hik, if_pos hjk] at hij
-          exact absurd
-            (hij.symm ▸ Finset.mem_image_of_mem w (Finset.mem_range.mpr (by omega))) hvP
-        · rw [if_neg hik, if_neg hjk] at hij
-          exact hinj i (by omega) j (by omega) hij
-      · intro i hi
-        by_cases hik : i = k
-        · rw [himg i (by omega)]
-          exact hgen _ i (if_pos hik) hik
-        · rw [himg i (by omega)]
-          have hwi : (fun j => if j = k then v else w j) i = w i := if_neg hik
-          rw [hwi]
+        · rw [if_pos hik, if_neg hjk] at hij; exact absurd hij.symm (hne j (by omega))
+        · rw [if_neg hik, if_pos hjk] at hij; exact absurd hij (hne i (by omega))
+        · rw [if_neg hik, if_neg hjk] at hij; exact hinj i (by omega) j (by omega) hij
+      · by_cases hik : i = k
+        · rw [hik, himg k le_rfl, show (fun j => if j = k then v else w j) k = v from if_pos rfl]
+          exact hvZ
+        · rw [himg i (by omega),
+            show (fun j => if j = k then v else w j) i = w i from if_neg hik]
           exact hprop i (by omega)
   obtain ⟨w, hinj, hprop⟩ := hseq ⌈δ * n⌉₊ le_rfl
-  have himgcard : ((Finset.range ⌈δ * n⌉₊).image w).card = ⌈δ * n⌉₊ := by
-    rw [Finset.card_image_of_injOn, Finset.card_range]
-    intro a ha b hb hab
-    exact hinj a (Finset.mem_range.mp ha) b (Finset.mem_range.mp hb) hab
+  have himgcard := hcardimg w ⌈δ * n⌉₊ hinj
   -- the rank function: the greedily chosen vertices first, in order, then everything else
   obtain ⟨key, hkey_img, hkey_out⟩ : ∃ key : Fin n → ℕ,
       (∀ i, i < ⌈δ * n⌉₊ → key (w i) = i + 1) ∧
       (∀ v, v ∉ (Finset.range ⌈δ * n⌉₊).image w →
         key v = ⌈δ * n⌉₊ + 1 + (v : ℕ)) := by
+    have hs : ∀ i < ⌈δ * n⌉₊,
+        (∑ j ∈ Finset.range ⌈δ * n⌉₊, if w j = w i then j + 1 else 0) = i + 1 := fun i hi =>
+      (Finset.sum_eq_single_of_mem i (Finset.mem_range.mpr hi) fun b hb hbi =>
+        if_neg fun h => hbi (hinj b (Finset.mem_range.mp hb) i hi h)).trans (if_pos rfl)
     refine ⟨fun v =>
       if (∑ i ∈ Finset.range ⌈δ * n⌉₊, if w i = v then i + 1 else 0) = 0
         then ⌈δ * n⌉₊ + 1 + (v : ℕ)
-        else (∑ i ∈ Finset.range ⌈δ * n⌉₊, if w i = v then i + 1 else 0), ?_, ?_⟩
-    · intro i hi
-      dsimp only
-      have hs : (∑ j ∈ Finset.range ⌈δ * n⌉₊, if w j = w i then j + 1 else 0)
-          = i + 1 := by
-        refine (Finset.sum_eq_single_of_mem i (Finset.mem_range.mpr hi) ?_).trans (if_pos rfl)
-        intro b hb hbi
-        exact if_neg fun h => hbi (hinj b (Finset.mem_range.mp hb) i hi h)
-      rw [if_neg (by rw [hs]; omega)]
-      exact hs
-    · intro v hv
-      dsimp only
-      have hs : (∑ i ∈ Finset.range ⌈δ * n⌉₊, if w i = v then i + 1 else 0) = 0 :=
-        Finset.sum_eq_zero fun i hi =>
-          if_neg fun h => hv (by rw [← h]; exact Finset.mem_image_of_mem w hi)
-      exact if_pos hs
+        else (∑ i ∈ Finset.range ⌈δ * n⌉₊, if w i = v then i + 1 else 0),
+      fun i hi => (if_neg (by rw [hs i hi]; omega)).trans (hs i hi), fun v hv => ?_⟩
+    exact if_pos (Finset.sum_eq_zero fun i hi =>
+      if_neg fun h => hv (by rw [← h]; exact Finset.mem_image_of_mem w hi))
+  -- `Z v`: the neighbours of `v` together with its `≺`-predecessors
+  obtain ⟨Z, hZdef⟩ : ∃ Z : Fin n → Finset (Fin n), ∀ v,
+      Z v = G.neighborFinset v ∪ Finset.univ.filter (fun u => key u < key v) :=
+    ⟨_, fun _ => rfl⟩
   -- no vertex precedes itself, and no vertex is its own neighbour
-  have hZv : ∀ v : Fin n,
-      v ∉ G.neighborFinset v ∪ Finset.univ.filter (fun u => key u < key v) := by
-    intro v hv
-    simp only [Finset.mem_union, Finset.mem_filter, Finset.mem_univ, true_and,
-      SimpleGraph.mem_neighborFinset] at hv
-    rcases hv with h | h
-    · exact G.ne_of_adj h rfl
-    · exact absurd h (lt_irrefl _)
+  have hZv : ∀ v : Fin n, v ∉ Z v := fun v hv => by
+    rw [hZdef, Finset.mem_union, SimpleGraph.mem_neighborFinset, Finset.mem_filter] at hv
+    exact hv.elim (fun h => G.ne_of_adj h rfl) fun h => absurd h.2 (lt_irrefl _)
   -- **every** vertex has at least `δ * n` neighbours-or-predecessors
-  have hZ : ∀ v : Fin n,
-      δ * n
-        ≤ ((G.neighborFinset v ∪ Finset.univ.filter (fun u => key u < key v)).card : ℝ) := by
+  have hZ : ∀ v : Fin n, δ * n ≤ ((Z v).card : ℝ) := by
     intro v
+    rw [hZdef]
     by_cases hv : v ∈ (Finset.range ⌈δ * n⌉₊).image w
     · obtain ⟨i, hi, rfl⟩ := Finset.mem_image.mp hv
       have hi' := Finset.mem_range.mp hi
-      refine le_trans (hprop i hi') (Nat.cast_le.mpr (Finset.card_le_card ?_))
-      refine Finset.union_subset_union (Finset.Subset.refl _) ?_
-      intro u hu
+      refine (hprop i hi').trans (Nat.cast_le.mpr (Finset.card_le_card
+        (Finset.union_subset_union_right fun u hu => ?_)))
       obtain ⟨j, hj, rfl⟩ := Finset.mem_image.mp hu
-      refine Finset.mem_filter.mpr ⟨Finset.mem_univ _, ?_⟩
-      rw [hkey_img j (by have := Finset.mem_range.mp hj; omega), hkey_img i hi']
-      have := Finset.mem_range.mp hj
-      omega
-    · have hsub : (Finset.range ⌈δ * n⌉₊).image w
-          ⊆ Finset.univ.filter (fun u => key u < key v) := by
-        intro u hu
-        obtain ⟨i, hi, rfl⟩ := Finset.mem_image.mp hu
-        refine Finset.mem_filter.mpr ⟨Finset.mem_univ _, ?_⟩
-        rw [hkey_img i (Finset.mem_range.mp hi), hkey_out v hv]
-        have := Finset.mem_range.mp hi
-        omega
-      have hcard : ⌈δ * n⌉₊
-          ≤ (G.neighborFinset v ∪ Finset.univ.filter (fun u => key u < key v)).card := by
-        calc ⌈δ * n⌉₊ = ((Finset.range ⌈δ * n⌉₊).image w).card := himgcard.symm
-          _ ≤ (Finset.univ.filter (fun u => key u < key v)).card := Finset.card_le_card hsub
-          _ ≤ _ := Finset.card_le_card Finset.subset_union_right
-      exact le_trans (Nat.le_ceil _) (Nat.cast_le.mpr hcard)
-  -- the container attached to the `≺`-least vertex of an independent set
-  have hcont : ∀ (v₀ : Fin n) (J : Finset (Fin n)),
-      G.IsIndepSet (J : Set (Fin n)) → v₀ ∈ J →
-      (∀ u ∈ J, key v₀ ≤ key u) →
-      v₀ ∈ J ∧
-      J ⊆ insert v₀ (Finset.univ \ insert v₀
-        (G.neighborFinset v₀ ∪ Finset.univ.filter (fun u => key u < key v₀))) ∧
-      ((insert v₀ (Finset.univ \ insert v₀
-        (G.neighborFinset v₀ ∪ Finset.univ.filter (fun u => key u < key v₀)))).card : ℝ)
-        ≤ (1 - δ) * n := by
-    intro v₀ J hJ hv₀ hminv
-    have hins : insert v₀ (Finset.univ \ insert v₀
-        (G.neighborFinset v₀ ∪ Finset.univ.filter (fun u => key u < key v₀)))
-        = Finset.univ
-          \ (G.neighborFinset v₀ ∪ Finset.univ.filter (fun u => key u < key v₀)) := by
-      ext u
-      by_cases h : u = v₀
-      · subst h; simp [hZv]
-      · simp [h]
-    refine ⟨hv₀, ?_, ?_⟩
-    · intro u hu
-      rw [hins]
-      refine Finset.mem_sdiff.mpr ⟨Finset.mem_univ _, ?_⟩
-      intro hcon
-      rcases Finset.mem_union.mp hcon with hcn | hcn
-      · have hadj : G.Adj v₀ u := (SimpleGraph.mem_neighborFinset _ _ _).mp hcn
-        exact hJ (by simpa using hv₀) (by simpa using hu) hadj.ne hadj
-      · have := (Finset.mem_filter.mp hcn).2
-        have := hminv u hu
-        omega
-    · rw [hins, Finset.card_sdiff_of_subset (Finset.subset_univ _), Finset.card_univ,
-        Fintype.card_fin]
-      have h2 :
-          (G.neighborFinset v₀ ∪ Finset.univ.filter (fun u => key u < key v₀)).card
-            ≤ n := by
-        simpa [Finset.card_univ] using Finset.card_le_univ
-          (G.neighborFinset v₀ ∪ Finset.univ.filter (fun u => key u < key v₀))
-      rw [Nat.cast_sub h2]
-      have := hZ v₀
-      nlinarith
+      have hj' := Finset.mem_range.mp hj
+      exact Finset.mem_filter.mpr ⟨Finset.mem_univ _,
+        by rw [hkey_img j (by omega), hkey_img i hi']; omega⟩
+    · refine (Nat.le_ceil _).trans (Nat.cast_le.mpr ?_)
+      calc ⌈δ * n⌉₊ = ((Finset.range ⌈δ * n⌉₊).image w).card := himgcard.symm
+        _ ≤ (Finset.univ.filter (fun u => key u < key v)).card :=
+            Finset.card_le_card fun u hu => by
+              obtain ⟨i, hi, rfl⟩ := Finset.mem_image.mp hu
+              have hi' := Finset.mem_range.mp hi
+              exact Finset.mem_filter.mpr ⟨Finset.mem_univ _,
+                by rw [hkey_img i hi', hkey_out v hv]; omega⟩
+        _ ≤ _ := Finset.card_le_card Finset.subset_union_right
+  -- the `≺`-least vertex of a nonempty set
   obtain ⟨sel, hsel⟩ : ∃ sel : Finset (Fin n) → Fin n,
       ∀ I : Finset (Fin n), I.Nonempty →
         sel I ∈ I ∧ ∀ u ∈ I, key (sel I) ≤ key u := by
     refine ⟨fun I => if h : (I.filter (fun v => ∀ u ∈ I, key v ≤ key u)).Nonempty then
-      (I.filter (fun v => ∀ u ∈ I, key v ≤ key u)).min' h else ⟨0, hn⟩, ?_⟩
-    intro I hIne
+      (I.filter (fun v => ∀ u ∈ I, key v ≤ key u)).min' h else ⟨0, hn⟩, fun I hIne => ?_⟩
     have hfne : (I.filter (fun v => ∀ u ∈ I, key v ≤ key u)).Nonempty := by
       obtain ⟨v, hv, hvmin⟩ := I.exists_min_image key hIne
       exact ⟨v, Finset.mem_filter.mpr ⟨hv, hvmin⟩⟩
-    dsimp only
-    rw [dif_pos hfne]
-    exact Finset.mem_filter.mp (Finset.min'_mem _ hfne)
-  refine ⟨sel, fun v => Finset.univ \ insert v
-      (G.neighborFinset v ∪ Finset.univ.filter (fun u => key u < key v)), ?_⟩
-  intro I hI hIne
-  obtain ⟨h1, h2⟩ := hsel I hIne
-  exact hcont _ I hI h1 h2
+    simpa only [dif_pos hfne] using Finset.mem_filter.mp (Finset.min'_mem _ hfne)
+  -- the container at the `≺`-least vertex `v₀` of `I` is `V \ Z v₀`
+  refine ⟨sel, fun v => Finset.univ \ insert v (Z v), fun I hI hIne => ?_⟩
+  obtain ⟨hv₀, hminv⟩ := hsel I hIne
+  dsimp only
+  have hins : insert (sel I) (Finset.univ \ insert (sel I) (Z (sel I)))
+      = Finset.univ \ Z (sel I) := by
+    ext u
+    rcases eq_or_ne u (sel I) with rfl | h
+    · simp [hZv]
+    · simp [h]
+  refine ⟨hv₀, ?_, ?_⟩
+  · intro u hu
+    rw [hins]
+    refine Finset.mem_sdiff.mpr ⟨Finset.mem_univ _, ?_⟩
+    rw [hZdef]
+    intro hcon
+    rcases Finset.mem_union.mp hcon with hcn | hcn
+    · have hadj : G.Adj (sel I) u := (SimpleGraph.mem_neighborFinset _ _ _).mp hcn
+      exact hI (by simpa using hv₀) (by simpa using hu) hadj.ne hadj
+    · have := (Finset.mem_filter.mp hcn).2
+      have := hminv u hu
+      omega
+  · rw [hins, Finset.card_sdiff_of_subset (Finset.subset_univ _), Finset.card_univ,
+      Fintype.card_fin, Nat.cast_sub
+        (by simpa [Finset.card_univ] using Finset.card_le_univ (Z (sel I)))]
+    linarith [hZ (sel I)]
 
 /-- **The graph container theorem, with fingerprints** (Zhao, Theorem 11.2.3).  The refinement of
 Theorem 11.2.1 that the applications actually need, and — despite the numbering — **the
