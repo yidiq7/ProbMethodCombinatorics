@@ -31,15 +31,16 @@ group file has a "planned, not stated" section saying which and why.
 | [`local-lemma`](local-lemma.md) | 6 | **all proved** | — |
 | [`correlation`](correlation.md) | 7 | **all proved** | — |
 | [`janson`](janson.md) | 8 | **all proved** | — |
-| [`concentration`](concentration.md) | 9 | 1 open (Thm 9.4.8, own file) | Talagrand, TSP |
+| [`concentration`](concentration.md) | 9 | **all proved** | Talagrand, TSP |
 | [`entropy`](entropy.md) | 10 | **all proved** | Sidorenko, Steiner |
 | [`containers`](containers.md) | 11 | 1 open | 11.1.3, 11.1.5, supersaturation |
 
-**Three nodes are open, and only one of them is hard.**  Three were stated on 2026-09-21 from a
-re-sweep of the source (#377–#379: Kahn–Lovász, Theorem 5.0.5, Theorem 9.4.8) and are assembly
-or Mathlib-wrapping rather than new mathematics; each sits in its own file, so filling it does
-not re-pin the golf tasks open against `Chernoff.lean`, `Concentration.lean` and `Entropy.lean`.
-**Kahn–Lovász (#380) and Theorem 5.0.5 (#381) landed the same day**, both unconditional.
+**Chapter 11's held corner is the only open node again.**  Three more were stated on 2026-09-21
+from a re-sweep of the source — #377 Kahn–Lovász, #378 Theorem 5.0.5, #379 Theorem 9.4.8 — and
+**all three were claimed, proved and merged the same day** (#380–#382), each unconditional.  Each
+was given its own file so that filling it would not re-pin the golf tasks open against
+`Chernoff.lean`, `Concentration.lean` and `Entropy.lean`; that worked, and is the pattern to
+repeat.
 The fourth is Chapter 11's held corner.  The counts in this table are derived from `graph.json`
 (nodes with `statement: formalized`, `proof: planned`), which `sync-graph --check` keeps
 honest:

@@ -1,4 +1,5 @@
 import Mathlib.MeasureTheory.Constructions.BorelSpace.Basic
+import Mathlib.MeasureTheory.Measure.Real
 import Mathlib.MeasureTheory.Measure.Typeclasses.Probability
 import Mathlib.Topology.MetricSpace.HausdorffDistance
 
@@ -31,20 +32,14 @@ most `m` exceeds `m + t` with probability at most `ε`.
 Both `t` and `ε` are fixed throughout; the equivalence is for each pair separately, not after
 quantifying over them. -/
 theorem measure_infDist_le_iff_measure_lt_le {Ω : Type*} [MetricSpace Ω] [MeasurableSpace Ω]
-    [BorelSpace Ω] (μ : Measure Ω) [IsProbabilityMeasure μ] {t ε : ℝ} (ht : 0 ≤ t)
-    (hε : 0 ≤ ε) :
+    [BorelSpace Ω] (μ : Measure Ω) [IsProbabilityMeasure μ] {t ε : ℝ} :
     (∀ A : Set Ω, MeasurableSet A → 1 / 2 ≤ μ.real A →
         1 - ε ≤ μ.real {x | infDist x A ≤ t})
       ↔ (∀ f : Ω → ℝ, LipschitzWith 1 f → ∀ m : ℝ, 1 / 2 ≤ μ.real {x | f x ≤ m} →
         μ.real {x | m + t < f x} ≤ ε) := by
-  -- The `μ.real` API lives downstream of this file's imports, so the two facts we need about it
-  -- are derived here from the `ENNReal`-valued measure.
-  have hmono : ∀ s u : Set Ω, s ⊆ u → μ.real s ≤ μ.real u := fun s u hsu =>
-    ENNReal.toReal_mono (measure_ne_top μ u) (measure_mono hsu)
-  have hcompl : ∀ s : Set Ω, MeasurableSet s → μ.real sᶜ = 1 - μ.real s := by
-    intro s hs
-    simp only [Measure.real, prob_compl_eq_one_sub hs,
-      ENNReal.toReal_sub_of_le prob_le_one ENNReal.one_ne_top, ENNReal.toReal_one]
+  have hmono : ∀ s u : Set Ω, s ⊆ u → μ.real s ≤ μ.real u := fun _ _ hsu => measureReal_mono hsu
+  have hcompl : ∀ s : Set Ω, MeasurableSet s → μ.real sᶜ = 1 - μ.real s := fun s hs => by
+    rw [measureReal_compl hs, probReal_univ]
   constructor
   · intro h f hf m hm
     have hAmeas : MeasurableSet {x : Ω | f x ≤ m} :=

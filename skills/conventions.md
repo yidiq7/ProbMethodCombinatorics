@@ -295,3 +295,27 @@ project open only `Finset MeasureTheory ProbabilityTheory`, and there `n !` fail
 measure.  Neither do the `measureReal` union bounds.  If a task's suggested route tells you
 to establish measurability before applying one of these, the route is wrong and you can skip
 it; measurability of graph events is only needed for `Measure.map_apply` and for integrals.
+
+**But check `measureReal_*` is in scope before reaching for it — in a file with narrow
+measure-theory imports it will not be.**  `Measure.real` is defined in
+`MeasureTheory/Measure/MeasureSpaceDef.lean`, while the whole `measureReal_*` API lives in
+`MeasureTheory/Measure/Real.lean`, which is further downstream.  **A statement written in
+`μ.real` therefore elaborates in files where nothing can be proved about it**, and the gap
+shows up only when you reach for the first lemma.  This has already cost one task
+(`ConcentrationEquivalence.lean`, whose header has since been fixed).
+
+If you hit it, the two facts you are most likely to want are one line each from the
+`ENNReal`-valued measure, and a `prove` task may **not** add the import to fix it — the header
+is not yours:
+
+    have hmono : ∀ s u : Set Ω, s ⊆ u → μ.real s ≤ μ.real u := fun s u hsu =>
+      ENNReal.toReal_mono (measure_ne_top μ u) (measure_mono hsu)
+    have hcompl : ∀ s : Set Ω, MeasurableSet s → μ.real sᶜ = 1 - μ.real s := by
+      intro s hs
+      simp only [Measure.real, prob_compl_eq_one_sub hs,
+        ENNReal.toReal_sub_of_le prob_le_one ENNReal.one_ne_top, ENNReal.toReal_one]
+
+Note this also takes `gcongr` off the table for those steps, since the `@[gcongr]`-tagged
+lemma is the unreachable one.  **Say so on the issue when it happens** — an unreachable route
+in a task's prose is an orchestrator error and it should be fixed at the source rather than
+worked around silently by each contributor in turn.
