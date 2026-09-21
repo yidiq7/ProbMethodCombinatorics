@@ -1055,6 +1055,31 @@ private theorem card_image_univ_pair {σ τ₁ τ₂ : Type*} [DecidableEq σ] [
   simp only [h₁, h₂]
   exact card_image_univ_coe A (fun x => (g₁ x, g₂ x))
 
+/-- **Loomis–Whitney** (Zhao, Corollary 10.4.6): a finite set of points in a product of `n`
+coordinates satisfies `#S ^ (n - 1) ≤ ∏_j #(π_j S)`, where `π_j` deletes the `j`-th coordinate.
+
+`card_sq_le_prod_card_image` is the `n = 3` case; this is the same argument with `shearer` in
+place of `shearer_triple`.  Take `A j = univ.erase j`: every index lies in `A j` for exactly the
+`n - 1` values `j ≠ i`, so Shearer applies with `k = n - 1`.
+
+The projection is written into `↥(univ.erase j)` rather than a `Subtype` of `≠ j`, because that
+is the shape `shearer`'s conclusion produces and the two have to meet.
+
+**`hS : S.Nonempty` is load-bearing and cannot be dropped**, though only one case needs it: at
+`n = 1` with `S = ∅` the left side is `0 ^ 0 = 1` while the product is `0`, so the statement is
+false.  Every other degenerate case is fine — `n = 0` gives `1 ≤ 1`, and `n ≥ 2` with `S = ∅`
+gives `0 ≤ 0`, which is why the `n = 3` version above needs no such hypothesis.  The proof needs
+it independently: Shearer wants a probability distribution on `↥S`.
+
+Verified by brute force before stating: all 273 nonempty subsets of `{0,1}^n` for `n ≤ 3`
+(39 of them tight), and 4000 random subsets of `{0,1,2}^3`. -/
+theorem card_pow_le_prod_card_image_erase {ι : Type*} [Fintype ι] [DecidableEq ι]
+    {α : ι → Type*} [∀ i, DecidableEq (α i)]
+    (S : Finset (∀ i, α i)) (hS : S.Nonempty) :
+    S.card ^ (Fintype.card ι - 1)
+      ≤ ∏ j : ι, (S.image fun x => fun i : ↥(univ.erase j) => x i).card := by
+  sorry
+
 /-- **Discrete Loomis–Whitney in three coordinates** (Theorem 10.4.3): a finite set of points in
 a product of three types has `|A|² ≤ |π₁₂ A| · |π₁₃ A| · |π₂₃ A|`.  Apply `shearer_triple` to a
 uniform random point of `A`, using `entropy_le_logb_card` on each projection. -/
