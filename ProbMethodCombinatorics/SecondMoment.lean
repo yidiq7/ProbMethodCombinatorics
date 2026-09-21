@@ -613,12 +613,14 @@ theorem variance_triangleCount_le (n : ℕ) (p : I) :
   set A : {T // T ∈ 𝒯} → Set (SimpleGraph (Fin n)) :=
     fun T => {G : SimpleGraph (Fin n) | ↑(offDiagPairs T.1) ⊆ G.edgeSet}
   have hcard3' : ∀ T : {T // T ∈ 𝒯}, T.1.card = 3 := fun T => (Finset.mem_powersetCard.1 T.2).2
-  have hcard3 : ∀ T : {T // T ∈ 𝒯}, (offDiagPairs T.1).card = 3 := by
-    intro T
-    have h := card_offDiagPairs_add T.1
-    have h6 : (3 + 1).choose 2 = 6 := by decide
-    rw [hcard3' T, h6] at h
+  -- `#(offDiagPairs S)` depends on `S` only through `#S`, via `binom(#S, 2)`.
+  have hoff : ∀ (S : Finset (Fin n)) (m c : ℕ), S.card = m → (m + 1).choose 2 = c + m →
+      (offDiagPairs S).card = c := fun S m c hm hc => by
+    have h := card_offDiagPairs_add S
+    rw [hm, hc] at h
     omega
+  have hcard3 : ∀ T : {T // T ∈ 𝒯}, (offDiagPairs T.1).card = 3 :=
+    fun T => hoff _ 3 3 (hcard3' T) (by decide)
   have hmeas : ∀ i, MeasurableSet (A i) := fun i => measurableSet_setOf_subset_edgeSet _
   have hprob : ∀ i, binomialRandom (Fin n) p (A i) = (toNNReal p : ENNReal) ^ 3 := by
     intro i
@@ -635,13 +637,9 @@ theorem variance_triangleCount_le (n : ℕ) (p : I) :
     univ.filter (fun q => (q.1.1 ∩ q.2.1).card = 2)
   have hinterle : ∀ i j : {T // T ∈ 𝒯}, i ≠ j → (i.1 ∩ j.1).card ≤ 2 := by
     intro i j hij
-    have hne : i.1 ≠ j.1 := fun h => hij (Subtype.ext h)
-    have h3 : (i.1 ∩ j.1).card ≠ 3 := by
-      intro h
-      exact hne ((Finset.eq_of_subset_of_card_le Finset.inter_subset_left
-        (by rw [hcard3' i, h])).symm.trans
-        (Finset.eq_of_subset_of_card_le Finset.inter_subset_right (by rw [hcard3' j, h])))
-    have := Finset.card_le_card (Finset.inter_subset_left (s₁ := i.1) (s₂ := j.1))
+    have hne : i.1 ∩ j.1 ≠ i.1 := fun h => hij (Subtype.ext (Finset.eq_of_subset_of_card_le
+      (h ▸ Finset.inter_subset_right) (le_of_eq (by rw [hcard3' i, hcard3' j]))))
+    have := Finset.card_lt_card (Finset.ssubset_iff_subset_ne.2 ⟨Finset.inter_subset_left, hne⟩)
     rw [hcard3' i] at this
     omega
   -- Two triangles span `3 + 3` pairs less the ones drawn from their shared vertices.
@@ -651,6 +649,18 @@ theorem variance_triangleCount_le (n : ℕ) (p : I) :
     have h := Finset.card_union_add_card_inter (offDiagPairs i.1) (offDiagPairs j.1)
     rw [offDiagPairs_inter, hcard3 i, hcard3 j] at h
     omega
+  -- Both triangles present is exactly: every pair in the union of their pair sets is an edge.
+  have hboth : ∀ (i j : {T // T ∈ 𝒯}) (k : ℕ), (offDiagPairs i.1 ∪ offDiagPairs j.1).card = k →
+      binomialRandom (Fin n) p (A i ∩ A j) = (toNNReal p : ENNReal) ^ k := by
+    intro i j k hk
+    show binomialRandom (Fin n) p
+        ({G : SimpleGraph (Fin n) | ↑(offDiagPairs i.1) ⊆ G.edgeSet} ∩
+          {G : SimpleGraph (Fin n) | ↑(offDiagPairs j.1) ⊆ G.edgeSet}) = _
+    rw [setOf_subset_edgeSet_inter,
+      binomialRandom_setOf_subset_edgeSet p (offDiagPairs i.1 ∪ offDiagPairs j.1)
+        (fun _ he => by
+          rcases Finset.mem_union.1 he with h | h <;> exact not_isDiag_of_mem_offDiagPairs h),
+      hk]
   -- Sharing at most one vertex means disjoint pair sets, hence independence.
   have hD : ∀ i j, i ≠ j → (i, j) ∉ D →
       IndepSet (A i) (A j) (binomialRandom (Fin n) p) := by
@@ -659,59 +669,32 @@ theorem variance_triangleCount_le (n : ℕ) (p : I) :
       hnotD (Finset.mem_filter.2 ⟨Finset.mem_univ _, h⟩)
     have hle1 : (i.1 ∩ j.1).card ≤ 1 := by have := hinterle i j hij; omega
     have hempty : (offDiagPairs (i.1 ∩ j.1)).card = 0 := by
-      have hc0 : (0 + 1).choose 2 = 0 := by decide
-      have hc1 : (1 + 1).choose 2 = 1 := by decide
-      have h := card_offDiagPairs_add (i.1 ∩ j.1)
-      rcases Nat.le_one_iff_eq_zero_or_eq_one.1 hle1 with hk | hk <;> rw [hk] at h <;>
-        simp only [hc0, hc1] at h <;> omega
-    have hcard6 : (offDiagPairs i.1 ∪ offDiagPairs j.1).card = 6 := by
-      have := hunionpairs i j; omega
-    rw [indepSet_iff_measure_inter_eq_mul (μ := binomialRandom (Fin n) p) (hmeas i) (hmeas j)]
-    show binomialRandom (Fin n) p
-        ({G : SimpleGraph (Fin n) | ↑(offDiagPairs i.1) ⊆ G.edgeSet} ∩
-          {G : SimpleGraph (Fin n) | ↑(offDiagPairs j.1) ⊆ G.edgeSet}) = _
-    rw [setOf_subset_edgeSet_inter,
-      binomialRandom_setOf_subset_edgeSet p (offDiagPairs i.1 ∪ offDiagPairs j.1)
-        (fun _ he => by
-          rcases Finset.mem_union.1 he with h | h <;> exact not_isDiag_of_mem_offDiagPairs h),
-      hcard6, hprob i, hprob j]
+      rcases Nat.le_one_iff_eq_zero_or_eq_one.1 hle1 with hk | hk
+      exacts [hoff _ 0 0 hk (by decide), hoff _ 1 0 hk (by decide)]
+    rw [indepSet_iff_measure_inter_eq_mul (μ := binomialRandom (Fin n) p) (hmeas i) (hmeas j),
+      hboth i j 6 (by have := hunionpairs i j; omega), hprob i, hprob j]
     ring
   -- Sharing exactly two vertices means five pairs between them.
-  have hprob5 : ∀ q ∈ D,
-      binomialRandom (Fin n) p (A q.1 ∩ A q.2) = (toNNReal p : ENNReal) ^ 5 := by
-    intro q hq
-    have h2 : (q.1.1 ∩ q.2.1).card = 2 := (Finset.mem_filter.1 hq).2
-    have hone : (offDiagPairs (q.1.1 ∩ q.2.1)).card = 1 := by
-      have h := card_offDiagPairs_add (q.1.1 ∩ q.2.1)
-      have h3 : (2 + 1).choose 2 = 3 := by decide
-      rw [h2, h3] at h
-      omega
-    have hcard5 : (offDiagPairs q.1.1 ∪ offDiagPairs q.2.1).card = 5 := by
-      have := hunionpairs q.1 q.2; omega
-    show binomialRandom (Fin n) p
-        ({G : SimpleGraph (Fin n) | ↑(offDiagPairs q.1.1) ⊆ G.edgeSet} ∩
-          {G : SimpleGraph (Fin n) | ↑(offDiagPairs q.2.1) ⊆ G.edgeSet}) = _
-    rw [setOf_subset_edgeSet_inter,
-      binomialRandom_setOf_subset_edgeSet p (offDiagPairs q.1.1 ∪ offDiagPairs q.2.1)
-        (fun _ he => by
-          rcases Finset.mem_union.1 he with h | h <;> exact not_isDiag_of_mem_offDiagPairs h),
-      hcard5]
+  have hprob5 : ∀ q ∈ D, binomialRandom (Fin n) p (A q.1 ∩ A q.2) = (toNNReal p : ENNReal) ^ 5 :=
+    fun q hq => hboth q.1 q.2 5 (by
+      have hone := hoff _ 2 1 (Finset.mem_filter.1 hq).2 (by decide)
+      have := hunionpairs q.1 q.2
+      omega)
   have hs1 : ∑ i, (binomialRandom (Fin n) p (A i)).toReal = (𝒯.card : ℝ) * (p : ℝ) ^ 3 := by
     rw [Finset.sum_congr rfl (fun i _ => by rw [hprob i]), Finset.sum_const, Finset.card_univ,
-      Fintype.card_coe, nsmul_eq_mul]
-    simp
+      Fintype.card_coe, nsmul_eq_mul, ENNReal.toReal_pow, ENNReal.coe_toReal,
+      unitInterval.coe_toNNReal]
   have hs2 : ∑ q ∈ D, (binomialRandom (Fin n) p (A q.1 ∩ A q.2)).toReal
       = (D.card : ℝ) * (p : ℝ) ^ 5 := by
-    rw [Finset.sum_congr rfl (fun q hq => by rw [hprob5 q hq]), Finset.sum_const, nsmul_eq_mul]
-    simp
+    rw [Finset.sum_congr rfl (fun q hq => by rw [hprob5 q hq]), Finset.sum_const, nsmul_eq_mul,
+      ENNReal.toReal_pow, ENNReal.coe_toReal, unitInterval.coe_toNNReal]
   have key := variance_sum_indicator_le (μ := binomialRandom (Fin n) p) A hmeas D hD
   rw [hX]
   refine key.trans ?_
   rw [hs1, hs2]
   have hT : (𝒯.card : ℝ) ≤ (n : ℝ) ^ 3 := by
     rw [h𝒯, Finset.card_powersetCard, Finset.card_univ, Fintype.card_fin]
-    calc ((n.choose 3 : ℕ) : ℝ) ≤ ((n ^ 3 : ℕ) : ℝ) := Nat.cast_le.2 (Nat.choose_le_pow n 3)
-      _ = (n : ℝ) ^ 3 := by push_cast; ring
+    exact_mod_cast Nat.choose_le_pow n 3
   -- `(a, b, x, y) ↦ ({x, a, b}, {y, a, b})` covers every member of `D`, so `#D ≤ n ^ 4`.
   have hDnat : D.card ≤ n ^ 4 := by
     have hinjimg : Function.Injective
@@ -727,36 +710,28 @@ theorem variance_triangleCount_le (n : ℕ) (p : I) :
       simp only [Finset.coe_image, Set.mem_image, Finset.mem_coe] at hz
       obtain ⟨q, hq, rfl⟩ := hz
       obtain ⟨a, b, hab, hinter⟩ := Finset.card_eq_two.1 (Finset.mem_filter.1 hq).2
-      have hd1 : (q.1.1 \ q.2.1).card = 1 := by
-        have := Finset.card_sdiff_add_card_inter q.1.1 q.2.1
-        rw [hcard3' q.1, (Finset.mem_filter.1 hq).2] at this
-        omega
-      have hd2 : (q.2.1 \ q.1.1).card = 1 := by
-        have := Finset.card_sdiff_add_card_inter q.2.1 q.1.1
-        rw [hcard3' q.2, Finset.inter_comm, (Finset.mem_filter.1 hq).2] at this
-        omega
-      obtain ⟨x, hx⟩ := Finset.card_eq_one.1 hd1
-      obtain ⟨y, hy⟩ := Finset.card_eq_one.1 hd2
-      refine ⟨(a, b, x, y), by simp, ?_⟩
-      have e1 : q.1.1 = {x, a, b} := by
-        rw [← Finset.sdiff_union_inter q.1.1 q.2.1, hx, hinter]
-        rfl
-      have e2 : q.2.1 = {y, a, b} := by
-        rw [← Finset.sdiff_union_inter q.2.1 q.1.1, hy, Finset.inter_comm, hinter]
-        rfl
-      exact Prod.ext e1.symm e2.symm
+      -- Either triangle is the shared pair `{a, b}` together with its one private vertex.
+      have hsplit : ∀ S T : Finset (Fin n), S.card = 3 → S ∩ T = {a, b} → ∃ z, S = {z, a, b} := by
+        intro S T hS hST
+        have h := Finset.card_sdiff_add_card_inter S T
+        rw [hS, hST, Finset.card_pair hab] at h
+        obtain ⟨z, hz⟩ := Finset.card_eq_one.1 (show (S \ T).card = 1 by omega)
+        exact ⟨z, by rw [← Finset.sdiff_union_inter S T, hz, hST]; rfl⟩
+      obtain ⟨x, e1⟩ := hsplit q.1.1 q.2.1 (hcard3' q.1) hinter
+      obtain ⟨y, e2⟩ := hsplit q.2.1 q.1.1 (hcard3' q.2) (by rw [Finset.inter_comm]; exact hinter)
+      exact ⟨(a, b, x, y), Finset.mem_coe.2 (Finset.mem_univ _), Prod.ext e1.symm e2.symm⟩
     calc D.card = (D.image (fun q : {T // T ∈ 𝒯} × {T // T ∈ 𝒯} => (q.1.1, q.2.1))).card :=
           (Finset.card_image_of_injective _ hinjimg).symm
       _ ≤ (univ : Finset (Fin n × Fin n × Fin n × Fin n)).card :=
           Finset.card_le_card_of_surjOn _ hsurj
-      _ = n ^ 4 := by simp [Finset.card_univ]; ring
-  have hDc : (D.card : ℝ) ≤ (n : ℝ) ^ 4 := by
-    calc ((D.card : ℕ) : ℝ) ≤ ((n ^ 4 : ℕ) : ℝ) := Nat.cast_le.2 hDnat
-      _ = (n : ℝ) ^ 4 := by push_cast; ring
+      _ = n ^ 4 := by
+          rw [Finset.card_univ, Fintype.card_prod, Fintype.card_prod, Fintype.card_prod,
+            Fintype.card_fin]
+          ring
+  have hDc : (D.card : ℝ) ≤ (n : ℝ) ^ 4 := by exact_mod_cast hDnat
   have hp0 : (0 : ℝ) ≤ (p : ℝ) := p.2.1
-  have h3 : (0 : ℝ) ≤ (p : ℝ) ^ 3 := by positivity
-  have h5 : (0 : ℝ) ≤ (p : ℝ) ^ 5 := by positivity
-  exact add_le_add (by gcongr) (by gcongr)
+  exact add_le_add (mul_le_mul_of_nonneg_right hT (pow_nonneg hp0 3))
+    (mul_le_mul_of_nonneg_right hDc (pow_nonneg hp0 5))
 
 
 /-- The event that every pair of distinct vertices of `T` is an edge: an intersection over the
