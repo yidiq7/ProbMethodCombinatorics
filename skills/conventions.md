@@ -339,6 +339,14 @@ or `∨`, the named lemma (`or_assoc`, `or_comm`, `or_left_comm`, `and_assoc`, `
 `or_iff_left`, …) is one term and is orders of magnitude cheaper.  Keep `tauto` for goals that
 genuinely need case analysis.
 
+**But do not go replacing every `tauto` on sight — measured, most of them are cheap.**  After the
+win above I measured the corpus's other `tauto` sites: the two remaining in `LocalLemma.lean` sit
+in declarations costing **3,433** and **16,914** heartbeats in total, so neither can be hiding a
+10k call.  The expensive ones were expensive because of *where* they were — a large hypothesis
+context and a goal `tauto` had to search rather than match.  **The rule is "read the goal", not
+"avoid `tauto`"**, and a blanket substitution pass over the 28 call sites in this project would
+be mostly wasted effort.
+
 **When a proof is slow and the profiler is flat, bisect with `sorry`.**  On the declaration above,
 `set_option profiler true` never surfaced those three `tauto`s as top lines — the cost was spread
 in a way the profiler did not attribute.  Replacing sub-proofs with `sorry` one at a time and
