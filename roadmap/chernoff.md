@@ -95,6 +95,13 @@ the remaining `m = n - k`: the frozen block supplies the mean `k/n ≈ α`, the 
 within `β`, and the uniform bound suffices.  Worth remembering — when the source's route needs
 machinery the corpus lacks, moving the source of the bias is often cheaper than building it.
 
+**The exactly-equiangular bound this paragraph leans on is now stated** as
+`card_le_of_forall_inner_eq` (#404), in the `0 ≤ α < 1` form.  It had been cited in prose here
+as the reason Theorem 5.2.1 is striking, without the project ever stating it.  Deliberately
+**not** the source's `α ∈ [-1, 1)` / `n + 1` form: the linear-independence route reaches only
+`α ≥ 0` and only `n`, and `α ≥ 0` is the regime 5.2.1 uses.  The negative-`α` case needs the
+source's extra rank argument and would be its own node.
+
 **"This project has only the uniform one" stopped being a statement about Mathlib on
 2026-09-21.**  Mathlib's sub-Gaussian API — `hasSubgaussianMGF_of_mem_Icc_of_integral_eq_zero`
 and `HasSubgaussianMGF.measure_sum_ge_le_of_iIndepFun` in `Probability/Moments/SubGaussian.lean`

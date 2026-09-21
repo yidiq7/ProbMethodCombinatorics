@@ -9098,6 +9098,16 @@
       "uses": [],
       "proof_uses": [],
       "parent": "entropy"
+    },
+    "card_le_of_forall_inner_eq": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Chernoff.lean",
+      "decl": "ProbMethodCombinatorics.card_le_of_forall_inner_eq",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": [],
+      "parent": "chernoff"
     }
   }
 }
