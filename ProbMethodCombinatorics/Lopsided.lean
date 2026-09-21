@@ -46,7 +46,7 @@ into the part inside `N i` and the part outside.  The outside part is the only p
 dependency hypothesis enters, and `IsNegativeDependencyGraph` supplies there the inequality
 `ℙ(A i ∩ ⋂_{j ∈ W₂} (A j)ᶜ) ≤ ℙ(A i) * ℙ(⋂_{j ∈ W₂} (A j)ᶜ)` in place of an equality; every
 later step is monotone in that quantity. -/
-private theorem measure_inter_biInter_compl_le_of_negativeDependency [IsProbabilityMeasure μ]
+theorem measure_inter_biInter_compl_le_of_negativeDependency [IsProbabilityMeasure μ]
     (A : ι → Set Ω) (hA : ∀ i, MeasurableSet (A i))
     (N : ι → Finset ι) (hN : IsNegativeDependencyGraph μ A N)
     (x : ι → ℝ) (hx₀ : ∀ i, 0 ≤ x i) (hx₁ : ∀ i, x i < 1)

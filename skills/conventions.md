@@ -326,6 +326,25 @@ measure.  Neither do the `measureReal` union bounds.  If a task's suggested rout
 to establish measurability before applying one of these, the route is wrong and you can skip
 it; measurability of graph events is only needed for `Measure.map_apply` and for integrals.
 
+**`tauto` on a propositional re-association is the most expensive thing in this corpus.**  Three
+`tauto` calls in one proof measured **8,127 + 10,585 + ~10,000 heartbeats — 59% of the whole
+declaration** — and every one of them was closing a goal of the shape
+
+    (j = a ∨ j ∈ W₁) ∨ j ∈ W₂  ↔  j = a ∨ (j ∈ W₁ ∨ j ∈ W₂)      -- `or_assoc`
+    j ∈ W₁ ∨ (j = a ∨ j ∈ W₂)  ↔  j = a ∨ (j ∈ W₁ ∨ j ∈ W₂)      -- `or_left_comm`
+
+Replacing them with `exact or_assoc` / `exact or_left_comm` was **−83.5%** on that declaration.
+**Before reaching for `tauto`, read the goal**: if it is a re-association or commutation of `∧`
+or `∨`, the named lemma (`or_assoc`, `or_comm`, `or_left_comm`, `and_assoc`, `and_left_comm`,
+`or_iff_left`, …) is one term and is orders of magnitude cheaper.  Keep `tauto` for goals that
+genuinely need case analysis.
+
+**When a proof is slow and the profiler is flat, bisect with `sorry`.**  On the declaration above,
+`set_option profiler true` never surfaced those three `tauto`s as top lines — the cost was spread
+in a way the profiler did not attribute.  Replacing sub-proofs with `sorry` one at a time and
+re-measuring `#count_heartbeats` found them in a handful of compiles.  **A flat profile is not
+evidence that there is no hot spot.**
+
 **`set x := e with hx` is not free; `let x := e` often is.**  `set` abstracts every occurrence of
 `e` in the goal *and* in every hypothesis, and on this project that has measured at roughly 100
 heartbeats per binder — in one proof, six `set`s accounted for 496 of a 4,835-heartbeat total.
