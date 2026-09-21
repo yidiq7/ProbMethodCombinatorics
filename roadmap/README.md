@@ -118,6 +118,39 @@ edge-count bound the book proves, so the edge-count bound stays a task.
 
 ## Log
 
+- **2026-09-21 — the golf queue was ordered by the wrong number: two proofs were within 5% of failing to compile at all.**
+  #386's author reported that `exists_bad_card_lt_and_indepNum_le` elaborated at **196,187 of the
+  200,000 default `maxHeartbeats`** — 2% of headroom — and their golf took it to **9,420**, a 95%
+  cut, purely by replacing eight bare `nlinarith` with `linarith only` given explicit product
+  hints and `clear`ing spent context.  **That proof was going to break on the next Mathlib bump**,
+  and nothing in the project would have predicted it.
+
+  I swept the whole corpus rather than take the single data point: for each file,
+  `lake env lean -DmaxHeartbeats=L` at `L = 150000, 175000, 190000`, and see which fail.  One
+  build per file per level, no edits, no tokens.  Result — after #386, exactly **two**
+  declarations remain above 190,000:
+
+  | Declaration | File | Task |
+  |---|---|---|
+  | `exists_sum_shortCycleSupport_card_lt` | `Alterations.lean` | #387 |
+  | `card_le_compl_mul_choose_two_aux` (private) | `Containers.lean` | #388 |
+
+  Both published high priority, with the before/after heartbeat figure as the stated acceptance
+  criterion rather than the diff size.
+
+  **The lesson is about how this queue was chosen.**  Every golf batch so far was ranked by
+  *line count*, because that is what is cheap to measure by reading.  Line count and elaboration
+  cost are close to uncorrelated here: #386 cut two lines and 95% of the heartbeats, while the
+  #385 golf cut 22 lines off a proof that was never near the ceiling.  **Lines are a readability
+  metric; heartbeats are a "does this still compile next month" metric**, and only the second
+  one can fail the build.  Rank future golf batches by the sweep above, then by length.
+
+  The sweep is also the cheapest health check the project has and nothing else surfaces this:
+  `rebuild` is green at 200,000 right up until it is not, so a proof at 98% of the ceiling and
+  one at 5% are indistinguishable from CI.  **Worth re-running after any Mathlib bump**, and
+  before concluding a chapter is finished.
+
+
 - **2026-09-21 — Kahn–Lovász closed (#380), 24 minutes from publication to merge, and the
   turnaround is the argument for publishing assembly nodes.**
   Corollary 10.2.2 was stated at 08:05, claimed at 08:22, submitted at 08:37 and merged
