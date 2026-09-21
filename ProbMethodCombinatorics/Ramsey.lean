@@ -227,4 +227,28 @@ theorem lt_ramseyNumber (n k : ℕ) (hk : 2 ≤ k)
   obtain ⟨S, hcard, hmono⟩ := hmem.mono (Nat.not_lt.1 hlt) c hsymm
   exact hc S hcard hmono
 
+/-- **Erdős 1961, the alteration bound** (Zhao, Theorem 1.1.6), stated for the Ramsey number:
+delete one vertex from each monochromatic `k`-set of a random colouring of `K_n` and what
+survives is a colouring with none, so `R(k, k) > n - binom(n,k) * 2 ^ (1 - binom(k,2))`.
+
+In `ℕ` the conclusion is read off a surviving size `m`: the hypothesis
+`2 * binom(n,k) ≤ (n - m) * 2 ^ binom(k,2)` says exactly that the expected number of
+monochromatic `k`-sets, `2 * binom(n,k) / 2 ^ binom(k,2)`, is at most the number `n - m` of
+vertices we are allowed to delete.
+
+**This is §1.1's middle bound, and it is weaker than the union bound for small `k`.**
+`lt_ramseyNumber` (Theorem 1.1.2) gives `R > 3, 6, 11, 17` at `k = 3, 4, 5, 6`, where this gives
+`3, 5, 10, 17`.  The crossover is at `k = 8` (`46` against `42`), after which alteration wins by
+a growing margin: `115` against `100` at `k = 10`, `275` against `231` at `k = 12`.  **A smaller
+number at small `k` is the expected behaviour, not a defect** — the alteration argument pays a
+constant to win asymptotically, and Remark 1.1.7's optimisation over `n` is what turns that into
+the usual `(1/e + o(1)) k 2 ^ (k/2)`.  That asymptotic form is a separate node and is not stated
+here.
+
+`hmn : m ≤ n` is needed because the subtraction is truncated: without it `n - m = 0` and the
+hypothesis would read `binom(n,k) = 0`, which is a different claim. -/
+theorem lt_ramseyNumber_of_alteration (m n k : ℕ) (hk : 2 ≤ k) (hmn : m ≤ n)
+    (h : 2 * n.choose k ≤ (n - m) * 2 ^ k.choose 2) : m < ramseyNumber k := by
+  sorry
+
 end ProbMethodCombinatorics
