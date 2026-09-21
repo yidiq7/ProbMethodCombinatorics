@@ -2276,7 +2276,7 @@ theorem exists_fingerprint_of_dense_pairs (c d : ℝ) (hc : 0 < c) (hd : 0 < d)
 
 /-- Every edge of an `I`-independent 3-uniform `H` contains a vertex outside `I`, and the triples
 through a fixed vertex number `(n-1).choose 2`, so `H` is covered by those. -/
-private theorem card_le_compl_mul_choose_two_aux {n : ℕ} (H : Finset (Finset (Fin n)))
+theorem card_le_compl_mul_choose_two_aux {n : ℕ} (H : Finset (Finset (Fin n)))
     (h3 : ∀ e ∈ H, e.card = 3) (I : Finset (Fin n)) (hI : ∀ e ∈ H, ¬ e ⊆ I) :
     H.card ≤ (n - I.card) * ((n - 1).choose 2) := by
   have key : H ⊆ (univ \ I).biUnion

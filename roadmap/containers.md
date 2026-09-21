@@ -187,9 +187,27 @@ can reach them.
 Lean mangles a private name with its declaring module path (`private def myPrivateFoo` becomes
 `_private.<Module>.0.myPrivateFoo`), while `comparator` builds the base tree under a `ChoirBase.`
 module prefix so it can sit beside the head tree in one workspace.  The two sides therefore cannot
-hold a private declaration under one name, and `comparator` declines to run on such a target — the
-statement keeps `statement-immutability` but loses its kernel-level check, which on this chapter's
-statements is the check worth most.
+hold a private declaration under one name.
+
+**And `comparator` does not decline gracefully — it panics, and the check goes red.**  This entry
+said "declines to run" until 2026-09-21, when #388 was published against the private
+`card_le_compl_mul_choose_two_aux` and its PR came back with
+
+    Exporting #[ProbMethodCombinatorics.card_le_compl_mul_choose_two_aux, …]
+    PANIC at dumpConstant: Constant …card_le_compl_mul_choose_two_aux not found in environment
+    uncaught exception: Child exited with 134
+
+`lean4export` is handed the unmangled name, does not find it, and aborts with exit 2.  So the cost
+is not "loses its kernel-level check" — it is **an unmergeable PR**: `blocking_failures` carries
+`comparator`, `merge_pr` refuses, and the only ways through are an overseer override or a rebase
+onto a commit where the target is public.  A contributor can do everything right and still be
+stuck.
+
+**So the rule above is not a preference, it is a precondition: publishing a task against a private
+target produces a PR that cannot merge.**  Promote the declaration *before* publishing, not after.
+`card_le_compl_mul_choose_two_aux` is public as of 2026-09-21 for exactly this reason, and it is
+public even though it is a proof-internal helper with one call site — being a published target is
+what decides it.
 
 `IsGreedyRule` is the live example: it is public for exactly this reason, and both obligations
 whose statements mention it depend on that.
