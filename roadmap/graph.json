@@ -9088,6 +9088,16 @@
         "ramsey_property_mono"
       ],
       "parent": "introduction"
+    },
+    "card_pow_le_prod_card_image_erase": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Entropy.lean",
+      "decl": "ProbMethodCombinatorics.card_pow_le_prod_card_image_erase",
+      "statement": "formalized",
+      "proof": "planned",
+      "uses": [],
+      "proof_uses": [],
+      "parent": "entropy"
     }
   }
 }
