@@ -4,6 +4,31 @@ What the chapter establishes: the probabilistic method in its simplest form — 
 random object, compute one expectation or one union bound, conclude that a good object
 exists.
 
+## Theorem 1.3.3 (`m(k) = O(k² 2ᵏ)`) — blocker scoped 2026-09-21, and it is real
+
+The state-of-the-art upper bound on property B.  With the proved
+`not_isKChoosable_completeBipartiteGraph` (Theorem 1.4.3) it would turn §1.4 into a sandwich,
+which is why it keeps coming up.
+
+**The blocker is the estimate `(C(a,k) + C(b,k)) / C(n,k) ≥ c · 2^{-k}` for `a + b = n`, and it
+needs convexity of `a ↦ C(a,k)`, which Mathlib does not have.**  Checked directly: `Mathlib/Data/
+Nat/Choose/Basic.lean` has `choose_mono` and `choose_le_choose` (monotonicity) and nothing about
+convexity; grepping `Mathlib/Analysis/Convex/` for any `choose` result turns up nothing.
+
+The convexity is true — the second difference `C(a+2,k) - 2C(a+1,k) + C(a,k)` is nonnegative on
+every case I checked (`a ≤ 40`, `k ≤ 7`) — so this is a formalization gap, not a mathematical one.
+
+**And the estimate genuinely reduces to it**, so there is no way around: the minimum of
+`C(a,k) + C(n-a,k)` sits exactly at `a = n/2`, which is the convexity statement. Measured, the
+ratio times `2ᵏ` at the minimum is `1.23`–`1.65` across `k ∈ [3,6]` and `n ∈ {k², 2k²}`, so the
+constant is comfortable once convexity is available — the difficulty is entirely in getting there.
+
+**So the honest package is two nodes, not one**: first `a ↦ Nat.choose a k` is convex (or the
+specific two-point form `2 * C(n/2, k) ≤ C(a,k) + C(n-a,k)`), then Theorem 1.3.3 on top.  Do not
+publish 1.3.3 alone — a contributor would hit the gap partway through a long proof.  Whether the
+convexity node is worth authoring is a live question; it is a clean, self-contained `ℕ` lemma and
+would be a good candidate if someone wants one.
+
 ## §1.1's three bounds, and the middle one
 
 The section gives three successively better lower bounds on `R(k,k)` and the project now states
