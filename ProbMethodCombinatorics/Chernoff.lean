@@ -548,7 +548,7 @@ theorem exists_nearly_equiangular {α ε : ℝ} (hα : α ∈ Set.Ioo (0 : ℝ) 
       ∑ i, f i = (∑ a : Fin k, f (e.symm (Sum.inl a))) + ∑ b : Fin m, f (e.symm (Sum.inr b)) :=
     fun f => (Equiv.sum_comp e.symm f).symm.trans (Fintype.sum_sum_type _)
   obtain ⟨T, hTcard, hTgood⟩ := exists_large_sign_family m hm0 hβ0 hβ1
-  -- The counting is done; only the real inequalities above carry into the geometry below.
+  -- The `ℕ`-level bookkeeping is done; only the real inequalities above are needed below.
   clear hn hkn hnkm hk0 hε'1 hceil hcast1 hlog2 hα0 hα1 h1α hβ1 hm0
   set sgn : (Fin m → Bool) → Fin n → ℝ :=
     fun z i => toSign (Sum.elim (fun _ => true) z (e i)) with hsgn
