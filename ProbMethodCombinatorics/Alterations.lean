@@ -636,17 +636,10 @@ theorem exists_sum_shortCycleSupport_card_lt (l : ℕ) :
   set M : ℕ := girthEdgeCount n with hMdef
   set N : ℕ := Fintype.card (Sym2 (Fin n)) with hNdef
   have hsmall : 4 * L ^ 2 < (n : ℝ) := by rw [hLdef]; exact hn₂ n hgen2
-  have hlog2 : (1 : ℝ) / 2 ≤ Real.log 2 := by
-    have h := Real.log_le_sub_one_of_pos (show (0 : ℝ) < 1 / 2 by norm_num)
-    rw [show (1 : ℝ) / 2 = (2 : ℝ)⁻¹ by norm_num, Real.log_inv] at h
-    linarith
+  -- `1 ≤ log n` because `n ≥ 4 > e`; going through `exp` avoids bounding `log 2` by hand.
   have hL1 : (1 : ℝ) ≤ L := by
-    have h4 : Real.log 4 = 2 * Real.log 2 := by
-      rw [show (4 : ℝ) = 2 ^ 2 by norm_num, Real.log_pow]; push_cast; ring
-    have hmono := Real.log_le_log (show (0 : ℝ) < 4 by norm_num) hn4
-    rw [h4] at hmono
-    rw [hLdef]
-    linarith
+    rw [hLdef, Real.le_log_iff_exp_le (by linarith only [hn4])]
+    linarith only [Real.exp_one_lt_d9, hn4]
   have hMub : (M : ℝ) < (n : ℝ) * L ^ 2 + 1 := by
     rw [hMdef, girthEdgeCount, ← hLdef]; exact Nat.ceil_lt_add_one (by positivity)
   have hMlb : (n : ℝ) * L ^ 2 ≤ (M : ℝ) := by
@@ -658,22 +651,30 @@ theorem exists_sum_shortCycleSupport_card_lt (l : ℕ) :
     calc 2 * (n + 1).choose 2 = (n + 1).choose 2 * 2 := by ring
       _ = (n + 1) * n := h.symm
       _ = n * (n + 1) := by ring
+  have hn0 : (0 : ℝ) ≤ (n : ℝ) := Nat.cast_nonneg n
+  -- All the arithmetic below is linear once the three genuinely quadratic products
+  -- (`n * n`, `n * L ^ 2` and `L ^ 2 * (N - i)`) are supplied explicitly, so every step uses
+  -- `linarith only [...]` on a named product rather than letting `nlinarith` search.
   have hNR : (n : ℝ) ^ 2 ≤ 2 * (N : ℝ) := by
     have hc : (2 : ℝ) * (N : ℝ) = (n : ℝ) * ((n : ℝ) + 1) := by exact_mod_cast hN2
-    nlinarith
-  have hL2 : (1 : ℝ) ≤ L ^ 2 := by nlinarith
-  have hnsq : 4 * (n : ℝ) ≤ (n : ℝ) ^ 2 := by nlinarith
-  have hn16 : (16 : ℝ) ≤ (n : ℝ) ^ 2 := by nlinarith
-  have hnL2 : (n : ℝ) ≤ (n : ℝ) * L ^ 2 := by nlinarith
-  have h4nL : 4 * ((n : ℝ) * L ^ 2) < (n : ℝ) ^ 2 := by nlinarith
+    linarith only [hc, hn0]
+  have hL2 : (1 : ℝ) ≤ L ^ 2 := one_le_pow₀ hL1
+  have hnsq : 4 * (n : ℝ) ≤ (n : ℝ) ^ 2 := by
+    have h := mul_le_mul_of_nonneg_right hn4 hn0
+    linarith only [h]
+  have hn16 : (16 : ℝ) ≤ (n : ℝ) ^ 2 := by linarith only [hnsq, hn4]
+  have hnL2 : (n : ℝ) ≤ (n : ℝ) * L ^ 2 := le_mul_of_one_le_right hn0 hL2
+  have h4nL : 4 * ((n : ℝ) * L ^ 2) < (n : ℝ) ^ 2 := by
+    have h := mul_lt_mul_of_pos_right hsmall (lt_of_lt_of_le (by norm_num) hn4)
+    linarith only [h]
   have hlM : l ≤ M := by
-    have hcast : (l : ℝ) ≤ (M : ℝ) := by linarith
+    have hcast : (l : ℝ) ≤ (M : ℝ) := by linarith only [hlR, hnL2, hMlb]
     exact_mod_cast hcast
   have hlN : l ≤ N := by
-    have hcast : (l : ℝ) ≤ (N : ℝ) := by linarith
+    have hcast : (l : ℝ) ≤ (N : ℝ) := by linarith only [hlR, hnsq, hNR, hn0]
     exact_mod_cast hcast
   have hMN : M ≤ N := by
-    have hcast : (M : ℝ) ≤ (N : ℝ) := by linarith
+    have hcast : (M : ℝ) ≤ (N : ℝ) := by linarith only [hMub, h4nL, hNR, hn16]
     exact_mod_cast hcast
   have hDpos : (0 : ℝ) < ((N.choose M : ℕ) : ℝ) := by exact_mod_cast Nat.choose_pos hMN
   have hterm : ∀ i ∈ Finset.Icc 3 l,
@@ -686,9 +687,9 @@ theorem exists_sum_shortCycleSupport_card_lt (l : ℕ) :
     have hiM : i ≤ M := le_trans hil hlM
     have hilR : (i : ℝ) ≤ (l : ℝ) := by exact_mod_cast hil
     have hiR : (i : ℝ) ≤ (n : ℝ) := le_trans hilR hlR
-    have hNi : (n : ℝ) ^ 2 / 4 ≤ (N : ℝ) - (i : ℝ) := by linarith
-    have hpos : (0 : ℝ) < (N : ℝ) - (i : ℝ) := by nlinarith
-    have ht1 : (1 : ℝ) ≤ 8 * L ^ 2 := by linarith
+    have hNi : (n : ℝ) ^ 2 / 4 ≤ (N : ℝ) - (i : ℝ) := by linarith only [hNR, hiR, hnsq]
+    have hpos : (0 : ℝ) < (N : ℝ) - (i : ℝ) := by linarith only [hNi, hn16]
+    have ht1 : (1 : ℝ) ≤ 8 * L ^ 2 := by linarith only [hL2]
     have hB := choose_mul_pow_le_choose_add_mul_pow (N - i) (M - i) i
     rw [Nat.sub_add_cancel hiN, Nat.sub_add_cancel hiM] at hB
     have hBR : (((N - i).choose (M - i) : ℕ) : ℝ) * ((N : ℝ) - (i : ℝ)) ^ i
@@ -698,11 +699,18 @@ theorem exists_sum_shortCycleSupport_card_lt (l : ℕ) :
           = (((N - i).choose (M - i) * (N - i) ^ i : ℕ) : ℝ) := by push_cast [hc]; ring
         _ ≤ ((N.choose M * M ^ i : ℕ) : ℝ) := by exact_mod_cast hB
         _ = ((N.choose M : ℕ) : ℝ) * (M : ℝ) ^ i := by push_cast; ring
-    have hnM : (n : ℝ) * (M : ℝ) ≤ (8 * L ^ 2) * ((N : ℝ) - (i : ℝ)) := by nlinarith
-    have h3 : (0 : ℝ) ≤ ((N : ℝ) - (i : ℝ)) ^ i := by positivity
+    have hnM : (n : ℝ) * (M : ℝ) ≤ (8 * L ^ 2) * ((N : ℝ) - (i : ℝ)) := by
+      have h1 : (n : ℝ) * (M : ℝ) ≤ (n : ℝ) * ((n : ℝ) * L ^ 2 + 1) :=
+        mul_le_mul_of_nonneg_left hMub.le hn0
+      have h2 : (8 * L ^ 2) * ((n : ℝ) ^ 2 / 4) ≤ (8 * L ^ 2) * ((N : ℝ) - (i : ℝ)) :=
+        mul_le_mul_of_nonneg_left hNi (by linarith only [hL2])
+      have h3 : (n : ℝ) ^ 2 ≤ (n : ℝ) ^ 2 * L ^ 2 := le_mul_of_one_le_right (sq_nonneg _) hL2
+      linarith only [h1, h2, h3, hnsq, hn0]
+    have h3 : (0 : ℝ) ≤ ((N : ℝ) - (i : ℝ)) ^ i := pow_nonneg hpos.le i
     have hstep : ((n : ℝ) * (M : ℝ)) ^ i ≤ (8 * L ^ 2) ^ l * ((N : ℝ) - (i : ℝ)) ^ i := by
       have h1 : ((n : ℝ) * (M : ℝ)) ^ i ≤ (8 * L ^ 2) ^ i * ((N : ℝ) - (i : ℝ)) ^ i := by
-        rw [← mul_pow]; gcongr
+        rw [← mul_pow]
+        exact pow_le_pow_left₀ (mul_nonneg hn0 (Nat.cast_nonneg _)) hnM i
       exact le_trans h1 (mul_le_mul_of_nonneg_right (pow_le_pow_right₀ ht1 hil) h3)
     have hkey : ((i : ℝ) * (n : ℝ) ^ i * (((N - i).choose (M - i) : ℕ) : ℝ))
         * ((N : ℝ) - (i : ℝ)) ^ i
@@ -713,7 +721,8 @@ theorem exists_sum_shortCycleSupport_card_lt (l : ℕ) :
           = (i : ℝ) * (n : ℝ) ^ i
             * ((((N - i).choose (M - i) : ℕ) : ℝ) * ((N : ℝ) - (i : ℝ)) ^ i) := by ring
       rw [hAe]
-      refine le_trans (mul_le_mul_of_nonneg_left hBR (by positivity)) ?_
+      refine le_trans (mul_le_mul_of_nonneg_left hBR
+        (mul_nonneg (Nat.cast_nonneg _) (pow_nonneg hn0 _))) ?_
       have hEq : (i : ℝ) * (n : ℝ) ^ i * (((N.choose M : ℕ) : ℝ) * (M : ℝ) ^ i)
           = ((N.choose M : ℕ) : ℝ) * ((i : ℝ) * ((n : ℝ) * (M : ℝ)) ^ i) := by
         rw [mul_pow]; ring
@@ -722,11 +731,10 @@ theorem exists_sum_shortCycleSupport_card_lt (l : ℕ) :
           = ((N.choose M : ℕ) : ℝ)
             * ((l : ℝ) * ((8 * L ^ 2) ^ l * ((N : ℝ) - (i : ℝ)) ^ i)) := by ring
       rw [hEq, hEq2]
-      refine mul_le_mul_of_nonneg_left ?_ (by positivity)
-      have hpow0 : (0 : ℝ) ≤ ((n : ℝ) * (M : ℝ)) ^ i := by positivity
-      have hlast : (0 : ℝ) ≤ (8 * L ^ 2) ^ l * ((N : ℝ) - (i : ℝ)) ^ i := by positivity
-      have hi0 : (0 : ℝ) ≤ (i : ℝ) := by positivity
-      nlinarith
+      refine mul_le_mul_of_nonneg_left ?_ (Nat.cast_nonneg _)
+      -- `i * X ≤ l * Y` from `i ≤ l`, `X ≤ Y`, `0 ≤ X`, `0 ≤ l`: one `mul_le_mul`, no search.
+      exact mul_le_mul hilR hstep (pow_nonneg (mul_nonneg hn0 (Nat.cast_nonneg _)) i)
+        (Nat.cast_nonneg _)
     have hfin := le_of_mul_le_mul_right hkey (pow_pos hpos i)
     calc ((i * n ^ i * ((N - i).choose (M - i)) : ℕ) : ℝ)
         = (i : ℝ) * (n : ℝ) ^ i * (((N - i).choose (M - i) : ℕ) : ℝ) := by push_cast; ring
@@ -741,8 +749,10 @@ theorem exists_sum_shortCycleSupport_card_lt (l : ℕ) :
   rw [nsmul_eq_mul] at hsum
   have hcardIcc : (((Finset.Icc 3 l).card : ℕ) : ℝ) ≤ (l : ℝ) := by
     rw [Nat.card_Icc]
-    exact_mod_cast (by omega : l + 1 - 3 ≤ l)
-  have hB0 : (0 : ℝ) ≤ ((N.choose M : ℕ) : ℝ) * ((l : ℝ) * (8 * L ^ 2) ^ l) := by positivity
+    exact Nat.cast_le.2 (by omega)
+  have hB0 : (0 : ℝ) ≤ ((N.choose M : ℕ) : ℝ) * ((l : ℝ) * (8 * L ^ 2) ^ l) :=
+    mul_nonneg (Nat.cast_nonneg _) (mul_nonneg (Nat.cast_nonneg _)
+      (pow_nonneg (mul_nonneg (by norm_num) (sq_nonneg L)) _))
   have htotal : ∑ E ∈ graphFamily n M, ((shortCycleSupport l E).card : ℝ)
       ≤ (l : ℝ) * (((N.choose M : ℕ) : ℝ) * ((l : ℝ) * (8 * L ^ 2) ^ l)) :=
     le_trans hcast (le_trans hsum (mul_le_mul_of_nonneg_right hcardIcc hB0))
@@ -751,7 +761,8 @@ theorem exists_sum_shortCycleSupport_card_lt (l : ℕ) :
   have htl : (8 * L ^ 2) ^ l = 8 ^ l * L ^ (2 * l) := by rw [mul_pow, pow_mul]
   rw [hfam]
   calc 4 * ∑ E ∈ graphFamily n M, ((shortCycleSupport l E).card : ℝ)
-      ≤ 4 * ((l : ℝ) * (((N.choose M : ℕ) : ℝ) * ((l : ℝ) * (8 * L ^ 2) ^ l))) := by linarith
+      ≤ 4 * ((l : ℝ) * (((N.choose M : ℕ) : ℝ) * ((l : ℝ) * (8 * L ^ 2) ^ l))) := by
+        linarith only [htotal]
     _ = ((N.choose M : ℕ) : ℝ) * ((4 * (l : ℝ) ^ 2 * 8 ^ l) * L ^ (2 * l)) := by rw [htl]; ring
     _ < ((N.choose M : ℕ) : ℝ) * (n : ℝ) := mul_lt_mul_of_pos_left hlog hDpos
     _ = (n : ℝ) * ((N.choose M : ℕ) : ℝ) := by ring
