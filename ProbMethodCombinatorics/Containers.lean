@@ -880,7 +880,7 @@ theorem exists_dense_fingerprint (c d δ : ℝ) (hc : 0 < c) (hδ : 0 < δ) (hδ
       obtain ⟨v, hv, hvmin⟩ := I.exists_min_image key hIne
       exact ⟨v, Finset.mem_filter.mpr ⟨hv, hvmin⟩⟩
     simpa only [dif_pos hfne] using Finset.mem_filter.mp (Finset.min'_mem _ hfne)
-  -- the container at the `≺`-least vertex `v₀` of `I` is `V \ Z v₀`
+  -- the container at the `≺`-least vertex `sel I` of `I` is `V \ Z (sel I)`
   refine ⟨sel, fun v => Finset.univ \ insert v (Z v), fun I hI hIne => ?_⟩
   obtain ⟨hv₀, hminv⟩ := hsel I hIne
   dsimp only
