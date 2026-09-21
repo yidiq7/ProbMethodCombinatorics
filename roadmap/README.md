@@ -118,6 +118,43 @@ edge-count bound the book proves, so the edge-count bound stays a task.
 
 ## Log
 
+- **2026-09-21 — IN FLIGHT: #391 and #393 are correct, reviewed, and blocked on my error. Do not close them.**
+  Both are green-on-everything-except-`comparator`, and the red is the private-target abort
+  described below — not a verdict on the diff.  I promoted both targets on `main`
+  (`card_le_compl_mul_choose_two_aux` in `5073f43`/`1021f7a`, `indepSetCount_logb_half_le` in
+  `5073f43`), re-pinned #388 and #373, and asked each author to rebase.  **If a restarted
+  orchestrator finds these still red: the fix is a rebase onto the current tip, not an override
+  and not a re-proof.**  The proofs are reviewed and good — #391 is −60.5% heartbeats, #393 is
+  149→91 lines and −55%.  If the leases go stale (24h window, last heard 13:00 and 13:21) and
+  no rebase has landed, close both PRs and re-publish the tasks at the tip with a pointer to the
+  PR, so the proof can be resubmitted rather than redone.
+
+- **2026-09-21 — the golf programme in total: 12 proofs, ~4,000 lines and ~640,000 heartbeats removed.**
+  Two rounds.  Round one was ranked by line count; round two by elaboration cost, after #386
+  revealed the ranking was wrong (see below).  Merged: #363–#367, #383–#386, #389, #390, #394,
+  #395, #398, #401.
+
+  The corpus went from **three declarations at 96–98% of the `maxHeartbeats` ceiling** — each one
+  a Mathlib bump away from breaking, with CI green throughout — to **nothing above 50% anywhere**,
+  and only six files with any declaration over 25%.
+
+  **Two levers did nearly all of it**, and both are now in `skills/conventions.md`:
+  * a bare `nlinarith` over a large context → the product it needs supplied as a term plus
+    `linarith only` (−96%, −95%, −94% on three declarations);
+  * `tauto` on what is really `or_assoc`/`or_left_comm` (−85% and −92% on the two twins).
+
+  **But the second lever does not generalise, and I checked before assuming it did.**  The other
+  `tauto` sites sit in declarations costing 3,433 and 16,914 heartbeats *in total*, so a blanket
+  substitution pass over the corpus's 28 call sites would have been mostly wasted contributor
+  time.  The rule is *read the goal*, not *avoid `tauto`*.
+
+  **Contributors reported measured negative results unprompted, three times running**, and that
+  is now asked for in task prose.  #395's author measured eight candidate changes and found six
+  were regressions (one at +503); #401's author found eight more, including three `Finset` lemmas
+  that do not exist in Mathlib v4.33.  Each negative is a dead end the next contributor does not
+  re-walk, and it costs them one paragraph.
+
+
 - **2026-09-21 — the heartbeat pass is finished: nothing in the project is within 2× of the ceiling any more.**
   Sweep at the end of the batch, `lake env lean -DmaxHeartbeats=L` over all 30 files:
 
