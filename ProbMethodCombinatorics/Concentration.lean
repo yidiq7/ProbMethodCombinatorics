@@ -242,8 +242,8 @@ theorem abs_sub_integral_merge_le {ι : Type*} [Fintype ι] [DecidableEq ι] {Ω
     by_cases hjs : j ∈ s
     · simp only [hjs, if_true, h j hj]
     · simp only [hjs, if_false]
-  simpa [Real.norm_eq_abs] using norm_integral_le_of_norm_le_const (μ := Measure.pi μ)
-    (ae_of_all _ hb)
+  simpa only [Real.norm_eq_abs, probReal_univ, mul_one] using
+    norm_integral_le_of_norm_le_const (μ := Measure.pi μ) (ae_of_all _ hb)
 
 /-- The moment-generating function bound behind the bounded differences inequality: for every
 finite set `s` of coordinates, the function `F s : x ↦ ∫ y, f (x on s, y off s)` obtained by
