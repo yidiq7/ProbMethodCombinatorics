@@ -859,7 +859,7 @@
         "is_dependency_graph"
       ],
       "proof_uses": [
-        "pattern"
+        "lll_general"
       ]
     },
     "weierstrass_product": {
