@@ -1020,13 +1020,10 @@ theorem exists_independent_transversal {n : ℕ} {ι : Type*} [Fintype ι] [Deci
     ∃ f : ι → Fin n, (∀ j, part (f j) = j) ∧ ∀ j k, j ≠ k → ¬ G.Adj (f j) (f k) := by
   classical
   -- Strictness of the size hypothesis makes every part nonempty.
-  have hPne : ∀ j : ι, (univ.filter fun v => part v = j).Nonempty := by
-    intro j
+  have hPne : ∀ j : ι, (univ.filter fun v => part v = j).Nonempty := fun j => by
     rw [← Finset.card_pos]
     have h0 : (0:ℝ) ≤ 2 * Real.exp 1 * Δ := by positivity
-    have hlt : (0:ℝ) < ((univ.filter fun v => part v = j).card : ℝ) :=
-      lt_of_le_of_lt h0 (hsize j)
-    exact_mod_cast hlt
+    exact_mod_cast lt_of_le_of_lt h0 (hsize j)
   rcases isEmpty_or_nonempty ι with hι | hι
   · exact ⟨fun j => isEmptyElim j, fun j => isEmptyElim j, fun j => isEmptyElim j⟩
   -- With `Δ = 0` the graph has no edges at all and any transversal works.
@@ -1042,17 +1039,11 @@ theorem exists_independent_transversal {n : ℕ} {ι : Type*} [Fintype ι] [Deci
   set m := (univ.filter fun v => part v = j₀).card
   have hmle : ∀ j, m ≤ (univ.filter fun v => part v = j).card := hj₀
   have hmlt : 2 * Real.exp 1 * Δ < m := hsize j₀
-  have hm1 : 1 ≤ m := by
-    have h0 : (0:ℝ) ≤ 2 * Real.exp 1 * Δ := by positivity
-    have hpos : (0:ℝ) < m := lt_of_le_of_lt h0 hmlt
-    have : 0 < m := by exact_mod_cast hpos
-    omega
+  have hm1 : 1 ≤ m := Finset.card_pos.2 (hPne j₀)
   choose Q hQP hQcard using fun j : ι => Finset.exists_subset_card_eq (hmle j)
   have hQne : ∀ j, (Q j).Nonempty := fun j => Finset.card_pos.1 (by rw [hQcard j]; omega)
-  have hQpart : ∀ (j : ι) (v : Fin n), v ∈ Q j → part v = j := by
-    intro j v hv
-    have := hQP j hv
-    simpa using this
+  have hQpart : ∀ (j : ι) (v : Fin n), v ∈ Q j → part v = j := fun j v hv => by
+    simpa using hQP j hv
   -- An edge carries a bad event exactly when it joins two distinct parts inside the shrunken
   -- family; listing the vertices of an edge in increasing order names each such edge once.
   obtain ⟨R, hR⟩ : ∃ R : Fin n × Fin n → Prop, ∀ e : Fin n × Fin n,
@@ -1072,59 +1063,42 @@ theorem exists_independent_transversal {n : ℕ} {ι : Type*} [Fintype ι] [Deci
   have hAmeas : ∀ i, MeasurableSet (A i) := fun _ => (Set.toFinite _).measurableSet
   -- A pair that carries no bad event contributes nothing, neither to the dependency graph nor
   -- to the probability bound.
-  have hAempty : ∀ e, ¬ R e → A e = ∅ := by
-    intro e he
-    ext c
-    simp [hA, he]
+  have hAempty : ∀ e, ¬ R e → A e = ∅ := fun e he =>
+    Set.eq_empty_iff_forall_notMem.2 fun c hc => he ((hA e c).1 hc).1
   -- A bad event reads only the two coordinates indexed by the parts of its edge.
   have hAinv : ∀ (e : Fin n × Fin n) (x y : ι → Fin n),
-      (∀ a ∈ ({part e.1, part e.2} : Finset ι), x a = y a) → (x ∈ A e ↔ y ∈ A e) := by
-    intro e x y hxy
-    rw [hA, hA, hxy (part e.1) (by simp), hxy (part e.2) (by simp)]
+      (∀ a ∈ ({part e.1, part e.2} : Finset ι), x a = y a) → (x ∈ A e ↔ y ∈ A e) :=
+    fun e x y hxy => by rw [hA, hA, hxy (part e.1) (by simp), hxy (part e.2) (by simp)]
   have hdep : IsDependencyGraph (unifChoice Q) A N := by
     intro i s hs g
     by_cases hRi : R i
     · refine unifChoice_inter_eq_mul hQne ({part i.1, part i.2} : Finset ι) (A i)
-        (pattern A s g) (hAinv i) ?_
-      intro x y hxy
-      have hj : ∀ j ∈ s,
-          (x ∈ (if g j then A j else (A j)ᶜ) ↔ y ∈ (if g j then A j else (A j)ᶜ)) := by
-        intro j hjs
-        obtain ⟨hjne, hjN⟩ := hs j hjs
-        have hiff : x ∈ A j ↔ y ∈ A j := by
-          by_cases hRj : R j
-          · have hshare : ¬ (part j.1 = part i.1 ∨ part j.1 = part i.2 ∨
-                part j.2 = part i.1 ∨ part j.2 = part i.2) := fun hc =>
-              hjN ((hN i j).2 ⟨hRi, hRj, hjne, hc⟩)
-            refine hAinv j x y ?_
-            intro a ha
-            simp only [Finset.mem_insert, Finset.mem_singleton] at ha
-            refine hxy a ?_
-            simp only [Finset.mem_insert, Finset.mem_singleton]
-            rcases ha with ha | ha <;> subst ha <;> tauto
-          · rw [hAempty j hRj]; simp
-        by_cases hg : g j
-        · rw [if_pos hg]; exact hiff
-        · rw [if_neg hg]; exact not_congr hiff
+        (pattern A s g) (hAinv i) fun x y hxy => ?_
       simp only [pattern, Set.mem_iInter]
-      exact ⟨fun h j hjs => (hj j hjs).1 (h j hjs), fun h j hjs => (hj j hjs).2 (h j hjs)⟩
-    · rw [hAempty i hRi]
-      simp
+      refine forall_congr' fun j => forall_congr' fun hjs => ?_
+      obtain ⟨hjne, hjN⟩ := hs j hjs
+      have hiff : x ∈ A j ↔ y ∈ A j := by
+        by_cases hRj : R j
+        · have hshare : ¬ (part j.1 = part i.1 ∨ part j.1 = part i.2 ∨
+              part j.2 = part i.1 ∨ part j.2 = part i.2) := fun hc =>
+            hjN ((hN i j).2 ⟨hRi, hRj, hjne, hc⟩)
+          refine hAinv j x y fun a ha => hxy a ?_
+          simp only [Finset.mem_insert, Finset.mem_singleton] at ha ⊢
+          rcases ha with ha | ha <;> subst ha <;> tauto
+        · rw [hAempty j hRj]; simp
+      cases g j <;> simp [hiff]
+    · rw [hAempty i hRi]; simp
   -- Each bad event asks for one prescribed vertex in each of two distinct parts.
   have hp : ∀ i, ((unifChoice Q) (A i)).toReal ≤ ((m:ℝ))⁻¹ * ((m:ℝ))⁻¹ := by
     intro i
     by_cases hRi : R i
     · obtain ⟨h12, hadj, hpart, hu, hv⟩ := (hR i).1 hRi
-      have hset : A i = {c : ι → Fin n | c (part i.1) = i.1 ∧ c (part i.2) = i.2} := by
-        ext c
-        rw [hA]
-        simp [hRi]
+      have hset : A i = {c : ι → Fin n | c (part i.1) = i.1 ∧ c (part i.2) = i.2} :=
+        Set.ext fun c => by rw [hA]; simp [hRi]
       rw [hset, unifChoice_pair hQne hpart hu hv, hQcard, hQcard, ENNReal.toReal_mul,
         ENNReal.toReal_inv]
       simp
-    · rw [hAempty i hRi]
-      simp
-      positivity
+    · rw [hAempty i hRi]; simp; positivity
   -- Every edge joined to `i` has an endpoint among the `2 m` vertices chosen from the two parts
   -- of `i`, and the edge of `i` itself is one of the edges so counted but not one of its
   -- neighbours.
@@ -1135,102 +1109,72 @@ theorem exists_independent_transversal {n : ℕ} {ι : Type*} [Fintype ι] [Deci
       set T := Q (part i.1) ∪ Q (part i.2)
       set D := T.biUnion fun x => (G.neighborFinset x).image fun y => (min x y, max x y)
       have hDmem : ∀ (z : Fin n × Fin n) (x : Fin n), x ∈ T → ∀ y, G.Adj x y →
-          z = (min x y, max x y) → z ∈ D := by
-        intro z x hx y hxy hz
-        exact Finset.mem_biUnion.2 ⟨x, hx, Finset.mem_image.2 ⟨y, by simpa using hxy, hz.symm⟩⟩
+          z = (min x y, max x y) → z ∈ D := fun z x hx y hxy hz =>
+        Finset.mem_biUnion.2 ⟨x, hx, Finset.mem_image.2 ⟨y, by simpa using hxy, hz.symm⟩⟩
       have hiD : i ∈ D := hDmem i i.1 (Finset.mem_union_left _ hu) i.2 hadj
         (by rw [min_eq_left h12.le, max_eq_right h12.le])
       have hDcard : D.card ≤ 2 * m * Δ := by
+        have hT : T.card ≤ 2 * m :=
+          (Finset.card_union_le (Q (part i.1)) (Q (part i.2))).trans
+            (by rw [hQcard, hQcard]; omega)
         calc D.card
             ≤ ∑ x ∈ T, ((G.neighborFinset x).image fun y => (min x y, max x y)).card :=
               Finset.card_biUnion_le
-          _ ≤ ∑ _x ∈ T, Δ := Finset.sum_le_sum fun x _ =>
-              le_trans Finset.card_image_le (hdeg x)
+          _ ≤ ∑ _x ∈ T, Δ := Finset.sum_le_sum fun x _ => Finset.card_image_le.trans (hdeg x)
           _ = T.card * Δ := by rw [Finset.sum_const, smul_eq_mul]
-          _ ≤ 2 * m * Δ := by
-              refine Nat.mul_le_mul_right _ ?_
-              calc T.card ≤ (Q (part i.1)).card + (Q (part i.2)).card := Finset.card_union_le _ _
-                _ = 2 * m := by rw [hQcard, hQcard]; ring
+          _ ≤ 2 * m * Δ := Nat.mul_le_mul_right _ hT
       have hsub : N i ⊆ D.erase i := by
         intro w hw
-        rw [hN] at hw
-        obtain ⟨-, hRw, hwne, hshare⟩ := hw
+        obtain ⟨-, hRw, hwne, hshare⟩ := (hN i w).1 hw
         obtain ⟨hw12, hwadj, hwpart, hwu, hwv⟩ := (hR w).1 hRw
         refine Finset.mem_erase.2 ⟨hwne, ?_⟩
         have hend : w.1 ∈ T ∨ w.2 ∈ T := by
           rcases hshare with h | h | h | h
-          · exact Or.inl (Finset.mem_union_left _ (h ▸ hwu))
-          · exact Or.inl (Finset.mem_union_right _ (h ▸ hwu))
-          · exact Or.inr (Finset.mem_union_left _ (h ▸ hwv))
-          · exact Or.inr (Finset.mem_union_right _ (h ▸ hwv))
+          exacts [Or.inl (Finset.mem_union_left _ (h ▸ hwu)),
+            Or.inl (Finset.mem_union_right _ (h ▸ hwu)),
+            Or.inr (Finset.mem_union_left _ (h ▸ hwv)),
+            Or.inr (Finset.mem_union_right _ (h ▸ hwv))]
         rcases hend with h | h
         · exact hDmem w w.1 h w.2 hwadj (by rw [min_eq_left hw12.le, max_eq_right hw12.le])
         · exact hDmem w w.2 h w.1 hwadj.symm
             (by rw [min_eq_right hw12.le, max_eq_left hw12.le])
-      calc (N i).card ≤ (D.erase i).card := Finset.card_le_card hsub
-        _ = D.card - 1 := Finset.card_erase_of_mem hiD
-        _ ≤ 2 * m * Δ - 1 := Nat.sub_le_sub_right hDcard 1
-    · have hNempty : N i = ∅ := by
-        ext w
-        simp [hN, hRi]
+      exact ((Finset.card_le_card hsub).trans_eq (Finset.card_erase_of_mem hiD)).trans
+        (Nat.sub_le_sub_right hDcard 1)
+    · have hNempty : N i = ∅ :=
+        Finset.eq_empty_of_forall_notMem fun w hw => hRi ((hN i w).1 hw).1
       simp [hNempty]
   have hmR : (0:ℝ) < m := by exact_mod_cast hm1
   -- `e · m⁻² · 2 m Δ ≤ 1` is exactly `2 e Δ ≤ m`.
   have hcond : Real.exp 1 * (((m:ℝ))⁻¹ * ((m:ℝ))⁻¹) * (((2 * m * Δ - 1 : ℕ) : ℝ) + 1) ≤ 1 := by
-    have h1 : 1 ≤ 2 * m * Δ := by
-      have h2m : 1 ≤ 2 * m := by omega
-      calc 1 = 1 * 1 := by norm_num
-        _ ≤ (2 * m) * Δ := Nat.mul_le_mul h2m hΔ
-    have hcast : (((2 * m * Δ - 1 : ℕ) : ℝ) + 1) = 2 * m * Δ := by
-      rw [Nat.cast_sub h1]
-      push_cast
-      ring
-    rw [hcast, show Real.exp 1 * (((m:ℝ))⁻¹ * ((m:ℝ))⁻¹) * (2 * (m:ℝ) * Δ)
-      = (2 * Real.exp 1 * Δ) / m from by field_simp, div_le_one hmR]
+    have h1 : 1 ≤ 2 * m * Δ := Nat.mul_pos (by omega) hΔ
+    rw [show (((2 * m * Δ - 1 : ℕ) : ℝ) + 1) = 2 * (m:ℝ) * Δ from by
+        rw [Nat.cast_sub h1]; push_cast; ring,
+      show Real.exp 1 * (((m:ℝ))⁻¹ * ((m:ℝ))⁻¹) * (2 * (m:ℝ) * Δ) = (2 * Real.exp 1 * Δ) / m
+        from by field_simp, div_le_one hmR]
     exact hmlt.le
   have hpos := lovasz_local_lemma_symmetric A hAmeas N hdep hp hd hcond
-  -- A choice function avoiding every bad event and selecting inside every `Q j` exists.
-  have hfull : unifChoice Q (Set.univ.pi fun j => (Q j : Set (Fin n))) = 1 :=
-    unifChoice_pi_self hQne
-  have hcompl : unifChoice Q ((Set.univ.pi fun j => (Q j : Set (Fin n)))ᶜ) = 0 := by
-    rw [measure_compl (Set.toFinite _).measurableSet (measure_ne_top _ _), hfull]
-    simp
-  have hne : ((⋂ i, (A i)ᶜ) ∩ Set.univ.pi fun j => (Q j : Set (Fin n))).Nonempty := by
-    rcases Set.eq_empty_or_nonempty
-      ((⋂ i, (A i)ᶜ) ∩ Set.univ.pi fun j => (Q j : Set (Fin n))) with hempty | h
-    · exfalso
-      have hle := measure_le_inter_add_sdiff (unifChoice Q) (⋂ i, (A i)ᶜ)
-        (Set.univ.pi fun j => (Q j : Set (Fin n)))
-      rw [hempty, measure_empty] at hle
-      have hzero : unifChoice Q ((⋂ i, (A i)ᶜ) \ Set.univ.pi fun j => (Q j : Set (Fin n))) = 0 :=
-        measure_mono_null (fun x hx => hx.2) hcompl
-      rw [hzero] at hle
-      simp only [zero_add, nonpos_iff_eq_zero] at hle
-      rw [hle] at hpos
-      simp at hpos
-    · exact h
-  obtain ⟨c, hc, hcQ⟩ := hne
-  have hcQ' : ∀ a, c a ∈ Q a := fun a => by
-    have := hcQ a (Set.mem_univ a)
-    simpa using this
+  -- Almost every choice function selects inside every `Q j`, so one of them also avoids every
+  -- bad event.
+  obtain ⟨c, hc, hcQ⟩ : ((⋂ i, (A i)ᶜ) ∩ Set.univ.pi fun j => (Q j : Set (Fin n))).Nonempty :=
+    nonempty_of_measure_ne_zero (by
+      rw [measure_inter_conull ((prob_compl_eq_zero_iff (Set.toFinite _).measurableSet).2
+        (unifChoice_pi_self hQne))]
+      intro h
+      rw [h] at hpos
+      simp at hpos)
   simp only [Set.mem_iInter, Set.mem_compl_iff] at hc
-  refine ⟨c, fun j => hQpart j _ (hcQ' j), fun j k hjk hadj => ?_⟩
-  have hjpart : part (c j) = j := hQpart j _ (hcQ' j)
-  have hkpart : part (c k) = k := hQpart k _ (hcQ' k)
-  have hne' : c j ≠ c k := fun h => hjk (by rw [← hjpart, ← hkpart, h])
-  rcases lt_or_gt_of_ne hne' with hlt | hlt
-  · refine hc (c j, c k) ((hA _ c).2 ⟨(hR _).2 ⟨hlt, hadj, ?_, ?_, ?_⟩, ?_, ?_⟩)
-    · simpa [hjpart, hkpart] using hjk
-    · simpa [hjpart] using hcQ' j
-    · simpa [hkpart] using hcQ' k
-    · simp [hjpart]
-    · simp [hkpart]
-  · refine hc (c k, c j) ((hA _ c).2 ⟨(hR _).2 ⟨hlt, hadj.symm, ?_, ?_, ?_⟩, ?_, ?_⟩)
-    · simpa [hjpart, hkpart] using hjk.symm
-    · simpa [hkpart] using hcQ' k
-    · simpa [hjpart] using hcQ' j
-    · simp [hkpart]
-    · simp [hjpart]
+  have hcQ' : ∀ a, c a ∈ Q a := fun a => by simpa using hcQ a (Set.mem_univ a)
+  have hpart : ∀ j, part (c j) = j := fun j => hQpart j _ (hcQ' j)
+  -- Naming the endpoints of an edge in increasing order matches it with its bad event.
+  have key : ∀ j k : ι, j ≠ k → G.Adj (c j) (c k) → c j < c k → False := fun j k hjk hadj hlt =>
+    hc (c j, c k) ((hA _ c).2 ⟨(hR _).2 ⟨hlt, hadj, by simpa [hpart] using hjk,
+      by simpa [hpart] using hcQ' j, by simpa [hpart] using hcQ' k⟩,
+      by simp [hpart], by simp [hpart]⟩)
+  refine ⟨c, hpart, fun j k hjk hadj => ?_⟩
+  have hne : c j ≠ c k := fun h => hjk (by rw [← hpart j, ← hpart k, h])
+  rcases lt_or_gt_of_ne hne with hlt | hlt
+  · exact key j k hjk hadj hlt
+  · exact key k j hjk.symm hadj.symm hlt
 
 end Applications
 
