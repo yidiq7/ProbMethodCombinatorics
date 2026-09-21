@@ -828,9 +828,7 @@
       "uses": [
         "is_dependency_graph"
       ],
-      "proof_uses": [
-        "pattern"
-      ]
+      "proof_uses": []
     },
     "lll_general": {
       "kind": "theorem",
