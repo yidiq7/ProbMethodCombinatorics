@@ -2038,25 +2038,18 @@ theorem exists_conflictFree_of_card_le :
   have hK0 : 0 < K := by linarith
   set L : ℝ := Real.log K with hLdef
   clear_value L
-  have hlog2lt : Real.log 2 < 0.6931471808 := Real.log_two_lt_d9
-  have hlog2gt : 0.6931471803 < Real.log 2 := Real.log_two_gt_d9
+  have hlog4 : Real.log 4 ≤ 3 := by
+    linarith [Real.log_le_sub_one_of_pos (show (0 : ℝ) < 4 by norm_num)]
   have hL4 : (4 : ℝ) ≤ L := by
-    have h256 : Real.log (256 : ℝ) ≤ L := by
-      rw [hLdef]; exact Real.log_le_log (by norm_num) hK256
-    have h : Real.log (256 : ℝ) = 8 * Real.log 2 := by
-      rw [show (256 : ℝ) = 2 ^ (8 : ℕ) by norm_num, Real.log_pow]
-      norm_num
-    linarith
+    have h : Real.log ((2 : ℝ) ^ (8 : ℕ)) ≤ L := by
+      rw [hLdef]; exact Real.log_le_log (by positivity) (by norm_num; linarith)
+    rw [Real.log_pow] at h
+    push_cast at h
+    linarith [Real.log_two_gt_d9]
   have hL0 : 0 < L := by linarith
-  have hLK : L ≤ K - 1 := by rw [hLdef]; exact Real.log_le_sub_one_of_pos hK0
-  have hsqK : Real.sqrt K ^ 2 = K := Real.sq_sqrt hK0.le
-  have hsqK16 : (16 : ℝ) ≤ Real.sqrt K := by
-    have h := Real.sqrt_le_sqrt (show (256 : ℝ) ≤ K by linarith)
-    rwa [show (256 : ℝ) = 16 ^ 2 by norm_num, Real.sqrt_sq (by norm_num)] at h
-  have hLsq : L ≤ 2 * (Real.sqrt K - 1) := by
-    have h1 : Real.log (Real.sqrt K) ≤ Real.sqrt K - 1 :=
-      Real.log_le_sub_one_of_pos (by positivity)
-    rw [Real.log_sqrt hK0.le, ← hLdef] at h1
+  have hLK : L ≤ K / 4 + 2 := by
+    have h := Real.log_le_sub_one_of_pos (show (0 : ℝ) < K / 4 by positivity)
+    rw [Real.log_div hK0.ne' (by norm_num), ← hLdef] at h
     linarith
   -- the number of edges, the abbreviation `B = 2 ^ (k - 1)`, and `t = B * k / #H`
   have hm1 : (1 : ℝ) ≤ (H.card : ℝ) := by exact_mod_cast Finset.card_pos.mpr hH
@@ -2064,145 +2057,101 @@ theorem exists_conflictFree_of_card_le :
   clear_value m
   have hm0 : 0 < m := by linarith
   set S : ℝ := Real.sqrt (K / L) with hSdef
-  clear_value S
   have hS0 : 0 < S := by rw [hSdef]; exact Real.sqrt_pos.mpr (by positivity)
+  have hS1 : (1 : ℝ) ≤ S := by
+    rw [hSdef, Real.one_le_sqrt]; exact (one_le_div hL0).mpr (by linarith)
+  have hS2 : S ^ 2 = K / L := Real.sq_sqrt (by positivity)
+  clear_value S
   set B : ℝ := (2 : ℝ) ^ (k - 1) with hBdef
   clear_value B
   have hB0 : 0 < B := by rw [hBdef]; positivity
-  have hBk : B * 2 = (2 : ℝ) ^ k := by
-    rw [hBdef, ← pow_succ]
-    congr 1
-    omega
+  have hBk : B * 2 = (2 : ℝ) ^ k := by rw [hBdef, ← pow_succ]; congr 1; omega
   set t : ℝ := B * K / m with htdef
   clear_value t
   have ht0 : 0 < t := by rw [htdef]; positivity
+  have ht2 : 0 < t ^ 2 := pow_pos ht0 2
   have htm : m * t = B * K := by rw [htdef]; field_simp
-  -- the lower bound `t₀ = 4 √(k log k)` on `t`
-  set t₀ : ℝ := 4 * Real.sqrt (K * L) with ht₀def
+  -- the lower bound `t₀ = 4 k / √(k / log k) = 4 √(k log k)` on `t`
+  set t₀ : ℝ := 4 * K / S with ht₀def
   clear_value t₀
-  have hsqKL : Real.sqrt (K * L) ^ 2 = K * L := Real.sq_sqrt (by positivity)
-  have hsqKL1 : (1 : ℝ) ≤ Real.sqrt (K * L) := by
-    have h := Real.sqrt_le_sqrt (show (1 : ℝ) ≤ K * L by nlinarith only [hK256, hL4])
-    rwa [Real.sqrt_one] at h
-  have ht₀4 : (4 : ℝ) ≤ t₀ := by rw [ht₀def]; linarith
-  have ht₀0 : 0 < t₀ := by linarith
-  have ht₀sq : t₀ ^ 2 = 16 * (K * L) := by rw [ht₀def, mul_pow, hsqKL]; norm_num
-  have hSprod : S * Real.sqrt (K * L) = K := by
-    rw [hSdef, ← Real.sqrt_mul (by positivity)]
-    rw [show K / L * (K * L) = K ^ 2 by field_simp]
-    exact Real.sqrt_sq hK0.le
+  have ht₀0 : 0 < t₀ := by rw [ht₀def]; positivity
+  have ht₀2 : 0 < t₀ ^ 2 := pow_pos ht₀0 2
+  have ht₀sq : t₀ ^ 2 = 16 * (K * L) := by
+    rw [ht₀def, div_pow, mul_pow, hS2]; field_simp; ring
+  have ht₀4 : (4 : ℝ) ≤ t₀ := by nlinarith only [ht₀sq, ht₀0, hK256, hL4]
   have htt₀ : t₀ ≤ t := by
     have hmS : m ≤ S * B / 4 := by
       have h : (1 : ℝ) / 8 * S * 2 ^ k = S * B / 4 := by rw [← hBk]; ring
       linarith
-    rw [htdef, le_div_iff₀ hm0]
-    have h1 : t₀ * m ≤ t₀ * (S * B / 4) := mul_le_mul_of_nonneg_left hmS ht₀0.le
-    have h2 : t₀ * (S * B / 4) = B * K := by
-      rw [ht₀def]; linear_combination B * hSprod
-    linarith only [h1, h2]
+    rw [ht₀def, htdef, div_le_div_iff₀ hS0 hm0]
+    nlinarith only [hmS, hK0]
   have ht1 : (1 : ℝ) < t := by linarith
-  have ht2 : 0 < t ^ 2 := pow_pos ht0 2
-  have ht₀2 : 0 < t₀ ^ 2 := pow_pos ht₀0 2
   -- the split parameter `p = log t / k`
   set p : ℝ := Real.log t / K with hpdef
   clear_value p
   have hlogt0 : 0 ≤ Real.log t₀ := Real.log_nonneg (by linarith)
-  have hlogtpos : 0 < Real.log t := Real.log_pos ht1
-  have hp0 : 0 < p := by rw [hpdef]; exact div_pos hlogtpos hK0
+  have hp0 : 0 < p := by rw [hpdef]; exact div_pos (Real.log_pos ht1) hK0
   have hpK : p * K = Real.log t := by rw [hpdef]; field_simp
   have hp1 : p ≤ 1 := by
     have htB : t ≤ B * K := by
       rw [htdef, div_le_iff₀ hm0]
       nlinarith only [mul_nonneg (mul_pos hB0 hK0).le (sub_nonneg.mpr hm1)]
-    have hlogB : Real.log B = (K - 1) * Real.log 2 := by
-      rw [hBdef, Real.log_pow, hKdef]
-      have h1 : (1 : ℕ) ≤ k := by omega
-      rw [Nat.cast_sub h1]
-      norm_num
     have h1 : Real.log t ≤ Real.log (B * K) := Real.log_le_log ht0 htB
-    rw [Real.log_mul (ne_of_gt hB0) (ne_of_gt hK0), hlogB, ← hLdef] at h1
-    rw [hpdef, div_le_one hK0]
+    have hlogB : Real.log B = (K - 1) * Real.log 2 := by
+      rw [hBdef, Real.log_pow, hKdef, Nat.cast_sub (show 1 ≤ k by omega)]; norm_num
+    rw [Real.log_mul hB0.ne' hK0.ne', hlogB, ← hLdef] at h1
     have step1 : (K - 1) * Real.log 2 ≤ (K - 1) * 0.6931471808 :=
-      mul_le_mul_of_nonneg_left hlog2lt.le (by linarith)
-    have step2 : 2 * Real.sqrt K ≤ 3 / 10 * K := by
-      nlinarith only [hsqK, hsqK16, Real.sqrt_nonneg K]
-    linarith only [h1, step1, step2, hLsq, hK0]
+      mul_le_mul_of_nonneg_left Real.log_two_lt_d9.le (by linarith)
+    rw [hpdef, div_le_one hK0]
+    linarith only [h1, step1, hLK, hK256]
   -- the tail term: `2 #H ((1 - p) / 2) ^ k ≤ k / t ^ 2`
   have hexp : (1 - p) ^ k ≤ 1 / t := by
-    have h2 : 1 - p ≤ Real.exp (-p) := by
-      have h := Real.add_one_le_exp (-p); linarith
-    have h3 : (1 - p) ^ k ≤ Real.exp (-p) ^ k :=
-      pow_le_pow_left₀ (by linarith) h2 k
-    have h4 : Real.exp (-p) ^ k = 1 / t := by
-      rw [← Real.exp_nat_mul,
-        show (k : ℝ) * (-p) = -Real.log t by rw [← hpK, ← hKdef]; ring,
-        Real.exp_neg, Real.exp_log ht0]
-      ring
-    linarith only [h3, h4.le, h4.ge]
+    have h : Real.exp (-p) ^ k = 1 / t := by
+      rw [← Real.exp_nat_mul, show (k : ℝ) * (-p) = -Real.log t by rw [← hpK, ← hKdef]; ring,
+        Real.exp_neg, Real.exp_log ht0, one_div]
+    rw [← h]
+    exact pow_le_pow_left₀ (by linarith) (by linarith [Real.add_one_le_exp (-p)]) k
   have hterm1 : 2 * m * ((1 - p) / 2) ^ k ≤ K / t ^ 2 := by
-    have hstep : 2 * m * ((1 - p) / 2) ^ k ≤ 2 * m * (1 / t / 2 ^ k) := by
-      refine mul_le_mul_of_nonneg_left ?_ (by linarith)
-      rw [div_pow]
-      gcongr
     have heq : 2 * m * (1 / t / 2 ^ k) = K / t ^ 2 := by
-      have hL1 : 2 * m * (1 / t / 2 ^ k) = 2 * m / (t * 2 ^ k) := by ring
-      rw [hL1, ← hBk,
+      rw [show 2 * m * (1 / t / 2 ^ k) = 2 * m / (t * 2 ^ k) by ring, ← hBk,
         div_eq_div_iff (mul_pos ht0 (by linarith : (0 : ℝ) < B * 2)).ne' ht2.ne']
       linear_combination 2 * t * htm
-    linarith only [hstep, heq.le, heq.ge]
+    refine le_trans (mul_le_mul_of_nonneg_left ?_ (by linarith : (0 : ℝ) ≤ 2 * m)) heq.le
+    rw [div_pow]
+    gcongr
   -- the conflicting-pair term: `#H ^ 2 ∫ ≤ k log t / t ^ 2`
-  have hB4 : B ^ 2 = (4 : ℝ) ^ (k - 1) := by
-    rw [hBdef, ← pow_mul, mul_comm, pow_mul]; norm_num
   have hterm2 : m ^ 2 * (∫ x in (1 - p) / 2..(1 + p) / 2,
       x ^ (k - 1) * (1 - x) ^ (k - 1)) ≤ K * Real.log t / t ^ 2 := by
-    have h1 : m ^ 2 * (∫ x in (1 - p) / 2..(1 + p) / 2,
-        x ^ (k - 1) * (1 - x) ^ (k - 1)) ≤ m ^ 2 * (p * (1 / 4) ^ (k - 1)) :=
-      mul_le_mul_of_nonneg_left
-        (integral_pow_mul_one_sub_pow_le (k - 1) hp0.le hp1) (sq_nonneg m)
-    have h4pow : ((1 : ℝ) / 4) ^ (k - 1) = 1 / B ^ 2 := by
-      rw [hB4, div_pow, one_pow]
-    have heq : m ^ 2 * (p * (1 / B ^ 2)) = K * Real.log t / t ^ 2 := by
-      have hL1 : m ^ 2 * (p * (1 / B ^ 2)) = m ^ 2 * p / B ^ 2 := by ring
-      rw [hL1, div_eq_div_iff (pow_pos hB0 2).ne' ht2.ne', ← hpK]
+    have hB4 : ((1 : ℝ) / 4) ^ (k - 1) = 1 / B ^ 2 := by
+      rw [hBdef, ← pow_mul, mul_comm, pow_mul, div_pow, one_pow]; norm_num
+    have heq : m ^ 2 * (p * ((1 : ℝ) / 4) ^ (k - 1)) = K * Real.log t / t ^ 2 := by
+      rw [hB4, show m ^ 2 * (p * (1 / B ^ 2)) = m ^ 2 * p / B ^ 2 by ring,
+        div_eq_div_iff (pow_pos hB0 2).ne' ht2.ne', ← hpK]
       linear_combination (p * (m * t + B * K)) * htm
-    rw [h4pow] at h1
-    linarith only [h1, heq.le, heq.ge]
-  -- the two terms together stay below one
+    exact le_trans (mul_le_mul_of_nonneg_left
+      (integral_pow_mul_one_sub_pow_le (k - 1) hp0.le hp1) (sq_nonneg m)) heq.le
+  -- `k (1 + log t) / t ^ 2` decreases past `t₀`, and at `t₀` it is already below one
   have hmono : K / t ^ 2 + K * Real.log t / t ^ 2 ≤ K * (1 + Real.log t₀) / t₀ ^ 2 := by
-    have hcomb : K / t ^ 2 + K * Real.log t / t ^ 2 = K * (1 + Real.log t) / t ^ 2 := by
-      field_simp
-    rw [hcomb, div_le_div_iff₀ ht2 ht₀2]
-    have hlogdiv : Real.log t - Real.log t₀ ≤ t / t₀ - 1 := by
-      rw [← Real.log_div (ne_of_gt ht0) (ne_of_gt ht₀0)]
-      exact Real.log_le_sub_one_of_pos (div_pos ht0 ht₀0)
-    have hlin : (1 + Real.log t) * t₀ ≤ Real.log t₀ * t₀ + t := by
-      have h := mul_le_mul_of_nonneg_right hlogdiv ht₀0.le
-      rw [sub_mul, sub_mul, div_mul_cancel₀ _ (ne_of_gt ht₀0)] at h
-      linarith only [h]
-    have e1 := mul_le_mul_of_nonneg_left hlin (mul_nonneg hK0.le ht₀0.le)
-    have hsqle : t₀ ^ 2 ≤ t ^ 2 := by nlinarith only [htt₀, ht₀0]
-    have e2 : K * Real.log t₀ * t₀ ^ 2 ≤ K * Real.log t₀ * t ^ 2 :=
-      mul_le_mul_of_nonneg_left hsqle (mul_nonneg hK0.le hlogt0)
+    rw [show K / t ^ 2 + K * Real.log t / t ^ 2 = K * (1 + Real.log t) / t ^ 2 by ring,
+      div_le_div_iff₀ ht2 ht₀2]
+    have h := mul_le_mul_of_nonneg_right
+      (show Real.log t - Real.log t₀ ≤ t / t₀ - 1 by
+        rw [← Real.log_div ht0.ne' ht₀0.ne']
+        exact Real.log_le_sub_one_of_pos (div_pos ht0 ht₀0)) ht₀0.le
+    rw [sub_mul, sub_mul, div_mul_cancel₀ _ ht₀0.ne'] at h
+    have e1 := mul_le_mul_of_nonneg_left h (mul_nonneg hK0.le ht₀0.le)
+    have e2 := mul_le_mul_of_nonneg_left (pow_le_pow_left₀ ht₀0.le htt₀ 2)
+      (mul_nonneg hK0.le hlogt0)
     have e3 := mul_le_mul_of_nonneg_left htt₀ (mul_nonneg hK0.le ht0.le)
-    nlinarith only [e1, e2, e3]
-  have hA : Real.log t₀ ≤ Real.log 4 + L := by
-    have hle : t₀ ≤ 4 * K := by
-      have hsle : Real.sqrt (K * L) ≤ K := by
-        have h2 := Real.sqrt_le_sqrt
-          (show K * L ≤ K ^ 2 by nlinarith only [hLK, hK0])
-        rwa [Real.sqrt_sq hK0.le] at h2
-      rw [ht₀def]; linarith
-    calc Real.log t₀ ≤ Real.log (4 * K) := Real.log_le_log ht₀0 hle
-      _ = Real.log 4 + L := by rw [Real.log_mul (by norm_num) (ne_of_gt hK0), ← hLdef]
-  have hlog4 : Real.log 4 < 1.3862943616 := by
-    rw [show (4 : ℝ) = 2 ^ (2 : ℕ) by norm_num, Real.log_pow]
-    norm_num
-    linarith
+    linarith only [e1, e2, e3]
   have hlast : K * (1 + Real.log t₀) / t₀ ^ 2 < 1 := by
+    have hA : Real.log t₀ ≤ 3 + L :=
+      calc Real.log t₀ ≤ Real.log (4 * K) :=
+            Real.log_le_log ht₀0 (by rw [ht₀def]; exact div_le_self (by positivity) hS1)
+        _ = Real.log 4 + L := by rw [Real.log_mul (by norm_num) hK0.ne', ← hLdef]
+        _ ≤ 3 + L := by linarith
     rw [div_lt_one ht₀2, ht₀sq]
-    have h := mul_pos hK0
-      (show (0 : ℝ) < 16 * L - (1 + Real.log t₀) by linarith only [hA, hlog4, hL4])
-    nlinarith only [h]
+    nlinarith only [hA, hL4, hK0]
   refine exists_conflictFree_of_union_bound_lt_one hk2 hp0 hp1 huniform ?_
   rw [← hmdef]
   linarith only [hterm1, hterm2, hmono, hlast]
