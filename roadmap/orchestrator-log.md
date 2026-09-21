@@ -3,6 +3,32 @@
 How to run the loop on this project.  Mine, not a worker's: `skills/` is force-loaded
 into every worker's context, so nothing here belongs there.
 
+## A measured saving belongs to the declaration it was measured in, not to the edit
+
+#396's prose promised about **−415 heartbeats** for a one-line `simpa` → `simpa only` change,
+because that is what the same change had just been measured at on the sibling declaration in the
+same file.  The real figure was **−96**.  The contributor flagged the gap unprompted and the
+review confirmed the arithmetic: **−415 exceeds the whole declaration's 573-heartbeat cost**, so
+the prediction was not merely optimistic, it was impossible — and one division would have shown
+that before I published it.
+
+The cause is that a `simp` set's cost scales with the context it searches, and the sibling's was
+133 lines against this one's 30.  **The edit is transferable; the number is not.**
+
+This is the same shape as the heartbeat *attribution* error logged below — both are a measurement
+taken on declaration A being asserted of declaration B because the two look alike.  Twice in one
+session is enough to make it a rule:
+
+- **Quote a measured figure only for the declaration it was measured on.**  For a sibling, say
+  "the same change was −415 on `<other decl>`; measure it here" and let the contributor supply
+  the number.
+- **Sanity-check any predicted saving against the target's total cost** before publishing it.
+  One `#count_heartbeats` run on the target is the check, and it takes a minute.
+- A prediction that turns out four times too large is not harmless: it sets the contributor up to
+  think they have failed, or to keep digging for a win that was never there.  #396's author spent
+  two further measured experiments before concluding the residue was not worth chasing.
+
+
 ## A task target must be public, and I published two that were not
 
 `comparator` does not skip a `private` target — **it aborts.**  `lean4export` is handed the
