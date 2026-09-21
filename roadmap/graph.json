@@ -9037,7 +9037,7 @@
       "file": "ProbMethodCombinatorics/ConcentrationEquivalence.lean",
       "decl": "ProbMethodCombinatorics.measure_infDist_le_iff_measure_lt_le",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
       "proof_uses": [],
       "parent": "concentration"
