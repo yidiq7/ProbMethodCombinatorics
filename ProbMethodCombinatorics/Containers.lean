@@ -2279,30 +2279,21 @@ through a fixed vertex number `(n-1).choose 2`, so `H` is covered by those. -/
 private theorem card_le_compl_mul_choose_two_aux {n : ℕ} (H : Finset (Finset (Fin n)))
     (h3 : ∀ e ∈ H, e.card = 3) (I : Finset (Fin n)) (hI : ∀ e ∈ H, ¬ e ⊆ I) :
     H.card ≤ (n - I.card) * ((n - 1).choose 2) := by
+  have hsd : (univ \ I).card = n - I.card := by
+    rw [Finset.card_univ_sdiff, Fintype.card_fin]
   have key : H ⊆ (univ \ I).biUnion
       (fun v => ((univ.erase v).powersetCard 2).image (fun s => insert v s)) := by
     intro e he
     obtain ⟨v, hve, hvI⟩ := Finset.not_subset.1 (hI e he)
-    refine Finset.mem_biUnion.2 ⟨v, ?_, ?_⟩
-    · simp [Finset.mem_sdiff, hvI]
-    · refine Finset.mem_image.2 ⟨e.erase v, ?_, Finset.insert_erase hve⟩
-      refine Finset.mem_powersetCard.2 ⟨?_, ?_⟩
-      · intro x hx
-        rw [Finset.mem_erase] at hx ⊢
-        exact ⟨hx.1, Finset.mem_univ x⟩
-      · rw [Finset.card_erase_of_mem hve, h3 e he]
-  have hb : ((univ \ I).biUnion
-      (fun v => ((univ.erase v).powersetCard 2).image (fun s => insert v s))).card
-      ≤ (univ \ I).card * ((n - 1).choose 2) := by
-    refine Finset.card_biUnion_le_card_mul _ _ _ ?_
-    intro v _
-    refine Finset.card_image_le.trans ?_
-    rw [Finset.card_powersetCard, Finset.card_erase_of_mem (Finset.mem_univ v),
-      Finset.card_univ, Fintype.card_fin]
-  have hsd : (univ \ I).card = n - I.card := by
-    rw [Finset.card_sdiff_of_subset (Finset.subset_univ I), Finset.card_univ, Fintype.card_fin]
+    exact Finset.mem_biUnion.2 ⟨v, Finset.mem_sdiff.2 ⟨Finset.mem_univ v, hvI⟩,
+      Finset.mem_image.2 ⟨e.erase v, Finset.mem_powersetCard.2
+        ⟨Finset.erase_subset_erase v (Finset.subset_univ e),
+          by rw [Finset.card_erase_of_mem hve, h3 e he]⟩, Finset.insert_erase hve⟩⟩
   rw [← hsd]
-  exact (Finset.card_le_card key).trans hb
+  refine (Finset.card_le_card key).trans ?_
+  refine Finset.card_biUnion_le_card_mul _ _ _ fun v _ => Finset.card_image_le.trans ?_
+  rw [Finset.card_powersetCard, Finset.card_erase_of_mem (Finset.mem_univ v),
+    Finset.card_univ, Fintype.card_fin]
 
 /-- `2 * binom(m, 2) ≤ m²`, the crude bound the container corner is read against. -/
 private theorem two_mul_choose_two_le_sq_aux (m : ℕ) : 2 * m.choose 2 ≤ m ^ 2 := by
