@@ -828,9 +828,7 @@
       "uses": [
         "is_dependency_graph"
       ],
-      "proof_uses": [
-        "pattern"
-      ]
+      "proof_uses": []
     },
     "lll_general": {
       "kind": "theorem",
@@ -9073,6 +9071,23 @@
         "permanent_upstream"
       ],
       "parent": "entropy"
+    },
+    "lt_ramseyNumber_of_alteration": {
+      "kind": "theorem",
+      "file": "ProbMethodCombinatorics/Ramsey.lean",
+      "decl": "ProbMethodCombinatorics.lt_ramseyNumber_of_alteration",
+      "statement": "formalized",
+      "proof": "formalized",
+      "uses": [
+        "ramsey_number"
+      ],
+      "proof_uses": [
+        "is_monochromatic",
+        "ramsey_finite",
+        "ramsey_property",
+        "ramsey_property_mono"
+      ],
+      "parent": "introduction"
     }
   }
 }

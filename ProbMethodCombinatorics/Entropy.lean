@@ -2857,7 +2857,7 @@ cover of `A` by the neighbourhoods `N(b)`, `b ∈ B`, each vertex of `A` being c
 times; the second by `entropy_sub_le_sum_cond_rank` along a rank that puts `A` first.  That
 leaves `∑_{b ∈ B} (H(X_{N(b)}) + d · H(X_b ∣ X_{N(b)}))`, and
 `entropy_add_mul_condEntropy_le` bounds each summand by `log₂ i(K_{d,d})`. -/
-private theorem indepSetCount_logb_half_le [DecidableEq V] (H : SimpleGraph V)
+theorem indepSetCount_logb_half_le [DecidableEq V] (H : SimpleGraph V)
     [DecidableRel H.Adj] (d : ℕ) (side : V → Bool)
     (hcross : ∀ u v, H.Adj u v → side u ≠ side v)
     (hreg : ∀ v, Nat.card {u // H.Adj v u} = d) :

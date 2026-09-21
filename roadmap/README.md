@@ -118,6 +118,90 @@ edge-count bound the book proves, so the edge-count bound stays a task.
 
 ## Log
 
+- **2026-09-21 — IN FLIGHT: #391 and #393 are correct, reviewed, and blocked on my error. Do not close them.**
+  Both are green-on-everything-except-`comparator`, and the red is the private-target abort
+  described below — not a verdict on the diff.  I promoted both targets on `main`
+  (`card_le_compl_mul_choose_two_aux` in `5073f43`/`1021f7a`, `indepSetCount_logb_half_le` in
+  `5073f43`), re-pinned #388 and #373, and asked each author to rebase.  **If a restarted
+  orchestrator finds these still red: the fix is a rebase onto the current tip, not an override
+  and not a re-proof.**  The proofs are reviewed and good — #391 is −60.5% heartbeats, #393 is
+  149→91 lines and −55%.  If the leases go stale (24h window, last heard 13:00 and 13:21) and
+  no rebase has landed, close both PRs and re-publish the tasks at the tip with a pointer to the
+  PR, so the proof can be resubmitted rather than redone.
+
+- **2026-09-21 — the golf programme in total: 12 proofs, ~4,000 lines and ~640,000 heartbeats removed.**
+  Two rounds.  Round one was ranked by line count; round two by elaboration cost, after #386
+  revealed the ranking was wrong (see below).  Merged: #363–#367, #383–#386, #389, #390, #394,
+  #395, #398, #401.
+
+  The corpus went from **three declarations at 96–98% of the `maxHeartbeats` ceiling** — each one
+  a Mathlib bump away from breaking, with CI green throughout — to **nothing above 50% anywhere**,
+  and only six files with any declaration over 25%.
+
+  **Two levers did nearly all of it**, and both are now in `skills/conventions.md`:
+  * a bare `nlinarith` over a large context → the product it needs supplied as a term plus
+    `linarith only` (−96%, −95%, −94% on three declarations);
+  * `tauto` on what is really `or_assoc`/`or_left_comm` (−85% and −92% on the two twins).
+
+  **But the second lever does not generalise, and I checked before assuming it did.**  The other
+  `tauto` sites sit in declarations costing 3,433 and 16,914 heartbeats *in total*, so a blanket
+  substitution pass over the corpus's 28 call sites would have been mostly wasted contributor
+  time.  The rule is *read the goal*, not *avoid `tauto`*.
+
+  **Contributors reported measured negative results unprompted, three times running**, and that
+  is now asked for in task prose.  #395's author measured eight candidate changes and found six
+  were regressions (one at +503); #401's author found eight more, including three `Finset` lemmas
+  that do not exist in Mathlib v4.33.  Each negative is a dead end the next contributor does not
+  re-walk, and it costs them one paragraph.
+
+
+- **2026-09-21 — the heartbeat pass is finished: nothing in the project is within 2× of the ceiling any more.**
+  Sweep at the end of the batch, `lake env lean -DmaxHeartbeats=L` over all 30 files:
+
+  | ceiling | files over |
+  |---|---|
+  | 190,000 (95% of default) | **0** |
+  | 150,000 | **0** |
+  | 100,000 (50% of default) | **0** |
+  | 50,000 | 6 |
+
+  The two proofs that started the day above 190,000 both came down by ~96%:
+  `exists_sum_shortCycleSupport_card_lt` 191,952 → 12,337 (#390) and
+  `exists_fingerprint_of_dense_pairs` 192,623 → 7,914 (#394).  A third,
+  `exists_bad_card_lt_and_indepNum_le`, went 196,187 → 9,420 (#386) and is what started the
+  investigation.  **Every figure above was measured twice — once by the contributor, once at
+  review — and agreed to better than 0.6%.**
+
+  **One lever produced all three wins:** a bare `nlinarith` searching over products of a large
+  context, replaced by the product it actually needs supplied as a term and `linarith only` over
+  a named list.  In #394 the final step went further and became pure term mode
+  (`h4.trans (mul_le_mul_of_nonneg_right (sub_le_sub_left hle 1) hnR.le)`), leaving no `nlinarith`
+  in the declaration at all.  **Bare `nlinarith` in a large context is this corpus's single
+  biggest elaboration cost**, and it is worth grepping for on sight rather than waiting for a
+  sweep.
+
+  Re-run the sweep after any Mathlib bump: `rebuild` is green at 200,000 right up until it is
+  not, so CI cannot distinguish a proof at 96% of the ceiling from one at 4%.
+
+- **2026-09-21 — two tasks published against `private` targets, and both PRs were unmergeable by construction.**
+  `comparator` does not skip a private target.  `lean4export` is handed the unmangled name, does
+  not find it (Lean stores `_private.<Module>.0.…`), and aborts with exit 2, so `comparator` is
+  red whatever the diff contains.  #388 and #373 both went out this way; #391 and #393 are good,
+  reviewed proofs that could not merge because of it.
+
+  **I had read the rule and still got it wrong.**  `containers.md` said comparator "declines to
+  run" on a private target and I repeated that in #388's own prose as an accepted trade-off.  It
+  does not decline — it crashes, and the person who pays is the contributor.  Knowing a check
+  would be *skipped* is not knowing the job would *fail*; the difference was one run of the thing.
+
+  Fixed by promoting both declarations on `main` — which the project's own rule already required,
+  since *any declaration appearing in a published task's statement is public, however local it
+  looks* — then re-pinning both issues and asking for rebases.  **`scripts/check-target-public.sh`
+  now exists and runs before every `create-task`.**  The cost of getting this wrong is a promotion
+  commit, a re-pin that invalidates open PRs on that file, and a round-trip to a contributor whose
+  work was already correct.
+
+
 - **2026-09-21 — the golf queue was ordered by the wrong number: two proofs were within 5% of failing to compile at all.**
   #386's author reported that `exists_bad_card_lt_and_indepNum_le` elaborated at **196,187 of the
   200,000 default `maxHeartbeats`** — 2% of headroom — and their golf took it to **9,420**, a 95%
@@ -127,32 +211,40 @@ edge-count bound the book proves, so the edge-count bound stays a task.
 
   I swept the whole corpus rather than take the single data point: for each file,
   `lake env lean -DmaxHeartbeats=L` at `L = 150000, 175000, 190000`, and see which fail.  One
-  build per file per level, no edits, no tokens.  Result — after #386, exactly **two**
-  declarations remain above 190,000:
+  build per file per level, no edits, no tokens.  Two files came back hot, and I published a task
+  against each:
 
-  | Declaration | File | Task |
-  |---|---|---|
-  | `exists_sum_shortCycleSupport_card_lt` | `Alterations.lean` | #387 |
-  | `card_le_compl_mul_choose_two_aux` (private) | `Containers.lean` | #388 |
+  | Declaration | File | Task | Outcome |
+  |---|---|---|---|
+  | `exists_sum_shortCycleSupport_card_lt` | `Alterations.lean` | #387 | 191,952 → 12,337 (#390) |
+  | `exists_fingerprint_of_dense_pairs` | `Containers.lean` | #392 | 192,623, open |
 
-  Both published high priority, with the before/after heartbeat figure as the stated acceptance
-  criterion rather than the diff size.
+  **The second row is a correction: I named the wrong declaration first, and a contributor caught
+  it.**  #388 was published against `card_le_compl_mul_choose_two_aux` — which costs about
+  **1,000** heartbeats, not 190,000.  The expensive declaration is its neighbour
+  `exists_fingerprint_of_dense_pairs`, whose proof *ends* at line 2275, four lines above the
+  target's statement.
+
+  **The mechanism is worth more than the mistake.**  A file-level sweep tells you a *file* is hot
+  and nothing else; naming the declaration means mapping the reported error line to a declaration,
+  and a timeout is reported **where elaboration ran out, which is the tail of the expensive
+  proof**.  For `Alterations.lean` I walked *backward* from the error line to the nearest preceding
+  declaration — correct.  For `Containers.lean` I searched *forward* from an arbitrary window start
+  and got the first declaration at or after it — the neighbour.  **Forward search is systematically
+  wrong at exactly the boundary that matters.**  Always walk backward from the error line.
 
   **The lesson is about how this queue was chosen.**  Every golf batch so far was ranked by
   *line count*, because that is what is cheap to measure by reading.  Line count and elaboration
   cost are close to uncorrelated here: #386 cut two lines and 95% of the heartbeats, while the
   #385 golf cut 22 lines off a proof that was never near the ceiling.  **Lines are a readability
   metric; heartbeats are a "does this still compile next month" metric**, and only the second
-  one can fail the build.  Rank future golf batches by the sweep above, then by length.
-
-  The sweep is also the cheapest health check the project has and nothing else surfaces this:
+  one can fail the build.  Rank future golf batches by the sweep above, then by length.  The
+  sweep is also the cheapest health check the project has and nothing else surfaces it:
   `rebuild` is green at 200,000 right up until it is not, so a proof at 98% of the ceiling and
   one at 5% are indistinguishable from CI.  **Worth re-running after any Mathlib bump**, and
   before concluding a chapter is finished.
 
-
-- **2026-09-21 — Kahn–Lovász closed (#380), 24 minutes from publication to merge, and the
-  turnaround is the argument for publishing assembly nodes.**
+- **2026-09-21 — Kahn–Lovász closed (#380), 24 minutes from publication to merge, and the turnaround is the argument for publishing assembly nodes.**
   Corollary 10.2.2 was stated at 08:05, claimed at 08:22, submitted at 08:37 and merged
   unconditional.  Nothing about it was hard — both halves had been proved for days and the
   roadmap said so — but **no node named the chain that joins them**, so it sat undone while the
@@ -174,7 +266,6 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   only `SimpleGraph.Finite` and `SimpleGraph.Matching`, and a `prove` task does not own the
   header.  Recorded because it reads like a missed reuse of `SimpleGraph.adjMatrix` and is not:
   **check scope before calling an inline construction duplication.**
-
 
 - **2026-09-21 — the frontier re-derived from the source, not from this file: three nodes published (#377–#379), and §9.4's "blocked" was a scoping error.**
   With Chapter 11's one corner held and every other stated declaration proved, the board was
@@ -242,7 +333,6 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   Same decay pattern the 2026-09-17 entry recorded, and the same cheap fix — grep the corpus
   before trusting a status line in this file.
 
-
 - **2026-09-21 — the golf annealing pass, round two: five merged (#363–#367), 428 lines net removed, every one still axiom-clean.**
   `exists_conflictFree_of_card_le` 186→135, `exists_independent_transversal` 218→162,
   `janson_lower_tail_step_le` 391→254, `card_lt_of_triangleIntersecting` 208→135,
@@ -278,124 +368,13 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   exactly what `statement-immutability` cannot distinguish from a statement edit on a body-less
   declaration.  So this is structural, not a lapse: **every method-changing golf leaves an
   orchestrator debt, and it is invisible to the gate.**  `rebuild` is happy, `comparator` is happy
-  — the statement really is kernel-identical — and the prose above it is now false.
+  — the statement really is kernel-identical — and the prose above it is now false.  Added to the
+  post-merge routine: on any golf whose diff removes a named Mathlib lemma from the proof, grep
+  the target's docstring for that lemma before recording the merge.
 
-  Added to the post-merge routine: on any golf whose diff removes a named Mathlib lemma from the
-  proof, grep the target's docstring for that lemma before recording the merge.  Round two had one
-  such case out of five.
-
-
-- **2026-09-17 — §4.1 is complete as a statement: Proposition 4.1.2's threshold is now both halves.**
-  `memLp_triangleCount` proved (the brick #187's review named as next missing — it is what
-  `prob_eq_zero_le_variance_div_sq`'s `MemLp X 2` hypothesis needs to make `Var/𝔼²` meaningful),
-  and with it plus `variance_triangleCount_le` the supercritical half is unblocked and published
-  as #189.  `measurableSet_setOf_forall_adj` promoted to public alongside it, since Chebyshev on
-  any subgraph count wants both.
-
-  **Why the supercritical half needs an `N` and the subcritical one does not**, recorded because
-  the asymmetry is the interesting part of the `whp` idiom in practice: Chebyshev's error is
-  `144/(p·n)³ + 144/(n·(p·n))`, and the two terms vanish for *different reasons* — the first once
-  `p·n` is large, the second only once `n` is large as well.  No choice of scale alone controls
-  it.  Markov's error on the other side is `(p·n)³/6`, uniform in `n`, so a `δ` depending on `ε`
-  alone suffices.  **The shape of the estimate decides whether the idiom needs its `N`**, and
-  stating both halves side by side makes that legible in a way an `o(1)` never would.
-
-  Verified before stating: the constants close (`M` from `ε`, then `N` from `ε` and `M`), and
-  `binom(n,3) ≥ n³/12` holds for every `n ≥ 6` with no exception.
-
-- **2026-09-17 — §4.1's first moment and subcritical threshold are both proved (#184, #186); 4 sorries left.**
-  `integral_triangleCount` and `prob_no_triangle_of_mul_le` merged.  **The `whp` idiom worked
-  first try**, and the reason is worth keeping: the explicit
-  `∀ ε > 0, ∃ δ > 0, ∀ n p, p·n ≤ δ → …` shape makes `δ`'s independence from `n` and `p`
-  *structurally visible* — it is supplied in the same `refine` line that binds them, so a reader
-  can see it cannot mention them.  A filter or `o(1)` formulation could not have made that legible.
-  No `N` crept in, and the contributor found a simpler witness than I proposed (`min 1 ε` rather
-  than `min 1 (6ε)^{1/3}` — a smaller `δ` is a legal weaker witness).
-
-  **#186's reduction block was stale by the time it merged**, since its child #184 landed after
-  #186 was based.  `skills/orchestrator-notes.md` says a stale block "claims something untrue", so
-  the prescribed fix is to drop it and re-push.  I merged as-is instead and corrected the record
-  myself, because the child was already proved and the outcome is what matters: `#print axioms`
-  on the merged result gives `[propext, Classical.choice, Quot.sound]` with **no `sorryAx`**, so
-  the node is unconditional and its graph entry carries no open child.  Costing a contributor a
-  round-trip for bookkeeping the orchestrator has to do anyway is the wrong trade.
-
-  **One statement convention refined, above:** new probabilistic nodes should write `(μ).real S`
-  rather than `(μ S).toReal`.  Mathlib's probability lemmas are stated in `Measure.real`, and the
-  reference node had to end in a `measureReal_def` dance purely because I wrote `.toReal`.  This
-  is the template every later `whp` node copies, so it is worth getting right once.
-
-- **2026-09-17 — verified project state: 236 public theorems, 228 `sorryAx`-free.**
-  `#print axioms` over every public theorem in the build, not a `grep` for `sorry`.  Eight are
-  tainted and they split into two groups:
-
-  * **Three are the currently-published statements themselves** — `indepSetCount_pow_le` (#245),
-    `binomialRandom_no_clique_le_of_mu_le` (#249), `prob_edgeDisjointCliqueNumber_eq_zero_le`
-    (#250).  Expected; they are the open tasks.
-  * **Five are the §11.3 chain**, rooted at the one genuinely open corner:
-    `exists_containers_fingerprint_three_uniform` → `exists_containers_three_uniform` →
-    `exists_shrunken_containers_of_many_triangles` → `exists_containers_triangleFree` →
-    `card_triangleFreeGraphs_le`.
-
-  **So the project has exactly one unresolved mathematical question**, and everything else that
-  is stated is proved.
-
-  **A caution about my own earlier "remaining work" lists.**  Several items I carried as open
-  turned out to be already done — §4.3's finite content is complete
-  (`prob_mem_mono_of_isUpperSet` is Theorem 4.3.5, `prob_notMem_le_pow_of_isUpperSet` is Lemma
-  4.3.7, both `sorryAx`-free), §2.4 was complete before I "assessed" it, and §9.2's Azuma had
-  been proved for days.  Four "blocked on Mathlib" notes were also stale.  The pattern is
-  consistent: **a written status list decays faster than the repository, and re-deriving it costs
-  minutes.**  Per-file theorem counts and an axiom sweep are the cheap ground truth; the prose
-  audit is not.
-
-- **2026-09-17 — I pushed a non-compiling commit, because my build check inverted on failure.**
-  `c06edc6` did not compile; `c29903c` fixed it about two minutes later.  The cause was not the
-  Lean error — a section that opened `SimpleGraph` but not `unitInterval`, so `I` did not resolve
-  — but the shell:
-
-      lake build 2>&1 | grep -E "^error|✖" | head -3; echo "build ok"; git commit && git push
-
-  **`grep` exits 0 when it *finds* errors.**  The chain therefore proceeded exactly when the build
-  was broken, and printed "build ok" over a real failure.  I had been using that pattern all
-  session and it only ever looked fine because the builds were passing.
-
-  Worse than the broken commit: I reported "build ok" in my own output.  That is asserting
-  success from a command whose output I had misread.
-
-  **Rule: verification keys on the exit code, never on a grep that succeeds when things break.**
-
-      if lake build >/tmp/b.log 2>&1; then echo OK; else echo FAILED; tail -5 /tmp/b.log; fi
-
-  And the standalone probe that passed beforehand is not evidence: it had `open unitInterval`,
-  which the target section does not.  **A probe file's context is not the file's context** —
-  typecheck in place before committing, not just in `/tmp`.
-
-- **2026-09-17 — never add a declaration to a file that has an open task pinned to it.**
-  #234 was published in `SecondMoment.lean` pinned to `bb591afb`; the contributor branched from
-  exactly that, correctly.  I then pushed `8053d5b`, adding three declarations to the same file
-  for #235.  `statement-immutability` compares the PR head against **current base**, not against
-  the pinned commit, so it read the contributor's older file as having *deleted*
-  `prob_sum_indicator_eq_zero_le`, `memLp_sum_indicator_one` and `integral_sum_indicator_one`.
-  Their diff touches none of those names, and `git merge-tree` against `main` was clean.
-
-  **This is deterministic, not a race.**  Any orchestrator commit that adds a declaration to a
-  file will red-light every open task pinned to an earlier commit of that file, however disjoint
-  the edits are, until the contributor rebases.
-
-  The rule I had after the #188 episode — "after changing a file, re-test the mergeability of
-  every open PR against it before pinging anyone" — was too weak, because here the PR *was*
-  mergeable and the check still failed.  The correct rule: **land all of a file's new statements
-  before pinning any task to it, or publish successive tasks in different files.**  Second rebase
-  I have caused today; the first I caused by editing around a PR, this one by publishing two
-  tasks into one file.
-
-- **2026-09-17 — the two remaining `sorry`s are not equal, and one of them carries §11.1's headline result.**
-  §2.2 closed (#227/#228), so `Expectation.lean` joins the sorry-free files and only
-  `Containers.lean` still has any.  Counting `sorry`s made that look like a footnote.  It is not.
-
-  `#print axioms` over all **217** public theorems in the project: **211 are `sorryAx`-free** and
-  exactly **six are not**, in one chain:
+- **2026-09-17 — the project has exactly one unresolved mathematical question, and a `sorry` count hides which one.**
+  `#print axioms` over every public theorem in the build, not a `grep` for `sorry`.  The tainted
+  declarations form one chain, rooted at the held §11.3 corner:
 
       exists_containers_fingerprint_three_uniform   (the §11.3 hold — the sorry itself)
         → exists_containers_three_uniform
@@ -403,1175 +382,485 @@ edge-count bound the book proves, so the edge-count bound stays a task.
             → exists_containers_triangleFree
               → card_triangleFreeGraphs_le          (§11.1's Erdős–Kleitman–Rothschild bound)
 
-  So **the held §11.3 corner is load-bearing for Chapter 11's headline theorem.**  Everything from
-  §11.2 downward that the project reports as proved in §11.1 rests on an obligation whose
-  docstring says the corner is *open*.  That is honest in the file and was invisible in the
-  summary, which is the problem: "two sorries, one of them deliberate" reads as under control.
+  **So the held §11.3 corner is load-bearing for Chapter 11's headline theorem** — invisible in a
+  summary where "two sorries, one deliberate" reads as under control.  Resolving it is the
+  highest-value open item, ahead of any new authoring, and **`δ` is no lever**: `n/√d` is
+  `δ`-independent, so the corner cannot be dodged by shrinking `δ`.  By contrast
+  `exists_container_round`'s `sorry` was **isolated**, because `exists_run_of_container_round`
+  takes `IsContainerRound` as a *hypothesis* rather than citing the existence theorem — the right
+  way to build on an open node.  **Standing check: report `sorryAx` reach, not `sorry` count**; a
+  `sorry` in a leaf costs nothing, a `sorry` under a chapter's main theorem is the chapter, and
+  the two look identical in a `grep`.  (`#print axioms` reads the built olean — rebuild first.)
 
-  The other `sorry`, `exists_container_round` (#176), is **isolated** — nothing depends on it.
-  `exists_run_of_container_round` is `sorryAx`-free because it takes `IsContainerRound` as a
-  hypothesis rather than citing the existence theorem, which is exactly the right way to have
-  built it and is why that sorry costs nothing downstream.
+- **2026-09-17 — I pushed a non-compiling commit, because my build check inverted on failure.**
+  The cause was not the Lean error — a section that opened `SimpleGraph` but not `unitInterval` —
+  but the shell: `lake build 2>&1 | grep -E "^error|✖" | head -3; echo "build ok"; git commit`.
+  **`grep` exits 0 when it *finds* errors**, so the chain proceeded exactly when the build was
+  broken, and I then reported "build ok" in my own output — asserting success from a command whose
+  output I had misread.  **Rule: verification keys on the exit code, never on a grep that succeeds
+  when things break** — `if lake build >/tmp/b.log 2>&1; then echo OK; else echo FAILED; fi`.
+  And the standalone probe that passed beforehand is not evidence: it had `open unitInterval`,
+  which the target section does not.  **A probe file's context is not the file's context** — an
+  `import Mathlib` scratch file cannot tell you a name is in scope in a narrow one.  Typecheck in
+  place before committing, not just in `/tmp`.
 
-  **Consequence for priority.** Resolving the §11.3 corner is the highest-value open item in the
-  project, ahead of any new authoring; it is the only thing standing between §11.1's headline and
-  a genuine proof. And `δ` is no lever there — the docstring establishes that `n/√d` is
-  `δ`-independent, so the corner cannot be dodged by shrinking `δ`.
+- **2026-09-17 — never add a declaration to a file that has an open task pinned to it, and the rest of the pin discipline.**
+  #234 was pinned to `bb591afb` in `SecondMoment.lean`; I then pushed `8053d5b`, adding three
+  declarations to the same file for #235.  `statement-immutability` compares the PR head against
+  **current base**, not against the pinned commit, so it read the contributor's older file as
+  having *deleted* three declarations their diff never touches, with `git merge-tree` clean.
+  **This is deterministic, not a race**, and it fires however disjoint the edits are.  **Land all
+  of a file's new statements before pinning any task to it, or publish successive tasks in
+  different files.**  The rest, learned in pieces and all still binding:
+  * **A worker's workspace is built at the pinned commit and workers do not rebase**, so keeping
+    pins current is this role's job.  PR #42, built at a pin predating #32/#33, still held
+    placeholder versions of two proved theorems; `sorry-delta` caught the revert (`base 2 → head
+    3`) while the diff looked clean, which is what makes the failure confusing (2026-09-13).
+  * **Re-pinning does not help a worker whose workspace already exists** — comment on every open
+    *claimed* task whose `target_file` the merge touched.  **The check is per *file***, and
+    Chapters 10 and 11 are where tasks sit open longest, so that is where pins rot (2026-09-16).
+  * **Re-pinning a *claimed* issue re-adds `choir/available`**, since editing the body re-triggers
+    `issue-intake`; strip it afterwards — `sync-leases` sees nothing wrong (2026-09-13).
+  * **After repairing a statement, expect in-flight branches to revert it.**  PR #146's head
+    lacked the `d ≤ 2δn` hypothesis its own base carried.  Re-pinning cannot help, so
+    `statement-immutability` is the only backstop: never override it on a recently repaired file.
+  * **After changing a file, re-test the mergeability of every open PR against it before pinging
+    anyone** — I sent three nudges for a rebase my own consolidation had already made unnecessary.
 
-  **Standing check added: report `sorryAx` reach, not `sorry` count.** A `sorry` in a leaf costs
-  nothing; a `sorry` under a chapter's main theorem is the chapter. The two look identical in a
-  `grep`.
+- **2026-09-17 — a blocker note is a claim with an expiry date, and the only way to read one safely is to re-derive it.**
+  Seven recorded blockers have been found stale, in both directions, each having cost weeks
+  against the minutes a re-derivation costs:
+  * **§2.2 "no Dirichlet"** — Mathlib has it, and **Theorem 2.2.1 never needed Dirichlet**: the
+    finite proof takes a prime above `2 max |a|` and averages over `ZMod p`, wanting only
+    `Nat.exists_infinite_primes`.
+  * **§11.1 "needs `ex(n, H)`"** — `SimpleGraph.extremalNumber`, `Turan`, `TuranDensity`,
+    `ErdosStoneSimonovits`, `Zarankiewicz` all exist; Theorem 11.1.2 is closer to a citation.
+  * **§9.2 "Azuma is not in Mathlib; §9.3–§9.6 are downstream of it"** — Mathlib has grown
+    `measure_sum_ge_le_of_hasCondSubgaussianMGF`, and **this project had already proved Azuma** as
+    `measure_martingale_sub_ge_le`: six sections blocked behind a sorry-free theorem of our own.
+  * **Triangle supersaturation, "missing, the most useful thing anyone could add"** —
+    `CliqueFree.card_edgeFinset_le`, `farFromTriangleFree_iff`,
+    `FarFromTriangleFree.le_card_cliqueFinset`, `triangleRemovalBound` and
+    `triangleRemovalBound_pos` were all at the pin (2026-09-15).
+  * **Hardy–Ramanujan (§4.5), "the most tractable of Chapter 4"** — wrong the other way.  Turán's
+    proof needs `∑_{p ≤ n} 1/p = log log n + O(1)`, and Mathlib has no Mertens estimate in any
+    form.  **Expressible is not tractable** (2026-09-15).
+  * **`entropy.md`'s three "obligations left behind by reductions"** were all proved, its warning
+    about `measureEntropy` named something that does not exist at the pin, and `local-lemma.md`'s
+    Latin-transversal line and §2.4's "not yet assessed" were stale the same way.
 
-- **2026-09-17 — the whole "blocked on Mathlib" list re-derived; a fourth note was wrong.**
-  Theorem 8.1.10 is formalized in both regimes (#222/#224) and Theorem 8.1.6 in the `ε`–`N` idiom
-  (#221/#223), so §8.1 is complete.  With the reachable frontier thin, I re-derived every
-  remaining blocker instead of trusting the audit.
-
-  **Genuinely absent, confirmed by search:** Mertens (no sum of prime reciprocals anywhere, so
-  §4.5 stays blocked — `NumberTheory/Chebyshev.lean` exists but gives `π`, `θ`, `ψ`, not
-  `∑ 1/p`), Talagrand, isoperimetry, Euler's formula for planar graphs, graphons, and any central
-  limit theorem.  Those notes stand.
-
-  **Wrong:** §2.2's.  It claimed no Dirichlet — Mathlib has it in
-  `NumberTheory/LSeries/PrimesInAP.lean` — and, more importantly, **Theorem 2.2.1 never needed
-  Dirichlet.**  The finite proof takes a prime above `2 max |a|` and averages over `ZMod p`;
-  all it wants is `Nat.exists_infinite_primes`.  §2.2 is now open, with `IsSumFree` and
-  `sumFreeWindow` authored and #225 published.  **That is four stale blockers in one session, and
-  the one thing they had in common is that nobody re-ran the search.**
-
-  **The `3 ∤ p` hypothesis on `card_sumFreeWindow` was found by computing, not by reading.**  The
-  middle third of `ZMod p` is sum-free for every `p`, but `p - 1 ≤ 3|C|` **fails at every multiple
-  of 3** — at `p = 3` the window is empty against `p - 1 = 2`, because the strict inequalities
-  drop the two boundary residues.  Under `3 ∤ p` it holds and is tight for every `p ≡ 1 mod 3`.
-  Fourth hypothesis this session that the source or my first draft omitted.
-
-  Three more duplicates retired, all created by contributors doing the right thing locally:
-  `cube_div_twelve_le_choose_three` (my prose said "lift the proof from X", which is an
-  instruction to duplicate), `disjoint_offDiagPairs_of_notMem_triangleDependency`, and
-  `card_inter_eq_two_of_mem_triangleDependency`.  **The post-merge duplication sweep is a standing
-  duty, not an occasional one** — a contributor cannot see the other consumers from inside one
-  task.
-
-- **2026-09-17 — §8.1's question is answered, and I repeated a mistake this file already records.**
-  `binomialRandom_no_triangle_le` (#215/#217) is `ℙ(G(n,p) triangle-free) ≤
-  exp(-binom(n,3)p³ + n⁴p⁵/2)`, the finite inequality behind Theorem 8.1.6, on the back of
-  `jansonMu_triangleFamily` (#211) and `jansonDelta_triangleFamily_le` (#213).  Setup 8.1.1 is
-  now fully instantiated at `G(n,p)`.
-
-  **I published the statement above `janson_prob_none_le`, the theorem its route depends on.**  As
-  published it could not have been proved without a forward reference, and the contributor had to
-  relocate it.  `containers.md` already records this exact failure for §11.2 — 11.2.1 is a
-  corollary of 11.2.3, so the book's order put the dependency backwards — and I wrote that note
-  before making the same error in a different chapter.
-
-  **New standing check, cheap and mechanical: before publishing, confirm every lemma the route
-  names appears earlier in the target file than the target.**  Statement placement is part of the
-  task, not cosmetics; the book's order is not a safe default and being right about it once does
-  not transfer.
-
-  `offDiagPairs_inter` has now earned its promotion out of `SecondMoment.lean` in three distinct
-  places, the latest in a chapter that did not exist when it was made public.  Contributors used
-  it to prove disjointness *without naming any element* — showing `offDiagPairs (A ∩ B) = ∅` from
-  `card_offDiagPairs_add` — where my route had them picking apart a shared `s(u, v)`.
-
-- **2026-09-17 — Shamir–Spencer is formalized, and §6.3's debts are paid.**
-  `measure_abs_sub_integral_chromaticNumber_ge_le` (#209/#210) is Theorem 9.3.1, on the back of
-  `binomialRandom_eq_map_graphOfExposure` (#201) and `abs_sub_chromaticNumber_le_one` (#207), both
-  landed the same day.  It needs **`2 ≤ n`, which the source omits** — at `n = 1` the radius
-  `λ √(n-1)` is zero, the event is everything, and the bound falls below `1` from `λ = 1`.  Third
-  source hypothesis added today, after §6.3's `≤`→`<` and §2.4.4's `n ≥ 4`→`n ≥ 5`.
-
-  **#188 merged with no rebase, and the three nudges I sent for one were my error.**  The conflict
-  was a both-added collision with `9f4322e`; when I later relocated
-  `uniformColoring_monochromatic_toReal_le` in `1d33a6d` the insertion regions stopped
-  overlapping and `git merge-tree` went clean on the contributor's original head.  **After
-  changing a file, re-test the mergeability of every open PR against it before pinging anyone** —
-  I asked three times for a fix my own consolidation had already made.
-
-  §6.3's docstring is corrected on all three counts the review raised: the strictness is free
-  because `2eΔ` is *irrational* for `Δ ≥ 1` (so `≤` and `<` are equivalent except at `Δ = 0`, where
-  the non-strict form is false) rather than because of slack against Haxell; the equalization to a
-  common part size is now stated, since heterogeneous parts break `e·p·(d+1) ≤ 1`; and the `- 1`
-  in `d = 2mΔ - 1` is recorded as load-bearing, failing at `Δ = 2, m = 11` without it.
-
-  **The fourth copy of the disjoint-coordinate independence argument is retired.**
-  `measure_pi_inter_eq_mul` states it for an arbitrary finite product of probability measures, and
-  `uniformColoring_inter_eq_mul` and `unifChoice_inter_eq_mul` are now one-line applications.
-  `iIndepFun_pi` appears once in `LocalLemma.lean` where it appeared twice.
-
-  **Pattern worth naming: on four of the last five PRs the contributor found a better route than
-  the one I published** — singleton comparison instead of product transport (#205),
-  `Fin.last`/`castSucc` instead of `Fin k ⊕ Unit` (#208), `orderEmbOfFin` instead of a hand-rolled
-  equiv (#204), and a general two-sided McDiarmid where I had asked only for a union bound (#210).
-  The prose earned its keep where it *verified facts and named traps* — the brute-forced
-  tightness checks, `ℕ∞.toNat ⊤ = 0`, "`omega` cannot evaluate `Nat.choose`".  It was dead weight
-  where it prescribed tactics.  Write down what is true and what will bite; stop short of
-  choosing the proof.
-
-- **2026-09-17 — §2.4 is complete, and a contributor re-derived the erratum structurally.**
-  Proposition 2.4.2, Lemma 2.4.3 (#196) and Proposition 2.4.4 (#202) are all proved.
-
-  I had flagged 2.4.4's `5 ≤ n` by brute force: true maxima `3, 7, 14` at `n = 4, 5, 6` against a
-  printed bound of `2.8, 7, 14`.  The contributor located the same off-by-one **without computing
-  anything** — the hypothesis is spent at `Nat.choose_pos (2 ≤ n - 3)`, because at `n = 4` the
-  factor `binom(1,2)` is zero and the cancellation is invalid.  Two independent routes to the
-  same correction is about as much confirmation as a source erratum can get, and the structural
-  one is what now stands in the file.
-
-  Their `Finset.orderEmbOfFin` transport of Lemma 2.4.3 from `Fin 5` to an arbitrary 5-subset is
-  better than the route I published, which waved at "pick an equiv and check freeness survives".
-  The increasing enumeration supplies `image_orderEmbOfFin_univ` and injectivity for free, and
-  `Finset.subset_image_iff` closes both directions of the bijection in two lines each.
-
-  **Publishing a dependent node only after its input lands was the right call.**  2.4.4 was
-  stated at the same time as 2.4.3 but held back; a contributor proving it against a `sorry`
-  would have produced a green PR whose theorem transitively depended on an unproved lemma.
-  Visible in `#print axioms`, but misleading in the trust report.
-
-- **2026-09-17 — three blockers re-derived, three found stale, in one sitting.**
-  The lesson written into the #193 entry got tested within the hour, twice, and both times the
-  recorded blocker was wrong.
-
-  * **§2.4 "not yet assessed"** — it had been assessed and stated two days earlier, and the
-    proved theorem's own docstring already scoped the follow-up node.
-  * **§11.1 "needs `ex(n, H)`, which the project does not have"** — Mathlib has
-    `SimpleGraph.extremalNumber`, plus `Turan`, `TuranDensity`, `ErdosStoneSimonovits` and
-    `Zarankiewicz`.  Theorem 11.1.2 is closer to a citation than a formalization.
-  * **§9.2 "Azuma itself is not [in Mathlib]; everything in §9.3–§9.6 is downstream of it"** —
-    Mathlib has since grown `measure_sum_ge_le_of_hasCondSubgaussianMGF`, and, more to the point,
-    **this project already proved Azuma** as `measure_martingale_sub_ge_le`.  Six sections were
-    recorded as blocked behind a theorem sitting sorry-free in the repository.
-
-  Both notes were true when written.  Neither was re-checked.  **A blocker note is a claim with
-  an expiry date, and the only way to read one safely is to re-derive it** — which costs minutes,
-  against the weeks each of these cost.  Audit bullets now carry the date they were resolved
-  rather than being deleted, so the staleness itself stays visible.
-
-- **2026-09-17 — Proposition 2.4.4 is false as the source prints it, and §4.2's definitions are paid.**
-  Two pieces of authoring, and one erratum.
-
-  **§2.4.** Zhao states Proposition 2.4.4 for `n ≥ 4`: a tetrahedron-free 3-graph has at most
-  `(7/10) binom(n,3)` edges.  At `n = 4` that is false — the 3-graph missing exactly one triple
-  is tetrahedron-free with `3` edges against a bound of `2.8` — and the hypothesis has to be
-  `5 ≤ n`, which is what an argument sampling five vertices can actually support.  Exhaustive
-  search over all 3-graphs on `n ≤ 6` gives maxima `3, 7, 14`: false at `4`, tight at `5` and
-  `6`.  Lemma 2.4.3 (`card_le_seven_of_tetrahedronFree`, #196) is published; 2.4.4 is stated and
-  **held** until it lands, rather than published against a `sorry`.
-
-  **This is the second source erratum, after §6.3's `≤` versus `<`, and both were found the same
-  way: compute the small cases before stating the theorem.**  Neither would have surfaced by
-  reading the proof — in both the proof is right and only the quantifier range is wrong.  The
-  habit is now cheap and has paid twice; it stays.
-
-  **§4.2.** Definition 4.2.7 is authored as `edgeVertexRatio` and `maxEdgeVertexRatio`, together
-  with `copyCount` and its first moment `integral_copyCount` (#195).  `m(H)` maximises over
-  vertex *subsets* rather than over `SimpleGraph.Subgraph`, which is an equality and not a
-  weakening: within a fixed vertex set the densest subgraph is the induced one, and every
-  subgraph has a vertex set.  It also keeps the definition free of `Subgraph` finiteness
-  instances and of any `Decidable` hypothesis, since `Set.ncard` needs neither.  Checked against
-  Example 4.2.8 (`ρ = 7/5`, `m = 3/2`) and, for `integral_copyCount`, by brute force over all
-  graphs on `n ≤ 4` vertices against five shapes for `H`: 80/80.
+  Both Mathlib misses were written from a search for the *statement's* vocabulary rather than the
+  *proof's* inputs.  **Search for what the proof needs.**  Audit bullets now carry the date they
+  were resolved rather than being deleted, so the staleness stays visible.  And **a written status
+  list decays faster than the repository**: per-file theorem counts and an axiom sweep are the
+  cheap ground truth, the prose audit is not.
 
 - **2026-09-17 — Chapter 8's real blocker was a ground set, not a missing API (#193).**
-  `janson.md` had recorded the five unstated asymptotic results of §8.1–§8.3 as needing "a settled
-  `whp` convention plus a worked `G(n,p)` API".  With the `whp` convention settled, I went to build
-  the API and found there was nothing to build.  Mathlib *defines*
+  `janson.md` had priced five unstated asymptotic results as needing "a worked `G(n,p)` API".
+  There was nothing to build: Mathlib *defines*
+  `SimpleGraph.binomialRandom V p = setBer(Sym2.diagSetᶜ, p).comap edgeSet`, so `G(n,p)` already
+  is a `setBernoulli`.  The obstruction is one type-level mismatch — Chapter 8's statements are
+  fixed at `setBernoulli Set.univ p` and `G(n,p)`'s ground set omits the diagonal.
+  `map_inter_setBernoulli` (`(setBer(v,p)).map (· ∩ u) = setBer(v ∩ u, p)`) is the whole transfer
+  and unblocks Theorems 8.1.6, 8.1.10, 8.2.5, Corollary 8.1.7 and §8.3.2 at once, via
+  `measurable_set_iff` (`fun_prop` does not do `Inter.inter` on `Set ι`), `setBernoulli_eq_map`
+  and `Measure.infinitePi_map_pi` — which carries no countability hypothesis, so neither does the
+  statement.  Brute-forced over all subsets of a 4-element ground set against 400 random
+  `(p, u, v)` triples, 400/400.  **A blocker written at the wrong level of abstraction is worse
+  than no note at all, because a note stops people from looking again.**
 
-      SimpleGraph.binomialRandom V p = setBer(Sym2.diagSetᶜ, p).comap edgeSet
+- **2026-09-17 — before publishing, confirm every lemma the route names appears earlier in the target file than the target.**
+  I published `binomialRandom_no_triangle_le` above `janson_prob_none_le`, the theorem its route
+  depends on, so as published it could not have been proved without a forward reference.
+  `containers.md` already recorded the same failure for §11.2 — 11.2.1 is a corollary of 11.2.3,
+  so the book's order put the dependency backwards — and I wrote that note before repeating the
+  mistake in another chapter.  **The source's presentation order can encode a dependency
+  backwards**: a textbook may state a weaker result first and strengthen it later, a Lean file
+  cannot.  Being right about the order once does not transfer.
 
-  so `G(n,p)` already is a `setBernoulli`.  The obstruction is one type-level mismatch: every
-  Chapter 8 statement is fixed at `setBernoulli Set.univ p`, and `G(n,p)`'s ground set omits the
-  diagonal.  `map_inter_setBernoulli` — `(setBer(v,p)).map (· ∩ u) = setBer(v ∩ u, p)` — is the
-  whole transfer, and unblocks Theorem 8.1.6, Corollary 8.1.7, Theorem 8.1.10, Theorem 8.2.5 and
-  §8.3.2 at once.
+- **2026-09-17 — Shamir–Spencer needs `2 ≤ n`, and §6.3's docstring was wrong on three counts.**
+  `measure_abs_sub_integral_chromaticNumber_ge_le` (Theorem 9.3.1) needs **`2 ≤ n`, which the
+  source omits**: at `n = 1` the radius `λ √(n-1)` is zero, the event is everything, and the bound
+  falls below `1` from `λ = 1`.  Third source hypothesis added in one session, after §6.3's
+  `≤`→`<` and §2.4.4's `n ≥ 4`→`n ≥ 5`.  §6.3 corrected: the strictness is free because `2eΔ` is
+  **irrational** for `Δ ≥ 1` (so `≤` and `<` coincide except at `Δ = 0`, where the non-strict form
+  is false) rather than because of slack against Haxell; equalizing to a common part size is
+  load-bearing, since heterogeneous parts break `e·p·(d+1) ≤ 1`; and the `- 1` in `d = 2mΔ - 1` is
+  load-bearing, failing at `Δ = 2, m = 11` without it.
 
-  The route is four steps and every input exists: `measurable_set_iff` for the trace map (`fun_prop`
-  does not do `Inter.inter` on `Set ι`), `setBernoulli_eq_map` to reach the product, and
-  `Measure.infinitePi_map_pi` — which carries no countability hypothesis, so the statement carries
-  none either, despite the rest of the file needing `[Countable ι]` for its *events*.
+  **On four of the last five PRs the contributor found a better route than the one I published.**
+  The prose earned its keep where it *verified facts and named traps* — brute-forced tightness
+  checks, `ℕ∞.toNat ⊤ = 0`, "`omega` cannot evaluate `Nat.choose`" — and was dead weight where it
+  prescribed tactics.  **Write down what is true and what will bite; stop short of choosing the
+  proof.**
 
-  **The lesson is about how blockers get recorded.**  "Needs a worked `G(n,p)` API" priced five
-  theorems out of reach for weeks; the truth was a one-lemma impedance mismatch.  A blocker written
-  at the wrong level of abstraction is worse than no note at all, because a note stops people from
-  looking again.  The standing rule already says a "not in Mathlib" claim has a shelf life — this
-  extends it: **re-derive the blocker, don't re-read it.**
+- **2026-09-17 — Proposition 2.4.4 is false as the source prints it, and two independent routes found the same off-by-one.**
+  Zhao states it for `n ≥ 4`: a tetrahedron-free 3-graph has at most `(7/10) binom(n,3)` edges.
+  At `n = 4` that is false — the 3-graph missing exactly one triple is tetrahedron-free with `3`
+  edges against a bound of `2.8` — and the hypothesis has to be `5 ≤ n`.  Exhaustive search over
+  all 3-graphs on `n ≤ 6` gives maxima `3, 7, 14`: false at `4`, tight at `5` and `6`.  The
+  contributor found the same off-by-one **without computing anything**: the hypothesis is spent at
+  `Nat.choose_pos (2 ≤ n - 3)`, because at `n = 4` the factor `binom(1,2)` is zero and the
+  cancellation is invalid.  **This is the second source erratum, after §6.3's `≤` versus `<`, and
+  both were found the same way: compute the small cases before stating the theorem.**  Neither
+  would have surfaced by reading the proof — in both the proof is right and only the quantifier
+  range is wrong.  **Publishing a dependent node only after its input lands was the right call**:
+  a contributor proving 2.4.4 against a `sorry` would have produced a green PR whose theorem
+  transitively depended on an unproved lemma — visible in `#print axioms`, misleading in the
+  trust report.
 
-  Checked before publishing, per the rule that cost me `exists_container_round`: the identity was
-  brute-forced over all subsets of a 4-element ground set against 400 random `(p, u, v)` triples,
-  400/400 agreeing, and the statement and the step-1 measurability proof both typecheck.
+- **2026-09-17 — the `whp` idiom, and why only one half of a threshold needs an `N`.**
+  Written-out `∀ ε > 0, ∃ δ > 0, ∀ n p, p·n ≤ δ → …` rather than a `Whp` predicate, which would
+  have to quantify over probability spaces whose type varies with `n` (`SimpleGraph (Fin n)`).
+  The quantifiers cost one line and make `δ`'s independence from `n` and `p` *structurally
+  visible* — it is supplied in the same `refine` line that binds them.  **The asymmetry between
+  the two halves is the part worth keeping.**  Markov's error on the subcritical side is
+  `(p·n)³/6`, uniform in `n`, so `δ` depends on `ε` alone; Chebyshev's on the supercritical side
+  is `144/(p·n)³ + 144/(n·(p·n))`, whose two terms vanish for *different reasons* — the first once
+  `p·n` is large, the second only once `n` is large as well — so no choice of scale alone controls
+  it and that half needs its `N`.  **The shape of the estimate decides whether the idiom needs its
+  `N`.**  Verified before stating: `binom(n,3) ≤ n³/6` without exception, `binom(n,3) ≥ n³/12` for
+  `n ≥ 6`.  Alongside: **write `(μ).real S`, not `(μ S).toReal`**, since Mathlib's probability
+  lemmas are stated in `Measure.real`; and `triangleCount` uses `Set.indicator` over a set of
+  graphs rather than a filter on a clique predicate, because the measure ranges over *all* graphs
+  on `Fin n` and no `DecidableRel G.Adj` is available there.
 
-- **2026-09-17 — the `whp` idiom is settled, and §4.1's subcritical threshold published (#183).**
-  This was the single convention blocking §4.1's threshold, §4.2's `subgraph_threshold`, Janson's
-  three asymptotic nodes and Theorem 11.1.5.  It is now a binding decision above, and
-  `prob_no_triangle_of_mul_le` is the reference instance.
+- **2026-09-17 — `card_sumFreeWindow` needs `3 ∤ p`, found by computing rather than reading.**
+  The middle third of `ZMod p` is sum-free for every `p`, but `p - 1 ≤ 3|C|` **fails at every
+  multiple of 3** — at `p = 3` the window is empty against `p - 1 = 2`, because the strict
+  inequalities drop the two boundary residues.  Under `3 ∤ p` it holds and is tight for every
+  `p ≡ 1 mod 3`.  Fourth hypothesis in one session that the source or my first draft omitted.
 
-  **The choice worth recording is what it avoids.**  A `Whp` *predicate* would have to quantify
-  over a family of probability spaces whose type varies with `n` — `SimpleGraph (Fin n)` — which
-  is dependent machinery the project has no other use for.  Writing the quantifiers out costs one
-  line per statement and keeps every asymptotic node in the same idiom the rest of the book
-  already uses.
-
-  **And the subcritical half needs no `N` at all**, which is why it is stated first: Markov's
-  bound is uniform in `n` (`𝔼X ≤ (p·n)³/6 ≤ δ³/6`), so `δ` depends on `ε` alone.  I verified the
-  arithmetic and that `binom(n,3) ≤ n³/6` holds without exception before stating it.  The
-  supercritical half is **deliberately unpublished**: it needs both a scale `M` and an `N`, and it
-  leans on `variance_triangleCount_le`, whose constants could still move — stating it now would
-  risk a second statement built on an unsettled one.
-
-- **2026-09-17 — §4.1's triangle count is authored and its two moments published (#181, #182).**
-  The goal is now the whole book rather than the stated frontier, so the work is authoring the
-  planned nodes, not only reviewing.  A survey of `graph.json` puts the remaining unstated count
-  at **19 nodes across six groups**, and they split cleanly:
-
-  * **Blocked on absent Mathlib infrastructure, and not tasks**: `hardy_ramanujan` (needs Mertens'
-    theorem — a whole analytic-number-theory project), `isoperimetry`, `talagrand`,
-    `euclidean_tsp`, and behind them `shamir_spencer` and `clique_number_bollobas`.
-  * **Blocked on definitions the orchestrator owes** — which is the actionable half, and where
-    this session starts.
-
-  `triangleCount` is the first of those debts paid.  It is written with `Set.indicator` over a set
-  of graphs rather than a filter on a clique predicate, because the measure ranges over *all*
-  graphs on `Fin n` and no `DecidableRel G.Adj` is available there — a filter would need a
-  `Decidable` instance this project does not declare.  Public, since both moment nodes mention it.
-  Sanity-checked before publishing: the empty graph on three vertices has count `0`, proved.
-
-  The two nodes are exactly the ones `second-moment.md` predicted would become publishable "the
-  moment the count exists": the first moment `binom(n,3) p³`, and a deliberately crude variance
-  bound `n³p³ + n⁴p⁵` whose constants are loose so the prover need not track exact binomials.
-  `variance_sum_indicator_le`, already proved in that file, is built for the second.
-
-  **Next debt: the `whp` idiom.**  It is the single blocker shared by §4.1's threshold, §4.2's
-  `subgraph_threshold`, Janson's three asymptotic nodes and Theorem 11.1.5 — the highest-leverage
-  convention left to settle.
-
-- **2026-09-16 — `exists_container_round` was FALSE as I stated it; repaired, and #176 re-pinned to `348f7d3`.**
-  The contributor holding #176 refuted it with a kernel-checked counterexample instead of grinding
-  on an impossible task.  The double-count clause rests on `3|Ae| = ∑_{v ∈ Av} deg_{Ae}(v)`, which
-  is really `∑_{e ∈ Ae} |e|` and equals `3|Ae|` only under 3-uniformity.  At `n = 1`, `c = d = 1`,
-  `Ae = {∅}` the other clauses pin everything and the clause demands `3 ≤ 1`.  **I reproduced
-  their refutation against `main` before touching anything** — it compiled clean with no `sorryAx`.
-
-  Fixed by adding `(∀ e ∈ Ae, e.card = 3)` to that clause alone.  Verified both directions: the
-  refutation no longer elaborates, failing exactly where it must now supply the hypothesis, and
-  `(∅ : Finset (Fin 1)).card = 3` is false by `decide`.  `exists_run_of_container_round`'s merged
-  proof needed one extra argument at its single call site, from hypotheses it already had.
-
-  **This is the fourth false statement this chapter has produced, and the first I authored from
-  scratch rather than transcribed.**  Its cause is the same as the `2c√d` cut and the
-  `degree_fromEdgeSet` mismatch earlier today: the individual estimates were right and the
-  identity joining them was never checked.  Recorded in `orchestrator-log.md` as *verify the
-  frame, not just the parts*.
-
-  **The process failure is the more expensive half, and it was entirely mine.**  The defect was
-  filed at 22:40; I read it at 01:28.  The poller had said "task #176 commented on — read its
-  lease and sync the labels" and I synced the labels only.  In those three hours I published two
-  more nodes on the broken interface and sent the contributor a correction to a hint they had
-  never reached.  **On every "commented on", read the comment body.**
-
-- **2026-09-16 — §11.3's run is proved (#180), in full and with no obligations.  Two sorries left in the project.**
-  788 insertions, 28 new declarations, all `private`, no `choir-reduction` — the node I sized as
-  "the largest in the chapter" and sanctioned a nested reduction for came back as a complete
-  proof.  All four halting modes are handled, and the fourth is **refuted rather than handled**:
-  the accumulated potential makes running the round budget out impossible while both thresholds
-  are unmet, which is a cleaner argument than the case analysis I had in mind.
-
-  **The review found a real error in the docstring I authored, and it is the third of this kind.**
-  I wrote that vertices of `E`-degree above `2c√d` leave the alive set.  With that cut the degree
-  conjunct is **false**: a survivor at the threshold still gains a whole round's worth of pairs,
-  and a round adds up to `Δ₂ ≤ c√d` at a vertex, so survivors reach `3c√d`.  The cut has to sit a
-  full `c√d` below the conjunct — at `c√d` — and the handshake is then the factor-2-weaker
-  `|D| < 2|E|/(c√d)`, which costs nothing against two orders of magnitude of slack.  Corrected,
-  with the reason recorded next to it so the constraint is not re-broken.
-
-  **The statement was fine; only the prose describing the algorithm was wrong.**  That is the
-  pattern in all three of this session's prose defects — `degree_fromEdgeSet`'s form mismatch, the
-  `2c√d` cut, and the over-claimed constant — and it is worth naming: **a statement is checked by
-  the kernel and by `comparator`; the prose around it is checked by nobody.**  Every hour of
-  contributor time those three cost was spent on text no gate reads.
-
-  One caution for the composite, from the review and worth keeping: the covering conjunct is
-  nearly free on its own (`R := ∅` satisfies it), and in the `E`-heavy mode this proof's `R` can be
-  small, so the container is near-`univ` there.  The content is in covering *conjoined with* the
-  first disjunct — downstream must not assume a small container in that mode.
-
-- **2026-09-16 — §11.3's frontier is fully published (#179), and the hold on the composite now has a precise reason.**
-  `exists_run_of_container_round` is stated and published, so the chapter's decomposition is
-  complete: the round (#176), the run (#179), and the dense branch (merged as #178).  0 axioms,
-  3 sorries.
-
-  **Published as one node rather than the pre-split shape I had said I was inclined to accept.**
-  Splitting the run would force its internal state — fuel, state shape — into a public statement,
-  freezing choices the contributor is better placed to make.  §11.2's analogue was a single node
-  with a *private* run definition and closed in one PR, and that precedent outweighs the gain from
-  separating the accounting, especially now that the dichotomy reduces to one handshake bound.
-  The rule of thumb: **split when the interface is forced, not when the node is merely large.**
-
-  **The composability check was machine-verified this time.**  The run's last four conjuncts are
-  exactly the hypotheses of `exists_fingerprint_of_dense_pairs` at `F := E (S I)`, and rather than
-  eyeball that I wrote a scratch `example` applying the one to the other and let Lean elaborate it.
-  Directly the lesson from over-promising `degree_fromEdgeSet` — *confirm the rewrite, do not
-  assume the forms match.*
-
-  **Why the composite stays held, stated exactly.**  It is no longer held because it carries the
-  mathematics — that is now decomposed.  It is held because **the frozen 11.3.1 fingerprint form
-  carries no regime hypothesis**, so proving it needs the whole range of `d`, and the range above
-  `√d > n/(2·10⁴M³)` is precisely what node 5 owns and what the graph container theorem cannot
-  reach.  The composite is unblockable only by settling node 5, not by any amount of glue.
-
-  Three lemmas were promoted out of #178's proof on the way — `card_filter_mem_eq_two`,
-  `sum_card_incident`, `degree_fromEdgeSet_eq_card_incident` — and the merged proof rewritten to
-  call them, so the promotion is verified by the build rather than asserted.
-
-- **2026-09-16 — §11.3's dense branch is proved (#178), and the loop ran itself to get there.**
-  `exists_fingerprint_of_dense_pairs` merged about twenty minutes after being published; 0 axioms,
-  2 sorries.  Both §11.3 tasks were claimed within five minutes of publication, which is the
-  clearest evidence yet that **the decomposition was the bottleneck, not contributor capacity** —
-  the board had been empty because nothing was authored, not because nobody was working.
-
-  The proof is honest glue: zero new declarations, both δ-parametric obligations called at the
-  prescribed constants, stability passed through from the obligation rather than reproved, and
-  `S`/`A` destructured before `I` is introduced so `A` cannot close over it.  Every arithmetic
-  chain closed at the slack predicted before publishing — `hδc` exactly, `hdegG` tight at the
-  worst case, the rest with factors of 5, 50 and 10⁶.
-
-  **The review's most useful output was three criticisms of what I authored**, which is what it was
-  asked for: `hc : 0 < c` is dead (left alone rather than restate a just-merged declaration), the
-  independence hypothesis is formally stronger than `IsIndepSet` (free given `hdiag`), and the
-  docstring over-promised `degree_fromEdgeSet`.  That last one cost the contributor ~28 lines and
-  is recorded as its own lesson in `orchestrator-log.md`.
-
-  Worth keeping: the obligation returns `(1 - 1/(10⁴M²))n` while the statement claims only
-  `(1 - 1/(10¹⁰M⁴))n`.  The sharper constant is proved and currently discarded, available if the
-  composite ever needs it.
-
-- **2026-09-16 — §11.3's round interface is authored and its first node published (#176).**
-  `IsContainerRound` and `exists_container_round` are in the file and build; the chapter's
-  decomposition has started rather than remaining a plan.  Three things settled on the way, each
-  of which had to be settled *before* publishing anything that mentions the interface:
-
-  **The run's dichotomy is satisfiable in all four halting modes**, which the interface draft could
-  not confirm and which was the actual blocker.  `R` is existentially returned and the halting mode
-  is a function of the fingerprint through the replay, so `R` may be chosen per mode.  The branch
-  that fires is decided uniformly by the handshake bound `|D| < |E|/(c√d)` on vertices deleted for
-  forbidden-pair degree: either `E` is dense, or `D` is small and the run either order-retired
-  enough vertices or exhausted `I` — and in that last case `I ⊆ S ∪ D`, whose size clears the
-  container bound by two orders of magnitude.  Covering needs no case split, because the
-  order-retired set is disjoint from `I`.
-
-  **§11.2's headline theorems cannot be called by anything.**  Both bind `δ` existentially, and
-  `∃ δ > 0` carries no lower bound, so no hypothesis in `c, d, n` can guarantee their proviso for
-  whatever `δ` they return.  The δ-parametric obligations are the usable interface, which also
-  makes the stability conjunct added to `exists_fingerprint_of_greedy_rule` load-bearing.
-
-  **Why #176 is safe to publish while the run is unsettled:** `IsContainerRound`'s clause
-  hypotheses *are* the run's invariants, passed in rather than assumed globally.  Strengthening the
-  run's invariant set therefore cannot change what a rule must provide, so the interface can be
-  frozen now.  For the same reason the interface relates `d` and `n` nowhere — that constraint
-  belongs to the nodes that call §11.2.
-
-  Two supporting lemmas landed as orchestrator vocabulary rather than inside one task's proof:
-  `maxCodegree_mono` (the algorithm deletes edges, so 11.3.1's codegree hypotheses must transport)
-  and `degree_fromEdgeSet` (the run accumulates a `Finset (Sym2 _)` because a `DecidableRel`
-  instance cannot come from under an existential, while §11.2 takes a `SimpleGraph`).  The second
-  also settled a statement question: the dense-branch node can state its degree hypothesis on
-  `G.degree` directly.
-
-- **2026-09-16 — the `choir/type:*` label race recurred on #176, as logged.**  Setting difficulty
-  and priority straight after `create-task` dropped `choir/type:prove` again.  The logged remedy
-  worked as written — `gh issue edit --add-label` is additive and cannot drop the others — and the
-  diagnostic held: list the new issue's labels once after publishing, because an untyped task still
-  reads as a task.
-
-- **2026-09-16 — §11.2 is closed.  One sorry left in the project, and it is the held node.**
-  #174 (`exists_fingerprint_of_greedy_rule`) merged — the last published obligation and the largest.
-  **Kernel-checked rather than inferred:** `#print axioms` gives
-  `[propext, Classical.choice, Quot.sound]` for `exists_containers`, `exists_containers_fingerprint`
-  and all three obligations, with **no `sorryAx`**.  Theorems 11.2.1 and 11.2.3 are unconditional.
-  `exists_containers_three_uniform` still carries `sorryAx`, correctly, from the held §11.3 node.
-
-  **The stability conjunct I authored was free, exactly as claimed — and I checked that rather than
-  assuming it.**  This was the conjunct most worth doubting, since I added it to the statement myself
-  before publishing on the argument that an honest proof yields it.  It is discharged by
-  `greedyRun_replay`, a real fuel induction whose step is the argument I had written out: the step's
-  pick lies in the final `P ⊆ J`, so `J ∩ A_k` is nonempty and clause 2 of `IsGreedyRule` forces the
-  same choice; the halt cases coincide.  Its hypotheses are clauses 1 and 2 verbatim and *not* the
-  `kill` clauses — strictly weaker than `IsGreedyRule`, which is the right shape.
-
-  **The check that mattered most was structural, not mathematical.**  A degenerate `S` (constant,
-  `≡ ∅`, or `S I = I`) would satisfy stability trivially while gutting the other four conjuncts, and
-  `A` secretly depending on `I` would hollow out the fingerprint form entirely.  Both are ruled out
-  by *scope*: the `refine` supplies `S` and `A` as functions of `J` **before** `fun I hI => ?_`
-  introduces `I`, so `A` is lexically incapable of closing over `I`.  That is worth more than any
-  argument about the proof, and it is the kind of thing to look for first on a fingerprint statement.
-
-  Four new declarations, all `private` and all `greedyRun*`; `private` is safe here because none
-  appears in a *public* statement — the target's is frozen and mentions only the public
-  `IsGreedyRule`, so the `comparator` hazard from earlier today cannot fire.  Budget obtained by a
-  case split on `3d ≤ 2δn` rather than the `⌊2B/3⌋ + 1 ≤ B` route in the prose; equivalent, and
-  `hdn : d ≤ δ*n` is genuinely spent in the second case.
-
-- **2026-09-16 — PR bodies over-reported twice today.  Harmless individually; worth naming as a pattern.**
-  #166's body miscounted the file's declarations (13 vs 15) and attributed a `sorry` to
-  `exists_containers_triangleFree`, which carries none.  #173's body claimed "`c ≥ 1` is derived
-  from `hsum` + `hdeg`" when nothing in the diff derives, mentions or uses it — the proof doesn't
-  need it, since `δ ≤ 1/(100c)` gives `c·δ ≤ 1/100` for any `c > 0`.  Neither affected the
-  mathematics and neither was grounds to withhold a merge.
-
-  **The reason to care is economic.**  Both authors were unusually careful elsewhere, and their
-  self-reports are what made these reviews cheap — #173's clause-by-clause account saved most of
-  the reading.  A verification claim that turns out not to correspond to anything in the diff
-  devalues the whole report, because the next reader has to check the claims they would otherwise
-  have taken.  Recorded in `skills/orchestrator-notes.md` as: claim what you did, not what would
-  have been reassuring.
-
-- **2026-09-16 — Theorem 11.3.1 proved from one obligation (#172), accepted via *amend*, and its child held unpublished.**
-  Both container theorems are now proved; all three remaining sorries are obligations beneath them.
-  I merged #172 rather than rejecting it because the ~34 lines of counting assembly are real,
-  kernel-checked content that has to exist either way — but I did **not** publish its child, and the
-  reasoning is worth keeping.
-
-  **The reduction contract's four questions did not all pass.**  The child says the right thing (its
-  hypothesis list is token-identical to the parent's, verified by diffing with the decl names
-  normalised away) and the split is formally real (child ⟹ parent by genuine counting, parent ⇏
-  child).  But **"is each child closable in one PR?" is a clear no**, and that alone decides
-  publication.  An independent review and the PR's own author converged on it separately: the child
-  carries all of 11.3.1's mathematical content, plus the open `√d ≳ n` corner, plus — in the corner —
-  a *strengthening* over the parent.  Publishing it would hand someone the hardest statement in the
-  project with a known-open design question inside it.
-
-  **The corner is now localized, which is the session's most useful piece of new mathematics.**  It
-  is not a vibe about `√d ≳ n`; it is `exists_containers`' own proviso failing.  That theorem at
-  parameter `c_G` yields `δ_G = 1/(100 · max c_G 1)` and demands `d_G ≤ 2 δ_G n = n/(50 · max c_G 1)`,
-  while at termination `d_G = 2e(G)/n = Ω(√d)` — so the subroutine is applicable only for
-  `d = O(n²/c_G²)`, against an a priori bound of only `d < n²/2`.  **A `Θ(n²)` window where the
-  graph container theorem cannot be applied to `G` at all.**  I verified the δ and the proviso in the
-  source.  It is the same `d ≤ 2δn` proviso that made `exists_containers` false before `1e4659a`,
-  biting one chapter later — which is the third time that single proviso has driven a design decision
-  in this project.
-
-  **Two things I checked rather than assumed, both of which mattered:**
-  - **`sync-graph` did not over-record the cross-chapter edge.**  `hypergraph_container`'s
-    `proof_uses` came back as the child alone, not `graph_container` — correct, since #172's proof
-    calls `exists_containers` nowhere.  Had it recorded that edge, a chapter resting on an open proof
-    would compute as complete.  Note this *replaced* a hand-written planned edge to `graph_container`;
-    the intended dependency now lives in `containers.md`'s prose and will reappear as node 4 of the
-    real split.
-  - **`IsGreedyRule` survived the merge public.**  #172's base was two commits behind and one of
-    those commits edits the same file, which is the #146 shape exactly.  Confirmed post-merge.
-
-  Amended in the file: the new theorem had been inserted *above* the `### 11.3` header (so 11.3's
-  fingerprint form was filed under §11.2), and its docstring asserted "both ends are comfortable",
-  conflating "budget never collapses" (proved) with "budget ≥ 2" (false for `n²/4 < d`).  Both fixed.
-
-  **One decision deliberately deferred**, and safe only because the node is unpublished: whether the
-  child carries §11.2's stability conjunct.  Nothing needs it today.  Reshaping an unpublished node is
-  free; changing a published task's statement is not.
-
-- **2026-09-16 — `private` in a published statement silently disables `comparator`.  My mistake, and the most expensive one of the session.**
+- **2026-09-16 — `private` in a published statement silently disables `comparator`.  The most expensive mistake of the session, and mine.**
   PRs #173 and #174 both failed `comparator` with `statement-mismatch` while every other check,
-  `statement-immutability` included, was green — and neither diff touched a statement.  Cause:
-  Lean 4 mangles private names with the **module path** (verified directly — `private def
-  myPrivateFoo` compiles to `_private._stdin.0.myPrivateFoo`), and comparator builds the base tree
-  under a `ChoirBase.` module prefix, so challenge and solution reference different constants for
-  `IsGreedyRule` and the statements cannot match as kernel terms for *any* diff.
+  `statement-immutability` included, was green — and neither diff touched a statement.  Lean 4
+  mangles private names with the **module path** (`private def myPrivateFoo` compiles to
+  `_private._stdin.0.myPrivateFoo`), and comparator builds the base tree under a `ChoirBase.`
+  module prefix, so challenge and solution reference different constants and the statements cannot
+  match as kernel terms for *any* diff.  `gate/verify/comparator.py`'s header states the
+  assumption that fails — "Renaming modules never renames *declarations*" — true of public
+  declarations only.  Reported upstream, not patched locally, since `~/.choir/checkout` is shared
+  by every project on this machine.  I made the hole myself, adopting `IsGreedyRule` as `private`
+  because both consumers lived in one file: namespace tidiness, at the cost of the project's
+  strongest gate on two targets.  **Rule: anything reachable from a published statement is public,
+  however local it looks** — `private` helpers stay safe only when no *public* statement mentions
+  them.  The tell, if it recurs: `comparator` red, `statement-immutability` green, no statement in
+  the diff.
 
-  **`gate/verify/comparator.py`'s header states the assumption that fails**: the mapping is argued
-  sound because "Renaming modules never renames *declarations* (Lean decl names come from
-  namespaces, not file paths)".  True of public declarations only.  Reported to the overseer as an
-  upstream Choir bug; not patched locally, since `~/.choir/checkout` is shared by every project on
-  this machine.
+- **2026-09-16 — `exists_container_round` was FALSE as I stated it; repaired, #176 re-pinned to `348f7d3`.**
+  The contributor holding it refuted it with a kernel-checked counterexample rather than grinding
+  on an impossible task.  The double-count clause rests on `3|Ae| = ∑_{v ∈ Av} deg_{Ae}(v)`, which
+  is really `∑_{e ∈ Ae} |e|` and equals `3|Ae|` only under 3-uniformity; at `n = 1`, `c = d = 1`,
+  `Ae = {∅}` the other clauses pin everything and the clause demands `3 ≤ 1`.  I reproduced the
+  refutation against `main` first, then added `(∀ e ∈ Ae, e.card = 3)` to that clause alone and
+  verified both directions.  **Fourth false statement this chapter produced, and the first I
+  authored from scratch rather than transcribed** — same cause as the `2c√d` cut and the
+  `degree_fromEdgeSet` mismatch: the individual estimates were right and the identity joining them
+  was never checked.  *Verify the frame, not just the parts.*  **The process failure was the more
+  expensive half**: filed at 22:40, read at 01:28, because the poller said "task #176 commented on
+  — read its lease and sync the labels" and I synced the labels only, publishing two more nodes on
+  the broken interface meanwhile.  **On every "commented on", read the comment body.**
 
-  **I made this hole this morning**, adopting `IsGreedyRule` as `private` when ratifying #166 on the
-  reasoning that both consumers lived in one file.  That reasoning was about namespace tidiness and
-  it cost the project its strongest gate on two targets.  Now public (`eda593c`); no proof text
-  changed, so both PRs need only a rebase, which they were told.
-  **Rule: anything reachable from a published statement is public, however local it looks.**
-  The tell, if it recurs: `comparator` red, `statement-immutability` green, no statement in the diff.
+- **2026-09-16 — §11.3's decomposition: the round (#176), the dense branch (#178) and the run (#180).**
+  Three things settled *before* anything mentioning the interface was published.  **The run's
+  dichotomy is satisfiable in all four halting modes** — `R` is existentially returned and the
+  halting mode is a function of the fingerprint through the replay, so `R` may be chosen per mode;
+  the branch that fires is decided uniformly by the handshake bound `|D| < |E|/(c√d)` on vertices
+  deleted for forbidden-pair degree.  **§11.2's headline theorems cannot be called by anything**:
+  both bind `δ` existentially, and `∃ δ > 0` carries no lower bound, so no hypothesis in `c, d, n`
+  can guarantee their proviso — the δ-parametric obligations are the usable interface.  **#176 was
+  safe to publish while the run was unsettled** because `IsContainerRound`'s clause hypotheses
+  *are* the run's invariants, passed in rather than assumed globally, so strengthening the run
+  cannot change what a rule must provide.  Published as one node rather than pre-split, because
+  splitting would force the run's internal state into a public statement: **split when the
+  interface is forced, not when the node is merely large.**  Composability was machine-verified —
+  a scratch `example` applying the run's last four conjuncts to `exists_fingerprint_of_dense_pairs`
+  at `F := E (S I)`.
 
-- **2026-09-16 — `choir worker heartbeat` is a no-op; a contributor found it and I confirmed it.**
+  **The review found a real error in the docstring I authored.**  I wrote that vertices of
+  `E`-degree above `2c√d` leave the alive set; with that cut the degree conjunct is **false**,
+  because a survivor at the threshold still gains a round's worth of pairs (`Δ₂ ≤ c√d`) and
+  reaches `3c√d`.  The cut has to sit a full `c√d` below the conjunct — at `c√d` — and the
+  handshake is then the factor-2-weaker `|D| < 2|E|/(c√d)`, costing nothing against two orders of
+  magnitude of slack.  **The statement was fine; only the prose was wrong**, as in all three of
+  the session's defects: **a statement is checked by the kernel and by `comparator`; the prose
+  around it is checked by nobody.**
+
+  Two cautions downstream.  The covering conjunct is nearly free on its own (`R := ∅` satisfies
+  it) and in the `E`-heavy mode this proof's `R` can be small, so **the container is near-`univ`
+  there** — the content is in covering *conjoined with* the first disjunct.  And #178's obligation
+  returns `(1 - 1/(10⁴M²))n` while the statement claims only `(1 - 1/(10¹⁰M⁴))n`: the sharper
+  constant is proved and currently discarded.
+
+- **2026-09-16 — §11.2 is closed, and the stability conjunct I added to the statement was free.**
+  `#print axioms` gives `[propext, Classical.choice, Quot.sound]` for `exists_containers`,
+  `exists_containers_fingerprint` and all three obligations, with **no `sorryAx`**.  Stability is
+  discharged by `greedyRun_replay`, a fuel induction whose hypotheses are clauses 1 and 2 of
+  `IsGreedyRule` verbatim and *not* the `kill` clauses — strictly weaker, the right shape.
+  **The check that mattered most was structural, not mathematical.**  A degenerate `S` (constant,
+  `≡ ∅`, or `S I = I`) would satisfy stability trivially while gutting the other four conjuncts,
+  and an `A` secretly depending on `I` would hollow out the fingerprint form entirely.  Both are
+  ruled out by *scope*: the `refine` supplies `S` and `A` as functions of `J` **before**
+  `fun I hI => ?_` introduces `I`, so `A` is lexically incapable of closing over `I`.  **That is
+  the first thing to look for on a fingerprint statement.**
+
+- **2026-09-16 — the §11.3 corner is `exists_containers`' own proviso failing, and that localizes it exactly.**
+  Theorem 11.3.1 is proved from one obligation (#172), and I did **not** publish its child.  The
+  reduction contract's four questions did not all pass: the child says the right thing and the
+  split is formally real, but **"is each child closable in one PR?" is a clear no** — it carries
+  all of 11.3.1's mathematical content, plus the open `√d ≳ n` corner, plus a *strengthening* over
+  the parent in that corner.
+
+  **The corner is not a vibe about `√d ≳ n`.**  `exists_containers` at parameter `c_G` yields
+  `δ_G = 1/(100 · max c_G 1)` and demands `d_G ≤ 2 δ_G n = n/(50 · max c_G 1)`, while at
+  termination `d_G = 2e(G)/n = Ω(√d)` — so the subroutine is applicable only for `d = O(n²/c_G²)`,
+  against an a priori bound of only `d < n²/2`.  **A `Θ(n²)` window where the graph container
+  theorem cannot be applied to `G` at all.**  I verified the `δ` and the proviso in the source.
+  It is the same `d ≤ 2δn` proviso that made `exists_containers` false before `1e4659a`, biting
+  one chapter later — the third time that one proviso has driven a design decision here.  The
+  composite is held for exactly this reason and no other: **the frozen 11.3.1 fingerprint form
+  carries no regime hypothesis**, so proving it needs the whole range of `d`, and the range above
+  `√d > n/(2·10⁴M³)` is precisely what node 5 owns.  **The composite is unblockable only by
+  settling node 5, not by any amount of glue.**
+
+  Checked rather than assumed: **`sync-graph` did not over-record the cross-chapter edge** —
+  `hypergraph_container`'s `proof_uses` came back as the child alone, not `graph_container`; had
+  it recorded that edge, a chapter resting on an open proof would compute as complete.  Amended in
+  the file: the theorem had been inserted *above* the `### 11.3` header, and its docstring
+  conflated "budget never collapses" (proved) with "budget ≥ 2" (false for `n²/4 < d`).
+
+- **2026-09-16 — there are two "dense corners" in Chapter 11, and I conflated them before catching it.**
+  **§11.2's corner is `δn < d ≤ 2δn`** (graph containers, now closed); **§11.3's is `√d ≳ n`** on
+  #99, where the parent's own budget `⌊n/√d⌋₊` is only guaranteed `≥ 1`, and that one is still
+  open.  `containers.md` distinguishes them explicitly at both mentions.  Worth recording because
+  the two have the same name, the same shape, and opposite status.
+
+- **2026-09-16 — I published an obligation its own author asked me to withhold, and the statement was true.**
+  The author of #166 flagged `exists_dense_fingerprint` as neither provable nor refutable — an
+  open window of relative width `(c-1)δ` above `δn`.  Well-motivated and wrong: **the window is an
+  artifact of building the order by degree.**  The statement asks only for *some* order in which
+  every vertex has `|N(v) ∪ Pred(v)| ≥ δn`; built greedily it always exists, because for `j < δn`
+  and `|P| = j` some `v ∉ P` has `|N(v) \ P| ≥ δn - j` — otherwise
+  `n(d - δn) < j(2cd + j - n - δn)`, positive on the left and `≤ 0` on the right once `c ≥ 1`
+  forces `cd ≤ n/50`.  Machine-checked across 300,000 points of the feasible dense regime (the
+  normalized `(2cd + j - n - δn)/n` maxes out near `-0.96`) before publishing.  **The lesson,
+  stated next to its mirror image:** `containers.md` records three statements published *false*
+  and believed true (the `d ≤ 2δn` proviso); this is the first published *true* and believed
+  false, and both came from reasoning about one construction instead of about the statement.  The
+  author had probed clique unions, clique-plus-matching and Hi/Lo degree sequences and found every
+  one covered.  **Repeated failure to refute is evidence the statement is true, not evidence the
+  corner is hard.**
+
+- **2026-09-16 — `choir worker heartbeat` is a no-op, and the loop runs itself at AUTO.**
   `cmd_heartbeat` passes no `session`, its subparser has no `--session` and does not resolve the
   workspace, and the holder check compares the `(login, session)` *pair* against a lease whose
-  `holder_session` is always a real id — so it returns before writing, every time.  Consequences
-  recorded for workers in `skills/orchestrator-notes.md`: **`refreshed: false` carries no
-  information**, and a lease goes stale at 24h despite correct heartbeating, so a stale-reclaim can
-  land on actively-worked code.  Upstream fix is the overseer's call.
+  `holder_session` is always a real id — so it returns before writing, every time.  **`refreshed:
+  false` carries no information**, and a lease goes stale at 24h despite correct heartbeating, so
+  a stale-reclaim can land on actively-worked code.  Run `choir orch poll` **backgrounded, never
+  in the foreground**: it blocks for up to `max_wait_seconds`, and a long-lived foreground process
+  is what the OOM killer takes first while contributors' `lean` builds spike to 1–2 GB each.
+  Backgrounded, the process exiting *is* the wake-up, so repeated kills degrade the cycle into a
+  periodic check rather than a hang.  **Do not read the OOM history as licence to stop and wait
+  for the overseer** — at AUTO the orchestrator runs the whole loop, and the only escalations are
+  a new axiom, a statement that looks wrong, and a policy change.  This machine is
+  memory-constrained: **don't run `lake build` in the orchestrator checkout except to verify a
+  statement being authored** (2026-09-13).  **When the board is empty, the bottleneck is usually
+  the orchestrator, not the contributors** — both §11.3 tasks were claimed within five minutes.
 
-- **2026-09-16 — Theorem 11.2.3 is proved as a three-way reduction (#166); its "unsettled" obligation
-  was not unsettled, and I published it.**
-  Merged PR #166, which proves `exists_containers_fingerprint` from `exists_greedy_rule`,
-  `exists_fingerprint_of_greedy_rule` and `exists_dense_fingerprint`, now tasks #169, #170 and #171.
-  Inventory went 2 → 4 sorries, which is the reduction working: one declaration became three, each
-  individually claimable, and §11.2's assembly is settled.
+- **2026-09-16 — check the new-declaration count first; it tells you how much judgment a PR needs.**
+  Four of five diffs in one batch added **zero new top-level declarations** — a single `sorry`
+  replaced by a body whose every auxiliary fact is a local `have`.  That empties the review
+  surface in the one place the kernel cannot help: with the target statement kernel-identical to
+  base, a clean axiom closure and no net-new sorries, a local `have` cannot smuggle anything.
+  Two PR bodies over-reported the same day — a miscount, and a claimed derivation nothing in the
+  diff performs.  Neither affected the mathematics, but **the reason to care is economic**: their
+  self-reports are what made the reviews cheap, and a verification claim corresponding to nothing
+  devalues the whole report.  Claim what you did, not what would have been reassuring.
 
-  **The author asked me not to publish obligation 3, and I overrode that.**  They flagged
-  `exists_dense_fingerprint` as neither provable nor refutable — an open window of relative width
-  `(c-1)δ` above `δn` — and said publishing it would risk a contributor's budget on a possibly-false
-  statement.  That reservation was well-motivated (two of their earlier reductions were rejected for
-  false obligations) but it was wrong.  **The window is an artifact of building the order by degree.**
-  The statement only asks for *some* order in which every vertex has `|N(v) ∪ Pred(v)| ≥ δn`; built
-  greedily it always exists, because for `j < δn` and `|P| = j` some `v ∉ P` has
-  `|N(v) \ P| ≥ δn - j` — otherwise `n(d - δn) < j(2cd + j - n - δn)`, positive on the left and
-  `≤ 0` on the right once `c ≥ 1` forces `cd ≤ n/50`.
+- **2026-09-16 — the in-repo gate overlay does not follow `choir update`; only `upgrade-project.sh` moves it.**
+  Resynced to Choir `258a6d3` (`05c9542`) after checking that `gate/checks.py` was
+  **byte-identical** across those 27 commits, so `REQUIRED_PRESENT` gained nothing and no open PR
+  could be stranded by required-but-absent.  That is why six open PRs needed no re-auditing.
 
-  **I did not take the reviewer's word for this.**  The algebra identity and the contradiction were
-  machine-checked numerically across 300,000 points of the feasible dense regime (the normalized
-  quantity `(2cd + j - n - δn)/n` maxes out near `-0.96`), and the construction was checked by hand.
-  Only then did I rewrite the docstring, publish the task, and put the route in its prose so the
-  contributor transcribes a verified argument rather than searching.
+- **2026-09-12 → 2026-09-16 — `set-priority`/`set-difficulty` immediately after `create-task` drops `choir/type:prove`.**
+  Seen on nine of nine, ten of twelve, and again on #176 — a read-modify-write race against label
+  state GitHub has not settled.  `gh issue edit --add-label` is additive and cannot drop the
+  others.  **List the new issue's labels once after publishing, because an untyped task still
+  reads as a task.**  Same batch hazard: write task prose with placeholder cross-references and
+  fill the issue numbers in after `create-task` returns them.
 
-  **The lesson, stated next to its mirror image.**  `roadmap/containers.md` already records three
-  statements published *false* and believed true (the `d ≤ 2δn` proviso).  This is the first
-  published *true* and believed false.  Both came from reasoning about one construction instead of
-  about the statement.  The author's own evidence pointed the right way and they misread it: they had
-  probed clique unions, clique-plus-matching and Hi/Lo degree sequences for a counterexample and
-  found that every one was covered.  **Repeated failure to refute is evidence the statement is true,
-  not evidence the corner is hard.**
-
-  **Also decided rather than deferred:** `IsGreedyRule`, the `private def` the reduction introduced,
-  is adopted as orchestrator-owned vocabulary and stays `private` (both consumers are in this file;
-  §11.3 needs a hypergraph analogue, not this predicate), and both tasks are told it is frozen.  And
-  the stability conjunct `∀ J, S I ⊆ J → J ⊆ I → S J = S I` went onto obligation 2's conclusion
-  **before** publishing, not after it lands as the author proposed — I verified it is free from the
-  interface, and changing a published task's statement is what invites the stale-workspace reverts
-  recorded in `skills/orchestrator-notes.md`.  The parent still composes; 3257 jobs, four expected
-  sorries.
-
-- **2026-09-16 — a conflation I introduced and then caught: there are two "dense corners" in Chapter 11.**
-  While writing the above I claimed this file had been wrong to call the dense corner "the open design
-  question".  It was not.  **§11.2's corner is `δn < d ≤ 2δn`** (graph containers, now closed);
-  **§11.3's is `√d ≳ n`** on #99, where the parent's own budget `⌊n/√d⌋₊` is only guaranteed `≥ 1`,
-  and that one is still open.  `containers.md` now distinguishes them explicitly at both mentions.
-  Worth recording because the two corners have the same name, the same shape, and opposite status.
-
-- **2026-09-16 — Chapter 10 is closed.  Two sorries left in the project, both in Chapter 11.**
-  #167 (`entropy_le_logb_card`) and #168 (`shearer_triple`) merged, taking the inventory to
-  **2 sorries, 0 axioms**.  `Entropy.lean` now carries none, and **six** Chapter 10 theorems went
-  from proved-modulo-`sorryAx` to unconditional in those two merges: #167 released Brégman's
-  per-order bound, Brégman–Minc, Shearer's family form and the triangle-intersecting bound, and
-  #168 released Loomis–Whitney, which needed both.
-
-  **Both PRs added zero new top-level declarations** — the fifth and sixth of seven this session
-  to do so.  #167 is the clearest case yet of a task whose whole content was already in the file:
-  the proof is four `have`s restricting the entropy sum from `univ` to the support finset `A` and
-  then one `exact` onto the base lemma `sum_negMulLogb_le_logb_card`, which was proved centrally
-  long ago.  #168 was 12 lines, exactly the shape `orchestrator-log.md` predicted when it chose a
-  hint over decomposition on 2026-09-15 ("its route is three lines … the real cost was an
-  associativity transport with a precedent already in the file") — 5 of the 12 lines are that
-  transport.  **That prediction being right is the strongest evidence so far that the
-  statement-then-route-then-decomposition diagnostic order is the correct one.**
-
-  The multiplicity-2 in `shearer_triple` is worth recording because it is where a wrong-but-
-  compiling proof would have come from: it falls out of an *exact* cancellation of `H(Z)` between
-  subadditivity (`H(X,Y,Z) ≤ H(X,Y) + H(Z)`) and the file's submodularity lemma
-  (`H(X,Y,Z) + H(Z) ≤ H(X,Z) + H(Y,Z)`), not from absorbing a nonnegativity slack.  Neither PR
-  instantiated the general `shearer`, and neither re-derived it — the route was sanctioned in the
-  task prose precisely so #90 would not wait on it.
-
-- **2026-09-16 — `roadmap/entropy.md` was stale in two ways that would have cost a contributor.**
-  Fixed both, and worth generalizing.  It listed `shearer_family`, `bregman_chain_rule` and
-  `bregman_greedy_bound` under "Obligations left behind by reductions" — **all three have been
-  proved for some time**, so a contributor reading the group file for available work would have
-  found three phantom obligations.  It also told them a Mathlib search turns up `measureEntropy`
-  (Kolmogorov–Sinai) to be ruled out; at the pinned Mathlib there is **no `measureEntropy` at
-  all**.  `Mathlib/InformationTheory/` holds only `Coding/`, `Hamming.lean` and
-  `KullbackLeibler/`.
-
-  **A group file's "what's open" section is a second copy of state that `graph.json` already
-  holds, and it drifts.**  The counts in this README are now derived from the graph rather than
-  written by hand; the per-group prose is not, and that is where to look next time something reads
-  wrong.
-
-- **2026-09-16 — all four open tasks re-pinned `fa3909e` → `b338588`; #99 was the one that needed it.**
-  The rule in `skills/orchestrator-notes.md` is that a stale pin is harmless unless something merged
-  into the *target file*, so I checked rather than re-pinning reflexively.  `Entropy.lean` (#84, #90)
-  was untouched — those pins were harmless.  **`Containers.lean` was not**: PR #159 added 587 lines
-  to it (proving `exists_shrunken_containers_of_many_triangles`) *after* `fa3909e`, so a worker
-  claiming #99 would have built against the placeholder version and had `sorry-delta` reject their
-  branch for reverting a declaration their diff never touched — the exact confusing failure the
-  notes describe, on the project's hardest task.  Re-pinned all four for consistency; each record
-  was re-read through the intake parser afterwards to confirm it still round-trips.
-
-  **Generalization: the pin-staleness check is per *file*, and the file that matters is the one a
-  long-lived task targets.**  Chapters 10 and 11 are where tasks sit open longest, so they are
-  exactly where pins rot unnoticed while the rest of the project moves.
-
-- **2026-09-16 — five proofs merged; the trust boundary is down to four sorries in two chapters.**
-  Reviewed and merged #160 (`prob_notMem_le_pow_of_isUpperSet`), #162 (`card_le_of_tetrahedronFree`),
-  #163 (`measure_martingale_sub_ge_le`), #164 (`exists_signs_sum_ge`) and #165
-  (`le_card_of_distinctSubsetSums`).  Inventory went **9 sorries → 4, axioms 0 → 0**; the remaining
-  four are `exists_containers_fingerprint` and `exists_containers_three_uniform` (Ch. 11) and
-  `entropy_le_logb_card` and `shearer_triple` (Ch. 10).  With these, **Chapters 2, 4, 7 and 9 have
-  no `sorry` left in any stated declaration** — the README table above claimed that before it was
-  true, and is now accurate for those rows.
-
-  **What stage-two review actually turned on, recorded because it generalizes.**  Four of the five
-  diffs (#160, #163, #164, #165) added **zero new top-level declarations** — a single `sorry`
-  replaced by a proof body whose every auxiliary fact is a local `have`.  That makes the review
-  surface *empty* in the one place the kernel cannot help: with the target statement identical to
-  base as a kernel term, a clean axiom closure and no net-new sorries, a local `have` cannot smuggle
-  anything, because the kernel discharged it against a fixed goal.  **Check the new-declaration
-  count first; it tells you how much judgment the PR actually needs.**  #164 was the exception with
-  ten new declarations (including `private def signVec`), and the argument that settled it is the
-  same one in a different key: all ten are `private` and fully proved, and the target's statement
-  never mentions them, so a wrong helper could only be unprovable, not load-bearing.
-
-  Only #162 added helpers with hypotheses, and both take the target's own `h3`/`hfree` verbatim —
-  nothing added, and `card_le_card_filter_superset` is a *lower* bound sitting on the low side of
-  the double count, so it cannot hide a weakening.
-
-- **2026-09-16 — three prose defects the reviews surfaced; all are orchestrator work, none blocked a merge.**
-  Recorded so they are fixed rather than rediscovered:
-  - **`Nat.succ_mul_choose_eq` does not exist at this pin.**  It is named in `Expectation.lean`'s
-    §2.4 docstring (~line 331) and in the task prose for #157 as "the Mathlib-side lever".  The
-    real name is **`Nat.add_one_mul_choose_eq`** (`Mathlib/Data/Nat/Choose/Basic.lean`); it was
-    renamed, not removed.  Two contributors independently re-derived it by hand because the
-    docstring sent them looking for a name that is not there.
-  - **`SecondMoment.lean`'s target docstring now misdescribes its own proof.**  It still gives the
-    off-by-one route ("the open interval … contains at most `2n√k` integers") and names
-    `prob_eq_zero_le_variance_div_sq` / `variance_sum_indicator_le` as the engine; #165 uses
-    neither, applying Chebyshev at `(7/8)n√k` with a `2c+1` count and a `k ≤ 5` pigeonhole branch.
-  - **`skills/conventions.md` claims `open scoped ENNReal` is in the header of every
-    measure-theoretic file.**  It is not in `SecondMoment.lean`.  The convention doc is the stale
-    thing, not the PR.
-
-  The pattern: **every one of these is a stale claim in prose that a worker then paid for.**  Proof
-  routes named in a docstring age as fast as the proofs do, and a wrong lemma name costs a
-  contributor real budget.
-
-- **2026-09-16 — gate overlay resynced to Choir `258a6d3` (protocol 8 → 8).**
-  The overlay was pinned at Choir `253d364` and 27 commits behind; `choir update` had already
-  confirmed this machine's checkout was at `origin/main`, which is a *different* artifact — the
-  in-repo overlay does not follow it, only `upgrade-project.sh` moves it.  Checked before running
-  it that `gate/checks.py` was **byte-identical** across those 27 commits, so `REQUIRED_PRESENT`
-  gained nothing and no open PR could be stranded by required-but-absent; the changes were confined
-  to `gate/provers/{base,deps,lean4}.py` plus new `orchestrator/graph/`, i.e. **`sync-graph`'s
-  dependency-edge derivation, not PR audits.**  That is why the six PRs open at the time needed no
-  re-auditing.  `verify-pr.yml` was left untouched (overseer-adapted); branch-protection required
-  contexts still match.  Commit `05c9542`.
-
-- **2026-09-16 — the loop is self-driving at AUTO; run the poller in the background, never in the foreground.**
-  `choir orch poll` blocks for up to `max_wait_seconds`, and a long-lived *foreground* process is
-  what the OOM killer takes first while contributor agents' `lean` builds spike to 1–2 GB each.
-  That is an argument against blocking the session on it, not against polling:
-
-      # started with the harness's background mechanism, not left in the foreground
-      choir orch --repo yidiq7/ProbMethodCombinatorics --prover lean4 poll
-
-  Backgrounded, the process exiting *is* the wake-up — on a change, on a code-3 quiet timeout, or
-  on being killed — and the orchestrator reacts and restarts it.  A killed poller becomes a
-  wake-up rather than a silent hang, which is what made the foreground version untenable.
-
-  **Do not read the OOM history as licence to stop and wait for the overseer.**  `ORCHESTRATOR.md`
-  § Automation levels is explicit that at AUTO the orchestrator runs the whole loop itself and that
-  "stopping to ask permission to keep going is a bug at those levels".  The only escalations are a
-  new axiom, a statement that looks wrong, and a policy change — and even then the rest of the work
-  continues meanwhile.
-
-  **Confirmed, with one caveat.**  The backgrounded poller was killed for low memory on the first
-  run — and the kill arrived as a notification, so the mechanism behaves as claimed: a killed
-  poller is a wake-up, not a hang.  The caveat is that it is pointless to hold one open while doing
-  memory-heavy work yourself.  Repeated `lake build`s in this checkout are what tightens memory, so
-  start the poller when you are otherwise idle and skip it while you are building.
-
-  Under *sustained* pressure — several contributors building at once — the poller is killed
-  repeatedly, and that is fine rather than a failure: each kill wakes the orchestrator, so the
-  cycle degrades into a periodic check at whatever cadence memory allows.  Restart it and let it
-  be killed.  Reach for `poll --once` only when you want a single reading without occupying a
-  process.
-
-  **When the board is empty, the bottleneck is usually the orchestrator, not the contributors.**
-  A poller finds nothing while the next move is authoring an interface or publishing a node, and
-  waiting on it looks like patience when it is idleness.  Check what the plan says is ready before
-  reaching for `poll`.
-
-- **2026-09-13 — the duplicated measure layer is fully retired.**  Golfs #62, #69 and #70
-  removed 148, 65 and 69 lines respectively; `LocalLemma.lean` went from ~1150 to ~866 and
-  now contains exactly one construction of the uniform two-colouring measure, used by all
-  three applications through `uniformColoring`.  **The sequencing lesson stands**: the need
-  for this interface was visible when #28 was written, and publishing #28–#30 against
-  machinery none of them had cost three contributors a duplicated construction each plus
-  three golf tasks.  Author the interface first.
-
-- **2026-09-13 — the five remaining statements were audited for the degenerate-input defect
-  and are sound.**  Done proactively after three corrections rather than waiting for a fourth
-  worker to bounce.  `exists_bad_card_lt_and_indepNum_le`, `exists_conflictFree_of_card_le`
-  and `exists_nearly_equiangular` are already `∀ n ≥ n₀` / `∀ k ≥ k₀`, so they have no bottom
-  end.  `exists_isDominating_card_le` is fine at `V = ∅` (take `U = ∅`; both sides are `0`),
-  and its `hdeg` is unsatisfiable when `δ > n - 1`, so those cases are vacuous rather than
-  false.  `exists_toSign_abs_sum_le` is vacuous at `n = 0` (only one `Finset (Fin 0)` exists,
-  so `2 ≤ F.card` fails) and comfortably true at `n = 1, 2`; note its bound `2√(n log m)`
-  exceeds `n` whenever `m = 2ⁿ`, so the content is entirely in the regime `m ≪ 2ⁿ`.
-
-- **2026-09-13 — a third statement was false at degenerate `n`; corrected.**
-  `exists_nearly_equiangular` claimed its bound for every `n`.  False at `n = 0` (no unit
-  vector exists, yet `2 ^ (c * 0) = 1` forces `S` non-empty — machine-checked) and at `n = 1`
-  for small `ε` (only `±1` are unit, inner product `-1`).  Now `∃ c n₀, ∀ n ≥ n₀`.
-  **Three of the statements I authored have been false at the bottom end** (both Chernoff
-  bounds, now this).  The cause is the same each time: transcribing a book statement that says
-  "for every `n`" when the mathematics is asymptotic.  **Rule: when a statement's bound grows
-  with `n`, check `n = 0` and `n = 1` before publishing it.**
-  The tell was again behavioural — #24 had one claim and one release with no PR, and
-  `metrics struggle` reports nothing for abandoned claims.  **Read the statement of any task
-  that gets released without a PR.**
-
-- **2026-09-13 — this machine is memory-constrained.**  The contributor agents build Lean
-  locally, several `lean` processes at ~1.3 GB each, and a background poller was killed under
-  the pressure.  **Don't run `lake build` in the orchestrator checkout except to verify a
-  statement being authored** — CI builds every PR anyway, and the local build competes with the
-  workers actually producing proofs.
-
-- **2026-09-13 — the Chernoff diagnosis paid off, and the reduction contract closed itself.**
-  #21 had been abandoned twice; correcting the false statement and pointing at Mathlib's
-  `Real.cosh_le_exp_half_sq` unblocked it, and PR #61 proved it on the next attempt by exactly
-  the route given.  Checked afterwards with `#print axioms`: both
-  `card_filter_le_exp_mul` and `card_filter_abs_le_exp_mul` now depend only on
-  `propext, Classical.choice, Quot.sound`.  **The two-sided bound merged in #40 as a declared
-  reduction and became unconditionally proved automatically when its obligation landed** — no
-  resubmission, no bookkeeping.  Worth remembering when weighing whether to accept a reduction.
-  (Note: `#print axioms` reads the built olean, so rebuild after pulling before trusting it.)
-
-- **2026-09-13 — two published statements were false; both corrected.**
-  `card_filter_le_exp_mul` and `card_filter_abs_le_exp_mul` (Chernoff, one- and two-sided)
-  omitted `0 < n`.  At `n = 0` the empty sum is `0` and the threshold `λ √0` is `0`, so the
-  single sign sequence satisfies the condition while the bound is below `1`.  **The tell was
-  behavioural, not a failed check:** #21 was claimed and released twice with no PR, and
-  `metrics struggle` stays empty for abandoned claims, so only reading the statement found it.
-  A machine-checked counterexample was built before either statement was touched.
-  `card_filter_abs_le_exp_mul` merged earlier (#40) as a *declared reduction* on the false
-  lemma, so nothing was ever claimed to be unconditionally proved — the reduction contract did
-  its job.  Both statements now carry `0 < n`; #40's merged proof threads it through and the
-  build is clean.  **This is an overseer-visible change: the project's Chernoff bounds now say
-  slightly less than they did.**  Anything downstream must dispose of `n = 0` itself; #23
-  (discrepancy) is unaffected because its `2 ≤ F.card` is unsatisfiable at `n = 0`.
-
-- **2026-09-13 — re-pinning is necessary but not sufficient; warn claimed tasks too.**
-  Stale-pin reverts hit twice (#42, #48).  Re-pinning an issue does not help a worker whose
-  workspace already exists — that tree was cloned at the old pin.  **After merging, comment on
-  every open *claimed* task whose `target_file` matches a file the merge touched**, telling the
-  holder to rebase.  Cheap to do: `choir orch task <n>` gives `target_file`, and the merge's
-  own diff gives the files.  Done for #12, #15, #29 on this pass.
-
-- **2026-09-13 — Chapter 1 §1.1 is closed and the local lemma is proved.**  PRs #41–#44
-  landed the general local lemma with its induction step, Ramsey's theorem with the
-  off-diagonal Erdős–Szekeres statement, `lt_ramseyNumber`, and the symmetric local lemma.
-  Every Ramsey node now has a real proof.
-  **Golf candidate:** `lovasz_local_lemma_symmetric` (PR #44) re-derives the general form
-  inline as a `have`, duplicating `lovasz_local_lemma`.  That was correct when written — #44
-  was opened 73 seconds before #41 merged, so calling the general form would have pulled in
-  `sorryAx` — but it should be rewritten to apply `lovasz_local_lemma` at the constant weight
-  `1/(d+2)`.  Publish the golf task once Chapter 6 is quiet, not while #27–#30 are in flight.
-  Note the weight `1/(d+2)` rather than the book's `1/(d+1)`: the latter is `1` at `d = 0` and
-  so inadmissible.  Keep that when golfing.
-
-- **2026-09-13 — open tasks were re-pinned to `f1497a65`, and must be kept current.**
-  PR #42 was built at task #7's pin `dcaf5da`, which predates #32 and #33; its branch still
-  held the placeholder versions of `RamseyProperty.mono` and
-  `exists_coloring_no_isMonochromatic`, so merging it would have reverted two proved
-  theorems.  `sorry-delta` caught it (`base 2 → head 3`) and the contributor's diff looked
-  clean, which is what makes the failure confusing.  **A worker's workspace is built at the
-  pinned commit and workers do not rebase — so keeping pins current is this role's job.**
-  All 18 open tasks re-pinned; the two claimed ones were told to rebase.  Re-pin after every
-  batch of merges, or at minimum whenever a merge lands in a file some open task targets.
-  PR #40 landed as the project's first **reduction**, naming `card_filter_le_exp_mul` (#21)
-  as its open obligation — ratified, no new nodes, since the child is already a task.
-
-- **2026-09-13 — a proof that leans on an unproved sibling must declare a reduction.**
-  PR #40 (two-sided Chernoff, task #22) was mathematically correct and failed `comparator`
-  with `illegal-axiom`: it calls `card_filter_le_exp_mul`, still a placeholder, so `sorryAx`
-  entered the target's axiom closure.  `sorry-delta` passed, which makes the failure
-  look surprising.  This is **designed** — under `sorry = block` comparator refuses `sorryAx`
-  on an ordinary submission precisely so a green gate means *unconditionally proved* —
-  and the sanctioned route is a `choir-reduction` block, for which `sorryAx` is permitted.
-  Seven open tasks (#7, #23, #26, #27, #28, #29, #30) carried task prose that told
-  contributors to use an unproved dependency's statement without mentioning this; all are
-  corrected in place, and the rule is in `skills/orchestrator-notes.md`.
-  **Do not "fix" this by moving the project to `sorry = report`** — that would permit
-  `sorryAx` everywhere and destroy exactly the guarantee the policy buys.
-  Planning consequence: when a group's nodes form a chain, publishing them all at once is
-  still right, but expect the dependents to land as reductions, or to land after their
-  dependency merges.
-
-- **2026-09-12 — project bootstrapped.** Toolchain pinned to `leanprover/lean4:v4.33.0`
-  (Mathlib `v4.33.0`): the newest release the comparator tags, so the kernel statement
-  gate runs on every PR.  Lean's own newest is `v4.33.1`, which the comparator does not
-  tag; the overseer chose `v4.33.0` knowing the pin cannot change later.
-  Policy: automation `auto`, axioms `net_zero`, sorries `block`.
-- **2026-09-12 — Ramsey finiteness added to the plan.**  `lt_ramseyNumber` as first stated
-  had a hidden dependency: `ramseyNumber k = sInf {n | RamseyProperty n k}` and
-  `Nat.sInf ∅ = 0`, so *every* lower bound on `R(k, k)` is false unless the set is known
-  non-empty — and Mathlib has no Ramsey theorem to supply that.  `exists_ramseyProperty`
-  now states it, and `lt_ramsey_number` depends on it.  Only existence is stated; the
-  quantitative Erdős–Szekeres bound is a later refinement.
-- **2026-09-12 — Chapters 5 and 6 stated and published** as issues #21–#30, pinned to `c943f93`.  The convention question recurred and was settled per chapter, not
-  per node: **Chapter 5 is counting**, because both its applications end in existence claims
-  about finite objects and its proofs are "Chernoff, then union bound", which is a count;
-  **Chapter 6 is measure-theoretic**, because Definition 6.1.1's independence-from-a-family is
-  strictly stronger than pairwise independence and has no counting surrogate.  Spencer's
-  Ramsey bound (Theorem 1.1.9) is filed under `local-lemma` rather than `introduction`,
-  because the local lemma is what proves it.
-  Two published issues (#25, #26) carried cross-references to issue numbers predicted before
-  publication and off by one; corrected in place.  **Write task prose with placeholder
-  references and fill in the numbers after `create-task` returns them**, or publish
-  dependency-ordered and reference only already-issued numbers.
-- **2026-09-12 — Chapters 3 and 4 stated and published** as issues #14–#20, pinned to
-  `22ba93e`.  Issues #4–#13 stay pinned to `dcaf5da`: the new files are additive and rewrite
-  no existing declaration, so an older pin costs a worker nothing.  Seven more declarations (five in
-  `Alterations.lean`, two in `SecondMoment.lean`). Chapter 4 deliberately stops at the
-  engine; see the decision above. Markov (§3.3), Chebyshev (§4.1), Weierstrass (§4.7) and
-  `G(V,p)` itself are upstream nodes. `card_filter_le_sum_div` is *not* a restatement of
-  upstream Markov — it is the counting form this project's Chapter 1–3 proofs need, which
-  Mathlib does not have.
-- **2026-09-12 — `choir/type:prove` needed manual repair on nine issues.**  `set-priority`
-  and `set-difficulty` immediately after `create-task` dropped the type label on every
-  issue but one, presumably a read-modify-write race against label state GitHub had not
-  yet settled.  If a future batch shows the same gap, add the label with `gh issue edit`
-  rather than re-running `create-task`.  The `issue-intake` workflow reports `skipped` on
-  orchestrator-created issues, which is expected — `create-task` round-trips through the
-  same parser locally.
-- **2026-09-13 — Chapter 10 stated and published** as issues #83–#94, pinned to `f40b890`.
-  Twelve declarations in a new `Entropy.lean`, and — the decision worth recording — a
-  **shared entropy layer proved by the orchestrator before any task was published**, rather
-  than left for the first task to invent.  Mathlib has `Real.negMulLog`, `Real.binEntropy`
-  and `Matrix.permanent` but no Shannon entropy of a discrete random variable, so without a
-  central layer the chapter's twelve obligations would each have defined their own; that is
-  exactly what happened in Chapter 6 with `fairCoin`/`uniformColoring` and cost three golf
-  tasks and 311 lines to undo.  Chapter 10 is **counting**, not measure-theoretic: every
-  random variable in it lives on a finite sample space and every conclusion is a cardinality.
-  `condEntropy` is defined as the book defines it, as an expectation over `y`, so that the
-  chain rule stays a theorem — defining it as `H(X,Y) - H(Y)` would have made §10.1's
-  content disappear into an unfolding.
-  Two statements are not transcriptions of a displayed theorem — the three-coordinate
-  Loomis–Whitney bound and the binomial tail bound — and both were **checked numerically
-  before publishing**, as were the edge cases of `triangle_intersecting` (`n ≤ 2` forces an
-  empty family) and `bregman_minc` (a zero row gives `0 ≤ 1`).  The diagonal-pair hypothesis
-  on `triangle_intersecting` is load-bearing: without it the statement is false by `2ⁿ`.
-  §10.3 Sidorenko is deliberately **not** stated — it needs homomorphism counts and graphons,
-  which the project does not have, and its smallest open case is open mathematics.
-  `choir/type:prove` was dropped again on ten of the twelve, the same race recorded on
-  2026-09-12; repaired with `gh issue edit` as that entry prescribes.
-- **2026-09-13 — `measure_sub_integral_ge_le` was false as stated; measurability added.**
-  Issue #81 was claimed and released with no PR — the same silent signal that caught the two
-  Chernoff statements and `exists_nearly_equiangular`, and the reason that signal is worth
-  watching even though `metrics struggle` cannot see it.  The bounded differences hypothesis
-  does **not** imply `f` is measurable; a Mathlib measure applied to a non-measurable set
-  returns its *outer* measure, and `∫` of a non-integrable function returns junk `0`.  So a
-  non-measurable `f` with range of diameter `c₀` — a Bernstein set indicator, say — puts the
-  left-hand side at `1` against a right-hand side below `1`.  `hf : Measurable f` is now a
-  hypothesis.  Measurable plus bounded differences gives boundedness and hence integrability,
-  so the `∫` needs nothing further.  **When an author-side statement is wrong, the cost lands
-  on whoever claimed it first and shows up as a released lease, not as a failed check.**
-- **2026-09-13 — Chapter 11 stated and published** as issues #97–#102, pinned to `9362ab6`.
-  **The book is now stated end to end**: every chapter has a group file, and `later-chapters.md`
-  — which had been carrying whatever was not yet stated since the first frontier — is retired,
-  because each chapter file now carries its own "planned, not stated" section with the reason.
-  Two decisions worth keeping.  **Vertex sets in Chapter 11 are `Fin n`**, not an arbitrary
-  finite type: every theorem there reads "for every `c` there is a `δ` that works for all
-  graphs", so `δ` is chosen before the graph and hence before its vertex type, and
-  `∃ δ, ∀ {V : Type*} …` cannot be written — the universe cannot be bound under the
-  existential.  `Fin n` costs no generality.  **Asymptotics are written out as `ε`–`N`, never
-  as `o(1)`**, extending the idiom `exists_nearly_equiangular` established in Chapter 5.
-  Chapter 11 differs from every chapter before it in one way that changed how the tasks are
-  written: **the source does not prove its main theorems.**  Theorems 11.2.1 and 11.3.1 come
-  with an algorithm and a proof idea and defer to Morris' lecture notes.  So those tasks
-  invite a decomposition proposal on the issue rather than a proof, and name the missing
-  prerequisite — triangle supersaturation — instead of letting a contributor discover it
-  halfway in.  `IsTriangleFreeEdgeSet` is an `abbrev` rather than a `def` so that `Decidable`
-  resolution sees through it; that keeps the no-`Decidable`-instances rule intact without
-  making the statements uglier.
-- **2026-09-13 — re-pinning a *claimed* issue re-adds `choir/available`.** Editing an issue
-  body re-triggers the `issue-intake` workflow, which labels the task available; on a task
-  someone is actively holding, the result is both labels at once and a task two workers can
-  claim. Seen on #86 immediately after the batch re-pin to `a8b6e79`. **After re-pinning, list
-  the issues carrying both labels and strip `choir/available` from them** — `sync-leases` does
-  not fix this, because the lease comment is still valid and it sees nothing wrong.
-- **2026-09-13 — fifteen PRs merged in one batch; 11 unconditional, 4 reductions.**  Chapter 10
-  went from stated to almost entirely proved in a single round: `entropy_nonneg`,
-  `condEntropy_eq_sub`, `entropy_pair_le_add`, `condEntropy_le_entropy`, `entropy_pi_le_sum`,
-  **`shearer`**, `sum_choose_le_exp_binEntropy`, plus `le_card_triangleFreeGraphs`,
-  `measure_sub_integral_ge_le`, `le_binomialRandom_cliqueFree_three` and
-  `exists_conflictFree_of_union_bound_lt_one`.  `card_sq_le_prod_card_image`,
-  `card_lt_of_triangleIntersecting`, `permanent_le_prod_factorial` and `janson_prob_none_le`
-  landed as declared reductions.  `inventory scan`: **17 sorries, zero custom axioms.**
-  Ten of the fifteen touched `Entropy.lean`.  Before merging any of them I checked that every
-  diff was a single hunk deleting one `sorry` — no statement edits, no reverts — and that no two
-  PRs added a declaration of the same name, which the gate cannot see because each PR is checked
-  against its own base and not against its siblings.  **That cross-PR name check is the thing to
-  repeat on any future parallel batch**; `axiom-honesty` and `statement-immutability` are
-  per-PR by construction.
-- **2026-09-13 — the Janson statements were false without `[Countable ι]`.**  Found and reported
-  by the contributor proving `janson_prob_none_le`, who filed it on the issue rather than
-  working around it — the intended path, and the second author-side statement defect this week.
-  The measurable space on `Set ι` is the product σ-algebra, so `{R | S i ⊆ R}` is non-measurable
-  for uncountable `S i` and `setBernoulli` silently returns an outer measure; at `p = 1` that
-  makes the bound false outright.  Reproduced before acting.  **The generalisable tell: Mathlib
-  gated everything substantive in `SetBernoulli.lean` behind `section Countable`, and the
-  statement was built on the ungated part.  When upstream fences part of an API, a statement
-  resting on the unfenced remainder deserves a second look.**
-  The same report asked for two `setBernoulli` facts as shared interface.  Both are now stated
-  in `Correlation.lean` (#119, #120), deliberately **without** `MeasurableSpace ι` /
-  `MeasurableSingletonClass ι` binders — `setBernoulli` needs neither, and requiring them would
-  have made the lemmas unusable from `Janson.lean`.  My first draft had them; it type-checked in
-  isolation and would have been useless.  **Check a new interface lemma by applying it from its
-  intended call site, not by checking that it elaborates.**
-- **2026-09-14 — `illegal-axiom` on #122, and the rule that was misread.**  A target can be
-  *fully proved*, add no placeholder of its own, and still fail `comparator`: Janson II is proved
-  from Janson I, which is itself proved modulo `janson_prob_none_step_le`, so `sorryAx` is in the
-  closure either way.  The contributor removed their `choir-reduction` block on the theory that
-  "a placeholder on a declaration the base already had is disallowed" — which is not the rule.
-  `children` may name **any declaration already in the project that carries a placeholder**, and
-  `sorry-delta` Rule B only examines counts that *rose*, so citing a pre-existing obligation is
-  free.  `comparator` permits `sorryAx` exactly when a reduction is declared.  Their earlier red
-  run was almost certainly the stale pin they diagnose elsewhere in the same PR.
-  **Read `gate/verify/` when two checks appear to contradict each other** — the rules are in the
-  module docstrings, and deducing a general rule from one red run is how the fix gets deleted.
-  Recorded in `skills/conventions.md`.
-- **2026-09-14 — the published route for Janson II was wrong; the statement was not.**  It
-  prescribed `𝔼 Δ_T = q²Δ` under independent `q`-sampling, but `D` may contain diagonal pairs,
-  which survive with probability `q`.  The averaging breaks exactly in the `Λ ≫ μ` regime the
-  theorem covers.  Restricting to the off-diagonal `E` fixes it and removes the need for a case
-  split entirely.  Corrected argument in `janson.md`.  **Task prose is not checked by anything** —
-  statements get `statement-equiv` and numerical sanity checks, routes get nothing, and this is
-  the second time a prescribed route has been wrong where the statement was fine.
-- **2026-09-14 — `janson_prob_none_step_le` had a graph node but no task** since #103 merged,
-  published now as #123.  When accepting a reduction, the playbook's "publish a `prove` task per
-  node" is a separate step from adding the node and is easy to drop when several land at once.
-- **2026-09-14 — #15 and #60 decomposed after five abandoned claims between them.**  Both
-  statements check out, so this was a shape problem, not a soundness one: each bundled a
-  probabilistic/counting argument together with a piece of pure analysis.  Split along that
-  seam into #124/#125 and #126/#127, with the analytic child in each pair mentioning no graphs
-  at all and the counting child carrying no asymptotics.  `card_filter_indepNum_le` was
-  brute-forced over all `n ≤ 4`, `M ≤ 4` before publishing.  **Diagnostic order that works:
-  check the statement first — three author-side statements have been false — and only once it
-  survives, read repeated abandonment as a request to decompose.**
-- **2026-09-14 — Chapter 11's first two theorems were in the wrong order, and a contributor
-  caught it.**  `exists_containers` (11.2.1) is a counting corollary of
-  `exists_containers_fingerprint` (11.2.3), so publishing them in the book's order made the
-  corollary unprovable: Lean has no forward references.  The contributor proposed three fixes,
-  recommended the right one, released the claim and changed nothing — rather than adding a
-  near-duplicate of 11.2.3 above the target, which the reduction contract would have permitted.
-  File reordered, graph edge reversed.
-  **Generalisable: the source's presentation order can encode a dependency backwards.**  A
-  textbook may state a weaker result first and strengthen it later; a Lean file cannot.  §11.1
-  has the same shape (11.0.2 depends on 11.1.1) and already happens to be ordered correctly,
-  but this is worth checking whenever a chapter is stated from a linear reading.
-- **2026-09-14 — `setBernoulli_inter_eq_mul_of_disjoint` does not need `[Countable ι]`.**  Its
-  proof goes through `indep_iSup_of_disjoint`, which takes `Set ι` rather than `Finset ι`, so
-  countability never enters; the contributor found this via the `unusedSectionVars` linter and
-  **reported it instead of writing `omit`**, correctly treating a binder removal as a statement
-  change.  Binder dropped here, after their PR merged rather than before — removing it first
-  would have made their branch read as *adding* the instance and tripped
-  `statement-immutability` on a PR that changed nothing.  **Sequencing matters when acting on a
-  contributor's finding about the statement they are working against.**  `setBernoulli_inter_le_mul`
-  keeps the instance; Harris genuinely needs it, so the asymmetry is real.
-- **2026-09-14 — six PRs merged; Erdős 1959 and Janson I are both unconditional.**
-  `exists_girth_gt_and_chromaticNumber_gt` (Theorem 3.4.1) and `janson_prob_none_le` with its
-  conditioning step are now free of `sorryAx`, checked with `#print axioms` rather than inferred
-  from green merges.  `Correlation.lean` reached zero `sorry`.  **12 sorries, zero custom
-  axioms**, down from 26 two batches ago.
-  The cross-PR name-collision check ran again on the two file-sharing pairs and found nothing —
-  worth keeping as a habit, since the gate checks each PR against its own base and never against
-  its siblings.
-- **2026-09-14 — a decomposition I published was superseded while it was being published.**
-  #60 had been abandoned four times, so it was split into #126/#127; a contributor was
-  simultaneously proving it directly, landed that as #130, **flagged the overlap themselves**,
-  and offered to re-route their finished proof through my two nodes.  Declined and both nodes
-  retired.  A direct proof that exists beats a two-part proof that does not, and asking someone
-  to restructure green work through orchestrator scaffolding protects the plan at their expense.
-  **Check for lease activity before retiring a node** — both were unclaimed, so nothing was lost.
-- **2026-09-14 — `setBernoulli` is uniform-`p` only, and Janson's lower tail is not.**  Warnke's
-  proof thins the index set by an independent Bernoulli `q`, leaving per-coordinate inclusion
-  probabilities that `setBernoulli` cannot express.  The contributor found this and **stopped at
-  the boundary** instead of inventing a primitive inside `Janson.lean`.  `setBernoulliPi` is now
-  in `Correlation.lean`, with `setBernoulli_eq_setBernoulliPi` proving it a faithful
-  generalisation — **that specialisation lemma is the point; a definition that merely elaborates
-  demonstrates nothing.**  A non-uniform Janson I is deliberately *not* stated: it would mean
-  generalising `jansonMu`/`jansonDelta` in place, under three already-proved theorems, and that
-  call is better made by whoever holds the proof.  The task asks for a proposal rather than
-  handing down an interface.
-- **2026-09-14 — I published an impossible task, and the gate caught it.**  #121 was filed as a
-  `golf` task but asked for a deletion and a `private` → public promotion.  The golf spec is
-  explicit that a golfed declaration's statement must stay **token-identical to base** and only
-  the proof body may change, so no correct implementation could have passed
-  `statement-immutability`, and PR #136 was blocked for doing exactly what the task asked.
-  **`merge-override` was considered and rejected**: the check was not misfiring, it was enforcing
-  the rule it exists for, and overriding a correct check to cover an orchestrator
-  mis-specification is how a gate becomes decorative.  The contributor's commit was cherry-picked
-  onto `main` unchanged (`6c32d17`), the PR closed **without deleting its branch**, and the
-  declaration-level claims verified rather than taken from the PR's table.
-  **Rule now in `conventions.md`: consolidation that deletes, renames, changes visibility, or
-  relocates is orchestrator work, never a task.**  `golf` means "same statement, shorter proof"
-  and nothing else.
-- **2026-09-15 — Chapter 8 is complete; all three Janson inequalities are unconditional.**
-  `janson_prob_none_le_of_mu_le` (#122) took `Janson.lean` to zero `sorry`s.  **9 sorries,
-  zero custom axioms** project-wide.
-  Both PRs this round went through the playbook's new **stage-two subagent review**, which earned
-  its keep twice: on #139 it verified that the finite-sum `Φ` really is the MGF (both bounds meet,
-  so it cannot be a degenerate surrogate) and that Markov-as-partition *discharges* the
-  outer-measure hazard rather than sidestepping it; on #122 it showed `hK : K ⊆ s` is load-bearing
-  by exhibiting a counterexample without it — a hypothesis that is necessary being the opposite of
-  a smuggled one.  Neither reading would have happened under batch load if it had stayed in my
-  context, which is precisely the argument the playbook makes.
-- **2026-09-15 — the duplicated `Δ`-bookkeeping is extracted** as `sum_filter_insert_le`, net
-  −40 lines.  Deliberately sequenced *after* Janson II landed: doing it earlier would have
-  invalidated a finished proof in flight, and doing it per-PR would have meant the same surgery
-  twice.  **Three contributors independently wrote the same binomial-weight identity** before a
-  top-level lemma existed — the recurring cost of parallel work against a pinned base, and
-  something only the orchestrator can fix.
-  The remaining shape issue — Janson I is stated at `univ`, so a sub-family needs subtype
-  gymnastics — is **recorded and not built**, because nothing needs it yet.  That is the
-  discipline `setBernoulliPi` failed.
-- **2026-09-15 — two of the project's abandonments trace to my route prose, not to difficulty.**
-  `entropy_le_logb_card` (#84) had been claimed and released twice with no note.  The statement is
-  sound; the prose pointed at Mathlib's `ConcaveOn` Jensen API and named
-  `Finset.inner_le_nnorm_mul_nnorm`, **which is Cauchy–Schwarz, not Jensen** — a wrong pointer I
-  wrote.  Meanwhile `entropy_pair_le_add`, proved in the same file, does the job with
-  `Real.log_le_sub_one_of_pos` in a few lines.  Corrected on the issue and generalised into
-  `skills/conventions.md`.
-  **Task prose is checked by nothing.**  Statements get `statement-equiv`, numerical sanity checks
-  and now a stage-two reading; routes get no scrutiny at all, and this is the third time a
-  published route has been wrong where the statement was fine.  When a task is abandoned with no
-  note, **re-read the route before concluding the task is hard** — the diagnostic order is
-  statement, then route, then decomposition.
-- **2026-09-15 — I corrupted two commits by running `git add -A` while a review subagent held a
-  patch in the shared checkout.**  `07a2f6b` and `726e414` each carry 147 lines of PR #140's
-  proof, added then removed, contradicting their own commit messages.  The tip was correct and
-  the PR diff unaffected.  **History was deliberately not rewritten** — `main` is shared, open
-  tasks pin commits on it, and breaking live pins to tidy cosmetic history is the worse trade.
-  Procedure fixed in `skills/orchestrator-notes.md`: stage explicit paths, and review subagents
-  must not mutate the working tree.  **Delegating work into your own working directory makes that
-  directory shared state.**
-- **2026-09-15 — I retired a node that was actively claimed, with an open PR.**  #124 was closed
-  and its declaration deleted at 05:32; it had been claimed at 05:23 and PR #141 opened at 05:27.
-  The lease check that justified retiring it was run during an earlier review and was **stale by
-  the time I acted on it** — a liveness check is only valid at the instant of the destructive
-  action.  Reverted: the declaration is restored byte-identical to the PR's base so #141 merges
-  through the normal flow, and #124 is reopened.
-  **The contributor's version is also the better architecture.**  #140 proved the parent by
-  reproducing this lemma inline as an anonymous `have`, ~131 lines unreachable from any other
-  file; with it named and top-level, the parent becomes a short derivation and the duplication
-  goes away.  So the retirement was wrong on the merits too, not just on process — which is what
-  the rule about not re-routing finished work was trying to protect in the first place, applied
-  in the wrong direction.
-- **2026-09-15 — two contributors independently produced the same 128-line proof.**  #140 inlined
-  the averaging argument of Theorem 3.1.1 as an anonymous `have`; #141 proved it as the top-level
-  lemma. Character-for-character identical bodies, committed five minutes apart, neither able to
-  see the other.  Nobody erred — this is the structural cost of pinning parallel tasks to one
-  base.  Collapsed via **golf task #145** rather than by hand: replacing an inline `have` with a
-  call to an identical lemma is a body-only change to a pinned declaration, which is exactly what
-  `golf` is for.  Contributors are now asked to check sibling *open* PRs against their target
-  file, not only merged work.
-- **2026-09-15 — a reduction body said "fully proved" when the closure still carried `sorryAx`.**
-  #142's `choir-reduction` block was accurate and declared `entropy_le_logb_card` correctly, but a
-  bolded line earlier in the same body invited the opposite reading.  Harmless to the contract,
-  but the graph node must not be marked closed on the strength of prose.  **Read the reduction
-  block, not the summary.**
-- **2026-09-15 — two of my Chapter 11 statements were FALSE, one of them already merged.**
+- **2026-09-15 — two of my Chapter 11 statements were FALSE, one already merged: Zhao's own proviso is missing from his theorem box.**
   `exists_containers_fingerprint` (#98) and `exists_containers` were both false for every
-  `c ≥ 3/2`; `Kₙ` forces `δ ≥ 1/2` and a disjoint union of 3-vertex paths forces `δ ≤ 1/3`.  I
-  verified both numerically before touching anything.  The missing hypothesis is **Zhao's own
-  proviso**, `d ≤ 2δ|V|`, which the book states on printed p. 207 *inside the proof idea* and
-  omits from the theorem box.  **A textbook's theorem box is not always the whole hypothesis
-  list.**  Added to both at `1e4659a`, with the counterexamples in the docstrings.
-  `exists_containers` had merged as a declared reduction onto the false lemma, so it was
-  proved-modulo-a-false-statement, not unsound — the kernel was never deceived, and threading the
-  new hypothesis through cost one binder.
-  **Found by the stage-two review of PR #143**, which had inherited the defect into two new public
-  statements.  That PR was closed without deleting its branch: its assembly was genuine
-  machine-checked content, but the repair is not local, since the parent's own budget `⌊n/√d⌋₊` is
-  only guaranteed `≥ 1`.  **A PR that surfaces a false statement two levels upstream of itself is
-  worth more than one that merges** — and this is the fourth author-side false statement, all four
-  found by reading rather than by any gate check.
-  `Kₙ` and "disjoint union of stars" are now the standing test pair for Chapter 11 statements.
-- **2026-09-15 — #144 merged; 5 sorries left, all in Chapters 10 and 11.**  The
-  Erdős–Kleitman–Rothschild upper bound is proved modulo `exists_containers_triangleFree` alone.
-  The PR is the model for a reduction return: one declared child, everything downstream
-  unconditional, and a body precise enough that the analysis could be checked independently
-  before reading the Lean.  It also **avoided routing through `exists_containers_fingerprint` on
-  its own judgement** — vindicated hours later when that statement turned out to be false.
-  Notable: it reached for `Real.log_le_sub_one_of_pos` rather than Mathlib's concavity API, which
-  is the idiom added to `skills/conventions.md` after my own route prose had been sending people
-  at `ConcaveOn`.  The conventions file is being read.
-- **2026-09-15 — `statement-immutability` caught a branch reverting the Chapter 11 statement
-  repair.**  PR #146's head lacked the `d ≤ 2δn` hypothesis its own base carried: a stale
-  workspace whose older copy of the declaration won the merge.  Merging would have silently
-  reinstated a statement already proved false.  **After repairing a statement, expect in-flight
-  branches to revert it** — re-pinning open tasks does not help, because the branch already
-  exists, so the check is the only backstop.  Never override `statement-immutability` on a file
-  whose statements were recently changed.
-  Its companion red, `sorry-delta`, was a false alarm: the audit reported `submission: proof`
-  despite a well-formed reduction block, because the body was edited **one second** after the
-  check fired.  The `submission:` line is the tell.
-- **2026-09-15 — #147 merged: the project's first `golf` task to land.**  One line in, 135 out,
-  collapsing the duplicated averaging argument so that `exists_isDominating_card_le` calls
-  `exists_isDominating_card_le_of_mem_Icc` instead of inlining it.  The earlier golf attempt
-  (#136) was blocked by `statement-immutability`, correctly — I had mis-published it, asking for
-  a deletion and a visibility change, neither of which is a proof-body edit.  This one is the
-  genuine article, and the contrast is the clearest statement of what `golf` means:
-  **same pinned statement, shorter body, nothing else moved.**
-- **2026-09-15 — #146 merged: Theorem 11.1.1 reduced honestly, and the obligations are true.**
-  `exists_containers_triangleFree` is now proved modulo two new nodes, **#148** (triangle
-  supersaturation) and **#149** (one step of the Remark 11.2.2 iteration).  Unlike #143's
-  obligations, I checked these against the pair that killed that attempt and **both survive**:
-  `n ≤ 2` is vacuous, `n = 3` and `Kₙ` impose only *upper* bounds on `δ`, and a smaller `δ` is a
-  weaker claim — so there is no budget that can collapse below `1` and force an existential
-  empty.  **That collapse is the failure mode to test for in this chapter**, and a statement
-  whose constraints are all one-directional cannot exhibit it.
-  The iteration is the real one: `K` rounds with `(1-δ)^K ≤ 1/4` from the `n²` starting bound
-  lands under `(1/4+ε)n²`, with the count accumulating to `n^((K+1)C₀·n^{3/2})` — Remark 11.2.2
-  rather than a single application passed off as the iterated one.
-- **2026-09-15 — triangle supersaturation verified reachable from Mathlib**, correcting this
-  file's earlier claim that it was missing and "the most useful thing anyone could add".  All
-  four names checked against the pinned Mathlib: `CliqueFree.card_edgeFinset_le`
-  (`Extremal/Turan.lean:422`), `farFromTriangleFree_iff` (`Triangle/Basic.lean:192`),
-  `FarFromTriangleFree.le_card_cliqueFinset` (`Triangle/Removal.lean:137`) and
-  `triangleRemovalBound` (`Triangle/Removal.lean:41`) — with `triangleRemovalBound_pos` at line
-  44 supplying exactly the positivity the `∃ c > 0` needs.  **A "not in Mathlib" note in a
-  roadmap is a claim with a shelf life; this one was wrong.**
-- **2026-09-15 — Chapter 4's first application stated.**  With every open task claimed and no
-  PRs to review, the remaining orchestrator work is the material each group file lists under
-  "planned, not stated" — that is real book content, and stating it is my job rather than
-  something to wait on.  `le_card_of_distinctSubsetSums` (Theorem 4.6.3, task #151) is the most
-  tractable of Chapter 4's five: **no random graphs**, and an explicit constant, so it needs no
-  `o(1)` idiom.  Checked against the Conway–Guy minimal witnesses for `k ≤ 8` before publishing.
-  Erdős's Conjecture 4.6.2 is open mathematics and is deliberately not stated — the standing
-  rule that a conjecture in the source must never be transcribed as a theorem.
-- **2026-09-15 — Hardy–Ramanujan (§4.5) is blocked on Mertens, which Mathlib lacks.**  The
-  roadmap had recorded it as the most tractable of Chapter 4 because
-  `ArithmeticFunction.cardDistinctFactors` exists and the statement is expressible.  **That
-  inference was wrong: expressible is not tractable.**  Turán's proof needs
-  `∑_{p ≤ n} 1/p = log log n + O(1)` to compute the mean, and `Mathlib/NumberTheory/` has no
-  Mertens estimate in any form.  Corrected rather than published — handing out a task whose
-  analytic input does not exist would cost a contributor a day to discover.
-  This is the mirror of the supersaturation correction earlier today: one roadmap note was
-  **too pessimistic** about Mathlib (triangle removal was there all along), this one **too
-  optimistic**.  Both were written from a search for the *statement's* vocabulary rather than
-  for the *proof's* inputs.  Search for what the proof needs.
-- **2026-09-15 — #150 merged: triangle supersaturation is proved.**  Unconditional, via the
-  Mathlib route the contributor identified on #146 and I verified before publishing.  **The
-  normalisation trap I flagged did not bite**: Mathlib's `FarFromTriangleFree ε` is measured
-  against `ε · card²`, so `(1/4 + ε)n² − n²/4 = εn²` lines up with no rescaling.  The factor of
-  six between ordered triples and 3-cliques is handled by *not needing it* — a surjection from
-  triples onto cliques gives the lower bound the statement wants, and the overcount only helps.
-  `exists_containers_triangleFree` is now down to a single obligation, #149.
-- **2026-09-15 — Lemma 4.3.7 stated and published (#152).**  Reversed my earlier judgment that
-  the board did not need more tasks: that reasoning would leave the statement layer permanently
-  incomplete, and the statement layer is the orchestrator's responsibility regardless of queue
-  depth.  An unclaimed task costs nothing; an unstated theorem is never proved.
-  Stated with the general hypothesis `1 - (1-q)^m ≤ p` in place of the book's `q = p/m` — it is
-  what the argument needs, it is strictly more general, and it avoids producing `p/m` in
-  `unitInterval`.  **The direction was checked numerically before committing**, because it
-  inverts easily: the union of `m` copies of `Ω_q` has density *at most* `p`, not at least.
-  Placed in `Correlation.lean` rather than `SecondMoment.lean`.  **Roadmap chapter boundaries
-  need not match file boundaries** — this is a `setBernoulli`-and-upper-sets statement, which is
-  Chapter 7's subject, and forcing it into Chapter 4's file would have meant duplicating that
-  layer.
-- **2026-09-15 — Theorem 4.3.5 stated as #153, because #152's prose asked for it.**  That is the
-  "request the node, don't bury it" loop working for the fourth time (after triangle
-  supersaturation, the Janson conditioning step, and Corollary 10.4.7).  Stated **non-strictly**:
-  the book's 4.3.5 is strictly increasing and needs `F` non-trivial, but nothing downstream uses
-  strictness and dropping non-triviality makes it a side-condition-free shared-layer fact.  **A
-  strengthening nobody consumes is a liability, not a bonus** — it would have forced every caller
-  to discharge non-triviality.
+  `c ≥ 3/2`; `Kₙ` forces `δ ≥ 1/2` and a disjoint union of 3-vertex paths forces `δ ≤ 1/3`, both
+  verified numerically before anything was touched.  The missing hypothesis is **`d ≤ 2δ|V|`,
+  which the book states on printed p. 207 *inside the proof idea* and omits from the theorem
+  box** — **a textbook's theorem box is not always the whole hypothesis list.**  Added at
+  `1e4659a` with the counterexamples in the docstrings; `exists_containers` had merged as a
+  declared reduction onto the false lemma, so it was proved-modulo-a-false-statement, not unsound.
+  Found by the stage-two review of PR #143, which had inherited the defect into two new public
+  statements and was closed without deleting its branch, the repair not being local.  **A PR that
+  surfaces a false statement two levels upstream of itself is worth more than one that merges** —
+  the fourth author-side false statement, all four found by reading rather than by any gate check.
+  **`Kₙ` and "disjoint union of stars" are the standing test pair for Chapter 11 statements**;
+  #146's two obligations were checked against them and survive, since `n ≤ 2` is vacuous and
+  `n = 3` and `Kₙ` impose only *upper* bounds on `δ`, a smaller `δ` being a weaker claim.  **A
+  collapsing budget — an existential forced empty — is the failure mode to test for in this
+  chapter**, and a statement whose constraints are all one-directional cannot exhibit it.
+
+- **2026-09-14 → 2026-09-16 — task prose is checked by nothing; the diagnostic order is statement, then route, then decomposition.**
+  Three published routes have been wrong where the statement was fine.  `entropy_le_logb_card`
+  (#84) was pointed at Mathlib's `ConcaveOn` Jensen API and at `Finset.inner_le_nnorm_mul_nnorm`,
+  **which is Cauchy–Schwarz, not Jensen**, when `Real.log_le_sub_one_of_pos` does it in a few
+  lines.  Janson II's route prescribed `𝔼 Δ_T = q²Δ` under independent `q`-sampling, which breaks
+  because `D` may contain diagonal pairs surviving with probability `q` — restricting to the
+  off-diagonal `E` fixes it and removes a case split.  And `Nat.succ_mul_choose_eq`, named as "the
+  Mathlib-side lever" in a docstring and a task, **does not exist at this pin**; it was renamed to
+  `Nat.add_one_mul_choose_eq`, and two contributors re-derived it by hand.  Statements get
+  `statement-equiv`, numerical checks and a stage-two reading; routes get nothing.  **When a task
+  is abandoned with no note, re-read the route before concluding the task is hard** — and only
+  once statement and route survive does repeated abandonment mean "decompose", as #15 and #60
+  did, split along the seam where each bundled a probabilistic argument with pure analysis.
+
+- **2026-09-15 — a liveness check is only valid at the instant of the destructive action, and your working directory is shared state.**
+  I closed #124 and deleted its declaration at 05:32; it had been claimed at 05:23 with PR #141
+  opened at 05:27, and the lease check justifying it had been run during an earlier review.
+  Reverted byte-identical to the PR's base — and **the contributor's version was the better
+  architecture**, so the retirement was wrong on the merits too.  The mirror case: a decomposition
+  I published was superseded while being published, and the contributor offered to re-route their
+  finished proof through my two nodes — declined, both nodes retired.  **A direct proof that
+  exists beats a two-part proof that does not.**  Separately, `git add -A` while a review subagent
+  held a patch in the shared checkout put 147 lines of PR #140's proof into two commits that
+  contradict their own messages; **history was deliberately not rewritten**, because `main` is
+  shared and open tasks pin commits on it.  Stage explicit paths; review subagents must not mutate
+  the working tree.
+
+- **2026-09-15 — `golf` means same pinned statement, shorter body, nothing else moved.**
+  #121 was published as a `golf` task but asked for a deletion and a `private` → public promotion,
+  so no correct implementation could have passed `statement-immutability`, and PR #136 was blocked
+  for doing exactly what the task asked.  **`merge-override` was considered and rejected**: the
+  check was enforcing the rule it exists for, and overriding a correct check to cover an
+  orchestrator mis-specification is how a gate becomes decorative.  **Consolidation that deletes,
+  renames, changes visibility, or relocates is orchestrator work, never a task.**
+
+- **2026-09-15 — the statement layer is the orchestrator's responsibility regardless of queue depth.**
+  An unclaimed task costs nothing; an unstated theorem is never proved.  **A strengthening nobody
+  consumes is a liability, not a bonus** — Theorem 4.3.5 is stated non-strictly and without the
+  book's non-triviality hypothesis, which would have forced every caller to discharge it, and
+  Lemma 4.3.7 uses the general `1 - (1-q)^m ≤ p` rather than the book's `q = p/m` (direction
+  checked numerically, because it inverts easily).  **Roadmap chapter boundaries need not match
+  file boundaries**: 4.3.7 lives in `Correlation.lean` because it is a `setBernoulli`-and-upper-
+  sets statement.  A conjecture in the source is never transcribed as a theorem.
+
+- **2026-09-13/14 — the Janson statements were false without `[Countable ι]`, and the tell generalises.**
+  The measurable space on `Set ι` is the product σ-algebra, so `{R | S i ⊆ R}` is non-measurable
+  for uncountable `S i` and `setBernoulli` silently returns an *outer* measure; at `p = 1` the
+  bound is false outright.  **The generalisable tell: Mathlib gated everything substantive in
+  `SetBernoulli.lean` behind `section Countable`, and the statement was built on the ungated part.
+  When upstream fences part of an API, a statement resting on the unfenced remainder deserves a
+  second look.**  The converse also bit: `setBernoulli_inter_eq_mul_of_disjoint` does **not** need
+  the instance, its proof going through `indep_iSup_of_disjoint`, which takes `Set ι`.  I dropped
+  the binder *after* the reporting contributor's PR merged — removing it first would have made
+  their branch read as *adding* the instance and tripped `statement-immutability` on a PR that
+  changed nothing.  **Sequencing matters when acting on a contributor's finding about the
+  statement they are working against.**  (`setBernoulli_inter_le_mul` keeps the instance; Harris
+  needs it.)  My first draft of the two shared interface lemmas carried `MeasurableSpace ι` /
+  `MeasurableSingletonClass ι` binders: it type-checked in isolation and would have been unusable
+  from `Janson.lean`.  **Check a new interface lemma by applying it from its intended call site,
+  not by checking that it elaborates.**  And `setBernoulli` is uniform-`p` only, which Janson's
+  lower tail is not — `setBernoulliPi` is in `Correlation.lean` with
+  `setBernoulli_eq_setBernoulliPi` proving it a faithful generalisation.  **That specialisation
+  lemma is the point; a definition that merely elaborates demonstrates nothing.**
+
+- **2026-09-13/14 — the reduction contract, and the two ways it is misread.**
+  A proof that leans on an unproved sibling must declare one: PR #40 was mathematically correct
+  and failed `comparator` with `illegal-axiom` because it calls a placeholder, so `sorryAx` enters
+  the target's closure while `sorry-delta` passes.  This is **designed** — under `sorry = block`
+  comparator refuses `sorryAx` on an ordinary submission precisely so a green gate means
+  *unconditionally proved*.  **Do not "fix" this by moving the project to `sorry = report`.**  The
+  second misreading, on #122: a target can be fully proved, add no placeholder of its own, and
+  still fail, because its dependency's own obligation is in the closure.  `children` may name
+  **any declaration already in the project that carries a placeholder**, and `sorry-delta` Rule B
+  only examines counts that *rose*, so citing a pre-existing obligation is free.  **Read
+  `gate/verify/` when two checks appear to contradict each other** — deducing a general rule from
+  one red run is how the fix gets deleted.  Three more: a declared reduction **becomes
+  unconditionally proved automatically when its obligation lands**, no resubmission needed;
+  **read the reduction block, not the summary** (one body's bolded line said "fully proved" while
+  the block correctly declared an open child); and publishing a `prove` task per new node is a
+  *separate* step from adding the node, easy to drop when several land at once.
+
+- **2026-09-13 — three author-side statements were false at degenerate `n`, and the tell was behavioural every time.**
+  Both Chernoff bounds (`card_filter_le_exp_mul`, `card_filter_abs_le_exp_mul`) omitted `0 < n`:
+  at `n = 0` the empty sum is `0` and the threshold `λ √0` is `0`, so the single sign sequence
+  satisfies the condition while the bound is below `1`.  `exists_nearly_equiangular` claimed its
+  bound for every `n`: false at `n = 0` (no unit vector exists, yet `2 ^ (c · 0) = 1` forces `S`
+  non-empty) and at `n = 1` for small `ε` (only `±1` are unit, inner product `-1`); now
+  `∃ c n₀, ∀ n ≥ n₀`.  And `measure_sub_integral_ge_le` was false without `hf : Measurable f` —
+  bounded differences does not imply measurability, a Mathlib measure applied to a non-measurable
+  set returns its *outer* measure, and a Bernstein-set indicator puts the left side at `1`.
+  Machine-checked counterexamples were built before any statement was touched.  **Rule: when a
+  statement's bound grows with `n`, check `n = 0` and `n = 1` before publishing it** — the cause
+  is the same each time, transcribing a book statement that says "for every `n`" when the
+  mathematics is asymptotic.  **And the tell was never a failed check**: each issue was claimed
+  and released with no PR, and `metrics struggle` reports nothing for abandoned claims.  **Read
+  the statement of any task that gets released without a PR.**  The remaining five statements were
+  then audited proactively for the same defect and are sound.
+
+- **2026-09-13 → 2026-09-15 — author the shared interface before publishing tasks against it.**
+  Chapter 6's tasks each built their own uniform two-colouring measure; retiring the duplication
+  cost three golf tasks and ~284 lines, and the need for the interface was visible when the first
+  of those tasks was written.  Chapter 10 was done the other way — a **shared entropy layer proved
+  by the orchestrator before any task was published**, because Mathlib has `Real.negMulLog`,
+  `Real.binEntropy` and `Matrix.permanent` but no Shannon entropy of a discrete random variable.
+  Parallel work against one pinned base reproduces this structurally: three contributors
+  independently wrote the same binomial-weight identity, and two independently produced the same
+  128-line averaging proof, character-for-character, five minutes apart.  Nobody erred.  **The
+  post-merge duplication sweep is a standing duty, not an occasional one** — a contributor cannot
+  see the other consumers from inside one task — and the collapse is a `golf` task, sequenced
+  *after* the proofs in flight land.  A shape issue that nothing needs yet is **recorded and not
+  built**.  Relatedly, before merging a parallel batch, confirm no two PRs add a declaration of
+  the same name and that each diff is a single hunk deleting one `sorry`: **the gate cannot see
+  this**, since `axiom-honesty` and `statement-immutability` check each PR against its own base
+  and never against its siblings.
+
+- **2026-09-13 — statement-level decisions in Chapters 10 and 11 that the files do not explain.**
+  Chapter 10 is **counting**, not measure-theoretic, and `condEntropy` is defined as the book
+  defines it, as an expectation over `y`, **so that the chain rule stays a theorem** rather than
+  disappearing into an unfolding.  **`triangle_intersecting`'s diagonal-pair hypothesis is
+  load-bearing: without it the statement is false by `2ⁿ`.**  **Vertex sets in Chapter 11 are
+  `Fin n`**, not an arbitrary finite type: every theorem reads "for every `c` there is a `δ` that
+  works for all graphs", so `δ` is chosen before the graph and hence before its vertex type, and
+  `∃ δ, ∀ {V : Type*} …` cannot be written — the universe cannot be bound under the existential.
+  `IsTriangleFreeEdgeSet` is an `abbrev`, not a `def`, so `Decidable` resolution sees through it.
+  And **Chapter 11 differs from every chapter before it: the source does not prove its main
+  theorems**, deferring to Morris' lecture notes, so its tasks invite a decomposition proposal
+  rather than a proof.
+
+- **2026-09-12 — bootstrap facts that cannot be re-derived.**  Toolchain pinned to
+  `leanprover/lean4:v4.33.0` (Mathlib `v4.33.0`): the newest release the comparator tags, so the
+  kernel statement gate runs on every PR.  Lean's own newest is `v4.33.1`, which the comparator
+  does not tag; the overseer chose `v4.33.0` knowing **the pin cannot change later**.  Policy:
+  automation `auto`, axioms `net_zero`, sorries `block`.  Two traps from the same period:
+  `ramseyNumber k = sInf {n | RamseyProperty n k}` and `Nat.sInf ∅ = 0`, so **every lower bound on
+  `R(k, k)` is false unless the set is known non-empty** (hence `exists_ramseyProperty`, since
+  Mathlib has no Ramsey theorem to supply it); and the symmetric local lemma is instantiated at
+  weight **`1/(d+2)`, not the book's `1/(d+1)`**, which is `1` at `d = 0` and so inadmissible.
+
+- **2026-09-12 / 2026-09-17 — two definitional choices, both checked rather than assumed, both of the kind that gets re-litigated.**
+
+  **§4.2's `m(H)` maximises over vertex *subsets*, not over `SimpleGraph.Subgraph`** — an equality,
+  not a weakening: within a fixed vertex set the densest subgraph is the induced one, and every
+  subgraph has a vertex set.  It also keeps the definition free of `Subgraph` finiteness instances
+  and of any `Decidable` hypothesis, since `Set.ncard` needs neither.  Checked against Example
+  4.2.8 (`ρ = 7/5`, `m = 3/2`), and `integral_copyCount` brute-forced over all graphs on `n ≤ 4`
+  against five shapes for `H`: 80/80.
+
+  **The Chapter 5 / Chapter 6 convention split has a reason, and it is not taste.**  `Decisions
+  that still bind` records the Chapters 1–3 rule; this is the boundary further up.  Chapter 5 is
+  **counting**, because both its applications end in existence claims about finite objects and its
+  proofs are "Chernoff, then union bound", which is a count.  Chapter 6 is **measure-theoretic**,
+  because Definition 6.1.1's independence-from-a-family is strictly stronger than pairwise
+  independence and has **no counting surrogate**.  Spencer's Ramsey bound (Theorem 1.1.9) is filed
+  under `local-lemma` rather than `introduction`, because the local lemma is what proves it.
 
 ## The unstated remainder, audited (2026-09-15)
 

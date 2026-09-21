@@ -3,6 +3,37 @@
 How to run the loop on this project.  Mine, not a worker's: `skills/` is force-loaded
 into every worker's context, so nothing here belongs there.
 
+## A task target must be public, and I published two that were not
+
+`comparator` does not skip a `private` target — **it aborts.**  `lean4export` is handed the
+unmangled name, does not find it (Lean stores `_private.<Module>.0.<name>`), and exits 2:
+
+    PANIC at dumpConstant: Constant …card_le_compl_mul_choose_two_aux not found in environment
+    uncaught exception: Child exited with 134
+
+So `blocking_failures` carries `comparator`, `merge_pr` refuses, and **no diff the contributor
+can write will go green.**  They do everything right and are stuck; the only exits are an
+overseer override or a rebase onto a commit where the target is public.
+
+I did this twice in one batch — #388 (`card_le_compl_mul_choose_two_aux`) and #373
+(`indepSetCount_logb_half_le`) — and in #388's case I had even *written in the task prose* that
+comparator would not run, having read `containers.md`'s claim that it "declines to run".  It does
+not decline.  **Knowing a check would be skipped is not the same as knowing the job would crash**,
+and I never tested which.
+
+- **`scripts/check-target-public.sh <file> <Decl>` now exists.  Run it before every
+  `create-task`.**  It exits non-zero on a private target and says why.
+- Fixing it after the fact costs a promotion commit on `main`, a re-pin of the issue (which
+  rewrites the body and invalidates open PRs against that file), and a rebase request to a
+  contributor whose work was already correct.
+- The decision itself is not a judgement call: `containers.md` already said *any declaration
+  appearing in a published task's statement is public, however local it looks*.  A proof-internal
+  helper stops being purely internal the moment I publish a task naming it.
+- **The general failure is trusting a written claim about infrastructure I had not exercised.**
+  The roadmap said "declines to run"; the truth was "panics".  Both entries are now corrected —
+  but the cheap move was to run the thing once.
+
+
 ## Probing a lemma under `import Mathlib` cannot tell you it is in scope
 
 I gave #379 a "Useful Mathlib" list — `measureReal_compl`, `measureReal_mono`, `measureReal_empty`,
