@@ -32,13 +32,14 @@ group file has a "planned, not stated" section saying which and why.
 | [`correlation`](correlation.md) | 7 | **all proved** | — |
 | [`janson`](janson.md) | 8 | **all proved** | — |
 | [`concentration`](concentration.md) | 9 | 1 open (Thm 9.4.8, own file) | Talagrand, TSP |
-| [`entropy`](entropy.md) | 10 | 1 open (Cor. 10.2.2, own file) | Sidorenko, Steiner |
+| [`entropy`](entropy.md) | 10 | **all proved** | Sidorenko, Steiner |
 | [`containers`](containers.md) | 11 | 1 open | 11.1.3, 11.1.5, supersaturation |
 
-**Four nodes are open, and only one of them is hard.**  Three were stated on 2026-09-21 from a
+**Three nodes are open, and only one of them is hard.**  Three were stated on 2026-09-21 from a
 re-sweep of the source (#377–#379: Kahn–Lovász, Theorem 5.0.5, Theorem 9.4.8) and are assembly
 or Mathlib-wrapping rather than new mathematics; each sits in its own file, so filling it does
 not re-pin the golf tasks open against `Chernoff.lean`, `Concentration.lean` and `Entropy.lean`.
+**Kahn–Lovász landed the same day** (#380), unconditional.
 The fourth is Chapter 11's held corner.  The counts in this table are derived from `graph.json`
 (nodes with `statement: formalized`, `proof: planned`), which `sync-graph --check` keeps
 honest:
@@ -115,6 +116,31 @@ edge-count bound the book proves, so the edge-count bound stays a task.
   cases.
 
 ## Log
+
+- **2026-09-21 — Kahn–Lovász closed (#380), 24 minutes from publication to merge, and the
+  turnaround is the argument for publishing assembly nodes.**
+  Corollary 10.2.2 was stated at 08:05, claimed at 08:22, submitted at 08:37 and merged
+  unconditional.  Nothing about it was hard — both halves had been proved for days and the
+  roadmap said so — but **no node named the chain that joins them**, so it sat undone while the
+  file recorded it as understood.  A result whose pieces are all present is not finished, and the
+  gap between "the pieces exist" and "a declaration says so" is invisible in a status table.
+  Look for it deliberately: it is the cheapest work in the project.
+
+  Two things the gate could not have caught, both clean on inspection:
+  * **The square root is real.**  Brégman gives exponent `(d_v)⁻¹` and the target needs
+    `(2 d_v)⁻¹`; the gap closes only by squaring the matching count through the double cover
+    first.  A proof that reached the conclusion without going through `doubleCover`, or that
+    leaned on an `rpow` junk value, would compile and be wrong.  This one applies
+    `Real.rpow_le_rpow` and `Real.rpow_mul` with the nonnegativity side conditions discharged.
+  * **Degree zero is handled, not excluded.**  No case split: at `d = 0` both the target factor
+    and the Brégman factor are `1`, and the scalar step `(d)⁻¹ * 2⁻¹ = (2 * d)⁻¹` is `mul_inv`,
+    unconditional in ℝ.  The statement carries no hypothesis on degrees and must not acquire one.
+
+  **The adjacency matrix is built inline rather than imported**, because `Entropy.lean` reaches
+  only `SimpleGraph.Finite` and `SimpleGraph.Matching`, and a `prove` task does not own the
+  header.  Recorded because it reads like a missed reuse of `SimpleGraph.adjMatrix` and is not:
+  **check scope before calling an inline construction duplication.**
+
 
 - **2026-09-21 — the frontier re-derived from the source, not from this file: three nodes published (#377–#379), and §9.4's "blocked" was a scoping error.**
   With Chapter 11's one corner held and every other stated declaration proved, the board was

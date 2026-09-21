@@ -134,6 +134,14 @@ remarks in the notes and are not stated.
   it is the check that the `1 / (2 d_v)` exponent is the right one and not off by the factor of
   two that the square root introduces.
 
+  **Proved 2026-09-21 in #380**, and Chapter 10 is back to every stated declaration proved.
+  `#print axioms` gives `[propext, Classical.choice, Quot.sound]`.  The proof is the four-step
+  chain as planned, with one detail worth keeping: it builds the `0/1` adjacency matrix **inline**
+  rather than importing `SimpleGraph.adjMatrix`, because `Entropy.lean` imports only
+  `SimpleGraph.Finite` and `SimpleGraph.Matching` and a `prove` task does not own the header.
+  That reads like duplication and is not — check scope before calling an inline construction a
+  missed reuse.
+
   The second half, `pm(G)² ≤ pm(doubleCover G)`, is **stated as #254 since 2026-09-17**, having
   been held as verified-but-unstated for exactly as long as I had no route for it.
 

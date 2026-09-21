@@ -9057,11 +9057,19 @@
       "file": "ProbMethodCombinatorics/KahnLovasz.lean",
       "decl": "ProbMethodCombinatorics.perfectMatchingCount_le_prod_factorial",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [
         "perfectMatchingCount"
       ],
-      "proof_uses": [],
+      "proof_uses": [
+        "bregman_minc",
+        "doubleCover",
+        "perfectMatchingCount_doubleCover",
+        "perfectMatchingCount_sq_le_doubleCover",
+        "permSupport",
+        "permanent_eq_card_permSupport",
+        "permanent_upstream"
+      ],
       "parent": "entropy"
     }
   }
