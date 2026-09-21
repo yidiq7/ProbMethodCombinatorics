@@ -509,41 +509,38 @@ theorem exists_nearly_equiangular {α ε : ℝ} (hα : α ∈ Set.Ioo (0 : ℝ) 
   -- remaining `m = n - k`; the frozen block contributes `k / n ≈ α` to every inner product and
   -- the free block contributes at most `β = ε' / 2` in absolute value.
   obtain ⟨hα0, hα1⟩ := hα
-  set ε' : ℝ := min ε 1 with hε'def
+  set ε' : ℝ := min ε 1
   have hε'0 : 0 < ε' := lt_min hε one_pos
   have hε'1 : ε' ≤ 1 := min_le_right _ _
   have hε'ε : ε' ≤ ε := min_le_left _ _
   set β : ℝ := ε' / 2 with hβdef
-  have hβ0 : 0 < β := by rw [hβdef]; linarith
-  have hβ1 : β ≤ 1 := by rw [hβdef]; linarith
+  have hβ0 : 0 < β := by rw [hβdef]; linarith only [hε'0]
+  have hβ1 : β ≤ 1 := by rw [hβdef]; linarith only [hε'0, hε'1]
   set A : ℝ := β ^ 2 * (1 - α) / 2 with hAdef
-  have hA0 : 0 < A := by
-    have h1α : 0 < 1 - α := by linarith
-    rw [hAdef]; positivity
+  have h1α : 0 < 1 - α := by linarith only [hα1]
+  have hA0 : 0 < A := by rw [hAdef]; positivity
   have hlog2 : 0 < Real.log 2 := Real.log_pos (by norm_num)
   refine ⟨A / (2 * Real.log 2), ⌈2 / ε'⌉₊ + ⌈2 * Real.log 4 / A⌉₊ + 1, by positivity, ?_⟩
   intro n hn
-  have hc1 : ⌈(2 : ℝ) / ε'⌉₊ ≤ n := by omega
-  have hc2 : ⌈2 * Real.log 4 / A⌉₊ ≤ n := by omega
-  have hn1 : 1 ≤ n := by omega
-  have hnpos : (0 : ℝ) < n := by exact_mod_cast hn1
-  have hcast1 : (2 : ℝ) / ε' ≤ n := (Nat.le_ceil _).trans (by exact_mod_cast hc1)
-  have hcast2 : 2 * Real.log 4 / A ≤ n := (Nat.le_ceil _).trans (by exact_mod_cast hc2)
-  have hεn : 2 ≤ ε' * (n : ℝ) := by
-    rw [div_le_iff₀ hε'0] at hcast1; linarith
+  -- `n₀` is a sum of ceilings, so every real threshold entering it is at most `n`.
+  have hceil : ∀ x : ℝ, ⌈x⌉₊ ≤ n → x ≤ (n : ℝ) :=
+    fun x h => (Nat.le_ceil x).trans (by exact_mod_cast h)
+  have hnpos : (0 : ℝ) < n := Nat.cast_pos.mpr (by omega)
+  have hcast1 : (2 : ℝ) / ε' ≤ n := hceil _ (by omega)
+  have hcast2 : 2 * Real.log 4 / A ≤ n := hceil _ (by omega)
+  have hεn : 2 ≤ ε' * (n : ℝ) := by rw [div_le_iff₀ hε'0] at hcast1; linarith only [hcast1]
   -- Split the coordinates into a block of `k ≈ α n` frozen ones and `m` free ones.
-  set k : ℕ := ⌊α * n⌋₊ with hkdef
+  set k : ℕ := ⌊α * n⌋₊
   have hkle : (k : ℝ) ≤ α * n := Nat.floor_le (by positivity)
   have hklt : α * n < (k : ℝ) + 1 := Nat.lt_floor_add_one _
   have hkn : k < n := by
-    have h : (k : ℝ) < n := by nlinarith only [hkle, hα1, hnpos]
-    exact_mod_cast h
-  set m : ℕ := n - k with hmdef
+    exact_mod_cast hkle.trans_lt ((mul_lt_mul_of_pos_right hα1 hnpos).trans_eq (one_mul _))
+  set m : ℕ := n - k
   have hnkm : n = k + m := by omega
   have hm0 : 0 < m := by omega
   have hkm : (k : ℝ) + (m : ℝ) = (n : ℝ) := by exact_mod_cast hnkm.symm
   have hk0 : (0 : ℝ) ≤ (k : ℝ) := Nat.cast_nonneg k
-  have hmn : (m : ℝ) ≤ (n : ℝ) := by linarith
+  have hmn : (m : ℝ) ≤ (n : ℝ) := by linarith only [hkm, hk0]
   have hmlow : (1 - α) * n ≤ (m : ℝ) := by linarith only [hkm, hkle]
   obtain ⟨e⟩ : Nonempty (Fin n ≃ (Fin k ⊕ Fin m)) :=
     ⟨(Equiv.cast (congrArg Fin hnkm)).trans finSumFinEquiv.symm⟩
@@ -551,50 +548,40 @@ theorem exists_nearly_equiangular {α ε : ℝ} (hα : α ∈ Set.Ioo (0 : ℝ) 
       ∑ i, f i = (∑ a : Fin k, f (e.symm (Sum.inl a))) + ∑ b : Fin m, f (e.symm (Sum.inr b)) :=
     fun f => (Equiv.sum_comp e.symm f).symm.trans (Fintype.sum_sum_type _)
   obtain ⟨T, hTcard, hTgood⟩ := exists_large_sign_family m hm0 hβ0 hβ1
+  -- The counting is done; only the real inequalities above carry into the geometry below.
+  clear hn hkn hnkm hk0 hε'1 hceil hcast1 hlog2 hα0 hα1 h1α hβ1 hm0
   set sgn : (Fin m → Bool) → Fin n → ℝ :=
     fun z i => toSign (Sum.elim (fun _ => true) z (e i)) with hsgn
   set vec : (Fin m → Bool) → EuclideanSpace ℝ (Fin n) :=
-    fun z => WithLp.toLp 2 (fun i => sgn z i / Real.sqrt n) with hvec
+    fun z => WithLp.toLp 2 (fun i => sgn z i / Real.sqrt n)
   have hsnpos : 0 < Real.sqrt n := Real.sqrt_pos.mpr hnpos
   have hsn : Real.sqrt n * Real.sqrt n = (n : ℝ) := Real.mul_self_sqrt hnpos.le
   have hvecapp : ∀ z i, vec z i = sgn z i / Real.sqrt n := fun z i => rfl
-  have hvl : ∀ z, ∀ a : Fin k, sgn z (e.symm (Sum.inl a)) = 1 := by
-    intro z a; simp [hsgn, toSign]
-  have hvr : ∀ z, ∀ b : Fin m, sgn z (e.symm (Sum.inr b)) = toSign (z b) := by
-    intro z b; simp [hsgn]
-  have hsgnsq : ∀ z i, sgn z i ^ 2 = 1 := by
-    intro z i
-    rw [hsgn]
-    rcases Sum.elim (fun _ => true) z (e i) with _ | _ <;> norm_num [toSign]
-  -- Every `vec z` is a unit vector.
-  have hnorm : ∀ z, ‖vec z‖ = 1 := by
-    intro z
-    have h2 : ‖vec z‖ ^ 2 = 1 := by
-      rw [EuclideanSpace.real_norm_sq_eq]
-      have hterm : ∀ i : Fin n, (vec z i) ^ 2 = 1 / (n : ℝ) := by
-        intro i
-        rw [hvecapp, div_pow, hsgnsq, Real.sq_sqrt hnpos.le]
-      rw [Finset.sum_congr rfl (fun i _ => hterm i), Finset.sum_const, Finset.card_univ,
-        Fintype.card_fin, nsmul_eq_mul]
-      field_simp
-    nlinarith only [h2, norm_nonneg (vec z)]
+  have hvl : ∀ z a, sgn z (e.symm (Sum.inl a)) = 1 := fun z a => by simp [hsgn, toSign]
+  have hvr : ∀ z b, sgn z (e.symm (Sum.inr b)) = toSign (z b) := fun z b => by simp [hsgn]
   -- The inner product of two such vectors is the normalised correlation of the sign sequences.
   have hinner : ∀ z w, (inner ℝ (vec z) (vec w) : ℝ)
       = ((k : ℝ) + ∑ b : Fin m, toSign (z b) * toSign (w b)) / n := by
     intro z w
-    rw [PiLp.inner_apply]
-    have hterm : ∀ i : Fin n, (inner ℝ (vec z i) (vec w i) : ℝ)
-        = (sgn z i * sgn w i) / n := by
+    have hterm : ∀ i : Fin n, (inner ℝ (vec z i) (vec w i) : ℝ) = sgn z i * sgn w i / n := by
       intro i
       rw [RCLike.inner_apply, starRingEnd_apply, star_trivial, hvecapp, hvecapp,
-        div_mul_div_comm, hsn]
-      ring
-    rw [Finset.sum_congr rfl (fun i _ => hterm i), ← Finset.sum_div]
-    congr 1
-    rw [hsplit (fun i => sgn z i * sgn w i)]
-    congr 1
+        div_mul_div_comm, hsn, mul_comm (sgn w i)]
+    rw [PiLp.inner_apply, Finset.sum_congr rfl (fun i _ => hterm i), ← Finset.sum_div,
+      hsplit (fun i => sgn z i * sgn w i)]
+    congr 2
     · simp [hvl]
     · exact Finset.sum_congr rfl (fun b _ => by rw [hvr, hvr])
+  -- Every `vec z` is a unit vector: its self-correlation is the full count `k + m = n`.
+  have hnorm : ∀ z, ‖vec z‖ = 1 := by
+    intro z
+    have hone : ∀ b : Bool, toSign b * toSign b = 1 := by
+      intro b; cases b <;> norm_num [toSign]
+    have h2 : ‖vec z‖ ^ 2 = 1 := by
+      rw [← real_inner_self_eq_norm_sq, hinner, Finset.sum_congr rfl (fun b _ => hone (z b)),
+        Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul, mul_one, hkm,
+        div_self hnpos.ne']
+    exact (pow_left_inj₀ (norm_nonneg _) zero_le_one two_ne_zero).mp (by rw [h2, one_pow])
   -- Distinct sign sequences give distinct vectors.
   have hvecinj : Function.Injective vec := by
     intro z w h
@@ -602,51 +589,42 @@ theorem exists_nearly_equiangular {α ε : ℝ} (hα : α ∈ Set.Ioo (0 : ℝ) 
     have h' : vec z (e.symm (Sum.inr b)) = vec w (e.symm (Sum.inr b)) := by rw [h]
     rw [hvecapp, hvecapp, div_left_inj' (ne_of_gt hsnpos), hvr, hvr] at h'
     rcases hz : z b <;> rcases hw : w b <;> simp [toSign, hz, hw] at h' ⊢ <;> norm_num at h'
+  have hmem : ∀ u ∈ T.map ⟨vec, hvecinj⟩, ∃ z ∈ T, vec z = u :=
+    fun _ hu => Finset.mem_map.1 hu
   refine ⟨T.map ⟨vec, hvecinj⟩, ?_, ?_, ?_⟩
-  · rw [Finset.card_map]
+  · -- `2 ^ (c n) = exp (A n / 2)`, and `n ≥ 2 log 4 / A` makes that at least `4`, so the
+    -- factor `4` lost in `hTcard` is paid for by one of the two halves of
+    -- `exp (A n) ≤ exp (β ^ 2 * m / 2)`.
+    rw [Finset.card_map]
     have hpow : (2 : ℝ) ^ (A / (2 * Real.log 2) * n) = Real.exp (A * n / 2) := by
-      rw [Real.rpow_def_of_pos (by norm_num : (0 : ℝ) < 2)]
-      congr 1
-      field_simp
+      rw [Real.rpow_def_of_pos (by norm_num : (0 : ℝ) < 2)]; congr 1; field_simp
+    have h4 : (4 : ℝ) ≤ Real.exp (A * n / 2) :=
+      (Real.exp_log (by norm_num : (0 : ℝ) < 4)).symm.trans_le
+        (Real.exp_le_exp.mpr (by rw [div_le_iff₀ hA0] at hcast2; linarith only [hcast2]))
+    have hAm : A * n / 2 + A * n / 2 ≤ β ^ 2 * m / 2 := by
+      rw [hAdef]; linarith only [mul_le_mul_of_nonneg_left hmlow (sq_nonneg β)]
+    have e1 : Real.exp (A * n / 2) * Real.exp (A * n / 2) ≤ Real.exp (β ^ 2 * m / 2) :=
+      (Real.exp_add _ _).symm.trans_le (Real.exp_le_exp.mpr hAm)
     rw [hpow]
     refine le_trans ?_ hTcard
-    have hlog4 : Real.log 4 ≤ A * n / 2 := by
-      rw [div_le_iff₀ hA0] at hcast2; linarith
-    have h4 : (4 : ℝ) ≤ Real.exp (A * n / 2) :=
-      (Real.exp_log (by norm_num : (0 : ℝ) < 4)).symm.trans_le (Real.exp_le_exp.mpr hlog4)
-    have hAm : A * n ≤ β ^ 2 * m / 2 := by
-      rw [hAdef]; nlinarith only [hmlow, sq_nonneg β]
-    have e1 : Real.exp (A * n) ≤ Real.exp (β ^ 2 * m / 2) := Real.exp_le_exp.mpr hAm
-    have e2 : Real.exp (A * n / 2) * Real.exp (A * n / 2) = Real.exp (A * n) := by
-      rw [← Real.exp_add]; congr 1; ring
-    nlinarith only [h4, e1, e2, Real.exp_pos (A * n / 2)]
+    rw [le_div_iff₀ (by norm_num : (0 : ℝ) < 4)]
+    linarith only [e1, mul_le_mul_of_nonneg_left h4 (Real.exp_pos (A * n / 2)).le]
   · intro u hu
-    rw [Finset.mem_map] at hu
-    obtain ⟨z, _, hzu⟩ := hu
-    have hzu' : vec z = u := hzu
-    rw [← hzu']
+    obtain ⟨z, -, rfl⟩ := hmem u hu
     exact hnorm z
   · intro u hu u' hu' huu'
-    rw [Finset.mem_map] at hu hu'
-    obtain ⟨z, hz, hzu⟩ := hu
-    obtain ⟨z', hz', hz'u⟩ := hu'
-    have hzu' : vec z = u := hzu
-    have hz'u' : vec z' = u' := hz'u
-    subst hzu'
-    subst hz'u'
-    clear hzu hz'u
+    obtain ⟨z, hz, rfl⟩ := hmem u hu
+    obtain ⟨z', hz', rfl⟩ := hmem u' hu'
     have hne : z ≠ z' := fun h => huu' (by rw [h])
     have hs := hTgood z hz z' hz' hne
     rw [abs_le] at hs
-    have hbm : β * (m : ℝ) ≤ β * n := mul_le_mul_of_nonneg_left hmn hβ0.le
-    have hbn : β * (n : ℝ) = ε' * n / 2 := by rw [hβdef]; ring
+    -- The free block moves the correlation by at most `β m ≤ ε' n / 2`, and `ε' n ≥ 2`
+    -- absorbs the rounding error `α n - k < 1`.
+    have hbm : β * (m : ℝ) ≤ ε' * n / 2 :=
+      (mul_le_mul_of_nonneg_left hmn hβ0.le).trans_eq (by rw [hβdef]; ring)
     have hen : ε' * (n : ℝ) ≤ ε * n := mul_le_mul_of_nonneg_right hε'ε hnpos.le
-    rw [Set.mem_Icc, hinner]
-    constructor
-    · rw [le_div_iff₀ hnpos]
-      linarith only [hkle, hklt, hs.1, hs.2, hbm, hbn, hen, hεn]
-    · rw [div_le_iff₀ hnpos]
-      linarith only [hkle, hklt, hs.1, hs.2, hbm, hbn, hen, hεn]
+    rw [Set.mem_Icc, hinner, le_div_iff₀ hnpos, div_le_iff₀ hnpos]
+    constructor <;> linarith only [hkle, hklt, hs.1, hs.2, hbm, hen, hεn]
 
 /-! ### §5.3 Graph subdivisions
 
