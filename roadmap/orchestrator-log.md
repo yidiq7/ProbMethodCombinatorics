@@ -3,6 +3,39 @@
 How to run the loop on this project.  Mine, not a worker's: `skills/` is force-loaded
 into every worker's context, so nothing here belongs there.
 
+## Probing a lemma under `import Mathlib` cannot tell you it is in scope
+
+I gave #379 a "Useful Mathlib" list — `measureReal_compl`, `measureReal_mono`, `measureReal_empty`,
+`measureReal_univ` — and **not one of them resolves from the file the task targets.**  They live in
+`Mathlib/MeasureTheory/Measure/Real.lean`, which is strictly downstream of the three imports
+`ConcentrationEquivalence.lean` carries.  The contributor hit it immediately and derived the two
+facts they needed inline from the `ENNReal` measure instead.
+
+**This is the `private`-unreachability lesson above in a new costume, and the earlier statement of
+it was too narrow.**  That entry says the tell is *visibility*.  It is not: it is **reachability**,
+of which visibility is one case.  A `public` Mathlib lemma in an unimported module is exactly as
+unreachable as a `private` one next door.
+
+**The mechanism that fooled me is worth naming, because it will recur.**  I verified the names by
+elaborating a probe file that began `import Mathlib`.  Every name resolved, so the list looked
+checked.  But `import Mathlib` answers "does this lemma exist?", and the question that matters is
+"does this lemma exist **here**?"  Those come apart precisely when the orchestrator has just
+authored the file — because then the import set is *mine*, chosen narrow, and nothing else in the
+project has exercised it yet.
+
+- **Probe under the target file's own header, not under `import Mathlib`.**  Copy the file's import
+  block verbatim into the probe and `#check` there.
+- **`Measure.real` elaborating is not evidence its API is present.**  The definition comes from
+  `MeasureSpaceDef` and the lemmas come from `Measure/Real.lean`, so a statement written in
+  `μ.real` typechecks in a file where nothing can be proved about it.  **A statement that
+  elaborates does not mean a reachable proof exists** — that gap is invisible until someone tries.
+- A `prove` task cannot add the import (`skills/conventions.md`: the header is not theirs), so this
+  error is paid entirely by the contributor, in inline re-derivation. It also silently takes
+  `gcongr` off the table whenever the `@[gcongr]`-tagged lemma is the unreachable one.
+- **When authoring a new file, pick the header by writing the intended proof sketch against it**,
+  not by listing what the statement needs to elaborate.
+
+
 ## A `private` lemma in another module is unreachable — pointing at it guarantees re-derivation
 
 `integral_triangleCount` (#181) and `variance_triangleCount_le` (#182) both need the probability
