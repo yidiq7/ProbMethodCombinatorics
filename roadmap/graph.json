@@ -9047,9 +9047,11 @@
       "file": "ProbMethodCombinatorics/Hoeffding.lean",
       "decl": "ProbMethodCombinatorics.measure_sum_ge_le_of_mem_Icc",
       "statement": "formalized",
-      "proof": "planned",
+      "proof": "formalized",
       "uses": [],
-      "proof_uses": [],
+      "proof_uses": [
+        "hoeffding_lemma_upstream"
+      ],
       "parent": "chernoff"
     },
     "perfectMatchingCount_le_prod_factorial": {

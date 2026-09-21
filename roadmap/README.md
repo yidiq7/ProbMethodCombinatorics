@@ -27,7 +27,7 @@ group file has a "planned, not stated" section saying which and why.
 | [`expectation`](expectation.md) | 2 | **all proved** | some of §2 |
 | [`alterations`](alterations.md) | 3 | **all proved** | — |
 | [`second-moment`](second-moment.md) | 4 | **all proved** | asymptotics |
-| [`chernoff`](chernoff.md) | 5 | 1 open (Thm 5.0.5, own file) | — |
+| [`chernoff`](chernoff.md) | 5 | **all proved** | — |
 | [`local-lemma`](local-lemma.md) | 6 | **all proved** | — |
 | [`correlation`](correlation.md) | 7 | **all proved** | — |
 | [`janson`](janson.md) | 8 | **all proved** | — |
@@ -39,7 +39,7 @@ group file has a "planned, not stated" section saying which and why.
 re-sweep of the source (#377–#379: Kahn–Lovász, Theorem 5.0.5, Theorem 9.4.8) and are assembly
 or Mathlib-wrapping rather than new mathematics; each sits in its own file, so filling it does
 not re-pin the golf tasks open against `Chernoff.lean`, `Concentration.lean` and `Entropy.lean`.
-**Kahn–Lovász landed the same day** (#380), unconditional.
+**Kahn–Lovász (#380) and Theorem 5.0.5 (#381) landed the same day**, both unconditional.
 The fourth is Chapter 11's held corner.  The counts in this table are derived from `graph.json`
 (nodes with `statement: formalized`, `proof: planned`), which `sync-graph --check` keeps
 honest:
