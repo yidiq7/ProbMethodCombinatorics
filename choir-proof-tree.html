@@ -187,7 +187,7 @@
     <button id="play">▶ Play</button>
     <input type="range" id="scrub" min="0" max="0" value="0">
     <label class="key">speed
-      <input type="range" id="speed" min="0" max="5" step="1" value="3"
+      <input type="range" id="speed" min="0" max="5" step="1" value="5"
              style="flex:0 0 90px;min-width:90px">
       <span id="speedLabel" class="when"
             style="display:inline-block;min-width:76px"></span>
@@ -884,8 +884,14 @@ tbody.addEventListener('mouseleave', uncue);
 // --- controls -------------------------------------------------------------
 const scrub = document.getElementById('scrub');
 rebuildScope();
-scrub.value = scrub.max;
-scrub.addEventListener('input', () => { stepBefore = null; paint(+scrub.value); });
+scrub.value = 0;
+// Taking the scrubber is taking the wheel: a reader who reaches for it
+// wants the moment under their hand, not the one the timer is heading for.
+scrub.addEventListener('input', () => {
+  stop();
+  stepBefore = null;
+  paint(+scrub.value);
+});
 
 // Switching scope changes what the scrubber indexes, so hold the moment
 // rather than the number: the same instant in the other scope is the
@@ -1109,6 +1115,7 @@ function goTo(i) {
   if (E && E.g.classList.contains('hidden')) {
     const step = firstStep(decl);
     if (step >= 0) {
+      stop();      // the match is the destination, not a place to pass through
       if (stepBefore === null) stepBefore = +scrub.value;
       scrub.value = String(step);
       paint(step);
@@ -1166,7 +1173,10 @@ addEventListener('keydown', ev => {
   }
 });
 
+// The page opens playing, so the history runs itself the moment it loads.
+// Pause, the scrubber and a search each hand control back to the reader.
 paint(+scrub.value);
+start();
 </script>
 </body>
 </html>
