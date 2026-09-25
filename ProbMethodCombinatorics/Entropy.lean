@@ -1078,7 +1078,50 @@ theorem card_pow_le_prod_card_image_erase {ι : Type*} [Fintype ι] [DecidableEq
     (S : Finset (∀ i, α i)) (hS : S.Nonempty) :
     S.card ^ (Fintype.card ι - 1)
       ≤ ∏ j : ι, (S.image fun x => fun i : ↥(univ.erase j) => x i).card := by
-  sorry
+  obtain ⟨x₀, hx₀⟩ := id hS
+  have : Nonempty ↥S := ⟨⟨x₀, hx₀⟩⟩
+  let X (i : ι) (ω : ↥S) : ↥(S.image fun x ↦ x i) :=
+    ⟨ω.1 i, Finset.mem_image_of_mem _ ω.2⟩
+  have hp : ∀ ω : ↥S, 0 ≤ uniformPMF (univ : Finset ↥S) ω := uniformPMF_nonneg _
+  have hp1 : ∑ ω : ↥S, uniformPMF (univ : Finset ↥S) ω = 1 :=
+    sum_uniformPMF Finset.univ_nonempty
+  have hinj : Function.Injective (fun (ω : ↥S) i ↦ X i ω) := by
+    intro ω ω' h
+    exact Subtype.ext (funext fun i ↦ congrArg Subtype.val (congrFun h i))
+  have hk : ∀ i : ι, Fintype.card ι - 1 ≤
+      (univ.filter fun j ↦ i ∈ (univ : Finset ι).erase j).card := by
+    intro i
+    have heq : (univ.filter fun j ↦ i ∈ (univ : Finset ι).erase j) = univ.erase i := by
+      ext j
+      simp [ne_comm]
+    rw [heq, Finset.card_erase_of_mem (Finset.mem_univ i), Finset.card_univ]
+  have hs := shearer (uniformPMF (univ : Finset ↥S)) hp hp1 X
+    (fun j ↦ univ.erase j) (Fintype.card ι - 1) hk
+  rw [entropy_uniformPMF_univ_of_injective hinj, Fintype.card_coe] at hs
+  have hmain : ((Fintype.card ι - 1 : ℕ) : ℝ) * Real.logb 2 (S.card : ℝ) ≤
+      ∑ j : ι, Real.logb 2 ((S.image fun x ↦ fun i : ↥(univ.erase j) ↦ x i).card : ℝ) := by
+    refine hs.trans (Finset.sum_le_sum fun j _ ↦ ?_)
+    refine (entropy_le_logb_card_image hp hp1 _).trans (le_of_eq ?_)
+    rw [card_image_univ_of_injective
+      (fun (ω : ↥S) (i : ↥(univ.erase j)) ↦ X i.1 ω)
+      (fun (g : ∀ i : ↥(univ.erase j), ↥(S.image fun x ↦ x i.1)) i ↦ (g i).1)
+      (by
+        intro g g' h
+        exact funext fun i ↦ Subtype.ext (congrFun h i))]
+    rw [card_image_univ_coe S (fun x ↦ fun i : ↥(univ.erase j) ↦ x i)]
+  have hpos : ∀ j : ι,
+      (0 : ℝ) < ((S.image fun x ↦ fun i : ↥(univ.erase j) ↦ x i).card : ℝ) := by
+    intro j
+    exact_mod_cast Finset.card_pos.mpr (hS.image _)
+  have hcpos : (0 : ℝ) < (S.card : ℝ) := by
+    exact_mod_cast Finset.card_pos.mpr hS
+  have hfin : (S.card : ℝ) ^ (Fintype.card ι - 1) ≤
+      ∏ j : ι, ((S.image fun x ↦ fun i : ↥(univ.erase j) ↦ x i).card : ℝ) := by
+    refine (Real.logb_le_logb one_lt_two (by positivity)
+      (Finset.prod_pos fun j _ ↦ hpos j)).mp ?_
+    rw [Real.logb_pow, Real.logb_prod univ _ fun j _ ↦ (hpos j).ne']
+    exact hmain
+  exact_mod_cast hfin
 
 /-- **Discrete Loomis–Whitney in three coordinates** (Theorem 10.4.3): a finite set of points in
 a product of three types has `|A|² ≤ |π₁₂ A| · |π₁₃ A| · |π₂₃ A|`.  Apply `shearer_triple` to a
