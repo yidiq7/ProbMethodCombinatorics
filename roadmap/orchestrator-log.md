@@ -3,6 +3,39 @@
 How to run the loop on this project.  Mine, not a worker's: `skills/` is force-loaded
 into every worker's context, so nothing here belongs there.
 
+## Do not reuse the `golf` rules block in a `prove` task
+
+#403 and #404 were published as `prove` tasks carrying the rules block I had been pasting into
+golf tasks all day.  The overseer caught it.  Three of the lines were incoherent and one was
+actively wrong:
+
+- **"Report before/after `#count_heartbeats`"** — there is no *before*.  The target is a `sorry`,
+  which elaborates to nothing.
+- **"if the docstring describes something the proof no longer does"** — "no longer" presupposes a
+  proof that changed.  On a `prove` task the docstring describes the *intended* route, so the
+  question is whether the contributor's proof *differs from* it.
+- **"report negative results — candidates that turned out slower or longer"** — slower and longer
+  than what?
+- **"Do not add a top-level declaration; shared sub-arguments belong in an in-body `have`"** —
+  this one is a real defect, not just noise.  `skills/conventions.md` scopes it to golf
+  explicitly ("a `golf` task may **not** … add a new lemma"), and its *If you cannot finish*
+  section tells a stuck contributor to do exactly the opposite: state the obligations as real
+  declarations and reduce to them.  **My rule would have forbidden the project's own sanctioned
+  path for landing partial progress.**
+
+The cause is plain reuse: fourteen golf tasks in a row, then a `prove` task, and the boilerplate
+came along.  **The two task types have different contracts and the rules block is not shared.**
+A `golf` task's invariant is *token-identical statement, body only, no new declarations*.  A
+`prove` task's invariant is *statement fixed, everything else is yours, helpers get reviewed as
+mathematics*.
+
+- Keep the two blocks separate and write the `prove` one from the contract, not from the last
+  task published.
+- The tell that a rule has been imported from the wrong type: it refers to a **previous state of
+  the proof** (*before/after*, *no longer*, *slower*, *shorter*).  A `prove` task has no previous
+  state.
+
+
 ## A measured saving belongs to the declaration it was measured in, not to the edit
 
 #396's prose promised about **−415 heartbeats** for a one-line `simpa` → `simpa only` change,
