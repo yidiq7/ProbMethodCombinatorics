@@ -794,6 +794,39 @@ theorem card_le_of_forall_inner_eq {n : ℕ} {α : ℝ} (hα0 : 0 ≤ α) (hα1 
     (hunit : ∀ v ∈ S, ‖v‖ = 1)
     (hinner : ∀ v ∈ S, ∀ w ∈ S, v ≠ w → inner ℝ v w = α) :
     S.card ≤ n := by
-  sorry
+  classical
+  have hli : LinearIndependent ℝ (fun v : ↥S => (v : EuclideanSpace ℝ (Fin n))) := by
+    rw [Fintype.linearIndependent_iff]
+    intro c hc i
+    have hterm (v w : ↥S) :
+        c v * (c w * inner ℝ (w : EuclideanSpace ℝ (Fin n)) (v : EuclideanSpace ℝ (Fin n)))
+          = (if v = w then (1 - α) * c v ^ 2 else 0) + α * (c v * c w) := by
+      by_cases hvw : v = w
+      · subst hvw
+        rw [if_pos rfl, real_inner_self_eq_norm_sq, hunit v.1 v.2]
+        ring
+      · rw [if_neg hvw, hinner w.1 w.2 v.1 v.2 (Subtype.ext_iff.not.mp (Ne.symm hvw))]
+        ring
+    have h0 : inner ℝ (∑ v : ↥S, c v • (v : EuclideanSpace ℝ (Fin n)))
+        (∑ w : ↥S, c w • (w : EuclideanSpace ℝ (Fin n))) = 0 := by
+      rw [hc, inner_zero_left]
+    have hexp : inner ℝ (∑ v : ↥S, c v • (v : EuclideanSpace ℝ (Fin n)))
+        (∑ w : ↥S, c w • (w : EuclideanSpace ℝ (Fin n)))
+        = (1 - α) * ∑ v : ↥S, c v ^ 2 + α * (∑ v : ↥S, c v) ^ 2 := by
+      simp only [sum_inner, inner_sum, real_inner_smul_left, real_inner_smul_right, hterm,
+        sum_add_distrib, sum_ite_eq, mem_univ, ↓reduceIte]
+      rw [← mul_sum, sq, sum_mul]
+      congr 1
+      rw [mul_sum]
+      refine sum_congr rfl fun v _ => ?_
+      rw [mul_sum, mul_sum]
+    have hpos : 0 ≤ α * (∑ v : ↥S, c v) ^ 2 := mul_nonneg hα0 (sq_nonneg _)
+    have hle : c i ^ 2 ≤ ∑ v : ↥S, c v ^ 2 :=
+      single_le_sum (fun v _ => sq_nonneg (c v)) (mem_univ i)
+    have hci0 : 0 ≤ c i ^ 2 := sq_nonneg (c i)
+    have hci_eq : c i ^ 2 = 0 := by nlinarith
+    exact sq_eq_zero_iff.mp hci_eq
+  have hcard := hli.fintype_card_le_finrank
+  rwa [Fintype.card_coe, finrank_euclideanSpace_fin] at hcard
 
 end ProbMethodCombinatorics
