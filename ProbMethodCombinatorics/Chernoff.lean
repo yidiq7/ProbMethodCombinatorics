@@ -767,6 +767,36 @@ theorem card_branchNonAdj_add_le_of_isKSubdivision {V : Type*} [Fintype V] [Deci
 
 end Subdivision
 
+/-- For a family of unit vectors whose distinct members have inner product `α`, the squared norm
+of a linear combination splits into a diagonal and a total part:
+`‖∑ g i • f i‖² = (1 - α) ∑ g i² + α (∑ g i)²`. -/
+theorem norm_sq_sum_smul_of_inner_eq {ι : Type*} {n : ℕ} {α : ℝ}
+    (f : ι → EuclideanSpace ℝ (Fin n)) (s : Finset ι) (g : ι → ℝ)
+    (hunit : ∀ i ∈ s, ‖f i‖ = 1)
+    (hinner : ∀ i ∈ s, ∀ j ∈ s, i ≠ j → inner ℝ (f i) (f j) = α) :
+    ‖∑ i ∈ s, g i • f i‖ ^ 2 = (1 - α) * ∑ i ∈ s, g i ^ 2 + α * (∑ i ∈ s, g i) ^ 2 := by
+  classical
+  have key : ∀ i ∈ s, ∀ j ∈ s,
+      inner ℝ (f i) (f j) = α + (1 - α) * (if i = j then 1 else 0) := by
+    intro i hi j hj
+    by_cases h : i = j
+    · subst h
+      rw [real_inner_self_eq_norm_sq, hunit i hi]
+      simp
+    · rw [hinner i hi j hj h]
+      simp [h]
+  rw [← real_inner_self_eq_norm_sq, sum_inner]
+  simp_rw [inner_sum, real_inner_smul_left, real_inner_smul_right]
+  calc ∑ i ∈ s, ∑ j ∈ s, g i * (g j * inner ℝ (f i) (f j))
+      = ∑ i ∈ s, ∑ j ∈ s, (α * (g i * g j) + (1 - α) * (g i * (if i = j then g j else 0))) := by
+        refine Finset.sum_congr rfl fun i hi => Finset.sum_congr rfl fun j hj => ?_
+        rw [key i hi j hj]
+        split_ifs <;> ring
+    _ = (1 - α) * ∑ i ∈ s, g i ^ 2 + α * (∑ i ∈ s, g i) ^ 2 := by
+        simp only [Finset.sum_add_distrib, ← Finset.mul_sum, Finset.sum_ite_eq, sq,
+          Finset.sum_mul_sum]
+        simp [add_comm]
+
 /-- **The exactly-equiangular bound** (Zhao, §5.2, the Gram-matrix paragraph before Theorem
 5.2.1; unnumbered in the source): unit vectors in `ℝ^n` whose pairwise inner products are all
 equal to a fixed `α ∈ [0, 1)` number at most `n`.
@@ -794,6 +824,22 @@ theorem card_le_of_forall_inner_eq {n : ℕ} {α : ℝ} (hα0 : 0 ≤ α) (hα1 
     (hunit : ∀ v ∈ S, ‖v‖ = 1)
     (hinner : ∀ v ∈ S, ∀ w ∈ S, v ≠ w → inner ℝ v w = α) :
     S.card ≤ n := by
-  sorry
+  classical
+  have hli : LinearIndependent ℝ (fun v : S => (v : EuclideanSpace ℝ (Fin n))) := by
+    rw [linearIndependent_iff']
+    intro t g hg i hi
+    have hid := norm_sq_sum_smul_of_inner_eq (α := α) (fun v : S => (v : EuclideanSpace ℝ (Fin n)))
+      t g (fun v _ => hunit v v.2)
+      (fun v _ w _ hvw => hinner v v.2 w w.2 (Subtype.val_injective.ne hvw))
+    rw [hg, norm_zero] at hid
+    have hsq : 0 ≤ ∑ j ∈ t, g j ^ 2 := Finset.sum_nonneg fun j _ => sq_nonneg (g j)
+    have htot : 0 ≤ α * (∑ j ∈ t, g j) ^ 2 := mul_nonneg hα0 (sq_nonneg _)
+    have hzero : ∑ j ∈ t, g j ^ 2 = 0 := by
+      have h1 : 0 < 1 - α := by linarith
+      nlinarith
+    have := (Finset.sum_eq_zero_iff_of_nonneg fun j _ => sq_nonneg (g j)).1 hzero i hi
+    exact (pow_eq_zero_iff two_ne_zero).1 this
+  have h := hli.fintype_card_le_finrank
+  simpa [finrank_euclideanSpace_fin] using h
 
 end ProbMethodCombinatorics
